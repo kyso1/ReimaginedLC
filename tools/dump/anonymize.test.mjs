@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { anonymize, assertClean, collectIdentities, collectSecrets } from './anonymize.mjs';
+import { anonymize, assertClean, assertNotDenied, collectIdentities, collectSecrets } from './anonymize.mjs';
 
 const JWT = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.c2lnbmF0dXJlLWJ5dGVz';
 const PUUID = '0f1e2d3c-aaaa-bbbb-cccc-1234567890ab';
@@ -470,4 +470,15 @@ test('F4: nome curto igual a valor dentro de JSON embutido canônico não faz a 
   const lines = [ev('/x', { puuid: U1, gameName: 'Zeca', regalia: '{"bannerType":"Zeca"}' })];
   const out = pass3(lines);
   assert.match(out[0].data.gameName, /^anon-\d+$/);
+});
+
+test('F5: lista de bloqueio acusa valor presente, codificado ou em outra caixa, sem revelar o valor', () => {
+  const lines = [{ type: 'meta', client: '15.19' }, ev('/lol-x/v1/s?n=Fulano%20Teste', { a: 'oi ZECA' })];
+  assert.throws(() => assertNotDenied(lines, ['oi ZECA']), (e) => e.message === 'valor da lista de bloqueio encontrado na saída anonimizada');
+  assert.throws(() => assertNotDenied(lines, ['Fulano Teste']), /lista de bloqueio/);
+  assert.throws(() => assertNotDenied(lines, ['zeca']), /lista de bloqueio/);
+  assert.throws(() => assertNotDenied([ev('/x?a=%E0%A4%A&n=Fulano%20Teste', {})], ['Fulano Teste']), /lista de bloqueio/);
+  assert.doesNotThrow(() => assertNotDenied(lines, ['Beltrano']));
+  assert.doesNotThrow(() => assertNotDenied(lines, []));
+  assert.doesNotThrow(() => assertNotDenied(lines, ['', '  ']));
 });

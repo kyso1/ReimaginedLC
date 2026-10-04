@@ -220,6 +220,24 @@ export function anonymize(lines) {
     });
 }
 
+// Segunda barreira, independente da regra de substituição: nenhum valor da lista de bloqueio (em qualquer caixa,
+// também na forma decodificada de URL) pode aparecer na saída. A mensagem nunca traz o valor encontrado.
+export function assertNotDenied(lines, denied) {
+  const text = lines.map((l) => JSON.stringify(l)).join('\n').toLowerCase();
+  // Decodifica cada trecho %XX isoladamente: um % solto não impede decodificar o resto.
+  const decoded = text.replace(/(?:%[0-9a-f]{2})+/g, (m) => {
+    try {
+      return decodeURIComponent(m);
+    } catch {
+      return m;
+    }
+  }).toLowerCase();
+  for (const d of denied) {
+    const v = d.trim().toLowerCase();
+    if (v && (text.includes(v) || decoded.includes(v))) throw new Error('valor da lista de bloqueio encontrado na saída anonimizada');
+  }
+}
+
 // Barreira final. As checagens por formato valem mesmo com `identities` e `secrets` vazios; as demais usam a
 // mesma regra de substituição de `anonymize`: se ela ainda trocaria algo, sobrou um valor real.
 export function assertClean(lines, identities, secrets) {
