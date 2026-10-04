@@ -1,0 +1,19 @@
+{
+  "label": "sem-plugins",
+  "takenAt": "2026-10-04T00:57:23.8994093-03:00",
+  "seconds": 60.2,
+  "logicalCores": 12,
+  "processes": {
+    "min": 8.0,
+    "max": 8.0
+  },
+  "workingSetMB": {
+    "avg": 1209.6,
+    "max": 1215.0
+  },
+  "privateMB": {
+    "avg": 2056.7,
+    "max": 2061.0
+  },
+  "cpuPercentOfOneCore": 156.64
+}

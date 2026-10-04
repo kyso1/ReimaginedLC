@@ -4,9 +4,9 @@ Client 16.19.823.0722, Pengu Loader 1.1.6, capturado em 2026-10-03 e 2026-10-04.
 
 ## Resumo
 
-Dos 42 plugins de interface da Riot, 15 serão refeitos, 13 embutidos, 2 cortados e 12 são infraestrutura que continua carregada. O ambiente sustenta o tema Vidro e vídeo de fundo, mas é um Chromium 108: a View Transitions API não existe, e três recursos de CSS que o desenho poderia usar também não (aninhamento, `color-mix`, `popover`). O Pengu Loader 1.1.6 não expõe `PluginFS`, então o plugin não lê pastas do disco, o que muda a forma de instalar temas. O maior risco encontrado é de desempenho: o client ocioso, com os plugins atuais, já usa 1,6 núcleo de CPU e 1,4 GB de memória, e a interface da Riot continuará carregada por baixo da nossa.
+Dos 42 plugins de interface da Riot, 15 serão refeitos, 13 embutidos, 2 cortados e 12 são infraestrutura que continua carregada. O ambiente sustenta o tema Vidro e vídeo de fundo, mas é um Chromium 108: a View Transitions API não existe, e três recursos de CSS que o desenho poderia usar também não (aninhamento, `color-mix`, `popover`). O Pengu Loader 1.1.6 não expõe `PluginFS`, então o plugin não lê pastas do disco, o que muda a forma de instalar temas. O maior risco encontrado é de desempenho: o client ocioso, sem plugin algum, já usa 1,6 núcleo de CPU e 1,2 GB de memória, e a interface da Riot continuará carregada por baixo da nossa.
 
-Duas entregas ficaram incompletas: a medição sem plugins (exige desativar o Pengu Loader) e a gravação de sessão, que existe mas ainda não foi inspecionada à mão nem commitada, e não cobre o fim de jogo.
+Uma entrega ficou incompleta: a gravação de sessão existe, mas ainda não foi inspecionada à mão nem commitada, e não cobre o fim de jogo.
 
 ## Suposições do desenho
 
@@ -68,12 +68,12 @@ Nenhum arquivo da Riot foi copiado para o repositório.
 
 | Cenário | Processos | Memória de trabalho média (MB) | Memória privada média (MB) | CPU (% de um núcleo) |
 |---|---:|---:|---:|---:|
-| Sem plugins | não medido | | | |
+| Sem plugins (Pengu Loader desativado) | 8 | 1 209,6 | 2 056,7 | 156,64 |
 | Plugins atuais | 8 | 1 365,9 | 2 316,8 | 161,93 |
 
-Medido em 60 s com o client ocioso no lobby, em máquina de 12 núcleos lógicos. A linha "sem plugins" exige desativar o Pengu Loader e reabrir o client; fica pendente.
+Cada medição durou 60 s com o client ocioso, em máquina de 12 núcleos lógicos: "plugins atuais" no lobby, "sem plugins" na tela inicial, cerca de um minuto após a interface recarregar.
 
-O número de CPU é alto para um client parado e não pode ser atribuído sem a segunda medição: pode vir dos plugins de tema ativos (fundos em vídeo) ou do próprio client. A interface da Riot continuará carregada, então o custo do ReimaginedLC se soma ao da linha "sem plugins". Até ela existir, não há orçamento de desempenho definido.
+O custo é do próprio client: parado e sem plugin algum, ele usa 1,6 núcleo de CPU e 1,2 GB de memória de trabalho. Os cinco plugins que estavam ativos somam cerca de 156 MB e 5 pontos de CPU. A interface da Riot continuará carregada por baixo do ReimaginedLC, então esse custo de base permanece e o nosso se soma a ele. Orçamento proposto para o ReimaginedLC, a confirmar na spec do subprojeto 1: até 300 MB de memória de trabalho e até 15 pontos de CPU com o client ocioso. Vale investigar, no subprojeto 1, se esconder a interface da Riot (e pausar os vídeos e animações dela) reduz a CPU de base.
 
 ## Gravações
 
@@ -99,7 +99,7 @@ Limitações conhecidas desta gravação:
 1. **View Transitions API ausente.** Seção "Motor de temas": as transições passam a ser só por classes CSS e Web Animations API. Aplicado na spec.
 2. **`PluginFS` ausente no Pengu 1.1.6.** Seção "Fluxo de dados", item 5, e "Distribuição": temas do usuário não podem ser lidos de uma pasta em tempo de execução. Proposta: importar tema pela tela de configurações (arquivo `.zip` ou `.json` escolhido pelo usuário), guardar o manifesto no `DataStore` e a mídia em IndexedDB; temas embutidos continuam como arquivos do plugin, carregados por URL. Aplicado na spec como decisão a confirmar na spec do subprojeto 5.
 3. **Assets `/fe/` só existem dentro do client.** Seção "Testes": a LCU simulada precisa de uma fonte alternativa para esses arquivos. Aplicado na spec.
-4. **Custo de base alto e ainda não atribuído.** Seção "Limites conhecidos": sem a medição sem plugins não há orçamento. Pendência registrada, sem mudança de desenho.
+4. **Custo de base alto, e é do próprio client.** Seção "Limites conhecidos": 1,6 núcleo e 1,2 GB sem plugins. Orçamento proposto para a nossa camada: 300 MB e 15 pontos de CPU em ociosidade. Aplicado na spec.
 5. **Partida personalizada virou fila.** Afeta só a spec do subprojeto 2 (criação de lobby e fases `Matchmaking` e `ReadyCheck` instantâneas). Registrado aqui; a spec geral não muda.
 6. **CSS moderno indisponível.** Sem aninhamento, `color-mix()` e `popover` no Chromium 108. O build do Vite deve ter `chrome108` como alvo, e os componentes não podem depender desses recursos. Aplicado na spec.
 7. **`init(context)` disponível.** Seção "Tratamento de erros": o atalho de emergência é registrado em `init`, que roda antes de `load`. Aplicado na spec.

@@ -171,4 +171,4 @@ Mudanças feitas em 2026-10-04 a partir de `docs/dump/REPORT.md`:
 - Fluxo de dados: sem `PluginFS` no Pengu 1.1.6; temas do usuário são importados e guardados no `DataStore` e em IndexedDB, em vez de lidos de uma pasta.
 - Tratamento de erros: o atalho de emergência é registrado em `init(context)`.
 - Testes: a LCU simulada busca os assets `/fe/...` na CDN do CommunityDragon.
-- Pendente: medição de base sem plugins. Até ela existir, não há orçamento de desempenho.
+- Limites conhecidos: medido sem plugins, o client ocioso usa 1,6 núcleo de CPU e 1,2 GB de memória de trabalho. Orçamento proposto para o ReimaginedLC em ociosidade, a confirmar na spec do subprojeto 1: até 300 MB e até 15 pontos de CPU acima disso.
