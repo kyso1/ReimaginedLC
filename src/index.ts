@@ -1,4 +1,5 @@
 import { t } from './i18n';
+import { RIOT_ROOT_ID } from './shell/App';
 import { registerHotkey } from './shell/hotkey';
 import { start } from './shell/start';
 
@@ -14,6 +15,8 @@ export async function load(): Promise<void> {
   } catch (e) {
     console.error('[rlc]', e);
     document.getElementById('rlc-root')?.remove();
+    const riot = document.getElementById(RIOT_ROOT_ID);
+    if (riot) riot.style.visibility = '';
     window.Toast?.error(t('startFailed'));
   }
 }

@@ -24,6 +24,7 @@ const flush = async () => {
   // os efeitos do Preact rodam depois do próximo frame (ou 100 ms)
   await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
 };
+const short = () => new Promise((r) => setTimeout(r, 0));
 const mount = (extra: Partial<Parameters<typeof App>[0]> = {}) => render(<App root={root} lcu={lcu} themes={themes} base="https://plugins/ReimaginedLC/" focused={focused} {...extra} />, root);
 
 beforeEach(() => {
@@ -107,6 +108,8 @@ test('trocar de tema muda variáveis, transição e fundo sem remontar', async (
   mount();
   await flush();
   themes.set('editorial');
+  await short();
+  expect(root.style.getPropertyValue('--rlc-color-bg')).toBe('#0e0e10');
   await flush();
   expect(root.style.getPropertyValue('--rlc-color-bg')).toBe('#0e0e10');
   expect(root.dataset.transition).toBe('fade');
@@ -144,4 +147,64 @@ test('sem o elemento raiz da Riot a camada funciona do mesmo jeito', async () =>
   expect(() => mount()).not.toThrow();
   await flush();
   expect(root.dataset.visible).toBe('true');
+});
+
+test('sai da fase None: a camada some e a Riot volta na hora, sem esperar o frame', async () => {
+  enabled.value = true;
+  mount();
+  await flush();
+  phase.value = ready('ChampSelect');
+  await short();
+  expect(root.dataset.visible).toBe('false');
+  expect(riot.style.visibility).toBe('');
+});
+
+test('desligar a camada enquanto aparece devolve a Riot na hora', async () => {
+  enabled.value = true;
+  mount();
+  await flush();
+  enabled.value = false;
+  await short();
+  expect(root.dataset.visible).toBe('false');
+  expect(riot.style.visibility).toBe('');
+});
+
+test('tela que lança devolve a Riot na hora e remove também a barra e o fundo', async () => {
+  enabled.value = true;
+  const noise = vi.spyOn(console, 'error').mockImplementation(() => {});
+  mount({ screens: { home: () => { throw new Error('quebrou'); } } });
+  await short();
+  expect(root.dataset.visible).toBe('false');
+  expect(riot.style.visibility).toBe('');
+  expect(root.querySelector('.rlc-rail')).toBeNull();
+  expect(root.querySelector('.rlc-bg')).toBeNull();
+  noise.mockRestore();
+});
+
+test('desmontar o App devolve a Riot e esconde o root', async () => {
+  enabled.value = true;
+  mount();
+  await flush();
+  expect(riot.style.visibility).toBe('hidden');
+  render(null, root);
+  expect(riot.style.visibility).toBe('');
+  expect(root.dataset.visible).toBe('false');
+});
+
+test('camada desligada não mexe no visibility que a Riot definiu', async () => {
+  riot.style.visibility = 'collapse';
+  mount();
+  await flush();
+  expect(riot.style.visibility).toBe('collapse');
+});
+
+test('ao desligar a camada a Riot volta ao valor que tinha antes de a escondermos', async () => {
+  riot.style.visibility = 'collapse';
+  enabled.value = true;
+  mount();
+  await flush();
+  expect(riot.style.visibility).toBe('hidden');
+  enabled.value = false;
+  await flush();
+  expect(riot.style.visibility).toBe('collapse');
 });

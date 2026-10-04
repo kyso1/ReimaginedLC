@@ -12,6 +12,7 @@ import { syncLayer } from './layer';
 const base = import.meta.env.DEV ? '/' : new URL('.', import.meta.url).href;
 
 export async function start(): Promise<void> {
+  if (document.getElementById('rlc-root')) return;
   syncLayer();
 
   const style = document.createElement('style');

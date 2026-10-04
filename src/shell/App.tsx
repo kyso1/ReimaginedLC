@@ -1,6 +1,6 @@
 import type { Signal } from '@preact/signals';
 import type { JSX } from 'preact';
-import { useEffect } from 'preact/hooks';
+import { useLayoutEffect, useRef } from 'preact/hooks';
 import { t } from '../i18n';
 import type { Lcu } from '../lcu';
 import { Home } from '../screens/home/Home';
@@ -32,13 +32,26 @@ export function App({ root, lcu, themes, base, focused, screens = { home: Home }
   const theme = themes.active.value;
   const hide = visible && hideRiot.value;
 
-  useEffect(() => applyTheme(root, theme), [root, theme]);
+  // Layout effects: rodam logo após o commit do DOM, antes de qualquer pintura. Se a camada
+  // não mostra tela, a Riot precisa estar visível já, não no próximo frame.
+  useLayoutEffect(() => applyTheme(root, theme), [root, theme]);
 
-  useEffect(() => {
-    root.dataset.visible = String(visible);
+  /** Valor inline de `visibility` da Riot antes de a escondermos; null quando não fomos nós. */
+  const hidden = useRef<string | null>(null);
+  const sync = (show: boolean, hideIt: boolean) => {
+    root.dataset.visible = String(show);
     const riot = document.getElementById(RIOT_ROOT_ID);
-    if (riot) riot.style.visibility = hide ? 'hidden' : '';
-  }, [root, visible, hide]);
+    if (!riot) return;
+    if (hideIt) {
+      hidden.current ??= riot.style.visibility;
+      riot.style.visibility = 'hidden';
+    } else if (hidden.current !== null) {
+      riot.style.visibility = hidden.current;
+      hidden.current = null;
+    }
+  };
+  useLayoutEffect(() => sync(visible, hide), [root, visible, hide]);
+  useLayoutEffect(() => () => sync(false, false), [root]);
 
   if (!visible || screen === null) return null;
 
@@ -52,18 +65,18 @@ export function App({ root, lcu, themes, base, focused, screens = { home: Home }
 
   return (
     <div class="rlc-app" key={theme.name}>
-      <MediaBackground src={mediaUrl(theme, screen, base)} playing={focused.value} />
-      <Rail
-        items={[
-          { id: 'home', label: t('home'), active: true, onSelect: () => {} },
-          { id: 'original', label: t('originalClient'), onSelect: turnOff },
-        ]}
-      />
-      <main class="rlc-screen">
-        <Boundary onError={onError}>
+      <Boundary onError={onError}>
+        <MediaBackground src={mediaUrl(theme, screen, base)} playing={focused.value} />
+        <Rail
+          items={[
+            { id: 'home', label: t('home'), active: true, onSelect: () => {} },
+            { id: 'original', label: t('originalClient'), onSelect: turnOff },
+          ]}
+        />
+        <main class="rlc-screen">
           <ScreenComponent version={lcu.build.value.data?.version ?? null} locale={lcu.regionLocale.value.data?.locale ?? null} onPlay={turnOff} />
-        </Boundary>
-      </main>
+        </main>
+      </Boundary>
     </div>
   );
 }
