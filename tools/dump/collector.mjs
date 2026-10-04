@@ -5,10 +5,18 @@ import { join } from 'node:path';
 export const PORT = 47615;
 const ALLOWED = new Set(['env', 'hotkey']);
 const MAX_BYTES = 1_000_000;
+const CLIENT_ORIGIN = /^https:\/\/127\.0\.0\.1(:\d+)?$/;
 
 export function createCollector(outDir, log = console.log) {
   return createServer((req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // Só a página do client (https://127.0.0.1:<porta>) ou quem não manda Origin (curl): outra página aberta no
+    // navegador do dono não pode gravar arquivos que serão versionados.
+    const origin = req.headers.origin;
+    if (origin !== undefined && !CLIENT_ORIGIN.test(origin)) {
+      log(`origem recusada: ${JSON.stringify(origin)}`);
+      return void res.writeHead(403).end();
+    }
+    if (origin !== undefined) res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Private-Network', 'true');
@@ -16,6 +24,7 @@ export function createCollector(outDir, log = console.log) {
 
     const name = req.url.slice(1);
     if (req.method !== 'POST' || !ALLOWED.has(name)) return void res.writeHead(404).end();
+    if (!/^application\/json/i.test(req.headers['content-type'] ?? '')) return void res.writeHead(415).end();
 
     const chunks = [];
     let size = 0;
