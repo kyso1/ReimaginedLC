@@ -6,7 +6,7 @@ Client 16.19.823.0722, Pengu Loader 1.1.6, capturado em 2026-10-03 e 2026-10-04.
 
 Dos 42 plugins de interface da Riot, 15 serão refeitos, 13 embutidos, 2 cortados e 12 são infraestrutura que continua carregada. O ambiente sustenta o tema Vidro e vídeo de fundo, mas é um Chromium 108: a View Transitions API não existe, e três recursos de CSS que o desenho poderia usar também não (aninhamento, `color-mix`, `popover`). O Pengu Loader 1.1.6 não expõe `PluginFS`, então o plugin não lê pastas do disco, o que muda a forma de instalar temas. O maior risco encontrado é de desempenho: o client ocioso, sem plugin algum, já usa 1,6 núcleo de CPU e 1,2 GB de memória, e a interface da Riot continuará carregada por baixo da nossa.
 
-Uma entrega ficou incompleta: a gravação de sessão existe, mas ainda não foi inspecionada à mão nem commitada, e não cobre o fim de jogo.
+Uma entrega ficou incompleta: a gravação de sessão não cobre o fim de jogo.
 
 ## Suposições do desenho
 
@@ -77,7 +77,7 @@ O custo é do próprio client: parado e sem plugin algum, ele usa 1,6 núcleo de
 
 ## Gravações
 
-`docs/dump/sessions/ferramenta-de-treino.jsonl`: 659 linhas, 4,3 MB, gerada em 2026-10-04. Ainda não commitada: aguarda inspeção manual do dono do repositório.
+`docs/dump/sessions/ferramenta-de-treino.jsonl`: 650 linhas, 1,1 MB, gerada em 2026-10-04.
 
 Fases vistas, em ordem: `Lobby`, `None`, `Lobby`, `Matchmaking`, `ReadyCheck`, `ChampSelect`, `GameStart`, `InProgress`, `Reconnect`, `TerminatedInError`, `None`. A sessão foi conduzida pela API: lobby da Ferramenta de Treino, uma escolha de campeão, partida aberta e processo do jogo encerrado à força.
 
@@ -86,11 +86,14 @@ O que a gravação não cobre, e que o subprojeto 2 precisará gravar:
 - fila com outros jogadores, aceite de partida real e banimentos;
 - troca de runas e de feitiços durante a seleção.
 
-Verificações feitas na saída anonimizada: nenhum JWT, nenhum `Bearer`, nenhum endereço de e-mail, nenhum UUID fora do prefixo substituto (10 062 UUIDs, todos substitutos). As duas barreiras aceitaram o arquivo: a verificação por formato e a lista de bloqueio com 89 entradas (nome do dono e nomes de amigos com 6 ou mais caracteres).
+Verificações feitas na saída anonimizada: nenhum JWT, nenhum `Bearer`, nenhum endereço de e-mail, nenhum UUID fora do prefixo substituto (1 249 UUIDs, todos substitutos). As duas barreiras aceitaram o arquivo: a verificação por formato e a lista de bloqueio com 89 entradas (nome do dono e nomes de amigos com 6 ou mais caracteres).
+
+Inspeção adicional contra os dados reais do client, feita por script que só mostra nomes de chave e contagens: dos 341 identificadores reais (PUUIDs, IDs de invocador e de conta, IDs de chat do dono e dos amigos), nenhum aparece na saída. Dos 119 nomes, notas e nomes de grupo reais, dois coincidem com texto da gravação, e nenhum é identidade: um é igual à palavra `friends` da URI `/lol-chat/v1/friends`, o outro é igual ao nome de um campeão. Os campos de nome que restam sem substituição são conteúdo do jogo: campeões, bots, filas, runas e mapas.
 
 Limitações conhecidas desta gravação:
-- 3 MB dos 4,3 MB são o inventário de cosméticos do TFT (`/lol-cosmetics`), sem uso para a LCU simulada. Acrescentar esse prefixo ao filtro de ruído do gravador antes da próxima gravação.
-- O anonimizador leva cerca de 3 minutos neste arquivo.
+- O inventário de cosméticos do TFT (`/lol-cosmetics`, 3 MB) foi retirado da gravação e o prefixo entrou no filtro de ruído do gravador.
+- Os nomes das páginas de runas do dono são texto livre e saem como `[mensagem]`.
+- O anonimizador leva cerca de um minuto neste arquivo.
 - Nomes de amigos com 3 a 5 letras ficaram fora da lista de bloqueio: como palavras curtas, coincidem com trechos de nomes de cosméticos e de campeões e fariam a barreira recusar um arquivo correto. Esses nomes continuam cobertos pela substituição por chave de identidade.
 - O IP do servidor de jogo da Riot aparece em `gameClient.serverIp`. Não é dado pessoal.
 
