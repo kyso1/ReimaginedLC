@@ -31,3 +31,11 @@ test('registrar duas vezes não duplica o atalho', () => {
   press({ key: 'F12', ctrlKey: true, shiftKey: true });
   expect(enabled.value).toBe(true);
 });
+
+test('repetição de tecla é engolida sem alternar a camada', () => {
+  registerHotkey();
+  press({ key: 'F12', ctrlKey: true, shiftKey: true, repeat: true });
+  expect(enabled.value).toBe(false);
+  press({ key: 'F12', ctrlKey: true, shiftKey: true });
+  expect(enabled.value).toBe(true);
+});

@@ -1,5 +1,8 @@
 import { readFileSync } from 'node:fs';
-import { afterEach, beforeEach, expect, test } from 'vitest';
+import { render } from 'preact';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import * as apply from '../theme/apply';
+import { enabled } from './layer';
 import { start } from './start';
 
 const sockets: unknown[] = [];
@@ -33,6 +36,7 @@ beforeEach(() => {
   };
   globalThis.WebSocket = FakeSocket as unknown as typeof WebSocket;
   globalThis.fetch = (async (input: RequestInfo | URL) => {
+    if (String(input).endsWith('/lol-gameflow/v1/gameflow-phase')) return new Response('"None"');
     const match = /themes\/([^/]+)\/theme\.json$/.exec(String(input));
     if (!match) return new Response('', { status: 404 });
     try {
@@ -50,7 +54,9 @@ afterEach(() => {
   globalThis.WebSocket = realWebSocket;
   globalThis.fetch = realFetch;
   delete window.CommandBar;
-  document.getElementById('rlc-root')?.remove();
+  const mounted = document.getElementById('rlc-root');
+  if (mounted) render(null, mounted); // desmonta o App, que senão segue assinando os signals nos próximos testes
+  mounted?.remove();
   document.querySelectorAll('style[data-rlc]').forEach((el) => el.remove());
   link.remove();
 });
@@ -86,4 +92,32 @@ test('um elemento qualquer no body não move nem duplica a raiz', async () => {
   expect(document.querySelectorAll('#rlc-root')).toHaveLength(1);
   expect(document.getElementById('rlc-root')).toBe(root);
   other.remove();
+});
+
+test('exceção no corpo do App desliga a camada e devolve a Riot', async () => {
+  const noise = vi.spyOn(console, 'error').mockImplementation(() => {});
+  window.Toast = { success: vi.fn(), error: vi.fn() };
+  const riot = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'rcp-fe-viewport-root' }));
+  await start();
+  await new Promise((r) => setTimeout(r, 20));
+  enabled.value = true;
+  await new Promise((r) => setTimeout(r, 20));
+  const root = document.getElementById('rlc-root')!;
+  expect(root.dataset.visible).toBe('true');
+  expect(riot.style.visibility).toBe('hidden');
+  enabled.value = false;
+  await new Promise((r) => setTimeout(r, 20));
+  vi.spyOn(apply, 'mediaUrl').mockImplementation(() => {
+    throw new Error('quebrou');
+  });
+  enabled.value = true;
+  await new Promise((r) => setTimeout(r, 20));
+  expect(enabled.value).toBe(false);
+  expect(root.dataset.visible).toBe('false');
+  expect(riot.style.visibility).toBe('');
+  expect(window.Toast!.error).toHaveBeenCalledTimes(1);
+  vi.restoreAllMocks();
+  delete window.Toast;
+  riot.remove();
+  noise.mockRestore();
 });

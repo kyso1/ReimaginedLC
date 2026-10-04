@@ -12,6 +12,7 @@ export function registerHotkey(target: Window = window): void {
       if (!(e.ctrlKey && e.shiftKey && e.key === 'F12')) return;
       e.preventDefault();
       e.stopPropagation();
+      if (e.repeat) return;
       toggleEnabled();
     },
     true,

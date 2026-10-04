@@ -1,15 +1,16 @@
 import { effect, signal } from '@preact/signals';
 import { h, render } from 'preact';
-import { setLocale } from '../i18n';
+import { setLocale, t } from '../i18n';
 import { createLcu } from '../lcu';
 import { createThemeEngine } from '../theme/engine';
 import css from '../ui/styles.css?inline';
 import { App, RIOT_ROOT_ID } from './App';
+import { Boundary } from './Boundary';
 import { registerCommands } from './commands';
-import { syncLayer } from './layer';
+import { enabled, syncLayer } from './layer';
 
 /** Pasta do plugin. No client é a URL do próprio bundle; no servidor de desenvolvimento, a raiz. */
-const base = import.meta.env.DEV ? '/' : new URL('.', import.meta.url).href;
+const base = import.meta.env.DEV ? '/' : new URL(/* @vite-ignore */ '.', import.meta.url).href;
 
 export async function start(): Promise<void> {
   if (document.getElementById('rlc-root')) return;
@@ -25,41 +26,55 @@ export async function start(): Promise<void> {
   root.dataset.visible = 'false';
   document.body.append(root);
 
-  const focused = signal(document.hasFocus());
-  window.addEventListener('focus', () => void (focused.value = true));
-  window.addEventListener('blur', () => void (focused.value = false));
+  let observer: MutationObserver | undefined;
+  try {
+    const focused = signal(document.hasFocus());
+    window.addEventListener('focus', () => void (focused.value = true));
+    window.addEventListener('blur', () => void (focused.value = false));
 
-  // O boot do client troca os filhos do body: troca nossa raiz por um clone sem árvore e cria a
-  // raiz da Riot depois. Mantém a raiz real anexada e avisa o App quando algo mudou.
-  const dom = signal(0);
-  let riotRoot = document.getElementById(RIOT_ROOT_ID);
-  const guard = () => {
-    let changed = false;
-    for (const el of document.querySelectorAll('#rlc-root')) {
-      if (el !== root) el.remove();
-    }
-    if (!root.isConnected) {
-      document.body.append(root);
-      changed = true;
-    }
-    const current = document.getElementById(RIOT_ROOT_ID);
-    if (current !== riotRoot) {
-      riotRoot = current;
-      changed = true;
-    }
-    if (changed) dom.value++;
-  };
-  new MutationObserver(guard).observe(document.body, { childList: true });
-  guard();
+    // O boot do client troca os filhos do body: troca nossa raiz por um clone sem árvore e cria a
+    // raiz da Riot depois. Mantém a raiz real anexada e avisa o App quando algo mudou.
+    const dom = signal(0);
+    let riotRoot = document.getElementById(RIOT_ROOT_ID);
+    const guard = () => {
+      let changed = false;
+      for (const el of document.querySelectorAll('#rlc-root')) {
+        if (el !== root) el.remove();
+      }
+      if (!root.isConnected) {
+        document.body.append(root);
+        changed = true;
+      }
+      const current = document.getElementById(RIOT_ROOT_ID);
+      if (current !== riotRoot) {
+        riotRoot = current;
+        changed = true;
+      }
+      if (changed) dom.value++;
+    };
+    observer = new MutationObserver(guard);
+    observer.observe(document.body, { childList: true });
+    guard();
 
-  const lcu = createLcu();
-  effect(() => {
-    const locale = lcu.regionLocale.value.data?.locale;
-    if (locale) setLocale(locale);
-  });
+    const lcu = createLcu();
+    effect(() => {
+      const locale = lcu.regionLocale.value.data?.locale;
+      if (typeof locale === 'string') setLocale(locale);
+    });
 
-  const themes = await createThemeEngine(base);
-  registerCommands(themes);
-  // `h(App, ...)` e não `App(...)`: o Preact precisa montar o componente para os hooks funcionarem.
-  render(h(App, { root, lcu, themes, base, focused, dom }), root);
+    const themes = await createThemeEngine(base);
+    registerCommands(themes);
+    // `h(App, ...)` e não `App(...)`: o Preact precisa montar o componente para os hooks funcionarem.
+    const onError = (error: unknown) => {
+      console.error('[rlc]', error);
+      enabled.value = false;
+      window.Toast?.error(t('screenFailed'));
+    };
+    render(h(Boundary, { onError, children: h(App, { root, lcu, themes, base, focused, dom }) }), root);
+  } catch (e) {
+    observer?.disconnect();
+    root.remove();
+    style.remove();
+    throw e;
+  }
 }
