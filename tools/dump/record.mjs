@@ -26,7 +26,14 @@ try {
   mkdirSync('dump-raw/sessions', { recursive: true });
   const path = `dump-raw/sessions/${name}.raw.jsonl`;
   // Escrita síncrona: cada linha chega ao disco antes da próxima, então nada se perde se o processo cair.
-  const fd = openSync(path, 'w');
+  // Flag 'wx': nunca sobrescreve uma gravação anterior.
+  let fd;
+  try {
+    fd = openSync(path, 'wx');
+  } catch (e) {
+    if (e.code === 'EEXIST') fail(new Error(`${path} já existe; apague-o ou use outro nome`));
+    throw e;
+  }
   const write = (line) => writeSync(fd, JSON.stringify(line) + '\n');
 
   const build = JSON.parse((await lcuGet(creds, '/system/v1/builds')).body.toString('utf8'));
@@ -47,14 +54,15 @@ try {
   const finish = ({ count, reason }) => {
     closeSync(fd);
     console.log(`\n${reason}. ${count} eventos gravados em ${path}`);
-    process.exit(0);
+    process.exit(reason.startsWith('erro') ? 1 : 0);
   };
   ws.on('open', () => {
     ws.send(JSON.stringify([5, 'OnJsonApiEvent']));
     console.log(`gravando em ${path}. Ctrl+C para encerrar.`);
   });
   attach(ws, write, finish);
-  process.on('SIGINT', () => ws.close());
+  // terminate: close() esperaria até 30 s pelo aperto de mão de fechamento.
+  process.on('SIGINT', () => ws.terminate());
 } catch (e) {
   fail(e);
 }

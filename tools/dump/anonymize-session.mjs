@@ -1,5 +1,5 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { anonymize, assertClean, collectIdentities } from './anonymize.mjs';
+import { anonymize, assertClean, collectIdentities, collectSecrets } from './anonymize.mjs';
 import { fail } from './lcu.mjs';
 
 const name = process.argv[2];
@@ -12,7 +12,7 @@ try {
     .map((l) => JSON.parse(l));
   const clean = anonymize(raw);
   // Barreira final: se qualquer identidade real ou JWT sobrou, nada é gravado.
-  assertClean(clean, collectIdentities(raw).keys());
+  assertClean(clean, [...collectIdentities(raw).keys(), ...collectSecrets(raw)]);
 
   mkdirSync('docs/dump/sessions', { recursive: true });
   const out = `docs/dump/sessions/${name}.jsonl`;
