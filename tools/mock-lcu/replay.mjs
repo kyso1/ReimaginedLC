@@ -26,10 +26,13 @@ export function createReplay(lines, { idle = false } = {}) {
       const event = events[index++];
       const t = Number(event.t) || 0;
       const delay = Math.max(0, t - clock);
-      clock = t;
+      clock = Math.max(clock, t);
+      const phaseBefore = event.uri === PHASE_URI ? state.get(PHASE_URI)?.data : null;
       if (event.eventType === 'Delete') state.delete(event.uri);
       else state.set(event.uri, { status: 200, data: event.data ?? null });
-      return { delay, message: JSON.stringify([8, 'OnJsonApiEvent', { uri: event.uri, eventType: event.eventType, data: event.data ?? null }]) };
+      let enteredPhase = null;
+      if (event.uri === PHASE_URI && event.data !== phaseBefore) enteredPhase = event.data;
+      return { delay, message: JSON.stringify([8, 'OnJsonApiEvent', { uri: event.uri, eventType: event.eventType, data: event.data ?? null }]), enteredPhase };
     },
     phase() {
       return state.get(PHASE_URI)?.data ?? null;

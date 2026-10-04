@@ -60,3 +60,30 @@ test('assetRedirect aponta para o CommunityDragon e recusa o resto', () => {
   assert.equal(assetRedirect('/fe/lol-uikit/images/a.png?x=1'), 'https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-uikit/global/default/images/a.png');
   for (const p of ['/lol-chat/v1/friends', '/fe/', '/fe/../x/a.png', '/fe/lol-uikit/../../a.png', '/lol-game-data/assets/', '/fe/x/a b.png']) assert.equal(assetRedirect(p), null);
 });
+
+test('enteredPhase marca apenas transições para fases novas', () => {
+  const r = createReplay([
+    { type: 'meta' },
+    { type: 'snapshot', t: 0, uri: '/lol-gameflow/v1/gameflow-phase', status: 200, data: 'Lobby' },
+    { type: 'event', t: 100, uri: '/lol-gameflow/v1/gameflow-phase', eventType: 'Update', data: 'ChampSelect' },
+    { type: 'event', t: 200, uri: '/lol-lobby/v2/lobby', eventType: 'Create', data: { members: [] } },
+    { type: 'event', t: 300, uri: '/lol-gameflow/v1/gameflow-phase', eventType: 'Update', data: 'ChampSelect' },
+    { type: 'event', t: 400, uri: '/lol-gameflow/v1/gameflow-phase', eventType: 'Update', data: 'InProgress' },
+  ]);
+  assert.equal(r.next().enteredPhase, 'ChampSelect');
+  assert.equal(r.next().enteredPhase, null);
+  assert.equal(r.next().enteredPhase, null);
+  assert.equal(r.next().enteredPhase, 'InProgress');
+});
+
+test('relógio não recua: t 500, 300, 400 dão delays 500, 0, 0', () => {
+  const r = createReplay([
+    { type: 'meta' },
+    { type: 'event', t: 500, uri: '/lol-lobby/v2/lobby', eventType: 'Create', data: {} },
+    { type: 'event', t: 300, uri: '/lol-lobby/v2/lobby', eventType: 'Update', data: {} },
+    { type: 'event', t: 400, uri: '/lol-lobby/v2/lobby', eventType: 'Update', data: {} },
+  ]);
+  assert.equal(r.next().delay, 500);
+  assert.equal(r.next().delay, 0);
+  assert.equal(r.next().delay, 0);
+});

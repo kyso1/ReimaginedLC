@@ -51,7 +51,7 @@ function step() {
   if (!event) return void console.log('fim da gravação');
   setTimeout(() => {
     broadcast(event.message);
-    if (until && replay.phase() === until) {
+    if (until && event.enteredPhase === until) {
       paused = true;
       console.log(`pausado em ${until}. Enter para continuar.`);
       return;
