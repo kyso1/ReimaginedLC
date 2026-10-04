@@ -210,12 +210,13 @@ test('I6: variante codificada na URL e em outra caixa é substituída e verifica
 
 test('I7: nome curto só é trocado isolado, e a primeira parte da URI nunca é tocada', () => {
   const out = anonymize([
-    ev('/lol-lobby/v2/lobby', { gameName: 'lol', text: 'lol-lobby lollipop', alone: 'lol' }),
+    ev('/lol-lobby/v2/lobby', { gameName: 'lol', text: 'lol-lobby lollipop', displayName: 'lol', alone: 'lol' }),
     ev('/lol-summoner/v1/x', { emailStatus: 'Verified', email: 'a@b.com' }),
   ]);
   assert.equal(out[0].uri, '/lol-lobby/v2/lobby');
   assert.equal(out[0].data.text, 'lol-lobby lollipop'.replace(/^lol-lobby/, `${out[0].data.gameName}-lobby`));
-  assert.equal(out[0].data.alone, out[0].data.gameName);
+  assert.equal(out[0].data.displayName, out[0].data.gameName);
+  assert.equal(out[0].data.alone, 'lol'); // palavra solta fora de chave de identidade fica (N2)
   assert.equal(out[1].data.emailStatus, 'Verified');
   assert.match(out[1].data.email, /^anon-\d+$/);
   assert.doesNotThrow(() => assertClean(out, ['lol']));
@@ -244,4 +245,96 @@ test('gravação sintética realista passa por anonymize e assertClean, sem sobr
     assert.equal(text.includes(real), false, 'sobrou valor sintético');
   }
   assert.equal(out.at(-1).data, 'Lobby');
+});
+
+// ---- Rodada de correção 2 ----
+test('N1: segredo que contém UUID é redigido por inteiro e o assertClean confere', () => {
+  const lines = [ev('/x', { sessionToken: `${U1}.s3cr3tSuffixXYZ`, url: `x?t=${U1}.s3cr3tSuffixXYZ` })];
+  const out = pass(lines);
+  assert.equal(out[0].data.url, 'x?t=[redacted]');
+  assert.equal(JSON.stringify(out).includes('s3cr3tSuffixXYZ'), false);
+  assert.throws(() => assertClean([ev('/x', { u: 'a s3cr3tSuffixXYZ b' })], ['s3cr3tSuffixXYZ']), /identidade real/);
+});
+
+test('N2: nome ou segredo igual a vocabulário do protocolo não reescreve fases nem URIs', () => {
+  const lines = [
+    ev('/lol-chat/v1/friends', [{ puuid: U1, gameName: 'Lobby' }]),
+    ev('/lol-gameflow/v1/gameflow-phase', 'Lobby'),
+    ev('/lol-lobby/v2/lobby', { signature: 'None', phase: 'None' }),
+  ];
+  const out = pass(lines);
+  assert.equal(out[1].data, 'Lobby');
+  assert.equal(out[2].uri, '/lol-lobby/v2/lobby');
+  assert.equal(out[2].data.phase, 'None');
+  assert.match(out[0].data[0].gameName, /^anon-\d+$/);
+});
+
+test('N2: nome curto sob chave de identidade, `name` com puuid e valor inteiro de query são trocados', () => {
+  const out = pass([
+    ev('/lol-chat/v1/friends', [{ puuid: U1, gameName: 'Zeca', name: 'Zeca' }]),
+    ev('/lol-x/v1/s?gameName=Zeca&alias=Zeca', {}),
+    ev('/lol-x/Zeca/v1', {}),
+  ]);
+  assert.equal(JSON.stringify(out[0]).includes('Zeca'), false);
+  assert.equal(out[1].uri.includes('Zeca'), false);
+  assert.equal(out[2].uri, '/lol-x/Zeca/v1'); // caminho de URI nunca é tocado para valores curtos
+});
+
+test('N3: nome curto hex não corrompe os UUIDs substitutos', () => {
+  const out = pass([ev('/x', { puuid: U1, gameName: '4000' }), ev(`/y/${U1}`, { t: 'a 4000 b' })]);
+  assert.match(out[0].data.puuid, FAKE);
+  assert.equal(out[1].uri, `/y/${out[0].data.puuid}`);
+  assert.equal(out[1].data.t, `a ${out[0].data.gameName} b`);
+});
+
+test('N4: valor sob chave de identidade com UUID também coleta o resto', () => {
+  const out = pass([ev('/x', { displayName: `Fulano Teste ${U1}`, t: 'oi Fulano Teste' })]);
+  assert.equal(out[0].data.t.includes('Fulano'), false);
+  assert.equal(collectIdentities([ev('/x', { pid: `${U1}@na1.pvp.net` })]).size, 1);
+});
+
+test('N5: regras por chave valem dentro de JSON embutido em string', () => {
+  const lines = [ev('/x', { lol: { gameData: '{"password":"senhaEmJson9","note":"segredo do amigo","tagLine":"zz9q"}', copy: 'senhaEmJson9' } })];
+  const out = pass(lines);
+  assert.deepEqual(JSON.parse(out[0].data.lol.gameData), { password: '[redacted]', note: '[mensagem]', tagLine: 'TAG' });
+  assert.equal(out[0].data.lol.copy, '[redacted]');
+});
+
+test('N6: segredo numérico de 4+ dígitos é coletado e redigido em strings', () => {
+  const lines = [ev('/x', { password: 123456, s: 'pw 123456' })];
+  assert.deepEqual([...collectSecrets(lines)], ['123456']);
+  assert.equal(pass(lines)[0].data.s, 'pw [redacted]');
+});
+
+test('N7: nome com + , %23 e espaço antes do # e parâmetro tagLine na URI', () => {
+  const out = pass([
+    ev('/x', { gameName: 'Fulano Teste' }),
+    ev('/lol-x/v1/s?gameName=Fulano+Teste&tagLine=zz9q', {}),
+    ev('/lol-x/alias/Fulano%20Teste%23zz9q', {}),
+    ev('/y', { r: 'Fulano Teste #zz9q' }),
+  ]);
+  const text = JSON.stringify(out);
+  assert.equal(text.includes('zz9q'), false);
+  assert.equal(text.includes('Fulano'), false);
+  assert.match(out[1].uri, /tagLine=TAG$/);
+});
+
+test('realista (rodada 2): fases iguais a nome, hex curto e JSON embutido passam sem sobras', () => {
+  const lines = [
+    ev('/lol-chat/v1/friends', [{ puuid: U2, gameName: 'Lobby', name: 'Lobby', note: 'x' }, { puuid: U1, gameName: '4000', name: '4000' }]),
+    ev('/lol-gameflow/v1/gameflow-phase', 'Lobby'),
+    ev('/lol-gameflow/v1/gameflow-phase', 'None'),
+    ev('/lol-lobby/v2/lobby', { embedded: '{"password":"senhaZ99x","note":"n","tagLine":"zz9q"}', p: 'senhaZ99x' }),
+  ];
+  const out = pass(lines);
+  assert.deepEqual(out.slice(1, 3).map((l) => l.data), ['Lobby', 'None']);
+  assert.equal(out[3].uri, '/lol-lobby/v2/lobby');
+  assert.match(out[0].data[1].puuid, FAKE);
+  assert.equal(JSON.stringify(out).includes('senhaZ99x'), false);
+});
+
+test('segredo que é só um UUID (ex.: dentro de um DTO jwt) vira substituto estável, não [redacted]', () => {
+  const out = pass([ev('/x', { mucJwtDto: { channelClaim: U1 }, pid: `${U1}@na1.pvp.net`, id: `${U1}@na1.pvp.net` })]);
+  assert.equal(out[0].data.mucJwtDto, '[redacted]');
+  assert.match(out[0].data.pid, /^00000000-0000-4000-8000-[0-9a-f]{12}@na1\.pvp\.net$/);
 });
