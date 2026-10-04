@@ -25,7 +25,8 @@ const flush = async () => {
   await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
 };
 const short = () => new Promise((r) => setTimeout(r, 0));
-const mount = (extra: Partial<Parameters<typeof App>[0]> = {}) => render(<App root={root} lcu={lcu} themes={themes} base="https://plugins/ReimaginedLC/" focused={focused} {...extra} />, root);
+const dom = signal(0);
+const mount = (extra: Partial<Parameters<typeof App>[0]> = {}) => render(<App root={root} lcu={lcu} themes={themes} base="https://plugins/ReimaginedLC/" focused={focused} dom={dom} {...extra} />, root);
 
 beforeEach(() => {
   setLocale('pt_BR');
@@ -206,5 +207,32 @@ test('ao desligar a camada a Riot volta ao valor que tinha antes de a escondermo
   expect(riot.style.visibility).toBe('hidden');
   enabled.value = false;
   await flush();
+  expect(riot.style.visibility).toBe('collapse');
+});
+
+test('a raiz da Riot aparece depois do mount: passa a ser escondida', async () => {
+  riot.remove();
+  enabled.value = true;
+  mount();
+  await flush();
+  riot = document.body.appendChild(Object.assign(document.createElement('div'), { id: RIOT_ROOT_ID }));
+  dom.value++;
+  await short();
+  expect(riot.style.visibility).toBe('hidden');
+});
+
+test('a raiz da Riot é trocada enquanto escondida: o novo elemento guarda o próprio valor', async () => {
+  enabled.value = true;
+  mount();
+  await flush();
+  expect(riot.style.visibility).toBe('hidden');
+  riot.remove();
+  riot = document.body.appendChild(Object.assign(document.createElement('div'), { id: RIOT_ROOT_ID }));
+  riot.style.visibility = 'collapse';
+  dom.value++;
+  await short();
+  expect(riot.style.visibility).toBe('hidden');
+  enabled.value = false;
+  await short();
   expect(riot.style.visibility).toBe('collapse');
 });

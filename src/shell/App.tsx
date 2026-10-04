@@ -23,10 +23,13 @@ interface Props {
   themes: ThemeEngine;
   base: string;
   focused: Signal<boolean>;
+  /** Muda quando a raiz da Riot aparece ou é trocada. */
+  dom: Signal<number>;
   screens?: Record<Screen, (props: HomeProps) => JSX.Element>;
 }
 
-export function App({ root, lcu, themes, base, focused, screens = { home: Home } }: Props) {
+export function App({ root, lcu, themes, base, focused, dom, screens = { home: Home } }: Props) {
+  const domVersion = dom.value;
   const screen = screenFor(lcu.gameflowPhase.value);
   const visible = enabled.value && screen !== null;
   const theme = themes.active.value;
@@ -36,21 +39,27 @@ export function App({ root, lcu, themes, base, focused, screens = { home: Home }
   // não mostra tela, a Riot precisa estar visível já, não no próximo frame.
   useLayoutEffect(() => applyTheme(root, theme), [root, theme]);
 
-  /** Valor inline de `visibility` da Riot antes de a escondermos; null quando não fomos nós. */
-  const hidden = useRef<string | null>(null);
+  /** Elemento da Riot que escondemos e o `visibility` inline que ele tinha; null quando não escondemos nada. */
+  const hidden = useRef<{ el: HTMLElement; prev: string } | null>(null);
   const sync = (show: boolean, hideIt: boolean) => {
     root.dataset.visible = String(show);
     const riot = document.getElementById(RIOT_ROOT_ID);
+    const mine = hidden.current;
+    // O valor lembrado pertence ao elemento antigo: nunca é escrito num elemento novo.
+    if (mine && mine.el !== riot) {
+      if (mine.el.isConnected) mine.el.style.visibility = mine.prev;
+      hidden.current = null;
+    }
     if (!riot) return;
     if (hideIt) {
-      hidden.current ??= riot.style.visibility;
+      hidden.current ??= { el: riot, prev: riot.style.visibility };
       riot.style.visibility = 'hidden';
-    } else if (hidden.current !== null) {
-      riot.style.visibility = hidden.current;
+    } else if (hidden.current) {
+      riot.style.visibility = hidden.current.prev;
       hidden.current = null;
     }
   };
-  useLayoutEffect(() => sync(visible, hide), [root, visible, hide]);
+  useLayoutEffect(() => sync(visible, hide), [root, visible, hide, domVersion]);
   useLayoutEffect(() => () => sync(false, false), [root]);
 
   if (!visible || screen === null) return null;

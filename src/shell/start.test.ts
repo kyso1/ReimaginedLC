@@ -13,6 +13,8 @@ class FakeSocket {
   close() {}
 }
 
+const observers: MutationObserver[] = [];
+const RealObserver = globalThis.MutationObserver;
 const realWebSocket = globalThis.WebSocket;
 const realFetch = globalThis.fetch;
 let actions: unknown[];
@@ -23,6 +25,12 @@ beforeEach(() => {
   actions = [];
   link = Object.assign(document.createElement('link'), { rel: 'riot:plugins:websocket', href: 'ws://127.0.0.1:1/' });
   document.head.append(link);
+  globalThis.MutationObserver = class extends RealObserver {
+    constructor(cb: MutationCallback) {
+      super(cb);
+      observers.push(this);
+    }
+  };
   globalThis.WebSocket = FakeSocket as unknown as typeof WebSocket;
   globalThis.fetch = (async (input: RequestInfo | URL) => {
     const match = /themes\/([^/]+)\/theme\.json$/.exec(String(input));
@@ -37,6 +45,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  observers.splice(0).forEach((o) => o.disconnect());
+  globalThis.MutationObserver = RealObserver;
   globalThis.WebSocket = realWebSocket;
   globalThis.fetch = realFetch;
   delete window.CommandBar;
@@ -54,4 +64,26 @@ test('chamar start duas vezes monta uma só camada', async () => {
   expect(document.querySelectorAll('style[data-rlc]')).toHaveLength(1);
   expect(sockets).toHaveLength(1);
   expect(actions).toHaveLength(oneCall);
+});
+
+test('o client troca os filhos do body: a raiz original volta e o clone some', async () => {
+  await start();
+  const root = document.getElementById('rlc-root')!;
+  const clone = root.cloneNode(true);
+  document.body.append(clone);
+  root.remove();
+  await new Promise((r) => setTimeout(r, 0));
+  expect(document.querySelectorAll('#rlc-root')).toHaveLength(1);
+  expect(document.getElementById('rlc-root')).toBe(root);
+  expect(root.isConnected).toBe(true);
+});
+
+test('um elemento qualquer no body não move nem duplica a raiz', async () => {
+  await start();
+  const root = document.getElementById('rlc-root')!;
+  const other = document.body.appendChild(document.createElement('p'));
+  await new Promise((r) => setTimeout(r, 0));
+  expect(document.querySelectorAll('#rlc-root')).toHaveLength(1);
+  expect(document.getElementById('rlc-root')).toBe(root);
+  other.remove();
 });
