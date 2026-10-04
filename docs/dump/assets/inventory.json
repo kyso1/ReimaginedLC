@@ -1,0 +1,1037 @@
+{
+  "meta": {
+    "client": "16.19.823.0722",
+    "listing": "https://raw.communitydragon.org/latest/cdragon/files.exported.txt",
+    "capturedAt": "2026-10-04T01:48:51.257Z",
+    "sampleChecked": 5,
+    "sampleFound": 5
+  },
+  "wadMB": {
+    "rcp-be-lol-game-data": 6110,
+    "rcp-be-lol-license-agreement": 0,
+    "rcp-be-sanitizer": 1,
+    "rcp-fe-audio": 0,
+    "rcp-fe-common-libs": 0,
+    "rcp-fe-ember-libs": 0,
+    "rcp-fe-lol-champ-select": 63,
+    "rcp-fe-lol-champion-details": 20,
+    "rcp-fe-lol-champion-statistics": 0,
+    "rcp-fe-lol-clash": 91,
+    "rcp-fe-lol-collections": 113,
+    "rcp-fe-lol-esports-spectate": 0,
+    "rcp-fe-lol-event-hub": 16,
+    "rcp-fe-lol-highlights": 0,
+    "rcp-fe-lol-jade": 99,
+    "rcp-fe-lol-kickout": 0,
+    "rcp-fe-lol-l10n": 1,
+    "rcp-fe-lol-leagues": 11,
+    "rcp-fe-lol-lock-and-load": 0,
+    "rcp-fe-lol-loot": 102,
+    "rcp-fe-lol-match-history": 2,
+    "rcp-fe-lol-navigation": 47,
+    "rcp-fe-lol-new-player-experience": 9,
+    "rcp-fe-lol-objectives": 3,
+    "rcp-fe-lol-parties": 17,
+    "rcp-fe-lol-paw": 2,
+    "rcp-fe-lol-pft": 0,
+    "rcp-fe-lol-postgame": 8,
+    "rcp-fe-lol-premade-voice": 1,
+    "rcp-fe-lol-profiles": 2,
+    "rcp-fe-lol-settings": 0,
+    "rcp-fe-lol-shared-components": 23,
+    "rcp-fe-lol-skins-picker": 0,
+    "rcp-fe-lol-social": 4,
+    "rcp-fe-lol-static-assets": 251,
+    "rcp-fe-lol-store": 3,
+    "rcp-fe-lol-tft": 26,
+    "rcp-fe-lol-tft-promethium": 5,
+    "rcp-fe-lol-tft-team-planner": 1,
+    "rcp-fe-lol-tft-troves": 18,
+    "rcp-fe-lol-typekit": 1,
+    "rcp-fe-lol-uikit": 5,
+    "rcp-fe-lol-yourshop": 0,
+    "rcp-fe-plugin-runner": 0,
+    "rcp-fe-tft": 0
+  },
+  "summary": {
+    "rcp-be-lol-game-data": {
+      "imagem": {
+        "count": 48043,
+        "localized": 90,
+        "samples": [
+          "/lol-game-data/assets/assets/characters/caitlyn/skins/skin39/caitlynloadscreen_39.jpg",
+          "/lol-game-data/assets/assets/characters/caitlyn/skins/skin39/images/caitlyn_splash_centered_39.jpg",
+          "/lol-game-data/assets/assets/characters/caitlyn/skins/skin39/images/caitlyn_splash_tile_39.jpg"
+        ]
+      },
+      "dados": {
+        "count": 599,
+        "localized": 8964,
+        "samples": [
+          "/lol-game-data/assets/assets/ux/tft/troves_ceremonies/default/currency-segment/lottie.json",
+          "/lol-game-data/assets/assets/ux/tft/troves_ceremonies/default/milestone-segment-v2/lottie.json",
+          "/lol-game-data/assets/assets/ux/tft/troves_ceremonies/rotational/currency-segment-v2/lottie.json"
+        ]
+      },
+      "audio": {
+        "count": 1141,
+        "localized": 6351,
+        "samples": [
+          "/lol-game-data/assets/assets/cherry/rewards/sfx-promotion-arena-bronze.ogg",
+          "/lol-game-data/assets/assets/cherry/rewards/sfx-promotion-arena-gladiator.ogg",
+          "/lol-game-data/assets/assets/cherry/rewards/sfx-promotion-arena-gold.ogg"
+        ]
+      },
+      "video": {
+        "count": 321,
+        "localized": 0,
+        "samples": [
+          "/lol-game-data/assets/assets/characters/ahri/skins/skin86/animatedsplash/ahri_skin86_card.webm",
+          "/lol-game-data/assets/assets/characters/ahri/skins/skin86/animatedsplash/ahri_skin86_centered.webm",
+          "/lol-game-data/assets/assets/characters/ahri/skins/skin86/animatedsplash/ahri_skin86_uncentered.webm"
+        ]
+      },
+      "outro": {
+        "count": 2,
+        "localized": 0,
+        "samples": [
+          "/lol-game-data/assets/assets/ux/tft/spine/gwenmoment/skeleton.skel",
+          "/lol-game-data/assets/assets/ux/tft/spine/gwenmoment/skeleton.spineatlas"
+        ]
+      }
+    },
+    "rcp-be-lol-license-agreement": {
+      "dados": {
+        "count": 1,
+        "localized": 44,
+        "samples": []
+      }
+    },
+    "rcp-be-sanitizer": {
+      "outro": {
+        "count": 56,
+        "localized": 0,
+        "samples": []
+      },
+      "dados": {
+        "count": 5,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-audio": {
+      "dados": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      },
+      "codigo": {
+        "count": 2,
+        "localized": 0,
+        "samples": []
+      },
+      "audio": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-common-libs": {
+      "dados": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      },
+      "codigo": {
+        "count": 2,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-ember-libs": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 6,
+        "localized": 114,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-champ-select": {
+      "codigo": {
+        "count": 4,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 29,
+        "samples": []
+      },
+      "imagem": {
+        "count": 195,
+        "localized": 0,
+        "samples": []
+      },
+      "audio": {
+        "count": 95,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 34,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-champion-details": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 29,
+        "samples": []
+      },
+      "audio": {
+        "count": 11,
+        "localized": 0,
+        "samples": []
+      },
+      "imagem": {
+        "count": 128,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 12,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-champion-statistics": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-clash": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 42,
+        "localized": 28,
+        "samples": []
+      },
+      "imagem": {
+        "count": 634,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 49,
+        "localized": 0,
+        "samples": []
+      },
+      "audio": {
+        "count": 81,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-collections": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 5,
+        "localized": 116,
+        "samples": []
+      },
+      "audio": {
+        "count": 140,
+        "localized": 0,
+        "samples": []
+      },
+      "imagem": {
+        "count": 322,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 29,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-esports-spectate": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 29,
+        "samples": []
+      },
+      "imagem": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      },
+      "fonte": {
+        "count": 3,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-event-hub": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 29,
+        "samples": []
+      },
+      "imagem": {
+        "count": 24,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 18,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-highlights": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 29,
+        "samples": []
+      },
+      "imagem": {
+        "count": 19,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-jade": {
+      "codigo": {
+        "count": 4,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 28,
+        "samples": []
+      },
+      "audio": {
+        "count": 28,
+        "localized": 0,
+        "samples": []
+      },
+      "imagem": {
+        "count": 219,
+        "localized": 0,
+        "samples": []
+      },
+      "fonte": {
+        "count": 8,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 29,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-kickout": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-l10n": {
+      "codigo": {
+        "count": 2,
+        "localized": 27,
+        "samples": []
+      },
+      "dados": {
+        "count": 3,
+        "localized": 29,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-leagues": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 29,
+        "samples": []
+      },
+      "video": {
+        "count": 4,
+        "localized": 0,
+        "samples": []
+      },
+      "imagem": {
+        "count": 4,
+        "localized": 0,
+        "samples": []
+      },
+      "audio": {
+        "count": 4,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-lock-and-load": {
+      "dados": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      },
+      "codigo": {
+        "count": 2,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-loot": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 6,
+        "localized": 57,
+        "samples": []
+      },
+      "audio": {
+        "count": 77,
+        "localized": 0,
+        "samples": []
+      },
+      "imagem": {
+        "count": 814,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 131,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-match-history": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 29,
+        "samples": []
+      },
+      "imagem": {
+        "count": 87,
+        "localized": 0,
+        "samples": []
+      },
+      "audio": {
+        "count": 3,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-navigation": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 9,
+        "localized": 229,
+        "samples": []
+      },
+      "imagem": {
+        "count": 279,
+        "localized": 2,
+        "samples": []
+      },
+      "audio": {
+        "count": 41,
+        "localized": 2,
+        "samples": []
+      },
+      "video": {
+        "count": 43,
+        "localized": 4,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-new-player-experience": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 29,
+        "samples": []
+      },
+      "imagem": {
+        "count": 41,
+        "localized": 0,
+        "samples": []
+      },
+      "audio": {
+        "count": 7,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 7,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-objectives": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 28,
+        "samples": []
+      },
+      "imagem": {
+        "count": 37,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-parties": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 12,
+        "localized": 28,
+        "samples": []
+      },
+      "imagem": {
+        "count": 448,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 30,
+        "localized": 0,
+        "samples": []
+      },
+      "audio": {
+        "count": 39,
+        "localized": 0,
+        "samples": []
+      },
+      "outro": {
+        "count": 2,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-paw": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 29,
+        "samples": []
+      },
+      "audio": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      },
+      "outro": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      },
+      "imagem": {
+        "count": 18,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-pft": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 29,
+        "samples": []
+      },
+      "imagem": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-postgame": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 28,
+        "samples": []
+      },
+      "imagem": {
+        "count": 198,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 3,
+        "localized": 0,
+        "samples": []
+      },
+      "audio": {
+        "count": 47,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-premade-voice": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 29,
+        "samples": []
+      },
+      "imagem": {
+        "count": 47,
+        "localized": 0,
+        "samples": []
+      },
+      "audio": {
+        "count": 21,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-profiles": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 29,
+        "samples": []
+      },
+      "imagem": {
+        "count": 71,
+        "localized": 0,
+        "samples": []
+      },
+      "audio": {
+        "count": 3,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-settings": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 7,
+        "localized": 56,
+        "samples": []
+      },
+      "imagem": {
+        "count": 19,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-shared-components": {
+      "imagem": {
+        "count": 204,
+        "localized": 26,
+        "samples": []
+      },
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 14,
+        "localized": 346,
+        "samples": []
+      },
+      "audio": {
+        "count": 11,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 13,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-skins-picker": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 29,
+        "samples": []
+      },
+      "audio": {
+        "count": 2,
+        "localized": 0,
+        "samples": []
+      },
+      "imagem": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-social": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 3,
+        "localized": 59,
+        "samples": []
+      },
+      "imagem": {
+        "count": 162,
+        "localized": 0,
+        "samples": []
+      },
+      "audio": {
+        "count": 19,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-static-assets": {
+      "dados": {
+        "count": 44,
+        "localized": 28,
+        "samples": []
+      },
+      "imagem": {
+        "count": 2888,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 204,
+        "localized": 0,
+        "samples": []
+      },
+      "codigo": {
+        "count": 2,
+        "localized": 0,
+        "samples": []
+      },
+      "audio": {
+        "count": 231,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-store": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 29,
+        "samples": []
+      },
+      "imagem": {
+        "count": 136,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-tft-promethium": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 28,
+        "samples": []
+      },
+      "audio": {
+        "count": 14,
+        "localized": 0,
+        "samples": []
+      },
+      "imagem": {
+        "count": 2,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 9,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-tft-team-planner": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 29,
+        "samples": []
+      },
+      "imagem": {
+        "count": 169,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-tft-troves": {
+      "imagem": {
+        "count": 8,
+        "localized": 0,
+        "samples": []
+      },
+      "dados": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      },
+      "codigo": {
+        "count": 2,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-tft": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 15,
+        "localized": 113,
+        "samples": []
+      },
+      "imagem": {
+        "count": 90,
+        "localized": 0,
+        "samples": []
+      },
+      "audio": {
+        "count": 5,
+        "localized": 0,
+        "samples": []
+      },
+      "outro": {
+        "count": 12,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 8,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-typekit": {
+      "fonte": {
+        "count": 16,
+        "localized": 26,
+        "samples": []
+      },
+      "codigo": {
+        "count": 5,
+        "localized": 17,
+        "samples": []
+      },
+      "dados": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-uikit": {
+      "codigo": {
+        "count": 70,
+        "localized": 1,
+        "samples": []
+      },
+      "imagem": {
+        "count": 115,
+        "localized": 0,
+        "samples": []
+      },
+      "dados": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      },
+      "audio": {
+        "count": 34,
+        "localized": 0,
+        "samples": []
+      },
+      "video": {
+        "count": 2,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-lol-yourshop": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 29,
+        "samples": []
+      },
+      "imagem": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-plugin-runner": {
+      "dados": {
+        "count": 1,
+        "localized": 0,
+        "samples": []
+      },
+      "codigo": {
+        "count": 2,
+        "localized": 0,
+        "samples": []
+      }
+    },
+    "rcp-fe-tft": {
+      "codigo": {
+        "count": 3,
+        "localized": 1,
+        "samples": []
+      },
+      "dados": {
+        "count": 2,
+        "localized": 28,
+        "samples": []
+      },
+      "imagem": {
+        "count": 4,
+        "localized": 0,
+        "samples": []
+      }
+    }
+  }
+}
