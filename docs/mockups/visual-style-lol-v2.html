@@ -1,0 +1,77 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;font:10px/1.25 system-ui,sans-serif}
+  .s *{box-sizing:border-box}
+  .s .rail{position:absolute;top:0;left:0;bottom:0;width:8%;padding-top:10px}
+  .s .ic{margin:0 auto 9px}
+  .s .main{position:absolute;top:10%;left:13%;right:5%;bottom:8%}
+  .s h4{margin:0 0 2px}
+  .s .sub{font-size:9px;margin-bottom:8px}
+  .s .row{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;height:38%}
+  .s .btn{position:absolute;left:0;bottom:0;padding:6px 18px;font-weight:700;font-size:11px}
+
+  .gl{background:linear-gradient(140deg,#243b6b,#5b3a7a 55%,#b0506a);color:#fff}
+  .gl .rail{background:rgba(10,12,20,.45);backdrop-filter:blur(10px)}
+  .gl .ic{width:16px;height:16px;border-radius:6px;background:rgba(255,255,255,.18)}
+  .gl .ic.on{background:#fff}
+  .gl h4{font-size:17px;font-weight:650}
+  .gl .sub{opacity:.75}
+  .gl .c{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:10px}
+  .gl .btn{background:#fff;color:#1b1b2a;border-radius:999px}
+
+  .ed{background:#0e0e10;color:#f2f2f0}
+  .ed .rail{border-right:1px solid #26262a}
+  .ed .ic{border-radius:50%;background:#2a2a2e;width:9px;height:9px}
+  .ed .ic.on{background:#ff5a36}
+  .ed h4{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1}
+  .ed .sub{color:#8a8a90}
+  .ed .c{background:#18181b}
+  .ed .btn{background:#ff5a36;color:#0e0e10}
+
+  /* hybrid: editorial type + single accent, over media with dark glass */
+  .hy{background:linear-gradient(140deg,#243b6b,#5b3a7a 55%,#b0506a);color:#f2f2f0}
+  .hy::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,8,10,.88) 0%,rgba(8,8,10,.55) 55%,rgba(8,8,10,.15) 100%)}
+  .hy .rail{background:rgba(8,8,10,.6);backdrop-filter:blur(10px)}
+  .hy .ic{border-radius:50%;background:rgba(255,255,255,.22);width:9px;height:9px}
+  .hy .ic.on{background:#ff5a36}
+  .hy h4{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1}
+  .hy .sub{opacity:.65}
+  .hy .c{background:rgba(14,14,16,.55);backdrop-filter:blur(8px);border-radius:4px}
+  .hy .btn{background:#ff5a36;color:#0e0e10;border-radius:4px}
+</style>
+
+<h2>Peça 2b: Vidro, Editorial ou os dois juntos?</h2>
+<p class="subtitle">Os dois entram como temas de qualquer forma. A pergunta é qual vem ligado por padrão, e se vale um híbrido.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="hybrid" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s hy">
+      <div class="rail"><div class="ic on"></div><div class="ic"></div><div class="ic"></div><div class="ic"></div></div>
+      <div class="main"><h4>Ranqueada Solo</h4><div class="sub">Summoner's Rift · 5v5</div>
+        <div class="row"><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div></div>
+        <div class="btn">Encontrar partida</div></div>
+    </div></div>
+    <div class="card-body"><h3>Híbrido como padrão</h3><p>Tipografia grande e uma cor de destaque do Editorial, sobre a mídia de fundo com painéis de vidro escuro. Fundo aparece, texto continua legível. Vidro e Editorial puros viram presets do mesmo tema (blur 0 = Editorial).</p></div>
+  </div>
+
+  <div class="card" data-choice="glass-default" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s gl">
+      <div class="rail"><div class="ic on"></div><div class="ic"></div><div class="ic"></div><div class="ic"></div></div>
+      <div class="main"><h4>Ranqueada Solo</h4><div class="sub">Summoner's Rift · 5v5</div>
+        <div class="row"><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div></div>
+        <div class="btn">Encontrar partida</div></div>
+    </div></div>
+    <div class="card-body"><h3>Vidro como padrão</h3><p>Editorial fica como segundo tema instalado.</p></div>
+  </div>
+
+  <div class="card" data-choice="editorial-default" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s ed">
+      <div class="rail"><div class="ic on"></div><div class="ic"></div><div class="ic"></div><div class="ic"></div></div>
+      <div class="main"><h4>Ranqueada Solo</h4><div class="sub">Summoner's Rift · 5v5</div>
+        <div class="row"><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div></div>
+        <div class="btn">Encontrar partida</div></div>
+    </div></div>
+    <div class="card-body"><h3>Editorial como padrão</h3><p>Vidro fica como segundo tema instalado.</p></div>
+  </div>
+
+</div>

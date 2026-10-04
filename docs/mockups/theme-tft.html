@@ -1,0 +1,71 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;font:10px/1.25 system-ui,sans-serif;color:#fff}
+  .s *{box-sizing:border-box}
+  .s .rail{position:absolute;top:0;left:0;bottom:0;width:8%;padding-top:8px;background:rgba(10,12,20,.45)}
+  .s .ic{width:16px;height:16px;margin:0 auto 7px;background:rgba(255,255,255,.18)}
+  .s .main{position:absolute;top:10%;left:13%;right:5%;bottom:8%}
+  .s h4{margin:0 0 2px;font-size:17px}
+  .s .sub{font-size:9px;margin-bottom:8px;opacity:.78}
+  .s .row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;height:42%}
+  .s .btn{position:absolute;left:0;bottom:0;padding:6px 18px;font-weight:700;font-size:11px}
+  .tag{position:absolute;top:6%;right:4%;font-size:8px;padding:2px 6px;border-radius:99px;background:rgba(0,0,0,.4)}
+
+  /* A: same glass, accent + background swap only */
+  .ta{background:linear-gradient(140deg,#1d2f6b,#4a2f86 55%,#1f7f8a)}
+  .ta .ic{border-radius:6px}.ta .ic.on{background:#fff}
+  .ta .c{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:10px}
+  .ta .btn{background:#fff;color:#1b1b2a;border-radius:999px}
+
+  /* B: glass, playful - rounder, warm gold accent, chunkier */
+  .tb{background:linear-gradient(150deg,#2a1a5e,#6b3fa0 50%,#e08a3c)}
+  .tb .rail{border-radius:0 16px 16px 0}
+  .tb .ic{border-radius:50%}.tb .ic.on{background:#ffd76a}
+  .tb h4{font-weight:800}
+  .tb .c{background:rgba(255,255,255,.16);border:2px solid rgba(255,255,255,.3);border-radius:16px}
+  .tb .btn{background:#ffd76a;color:#3a2206;border-radius:14px;box-shadow:0 3px 0 #b8862b}
+
+  /* C: hex board identity */
+  .tc{background:radial-gradient(110% 100% at 60% 30%,#284a7a,#0d1530 75%)}
+  .tc .ic{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)}.tc .ic.on{background:#5ee6c8}
+  .tc h4{letter-spacing:.04em;text-transform:uppercase;font-weight:700}
+  .tc .row{gap:2px;align-items:center}
+  .tc .c{aspect-ratio:1/1.1;background:rgba(94,230,200,.14);border:0;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+  .tc .btn{background:#5ee6c8;color:#06241e;clip-path:polygon(6% 0,94% 0,100% 50%,94% 100%,6% 100%,0 50%);padding:6px 24px}
+</style>
+
+<h2>Peça 3: tema do TFT</h2>
+<p class="subtitle">Tema LoL definido: Vidro, shell de trilho lateral. Ao entrar em contexto TFT o tema troca sozinho. O quanto ele deve se diferenciar?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a-same-glass" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s ta"><div class="tag">TFT</div>
+      <div class="rail"><div class="ic on"></div><div class="ic"></div><div class="ic"></div><div class="ic"></div></div>
+      <div class="main"><h4>Ranqueada TFT</h4><div class="sub">Convergência · 8 jogadores</div>
+        <div class="row"><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div></div>
+        <div class="btn">Encontrar partida</div></div>
+    </div></div>
+    <div class="card-body"><h3>A. Mesmo Vidro, outra paleta</h3><p>Só mudam fundo, cor de destaque e mídia. Coerente, custo quase zero. Diferença sutil.</p></div>
+  </div>
+
+  <div class="card" data-choice="b-playful" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s tb"><div class="tag">TFT</div>
+      <div class="rail"><div class="ic on"></div><div class="ic"></div><div class="ic"></div><div class="ic"></div></div>
+      <div class="main"><h4>Ranqueada TFT</h4><div class="sub">Convergência · 8 jogadores</div>
+        <div class="row"><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div></div>
+        <div class="btn">Encontrar partida</div></div>
+    </div></div>
+    <div class="card-body"><h3>B. Vidro lúdico</h3><p>Mesma base, formas mais redondas, botões com volume, dourado quente. Clima das Pequenas Lendas. Muda tokens de forma além de cor.</p></div>
+  </div>
+
+  <div class="card" data-choice="c-hex" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s tc"><div class="tag">TFT</div>
+      <div class="rail"><div class="ic on"></div><div class="ic"></div><div class="ic"></div><div class="ic"></div></div>
+      <div class="main"><h4>Ranqueada TFT</h4><div class="sub">Convergência · 8 jogadores</div>
+        <div class="row"><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div></div>
+        <div class="btn">Encontrar partida</div></div>
+    </div></div>
+    <div class="card-body"><h3>C. Tabuleiro hexagonal</h3><p>Identidade própria: hexágonos em ícones, cartões e botões, verde-água. Bem distinto do LoL. Exige componentes com forma customizável, mais trabalho no motor de temas.</p></div>
+  </div>
+
+</div>

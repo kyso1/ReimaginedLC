@@ -1,0 +1,73 @@
+<style>
+  .scr{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;border-radius:6px;
+    background:linear-gradient(135deg,#0b1626 0%,#1b2a4a 45%,#3a2a55 100%);font:10px/1.2 system-ui,sans-serif;color:#dfe6f3}
+  .scr *{box-sizing:border-box}
+  .bar{position:absolute;background:rgba(8,12,22,.82);backdrop-filter:blur(6px)}
+  .pill{display:inline-block;padding:3px 8px;border-radius:3px;background:rgba(255,255,255,.08);margin-right:4px}
+  .pill.on{background:#c8aa6e;color:#111}
+  .ico{width:18px;height:18px;border-radius:5px;background:rgba(255,255,255,.14);margin:6px auto}
+  .ico.on{background:#c8aa6e}
+  .play{position:absolute;background:#c8aa6e;color:#111;font-weight:700;padding:5px 14px;border-radius:4px}
+  .fr{position:absolute;background:rgba(8,12,22,.82);padding:6px}
+  .fr i{display:block;height:6px;border-radius:3px;background:rgba(255,255,255,.16);margin-bottom:5px}
+  .body{position:absolute;display:grid;gap:6px}
+  .tile{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:5px}
+  .cap{position:absolute;font-size:9px;opacity:.6}
+</style>
+
+<h2>Peça 1: estrutura do shell</h2>
+<p class="subtitle">Onde ficam navegação, botão Jogar e lista de amigos. Isto vale para todas as telas. Só estrutura, o visual vem na próxima peça.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a-topbar" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="scr">
+      <div class="bar" style="top:0;left:0;right:0;height:14%;padding:6px 8px">
+        <span class="pill on">JOGAR</span><span class="pill">Início</span><span class="pill">Perfil</span><span class="pill">Coleção</span><span class="pill">Loot</span><span class="pill">Loja</span>
+      </div>
+      <div class="fr" style="top:14%;right:0;bottom:0;width:18%"><i></i><i style="width:70%"></i><i></i><i style="width:60%"></i><i></i><i style="width:80%"></i></div>
+      <div class="body" style="top:20%;left:3%;right:21%;bottom:6%;grid-template-columns:2fr 1fr"><div class="tile"></div><div class="tile"></div></div>
+    </div></div>
+    <div class="card-body"><h3>A. Barra superior</h3><p>Parecido com o client atual. Familiar, amigos sempre visíveis à direita. Menos área para mídia de fundo.</p></div>
+  </div>
+
+  <div class="card" data-choice="b-rail" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="scr">
+      <div class="bar" style="top:0;left:0;bottom:0;width:7%;padding-top:4px">
+        <div class="ico on"></div><div class="ico"></div><div class="ico"></div><div class="ico"></div><div class="ico"></div>
+        <div class="ico" style="position:absolute;bottom:4px;left:0;right:0"></div>
+      </div>
+      <div class="body" style="top:6%;left:10%;right:3%;bottom:16%;grid-template-columns:2fr 1fr 1fr"><div class="tile"></div><div class="tile"></div><div class="tile"></div></div>
+      <div class="play" style="left:10%;bottom:5%">JOGAR</div>
+      <div class="cap" style="right:3%;bottom:6%">amigos: gaveta que abre pela direita</div>
+    </div></div>
+    <div class="card-body"><h3>B. Trilho lateral</h3><p>Ícones à esquerda, estilo Discord ou launcher moderno. Conteúdo ocupa quase tudo. Amigos em gaveta recolhível.</p></div>
+  </div>
+
+  <div class="card" data-choice="c-dock" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="scr">
+      <div class="cap" style="top:6%;left:4%;font-size:11px;opacity:.9">Fundo em tela cheia (imagem, vídeo, gif)</div>
+      <div class="bar" style="left:22%;right:22%;bottom:5%;height:15%;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px">
+        <div class="ico" style="margin:0"></div><div class="ico" style="margin:0"></div>
+        <div style="background:#c8aa6e;color:#111;font-weight:700;padding:4px 12px;border-radius:5px">JOGAR</div>
+        <div class="ico" style="margin:0"></div><div class="ico" style="margin:0"></div>
+      </div>
+      <div class="fr" style="top:6%;right:3%;width:16%;border-radius:8px"><i></i><i style="width:70%"></i><i></i></div>
+    </div></div>
+    <div class="card-body"><h3>C. Dock flutuante</h3><p>Barra flutuante embaixo, amigos em cartão flutuante. Fundo de mídia é o protagonista. Mais cinematográfico.</p></div>
+  </div>
+
+  <div class="card" data-choice="d-hub" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="scr">
+      <div class="bar" style="top:5%;left:30%;right:30%;height:11%;border-radius:6px;padding:5px 8px;opacity:.95">Ctrl+K  buscar tela, amigo, campeão...</div>
+      <div class="body" style="top:24%;left:8%;right:8%;bottom:10%;grid-template-columns:1.4fr 1fr 1fr;grid-template-rows:1fr 1fr">
+        <div class="tile" style="grid-row:span 2;background:rgba(200,170,110,.25);display:flex;align-items:center;justify-content:center;font-weight:700">JOGAR</div>
+        <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
+      </div>
+    </div></div>
+    <div class="card-body"><h3>D. Hub de blocos</h3><p>Sem navegação fixa. Tela inicial em blocos (jogar, perfil, amigos, patch notes) e paleta de comandos para pular a qualquer lugar.</p></div>
+  </div>
+
+</div>
+
+<p class="subtitle">Pode ser variante também: o que você escolher vira o padrão, e os outros podem entrar depois como layouts alternativos do shell.</p>

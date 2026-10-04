@@ -1,0 +1,72 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;font:8px/1.2 system-ui,sans-serif;color:#fff;
+     background:linear-gradient(140deg,#243b6b,#5b3a7a 55%,#b0506a)}
+  .s *{box-sizing:border-box}
+  .rail{position:absolute;top:0;left:0;bottom:0;width:7%;background:rgba(10,12,20,.45);padding-top:6px}
+  .rail i{display:block;width:13px;height:13px;border-radius:5px;background:rgba(255,255,255,.18);margin:0 auto 6px}
+  .rail i.on{background:#fff}
+  .g{position:absolute;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:7px}
+  .h{position:absolute;font-size:13px;font-weight:650}
+  .lbl{position:absolute;font-size:7px;opacity:.78}
+  .pl{position:absolute;background:#fff;color:#1b1b2a;font-weight:700;border-radius:99px;padding:4px 14px;font-size:9px}
+  .row{position:absolute;display:flex;gap:2%}
+  .card5{flex:1;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.24);border-radius:8px;position:relative}
+  .card5 b{position:absolute;left:50%;top:22%;width:38%;aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.35);transform:translateX(-50%)}
+  .card5 u{position:absolute;left:20%;right:20%;top:62%;height:3px;border-radius:2px;background:rgba(255,255,255,.4)}
+  .card5.em{border-style:dashed;background:transparent}
+  .stage{flex:1;position:relative;border-radius:0}
+  .li{display:flex;align-items:center;gap:5px;height:15%;margin-bottom:4%;background:rgba(255,255,255,.14);border-radius:5px;padding:0 5px}
+  .li b{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.4)}
+  .li u{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.35)}
+</style>
+
+<h2>Peça 5: layout do lobby</h2>
+<p class="subtitle">Seleção de campeões: Cinemático padrão, Clássico como variante. Agora o lobby (grupo montado, antes da fila). Escolha padrão e variantes.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a-cards" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="rail"><i class="on"></i><i></i><i></i><i></i></div>
+      <div class="h" style="top:7%;left:11%">Ranqueada Solo/Duo</div><div class="lbl" style="top:16%;left:11%">trocar modo ▾ · posições</div>
+      <div class="row" style="top:25%;left:11%;right:5%;height:48%"><div class="card5"><b></b><u></u></div><div class="card5"><b></b><u></u></div><div class="card5 em"></div><div class="card5 em"></div><div class="card5 em"></div></div>
+      <div class="pl" style="left:11%;bottom:7%">Encontrar partida</div>
+      <div class="lbl" style="right:6%;bottom:9%">convidar · sugeridos</div>
+    </div></div>
+    <div class="card-body"><h3>A. Cartões</h3><p>Cinco cartões verticais com ícone, elo e posição. Slot vazio convida. Equilíbrio entre informação e espaço para o fundo.</p></div>
+  </div>
+
+  <div class="card" data-choice="b-stage" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s" style="background:#0c1020">
+      <div class="row" style="inset:0;gap:0">
+        <div class="stage" style="background:linear-gradient(#3a4f8f,#141a33)"></div>
+        <div class="stage" style="background:linear-gradient(#7a3f8f,#1c1433)"></div>
+        <div class="stage" style="background:linear-gradient(#22252f,#0e1018)"></div>
+        <div class="stage" style="background:linear-gradient(#1c1f28,#0c0e15)"></div>
+        <div class="stage" style="background:linear-gradient(#22252f,#0e1018)"></div>
+      </div>
+      <div class="rail"><i class="on"></i><i></i><i></i><i></i></div>
+      <div class="lbl" style="top:42%;left:10%;font-size:8px;opacity:1">skin favorita<br>de cada jogador</div>
+      <div class="lbl" style="top:45%;left:53%">+ convidar</div>
+      <div class="g" style="left:26%;right:22%;bottom:6%;height:15%;border-radius:12px;background:rgba(10,12,20,.6)"></div>
+      <div class="lbl" style="left:29%;bottom:11%;font-size:8px">Ranqueada Solo/Duo ▾</div>
+      <div class="pl" style="right:25%;bottom:9%">Encontrar partida</div>
+    </div></div>
+    <div class="card-body"><h3>B. Palco</h3><p>Cada jogador é uma coluna em tela cheia com a splash da skin ou fundo de perfil. Controles numa barra flutuante. Combina com o champ select cinemático.</p></div>
+  </div>
+
+  <div class="card" data-choice="c-list" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="rail"><i class="on"></i><i></i><i></i><i></i></div>
+      <div class="h" style="top:7%;left:11%">Ranqueada Solo/Duo</div>
+      <div style="position:absolute;top:20%;left:11%;width:34%;bottom:20%">
+        <div class="li"><b></b><u></u></div><div class="li"><b></b><u></u></div><div class="li" style="background:transparent;border:1px dashed rgba(255,255,255,.3)"></div><div class="li" style="background:transparent;border:1px dashed rgba(255,255,255,.3)"></div><div class="li" style="background:transparent;border:1px dashed rgba(255,255,255,.3)"></div>
+      </div>
+      <div class="pl" style="left:11%;bottom:7%">Encontrar partida</div>
+      <div class="g" style="top:7%;right:4%;width:44%;height:40%"></div><div class="lbl" style="top:11%;right:30%">seu desempenho na fila</div>
+      <div class="g" style="top:51%;right:4%;width:44%;bottom:7%"></div><div class="lbl" style="top:55%;right:30%">amigos online · convites</div>
+    </div></div>
+    <div class="card-body"><h3>C. Lista + painéis</h3><p>Grupo em lista compacta, resto da tela para estatísticas da fila e amigos para convidar. Mais útil, menos visual.</p></div>
+  </div>
+
+</div>

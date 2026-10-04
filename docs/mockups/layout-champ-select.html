@@ -1,0 +1,73 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;font:8px/1.2 system-ui,sans-serif;color:#fff;
+     background:linear-gradient(140deg,#243b6b,#5b3a7a 55%,#b0506a)}
+  .s *{box-sizing:border-box}
+  .g{position:absolute;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:6px}
+  .dk{position:absolute;background:rgba(10,12,20,.5);border-radius:6px}
+  .col{position:absolute;display:flex;flex-direction:column;gap:3%}
+  .p{flex:1;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:5px;display:flex;align-items:center;gap:4px;padding:0 4px}
+  .p b{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.4);flex:none}
+  .p.me{border-color:#fff;background:rgba(255,255,255,.28)}
+  .p u{display:block;height:3px;border-radius:2px;background:rgba(255,255,255,.35);flex:1;text-decoration:none}
+  .grid{position:absolute;display:grid;gap:3px}
+  .grid i{background:rgba(255,255,255,.16);border-radius:3px}
+  .tm{position:absolute;font-weight:700;font-size:13px}
+  .lk{position:absolute;background:#fff;color:#1b1b2a;font-weight:700;border-radius:99px;padding:3px 12px;font-size:8px}
+  .bans{position:absolute;display:flex;gap:2px}
+  .bans i{width:9px;height:9px;border-radius:2px;background:rgba(0,0,0,.4)}
+  .lbl{position:absolute;font-size:7px;opacity:.75}
+  .big{position:absolute;font-size:22px;font-weight:800;letter-spacing:-.02em}
+</style>
+
+<h2>Peça 4: layout da seleção de campeões</h2>
+<p class="subtitle">Tela mais crítica. Escolha o layout padrão. Os outros podem entrar como variantes selecionáveis nas configurações: diga no terminal quais manter.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a-classic" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="tm" style="top:4%;left:46%">0:27</div>
+      <div class="bans" style="top:5%;left:4%"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="bans" style="top:5%;right:4%"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="col" style="top:14%;left:3%;width:19%;bottom:18%"><div class="p"><b></b><u></u></div><div class="p me"><b></b><u></u></div><div class="p"><b></b><u></u></div><div class="p"><b></b><u></u></div><div class="p"><b></b><u></u></div></div>
+      <div class="col" style="top:14%;right:3%;width:19%;bottom:18%"><div class="p"><b></b><u></u></div><div class="p"><b></b><u></u></div><div class="p"><b></b><u></u></div><div class="p"><b></b><u></u></div><div class="p"><b></b><u></u></div></div>
+      <div class="grid" style="top:14%;left:25%;right:25%;bottom:18%;grid-template-columns:repeat(7,1fr);grid-auto-rows:1fr">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="dk" style="left:25%;right:25%;bottom:4%;height:10%"></div>
+      <div class="lbl" style="left:27%;bottom:7%">runas · feitiços · skin</div>
+      <div class="lk" style="right:27%;bottom:6%">Confirmar</div>
+    </div></div>
+    <div class="card-body"><h3>A. Clássico</h3><p>Aliados à esquerda, inimigos à direita, grade no centro, runas e feitiços embaixo. Memória muscular do client atual.</p></div>
+  </div>
+
+  <div class="card" data-choice="b-cinematic" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s" style="background:linear-gradient(100deg,#0c1020 0%,#3a2a66 45%,#c05a70 100%)">
+      <div class="big" style="top:22%;left:5%">AHRI</div>
+      <div class="lbl" style="top:40%;left:5%">splash ou vídeo do campeão em tela cheia</div>
+      <div class="tm" style="top:4%;left:46%">0:27</div>
+      <div class="col" style="top:4%;left:3%;width:38%;height:9%;flex-direction:row;gap:2%"><div class="p me"><b></b></div><div class="p"><b></b></div><div class="p"><b></b></div><div class="p"><b></b></div><div class="p"><b></b></div></div>
+      <div class="col" style="top:4%;right:3%;width:38%;height:9%;flex-direction:row;gap:2%"><div class="p"><b></b></div><div class="p"><b></b></div><div class="p"><b></b></div><div class="p"><b></b></div><div class="p"><b></b></div></div>
+      <div class="dk" style="left:3%;right:3%;bottom:4%;height:30%"></div>
+      <div class="grid" style="left:5%;right:24%;bottom:7%;height:24%;grid-template-columns:repeat(12,1fr);grid-auto-rows:1fr">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="lbl" style="right:6%;bottom:24%">runas · feitiços</div>
+      <div class="lk" style="right:6%;bottom:9%">Confirmar</div>
+    </div></div>
+    <div class="card-body"><h3>B. Cinemático</h3><p>Campeão em destaque ocupa a tela, times em faixas no topo, grade numa gaveta embaixo. Melhor vitrine para mídia e animações. Menos informação por jogador.</p></div>
+  </div>
+
+  <div class="card" data-choice="c-info" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="tm" style="top:4%;left:30%">0:27</div>
+      <div class="col" style="top:5%;left:3%;width:22%;bottom:5%"><div class="p me"><b></b><u></u></div><div class="p"><b></b><u></u></div><div class="p"><b></b><u></u></div><div class="p"><b></b><u></u></div><div class="p"><b></b><u></u></div></div>
+      <div class="grid" style="top:14%;left:28%;width:36%;bottom:18%;grid-template-columns:repeat(6,1fr);grid-auto-rows:1fr">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="lk" style="left:40%;bottom:6%">Confirmar</div>
+      <div class="g" style="top:5%;right:3%;width:30%;height:26%"></div><div class="lbl" style="top:8%;right:8%">inimigos + bans</div>
+      <div class="g" style="top:34%;right:3%;width:30%;height:28%"></div><div class="lbl" style="top:37%;right:8%">runas e build sugeridas</div>
+      <div class="g" style="top:65%;right:3%;width:30%;bottom:5%"></div><div class="lbl" style="top:68%;right:8%">maestria, winrate, counters</div>
+    </div></div>
+    <div class="card-body"><h3>C. Painel de dados</h3><p>Aliados à esquerda, grade ao centro, coluna de informação à direita: inimigos, runas sugeridas, estatísticas. Foco em decisão, menos em espetáculo.</p></div>
+  </div>
+
+</div>

@@ -1,0 +1,51 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;background:#0c1020;font:700 13px system-ui,sans-serif;color:#fff}
+  .v{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;animation-duration:4s;animation-iteration-count:infinite;animation-timing-function:cubic-bezier(.2,.7,.2,1)}
+  .v1{background:linear-gradient(140deg,#243b6b,#5b3a7a 55%,#b0506a)}
+  .v2{background:linear-gradient(140deg,#0f3d3e,#2a5f8f 55%,#c08a3c)}
+  .v span{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:10px 18px}
+
+  /* each: v1 visible 0-40%, transition 40-50%, v2 visible 50-90%, back 90-100% */
+  @keyframes fadeA{0%,40%{opacity:1}50%,90%{opacity:0}100%{opacity:1}}
+  .fa .v1{animation-name:fadeA}
+
+  @keyframes slOut{0%,40%{transform:none;opacity:1}50%,90%{transform:translateX(-12%) scale(.94);opacity:0}100%{transform:none;opacity:1}}
+  @keyframes slIn{0%,40%{transform:translateX(12%) scale(.94);opacity:0}50%,90%{transform:none;opacity:1}100%{transform:translateX(12%) scale(.94);opacity:0}}
+  .sl .v1{animation-name:slOut}.sl .v2{animation-name:slIn}
+
+  @keyframes zmOut{0%,40%{transform:none;opacity:1;filter:none}50%,90%{transform:scale(1.25);opacity:0;filter:blur(10px)}100%{transform:none;opacity:1;filter:none}}
+  @keyframes zmIn{0%,40%{transform:scale(.85);opacity:0;filter:blur(10px)}50%,90%{transform:none;opacity:1;filter:none}100%{transform:scale(.85);opacity:0;filter:blur(10px)}}
+  .zm .v1{animation-name:zmOut}.zm .v2{animation-name:zmIn}
+
+  @keyframes wp{0%,40%{clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}50%,90%{clip-path:polygon(0 0,0 0,-20% 100%,0 100%)}100%{clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}}
+  .wp .v1{animation-name:wp;animation-timing-function:cubic-bezier(.7,0,.2,1)}
+
+  @media (prefers-reduced-motion: reduce){.v{animation:none}}
+</style>
+
+<h2>Peça 7: transição entre telas</h2>
+<p class="subtitle">Home: só o fundo. Agora movimento. As prévias abaixo são animadas de verdade e ficam em loop (Lobby ⇄ Seleção). Escolha a transição padrão do tema Vidro. Cada tema poderá definir a sua, e haverá ajuste de intensidade (completa, reduzida, desligada).</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a-fade" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s fa"><div class="v v2"><span>Seleção</span></div><div class="v v1"><span>Lobby</span></div></div></div>
+    <div class="card-body"><h3>A. Fusão</h3><p>Uma tela dissolve na outra. Discreta, nunca cansa, a mais leve.</p></div>
+  </div>
+
+  <div class="card" data-choice="b-slide" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s sl"><div class="v v2"><span>Seleção</span></div><div class="v v1"><span>Lobby</span></div></div></div>
+    <div class="card-body"><h3>B. Deslize com profundidade</h3><p>Tela sai para o lado encolhendo, a próxima entra. Dá sensação de direção na navegação.</p></div>
+  </div>
+
+  <div class="card" data-choice="c-zoom" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s zm"><div class="v v2"><span>Seleção</span></div><div class="v v1"><span>Lobby</span></div></div></div>
+    <div class="card-body"><h3>C. Zoom com desfoque</h3><p>Mergulha na tela seguinte. Cinematográfico, combina com Palco e champ select Cinemático. Blur animado custa mais GPU.</p></div>
+  </div>
+
+  <div class="card" data-choice="d-wipe" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s wp"><div class="v v2"><span>Seleção</span></div><div class="v v1"><span>Lobby</span></div></div></div>
+    <div class="card-body"><h3>D. Cortina diagonal</h3><p>Corte diagonal varre a tela. Marcante, estilo transmissão de esports.</p></div>
+  </div>
+
+</div>

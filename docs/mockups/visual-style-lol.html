@@ -1,0 +1,98 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;font:10px/1.25 system-ui,sans-serif}
+  .s *{box-sizing:border-box}
+  .s .rail{position:absolute;top:0;left:0;bottom:0;width:8%;padding-top:6px}
+  .s .ic{width:16px;height:16px;margin:0 auto 7px}
+  .s .main{position:absolute;top:10%;left:13%;right:5%;bottom:8%}
+  .s h4{margin:0 0 2px;font-size:17px}
+  .s .sub{font-size:9px;margin-bottom:8px}
+  .s .row{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;height:42%}
+  .s .btn{position:absolute;left:0;bottom:0;padding:6px 18px;font-weight:700;font-size:11px}
+
+  /* A hextech */
+  .hx{background:radial-gradient(120% 90% at 70% 20%,#12304a 0%,#061019 70%);color:#f0e6d2}
+  .hx .rail{background:#010a13;border-right:1px solid #463714}
+  .hx .ic{border:1px solid #785a28;transform:rotate(45deg) scale(.75)}
+  .hx .ic.on{background:#c8aa6e}
+  .hx h4{font-family:Georgia,serif;letter-spacing:.12em;text-transform:uppercase;color:#f0e6d2}
+  .hx .sub{color:#a09b8c;letter-spacing:.1em;text-transform:uppercase}
+  .hx .c{background:linear-gradient(#1e2328,#0a1118);border:1px solid #785a28}
+  .hx .btn{background:#1e2328;border:2px solid #c8aa6e;color:#f0e6d2;letter-spacing:.12em}
+
+  /* B glass */
+  .gl{background:linear-gradient(140deg,#243b6b,#5b3a7a 55%,#b0506a);color:#fff}
+  .gl .rail{background:rgba(10,12,20,.45);backdrop-filter:blur(10px)}
+  .gl .ic{border-radius:6px;background:rgba(255,255,255,.18)}
+  .gl .ic.on{background:#fff}
+  .gl h4{font-weight:650}
+  .gl .sub{opacity:.75}
+  .gl .c{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:10px;backdrop-filter:blur(8px)}
+  .gl .btn{background:#fff;color:#1b1b2a;border-radius:999px}
+
+  /* C editorial */
+  .ed{background:#0e0e10;color:#f2f2f0}
+  .ed .rail{background:#0e0e10;border-right:1px solid #26262a}
+  .ed .ic{border-radius:50%;background:#2a2a2e;width:9px;height:9px;margin-bottom:12px}
+  .ed .ic.on{background:#ff5a36}
+  .ed h4{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1}
+  .ed .sub{color:#8a8a90}
+  .ed .c{background:#18181b}
+  .ed .btn{background:#ff5a36;color:#0e0e10}
+
+  /* D neon */
+  .ne{background:linear-gradient(160deg,#0a0220,#1a0540 60%,#02283a);color:#eafcff}
+  .ne .rail{background:rgba(0,0,0,.5);border-right:1px solid #00e5ff55}
+  .ne .ic{background:#ffffff18;clip-path:polygon(20% 0,100% 0,80% 100%,0 100%)}
+  .ne .ic.on{background:#00e5ff;box-shadow:0 0 10px #00e5ff}
+  .ne h4{font-style:italic;font-weight:900;text-transform:uppercase;text-shadow:0 0 12px #ff2bd6}
+  .ne .sub{color:#00e5ff}
+  .ne .c{background:#ffffff0d;border:1px solid #ff2bd666;clip-path:polygon(0 0,100% 0,100% 82%,88% 100%,0 100%)}
+  .ne .btn{background:linear-gradient(90deg,#ff2bd6,#00e5ff);color:#0a0220;clip-path:polygon(8% 0,100% 0,92% 100%,0 100%);text-transform:uppercase}
+</style>
+
+<h2>Peça 2: direção visual do tema padrão (LoL)</h2>
+<p class="subtitle">Shell B (trilho lateral) já aplicado. Escolha a linguagem visual do tema que vem instalado. As outras podem virar temas extras depois, o motor suporta todas.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a-hextech" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s hx">
+      <div class="rail"><div class="ic on"></div><div class="ic"></div><div class="ic"></div><div class="ic"></div></div>
+      <div class="main"><h4>Ranqueada Solo</h4><div class="sub">Summoner's Rift · 5v5</div>
+        <div class="row"><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div></div>
+        <div class="btn">ENCONTRAR PARTIDA</div></div>
+    </div></div>
+    <div class="card-body"><h3>A. Hextech refinado</h3><p>Azul-marinho e dourado, serifada em caixa alta, cantos retos. Identidade LoL, só mais limpa.</p></div>
+  </div>
+
+  <div class="card" data-choice="b-glass" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s gl">
+      <div class="rail"><div class="ic on"></div><div class="ic"></div><div class="ic"></div><div class="ic"></div></div>
+      <div class="main"><h4>Ranqueada Solo</h4><div class="sub">Summoner's Rift · 5v5</div>
+        <div class="row"><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div></div>
+        <div class="btn">Encontrar partida</div></div>
+    </div></div>
+    <div class="card-body"><h3>B. Vidro</h3><p>Painéis translúcidos com blur sobre a mídia de fundo, cantos arredondados. O fundo escolhido dita o clima.</p></div>
+  </div>
+
+  <div class="card" data-choice="c-editorial" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s ed">
+      <div class="rail" style="padding-top:12px"><div class="ic on"></div><div class="ic"></div><div class="ic"></div><div class="ic"></div></div>
+      <div class="main"><h4>Ranqueada Solo</h4><div class="sub">Summoner's Rift · 5v5</div>
+        <div class="row" style="height:36%"><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div></div>
+        <div class="btn">Encontrar partida</div></div>
+    </div></div>
+    <div class="card-body"><h3>C. Editorial</h3><p>Quase preto, tipografia grande, uma cor de destaque, sem bordas nem brilho. Rápido de ler, leve de renderizar.</p></div>
+  </div>
+
+  <div class="card" data-choice="d-neon" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s ne">
+      <div class="rail"><div class="ic on"></div><div class="ic"></div><div class="ic"></div><div class="ic"></div></div>
+      <div class="main"><h4>Ranqueada Solo</h4><div class="sub">Summoner's Rift · 5v5</div>
+        <div class="row"><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div></div>
+        <div class="btn">Encontrar partida</div></div>
+    </div></div>
+    <div class="card-body"><h3>D. Neon</h3><p>Gradientes saturados, brilho, cortes diagonais. Energia de arcade e esports.</p></div>
+  </div>
+
+</div>
