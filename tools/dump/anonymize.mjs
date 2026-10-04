@@ -2,7 +2,7 @@ const DROP_URI = /token|rso-auth|entitlements|lol-login|league-session/i;
 const SECRET_KEY =
   /token|jwt|password|secret|authorization|cookie|credential|encryptionkey|spectatorkey|discord|lobbyname|groupname|^pty$|^auth$|apikey|signature|ticket|bearer/i;
 const IDENTITY_KEY =
-  /puuid|summonerid|accountid|gamename|summonername|displayname|internalname|^email$|^username$|^pid$|^jid$|partyid|multiuserchatid|channelclaim/i;
+  /puuid|summonerid|accountid|game_?name|summoner_?name|displayname|internalname|^email$|^username$|^pid$|^jid$|partyid|multiuserchatid|channelclaim|gameid$|matchid$|commonfriendname|playeralias|playerorteamname|nickname|^nick$/i;
 const TAG_KEY = /tagline|gametag/i;
 const JWT = /eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*/g;
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
@@ -237,10 +237,13 @@ export function assertClean(lines, identities, secrets) {
       items.push({ s: path, mode: 'path', ctx: false });
       for (const p of pieces) items.push({ s: p, mode: 'whole', ctx: false });
     }
-    scan(line.data, null, (v, key) => {
+    scan(line.data, null, (v, key, raw) => {
       if (typeof v === 'number') nums.push(String(v));
       else if (typeof v === 'string') {
         atoms.push(v);
+        // JSON embutido canônico é coberto pela varredura do valor analisado; o texto bruto só é conferido
+        // quando difere dela (ex.: chave duplicada guarda valores que o objeto analisado perdeu).
+        if (raw && JSON.stringify(JSON.parse(v)) === v) return;
         items.push({ s: v, mode: 'data', ctx: key !== null && IDENTITY_KEY.test(key) });
       }
     });
