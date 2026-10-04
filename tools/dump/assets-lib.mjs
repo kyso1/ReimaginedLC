@@ -30,6 +30,7 @@ export function parseAssetPath(line) {
 
 export function clientUrl({ plugin, rest }) {
   if (plugin === 'rcp-be-lol-game-data') return `/lol-game-data/assets/${rest}`;
+  if (plugin.startsWith('rcp-fe-')) return `/fe/${plugin.slice('rcp-fe-'.length)}/${rest}`;
   return null;
 }
 

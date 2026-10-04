@@ -31,20 +31,43 @@ try {
   }
 
   // A listagem é do patch "latest" do CommunityDragon, que pode diferir do instalado.
-  // Mede a diferença pedindo ao client uma amostra de URLs.
+  // Mede a diferença pedindo ao client uma amostra de URLs /lol-game-data (servidas via REST).
+  // URLs /fe/* não são conferidas aqui, pois são servidas apenas no navegador embutido.
   const creds = readCredentials();
   const build = await lcuJson(creds, '/system/v1/builds');
-  const sample = Object.values(summary).flatMap((cats) => Object.values(cats).flatMap((c) => c.samples.slice(0, 1))).slice(0, 40);
+
+  // Coleta URLs /lol-game-data da summary
+  let sample = [];
+  if (summary['rcp-be-lol-game-data']) {
+    for (const cat of Object.values(summary['rcp-be-lol-game-data'])) {
+      sample.push(...cat.samples);
+    }
+  }
+
+  // Se não temos 40 URLs, escaneia o arquivo de listagem para adicionar mais
+  if (sample.length < 40) {
+    const lines = readFileSync(RAW, 'utf8').split('\n');
+    const gameDataLines = lines.filter((l) => l.includes('plugins/rcp-be-lol-game-data/global/default/'));
+    const step = Math.max(1, Math.floor(gameDataLines.length / (40 - sample.length)));
+    for (let i = 0; i < gameDataLines.length && sample.length < 40; i += step) {
+      const line = gameDataLines[i];
+      const parsed = { plugin: 'rcp-be-lol-game-data', rest: line.split('/').slice(4).join('/') };
+      const url = `/lol-game-data/assets/${parsed.rest}`;
+      if (!sample.includes(url)) sample.push(url);
+    }
+  }
+  sample = sample.slice(0, 40);
+
   let hits = 0;
   for (const url of sample) if ((await lcuGet(creds, encodeURI(url))).status === 200) hits++;
 
-  const meta = { client: build.version, listing: LISTING_URL, capturedAt: new Date().toISOString(), sampleChecked: sample.length, sampleFound: hits };
+  const meta = { client: build.version, listing: LISTING_URL, capturedAt: new Date().toISOString(), sampleChecked: sample.length, sampleFound: hits, feUrlsVerified: false };
   writeFileSync(`${OUT}/inventory.json`, JSON.stringify({ meta, wadMB, summary }, null, 2) + '\n');
 
   const md = [
     '# Inventário de assets do client',
     '',
-    `Client ${meta.client}. Listagem: CommunityDragon \`latest\`. Amostra conferida no client: ${hits} de ${sample.length} URLs responderam 200.`,
+    `Client ${meta.client}. Listagem: CommunityDragon \`latest\`. Amostra conferida no client: ${hits} de ${sample.length} URLs de /lol-game-data responderam 200. URLs /fe/ são servidas apenas dentro do navegador embutido do client e não foram conferidas aqui.`,
     '',
     'Contagens são de arquivos em `global/default`. A coluna "localizados" conta as cópias por idioma.',
     'Nenhum arquivo é copiado para o repositório: "reutilizar por referência" significa carregar a URL do próprio client em tempo de execução.',

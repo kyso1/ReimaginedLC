@@ -30,7 +30,7 @@ test('category agrupa por extensão', () => {
 });
 
 test('clientUrl mapeia para as rotas do client', () => {
-  assert.equal(clientUrl({ plugin: 'rcp-fe-lol-champ-select', rest: 'images/a.png' }), null);
+  assert.equal(clientUrl({ plugin: 'rcp-fe-lol-champ-select', rest: 'images/a.png' }), '/fe/lol-champ-select/images/a.png');
   assert.equal(clientUrl({ plugin: 'rcp-be-lol-game-data', rest: 'v1/champion-icons/1.png' }), '/lol-game-data/assets/v1/champion-icons/1.png');
   assert.equal(clientUrl({ plugin: 'rcp-be-sanitizer', rest: 'x.json' }), null);
 });
@@ -47,7 +47,7 @@ test('summarize conta por plugin e categoria, separa localizados e guarda até 3
   ]);
   assert.equal(s['rcp-fe-lol-loot'].imagem.count, 4);
   assert.equal(s['rcp-fe-lol-loot'].imagem.localized, 0);
-  assert.deepEqual(s['rcp-fe-lol-loot'].imagem.samples, []);
+  assert.deepEqual(s['rcp-fe-lol-loot'].imagem.samples, ['/fe/lol-loot/a.png', '/fe/lol-loot/b.png', '/fe/lol-loot/c.png']);
   assert.equal(s['rcp-fe-lol-loot'].dados.count, 0);
   assert.equal(s['rcp-fe-lol-loot'].dados.localized, 1);
   assert.equal(s['rcp-fe-lol-loot'].audio.count, 1);

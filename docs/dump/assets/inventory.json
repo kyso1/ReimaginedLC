@@ -2,9 +2,10 @@
   "meta": {
     "client": "16.19.823.0722",
     "listing": "https://raw.communitydragon.org/latest/cdragon/files.exported.txt",
-    "capturedAt": "2026-10-04T01:48:51.257Z",
-    "sampleChecked": 5,
-    "sampleFound": 5
+    "capturedAt": "2026-10-04T01:51:13.827Z",
+    "sampleChecked": 40,
+    "sampleFound": 40,
+    "feUrlsVerified": false
   },
   "wadMB": {
     "rcp-be-lol-game-data": 6110,
@@ -123,914 +124,1508 @@
       "dados": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/audio/license.json"
+        ]
       },
       "codigo": {
         "count": 2,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/audio/main.css",
+          "/fe/audio/rcp-fe-audio.js"
+        ]
       },
       "audio": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/audio/teemo.ogg"
+        ]
       }
     },
     "rcp-fe-common-libs": {
       "dados": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/common-libs/license.json"
+        ]
       },
       "codigo": {
         "count": 2,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/common-libs/main.css",
+          "/fe/common-libs/rcp-fe-common-libs.js"
+        ]
       }
     },
     "rcp-fe-ember-libs": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/ember-libs/main.css",
+          "/fe/ember-libs/rcp-fe-ember-libs.css",
+          "/fe/ember-libs/rcp-fe-ember-libs.js"
+        ]
       },
       "dados": {
         "count": 6,
         "localized": 114,
-        "samples": []
+        "samples": [
+          "/fe/ember-libs/license.json",
+          "/fe/ember-libs/trans-icon-rarity.json",
+          "/fe/ember-libs/trans-loadouts-modal.json"
+        ]
       }
     },
     "rcp-fe-lol-champ-select": {
       "codigo": {
         "count": 4,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-champ-select/main.css",
+          "/fe/lol-champ-select/rcp-fe-lol-champ-select.css",
+          "/fe/lol-champ-select/rcp-fe-lol-champ-select.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-champ-select/license.json",
+          "/fe/lol-champ-select/trans.json"
+        ]
       },
       "imagem": {
         "count": 195,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-champ-select/class-icon-assassin.png",
+          "/fe/lol-champ-select/class-icon-fighter.png",
+          "/fe/lol-champ-select/class-icon-mage.png"
+        ]
       },
       "audio": {
         "count": 95,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-champ-select/sounds/95-bpm-click-track.ogg",
+          "/fe/lol-champ-select/sounds/music-cs-draft-ban-base-layer-01.ogg",
+          "/fe/lol-champ-select/sounds/music-cs-draft-ban-intensity-layer-01.ogg"
+        ]
       },
       "video": {
         "count": 34,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-champ-select/video/card-select/champ_select_card_idle_loop.webm",
+          "/fe/lol-champ-select/video/card-select/champ_select_default_card_intro.webm",
+          "/fe/lol-champ-select/video/card-select/champ_select_hover_state_idle_loop.webm"
+        ]
       }
     },
     "rcp-fe-lol-champion-details": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-champion-details/main.css",
+          "/fe/lol-champion-details/rcp-fe-lol-champion-details.css",
+          "/fe/lol-champion-details/rcp-fe-lol-champion-details.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-champion-details/license.json",
+          "/fe/lol-champion-details/trans.json"
+        ]
       },
       "audio": {
         "count": 11,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-champion-details/audio/sfx-champselect-button-arrowback-click.ogg",
+          "/fe/lol-champion-details/audio/sfx-champselect-button-arrowfwd-click.ogg",
+          "/fe/lol-champion-details/audio/sfx-eternals-cdp-common-state1-hover.ogg"
+        ]
       },
       "imagem": {
         "count": 128,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-champion-details/cc-common-bg-1.png",
+          "/fe/lol-champion-details/cc-common-bg-2.png",
+          "/fe/lol-champion-details/cc-common-bg-3.png"
+        ]
       },
       "video": {
         "count": 12,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-champion-details/video/champion-detail-owned-magic.webm",
+          "/fe/lol-champion-details/video/champion-detail-purchase-magic.webm",
+          "/fe/lol-champion-details/video/champion-detail-purchase-unlock.webm"
+        ]
       }
     },
     "rcp-fe-lol-champion-statistics": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-champion-statistics/main.css",
+          "/fe/lol-champion-statistics/rcp-fe-lol-champion-statistics.css",
+          "/fe/lol-champion-statistics/rcp-fe-lol-champion-statistics.js"
+        ]
       },
       "dados": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-champion-statistics/license.json"
+        ]
       }
     },
     "rcp-fe-lol-clash": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-clash/main.css",
+          "/fe/lol-clash/rcp-fe-lol-clash.css",
+          "/fe/lol-clash/rcp-fe-lol-clash.js"
+        ]
       },
       "dados": {
         "count": 42,
         "localized": 28,
-        "samples": []
+        "samples": [
+          "/fe/lol-clash/assets/animations/lottie/bonus-meter.json",
+          "/fe/lol-clash/assets/animations/lottie/brackets/cells/current_consolation.json",
+          "/fe/lol-clash/assets/animations/lottie/brackets/cells/current_lose.json"
+        ]
       },
       "imagem": {
         "count": 634,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-clash/assets/animations/lottie/brackets/cells/images/img_0.png",
+          "/fe/lol-clash/assets/animations/lottie/brackets/cells/images/img_1.png",
+          "/fe/lol-clash/assets/animations/lottie/brackets/dashes/images/img_0.png"
+        ]
       },
       "video": {
         "count": 49,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-clash/assets/animations/videos/brackets/cell_finals_magicburst.webm",
+          "/fe/lol-clash/assets/animations/videos/brackets/cell_nextmatch_magichit.webm",
+          "/fe/lol-clash/assets/animations/videos/brackets/cell_win_magichit.webm"
+        ]
       },
       "audio": {
         "count": 81,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-clash/assets/audio/sfx-clash-action-button-back-click.ogg",
+          "/fe/lol-clash/assets/audio/sfx-clash-action-button-back-hover.ogg",
+          "/fe/lol-clash/assets/audio/sfx-clash-action-button-forward-click.ogg"
+        ]
       }
     },
     "rcp-fe-lol-collections": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-collections/main.css",
+          "/fe/lol-collections/rcp-fe-lol-collections.css",
+          "/fe/lol-collections/rcp-fe-lol-collections.js"
+        ]
       },
       "dados": {
         "count": 5,
         "localized": 116,
-        "samples": []
+        "samples": [
+          "/fe/lol-collections/license.json",
+          "/fe/lol-collections/trans-emote-panel.json",
+          "/fe/lol-collections/trans-item-sets.json"
+        ]
       },
       "audio": {
         "count": 140,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-collections/audio/sfx-button-page-left-click.ogg",
+          "/fe/lol-collections/audio/sfx-collection-browse-enlarge-click.ogg",
+          "/fe/lol-collections/audio/sfx-collection-browse-left-click.ogg"
+        ]
       },
       "imagem": {
         "count": 322,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-collections/background.jpg",
+          "/fe/lol-collections/icon-helmet.png",
+          "/fe/lol-collections/icon_gold.png"
+        ]
       },
       "video": {
         "count": 29,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-collections/perks/video/domination/background_loop.webm",
+          "/fe/lol-collections/perks/video/inspiration/background_loop.webm",
+          "/fe/lol-collections/perks/video/inventory-card/createcard.webm"
+        ]
       }
     },
     "rcp-fe-lol-esports-spectate": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-esports-spectate/main.css",
+          "/fe/lol-esports-spectate/rcp-fe-lol-esports-spectate.css",
+          "/fe/lol-esports-spectate/rcp-fe-lol-esports-spectate.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-esports-spectate/license.json",
+          "/fe/lol-esports-spectate/trans.json"
+        ]
       },
       "imagem": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-esports-spectate/assets/ban-icon.png"
+        ]
       },
       "fonte": {
         "count": 3,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-esports-spectate/assets/shentox/shentox-light.ttf",
+          "/fe/lol-esports-spectate/assets/shentox/shentox-semibold.ttf",
+          "/fe/lol-esports-spectate/assets/shentox/shentox.ttf"
+        ]
       }
     },
     "rcp-fe-lol-event-hub": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-event-hub/main.css",
+          "/fe/lol-event-hub/rcp-fe-lol-event-hub.css",
+          "/fe/lol-event-hub/rcp-fe-lol-event-hub.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-event-hub/license.json",
+          "/fe/lol-event-hub/trans.json"
+        ]
       },
       "imagem": {
         "count": 24,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-event-hub/external-link-mask.png",
+          "/fe/lol-event-hub/images/background-shroud.png",
+          "/fe/lol-event-hub/images/boost.svg"
+        ]
       },
       "video": {
         "count": 18,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-event-hub/videos/claim_btn_claimable-particles-default.webm",
+          "/fe/lol-event-hub/videos/claim_btn_claimable-particles-hover.webm",
+          "/fe/lol-event-hub/videos/claim_btn_claimable-particles-pressed.webm"
+        ]
       }
     },
     "rcp-fe-lol-highlights": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-highlights/main.css",
+          "/fe/lol-highlights/rcp-fe-lol-highlights.css",
+          "/fe/lol-highlights/rcp-fe-lol-highlights.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-highlights/license.json",
+          "/fe/lol-highlights/trans.json"
+        ]
       },
       "imagem": {
         "count": 19,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-highlights/btn_highlights_delete.png",
+          "/fe/lol-highlights/btn_highlights_delete_click.png",
+          "/fe/lol-highlights/btn_highlights_delete_disabled.png"
+        ]
       }
     },
     "rcp-fe-lol-jade": {
       "codigo": {
         "count": 4,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-jade/fonts/fonts.css",
+          "/fe/lol-jade/main.css",
+          "/fe/lol-jade/rcp-fe-lol-jade.css"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 28,
-        "samples": []
+        "samples": [
+          "/fe/lol-jade/license.json",
+          "/fe/lol-jade/trans.json"
+        ]
       },
       "audio": {
         "count": 28,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-jade/audio/sfx-ui-jade-buttonlocked.ogg",
+          "/fe/lol-jade/audio/sfx-ui-jade-buttonpress-1.ogg",
+          "/fe/lol-jade/audio/sfx-ui-jade-buttonpress.ogg"
+        ]
       },
       "imagem": {
         "count": 219,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-jade/bg_parchment.png",
+          "/fe/lol-jade/external-link-mask.png",
+          "/fe/lol-jade/header_flame.png"
+        ]
       },
       "fonte": {
         "count": 8,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-jade/fonts/frizquadrata/frizquadratapro-bold.ttf",
+          "/fe/lol-jade/fonts/frizquadrata/frizquadratapro-bolditalic.ttf",
+          "/fe/lol-jade/fonts/frizquadrata/frizquadratapro-italic.ttf"
+        ]
       },
       "video": {
         "count": 29,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-jade/video/spells/spells_705.webm",
+          "/fe/lol-jade/video/spells/spells_709.webm",
+          "/fe/lol-jade/video/spells/spells_71.webm"
+        ]
       }
     },
     "rcp-fe-lol-kickout": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-kickout/main.css",
+          "/fe/lol-kickout/rcp-fe-lol-kickout.css",
+          "/fe/lol-kickout/rcp-fe-lol-kickout.js"
+        ]
       },
       "dados": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-kickout/license.json"
+        ]
       }
     },
     "rcp-fe-lol-l10n": {
       "codigo": {
         "count": 2,
         "localized": 27,
-        "samples": []
+        "samples": [
+          "/fe/lol-l10n/main.css",
+          "/fe/lol-l10n/rcp-fe-lol-l10n.js"
+        ]
       },
       "dados": {
         "count": 3,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-l10n/license.json",
+          "/fe/lol-l10n/locales.json",
+          "/fe/lol-l10n/trans.json"
+        ]
       }
     },
     "rcp-fe-lol-leagues": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-leagues/main.css",
+          "/fe/lol-leagues/rcp-fe-lol-leagues.css",
+          "/fe/lol-leagues/rcp-fe-lol-leagues.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-leagues/license.json",
+          "/fe/lol-leagues/trans.json"
+        ]
       },
       "video": {
         "count": 4,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-leagues/bronze_celebration.webm",
+          "/fe/lol-leagues/gladiator_celebration.webm",
+          "/fe/lol-leagues/gold_celebration.webm"
+        ]
       },
       "imagem": {
         "count": 4,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-leagues/cherry-promotion-vignette-background.png",
+          "/fe/lol-leagues/external-link-mask.png",
+          "/fe/lol-leagues/images/cherry-promotion-vignette-background.png"
+        ]
       },
       "audio": {
         "count": 4,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-leagues/sfx-promotion-arena-bronze.ogg",
+          "/fe/lol-leagues/sfx-promotion-arena-gladiator.ogg",
+          "/fe/lol-leagues/sfx-promotion-arena-gold.ogg"
+        ]
       }
     },
     "rcp-fe-lol-lock-and-load": {
       "dados": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-lock-and-load/license.json"
+        ]
       },
       "codigo": {
         "count": 2,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-lock-and-load/main.css",
+          "/fe/lol-lock-and-load/rcp-fe-lol-lock-and-load.js"
+        ]
       }
     },
     "rcp-fe-lol-loot": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-loot/main.css",
+          "/fe/lol-loot/rcp-fe-lol-loot.css",
+          "/fe/lol-loot/rcp-fe-lol-loot.js"
+        ]
       },
       "dados": {
         "count": 6,
         "localized": 57,
-        "samples": []
+        "samples": [
+          "/fe/lol-loot/assets/context_menu/readme.txt",
+          "/fe/lol-loot/assets/loot_item_icons/readme.txt",
+          "/fe/lol-loot/license.json"
+        ]
       },
       "audio": {
         "count": 77,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-loot/assets/audio/sfx-loot-blue-essence-fill.ogg",
+          "/fe/lol-loot/assets/audio/sfx-loot-button-circlegold-click.ogg",
+          "/fe/lol-loot/assets/audio/sfx-loot-button-circlegold-hover.ogg"
+        ]
       },
       "imagem": {
         "count": 814,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-loot/assets/border_images/champion_token_6.png",
+          "/fe/lol-loot/assets/border_images/champion_token_6_hover.png",
+          "/fe/lol-loot/assets/border_images/champion_token_7.png"
+        ]
       },
       "video": {
         "count": 131,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-loot/assets/flexible_crafter/anim_flexible_button_active.webm",
+          "/fe/lol-loot/assets/flexible_crafter/anim_flexible_button_down.webm",
+          "/fe/lol-loot/assets/flexible_crafter/anim_flexible_button_intro.webm"
+        ]
       }
     },
     "rcp-fe-lol-match-history": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-match-history/main.css",
+          "/fe/lol-match-history/rcp-fe-lol-match-history.css",
+          "/fe/lol-match-history/rcp-fe-lol-match-history.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-match-history/license.json",
+          "/fe/lol-match-history/trans.json"
+        ]
       },
       "imagem": {
         "count": 87,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-match-history/air-100.png",
+          "/fe/lol-match-history/air-200.png",
+          "/fe/lol-match-history/arrow.png"
+        ]
       },
       "audio": {
         "count": 3,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-match-history/sfx-uikit-generic-click-small.ogg",
+          "/fe/lol-match-history/sfx-uikit-grid-click.ogg",
+          "/fe/lol-match-history/sfx-uikit-grid-hover.ogg"
+        ]
       }
     },
     "rcp-fe-lol-navigation": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-navigation/main.css",
+          "/fe/lol-navigation/rcp-fe-lol-navigation.css",
+          "/fe/lol-navigation/rcp-fe-lol-navigation.js"
+        ]
       },
       "dados": {
         "count": 9,
         "localized": 229,
-        "samples": []
+        "samples": [
+          "/fe/lol-navigation/license.json",
+          "/fe/lol-navigation/trans-activity-center.json",
+          "/fe/lol-navigation/trans-app-controls.json"
+        ]
       },
       "imagem": {
         "count": 279,
         "localized": 2,
-        "samples": []
+        "samples": [
+          "/fe/lol-navigation/ac-error-screen-full-error.png",
+          "/fe/lol-navigation/activity-center/ac-navigation-tab/static_navigation_magic.png",
+          "/fe/lol-navigation/activity-center/ac-skin-template/carousel-dot-inactive.svg"
+        ]
       },
       "audio": {
         "count": 41,
         "localized": 2,
-        "samples": []
+        "samples": [
+          "/fe/lol-navigation/activity-center/ac-sfx-mgx-activity-center-chapter-notification.ogg",
+          "/fe/lol-navigation/activity-center/ac-sfx-mgx-gold-flair.ogg",
+          "/fe/lol-navigation/activity-center/ac-sfx-mgx-logo.ogg"
+        ]
       },
       "video": {
         "count": 43,
         "localized": 4,
-        "samples": []
+        "samples": [
+          "/fe/lol-navigation/activity-center/header-logo-partical-magic.webm",
+          "/fe/lol-navigation/activity-center/header-title-partical-magic.webm",
+          "/fe/lol-navigation/activity-center/navigation_magic_hover.webm"
+        ]
       }
     },
     "rcp-fe-lol-new-player-experience": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-new-player-experience/main.css",
+          "/fe/lol-new-player-experience/rcp-fe-lol-new-player-experience.css",
+          "/fe/lol-new-player-experience/rcp-fe-lol-new-player-experience.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-new-player-experience/license.json",
+          "/fe/lol-new-player-experience/trans.json"
+        ]
       },
       "imagem": {
         "count": 41,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-new-player-experience/arrow_click.png",
+          "/fe/lol-new-player-experience/arrow_default.png",
+          "/fe/lol-new-player-experience/arrow_disabled.png"
+        ]
       },
       "audio": {
         "count": 7,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-new-player-experience/sfx-npe-button-module-click.ogg",
+          "/fe/lol-new-player-experience/sfx-npe-button-ready.ogg",
+          "/fe/lol-new-player-experience/sfx-npe-button-startnow-click.ogg"
+        ]
       },
       "video": {
         "count": 7,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-new-player-experience/vfx-capsule-loop.webm",
+          "/fe/lol-new-player-experience/vfx-capsule-open.webm",
+          "/fe/lol-new-player-experience/vfx-essence-big-blue-loop.webm"
+        ]
       }
     },
     "rcp-fe-lol-objectives": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-objectives/main.css",
+          "/fe/lol-objectives/rcp-fe-lol-objectives.css",
+          "/fe/lol-objectives/rcp-fe-lol-objectives.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 28,
-        "samples": []
+        "samples": [
+          "/fe/lol-objectives/license.json",
+          "/fe/lol-objectives/trans.json"
+        ]
       },
       "imagem": {
         "count": 37,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-objectives/close-x-btn-icon.svg",
+          "/fe/lol-objectives/images/blue_essence.png",
+          "/fe/lol-objectives/images/bxp_reward_background.svg"
+        ]
       },
       "video": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-objectives/videos/progress-bar-animation.webm"
+        ]
       }
     },
     "rcp-fe-lol-parties": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-parties/main.css",
+          "/fe/lol-parties/rcp-fe-lol-parties.css",
+          "/fe/lol-parties/rcp-fe-lol-parties.js"
+        ]
       },
       "dados": {
         "count": 12,
         "localized": 28,
-        "samples": []
+        "samples": [
+          "/fe/lol-parties/license.json",
+          "/fe/lol-parties/lottie/llupgradeceremony_01scene/llupgradeceremony_scene_in.json",
+          "/fe/lol-parties/lottie/llupgradeceremony_01scene/llupgradeceremony_scene_loop.json"
+        ]
       },
       "imagem": {
         "count": 448,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-parties/arena-lobby-modal-left-background.png",
+          "/fe/lol-parties/arena-lobby-widget-background-hover.png",
+          "/fe/lol-parties/arena-lobby-widget-background.png"
+        ]
       },
       "video": {
         "count": 30,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-parties/battletraining-active-video.webm",
+          "/fe/lol-parties/battletraining-intro-video.webm",
+          "/fe/lol-parties/lottie/llupgradeceremony_02bgparticles/videos/llupgradeceremony_particlesbg_in.webm"
+        ]
       },
       "audio": {
         "count": 39,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-parties/sfx-celebrate-receive-generic.ogg",
+          "/fe/lol-parties/sfx-celebrate-upgrade-littlelegend.ogg",
+          "/fe/lol-parties/sfx-gameselect-button-confirm-click.ogg"
+        ]
       },
       "outro": {
         "count": 2,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-parties/spine/randomizer_dice.atlas",
+          "/fe/lol-parties/spine/randomizer_dice.skel"
+        ]
       }
     },
     "rcp-fe-lol-paw": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-paw/main.css",
+          "/fe/lol-paw/rcp-fe-lol-paw.css",
+          "/fe/lol-paw/rcp-fe-lol-paw.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-paw/license.json",
+          "/fe/lol-paw/trans.json"
+        ]
       },
       "audio": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-paw/audio/sfx-store-purchase-modal-champ-outro.ogg"
+        ]
       },
       "outro": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-paw/aw_skins_kr.csv"
+        ]
       },
       "imagem": {
         "count": 18,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-paw/external-link-mask.png",
+          "/fe/lol-paw/images/all-champs.jpg",
+          "/fe/lol-paw/images/arrow-dropdown-description.png"
+        ]
       },
       "video": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-paw/videos/unlockceremony.webm"
+        ]
       }
     },
     "rcp-fe-lol-pft": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-pft/main.css",
+          "/fe/lol-pft/rcp-fe-lol-pft.css",
+          "/fe/lol-pft/rcp-fe-lol-pft.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-pft/license.json",
+          "/fe/lol-pft/trans.json"
+        ]
       },
       "imagem": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-pft/images/button-survey-sprite.png"
+        ]
       }
     },
     "rcp-fe-lol-postgame": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-postgame/main.css",
+          "/fe/lol-postgame/rcp-fe-lol-postgame.css",
+          "/fe/lol-postgame/rcp-fe-lol-postgame.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 28,
-        "samples": []
+        "samples": [
+          "/fe/lol-postgame/license.json",
+          "/fe/lol-postgame/trans.json"
+        ]
       },
       "imagem": {
         "count": 198,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-postgame/add-rune-page-disabled.png",
+          "/fe/lol-postgame/add-rune-page.png",
+          "/fe/lol-postgame/background.png"
+        ]
       },
       "video": {
         "count": 3,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-postgame/eog_scoreboard_team_color.webm",
+          "/fe/lol-postgame/mograph/eog_honor_received.webm",
+          "/fe/lol-postgame/mograph/eog_honor_trail.webm"
+        ]
       },
       "audio": {
         "count": 47,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-postgame/sfx-celebrate-tft_turbo-badge-glint.ogg",
+          "/fe/lol-postgame/sfx-eog-chaos-order.ogg",
+          "/fe/lol-postgame/sfx-eog-eternals-burst.ogg"
+        ]
       }
     },
     "rcp-fe-lol-premade-voice": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-premade-voice/main.css",
+          "/fe/lol-premade-voice/rcp-fe-lol-premade-voice.css",
+          "/fe/lol-premade-voice/rcp-fe-lol-premade-voice.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-premade-voice/license.json",
+          "/fe/lol-premade-voice/trans.json"
+        ]
       },
       "imagem": {
         "count": 47,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-premade-voice/deafen-click.png",
+          "/fe/lol-premade-voice/deafen-default.png",
+          "/fe/lol-premade-voice/deafen-hover.png"
+        ]
       },
       "audio": {
         "count": 21,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-premade-voice/sfx-soc-ui-chatwindow-close.ogg",
+          "/fe/lol-premade-voice/sfx-soc-ui-chatwindow-open.ogg",
+          "/fe/lol-premade-voice/sfx-vc-channel-toggle-off-click.ogg"
+        ]
       }
     },
     "rcp-fe-lol-profiles": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-profiles/main.css",
+          "/fe/lol-profiles/rcp-fe-lol-profiles.css",
+          "/fe/lol-profiles/rcp-fe-lol-profiles.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-profiles/license.json",
+          "/fe/lol-profiles/trans.json"
+        ]
       },
       "imagem": {
         "count": 71,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-profiles/banner_empty.png",
+          "/fe/lol-profiles/edit_click.png",
+          "/fe/lol-profiles/edit_disabled.png"
+        ]
       },
       "audio": {
         "count": 3,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-profiles/sfx-banners-update-list-item-hover.ogg",
+          "/fe/lol-profiles/sfx-banners-update-list-item-select.ogg",
+          "/fe/lol-profiles/sfx-profile-summoner-big-click.ogg"
+        ]
       }
     },
     "rcp-fe-lol-settings": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-settings/main.css",
+          "/fe/lol-settings/rcp-fe-lol-settings.css",
+          "/fe/lol-settings/rcp-fe-lol-settings.js"
+        ]
       },
       "dados": {
         "count": 7,
         "localized": 56,
-        "samples": []
+        "samples": [
+          "/fe/lol-settings/license.json",
+          "/fe/lol-settings/licenses/core/license.json",
+          "/fe/lol-settings/licenses/licenses.txt"
+        ]
       },
       "imagem": {
         "count": 19,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-settings/acc_ver_icon_mobile_sm.png",
+          "/fe/lol-settings/audiooff.png",
+          "/fe/lol-settings/audioon.png"
+        ]
       }
     },
     "rcp-fe-lol-shared-components": {
       "imagem": {
         "count": 204,
         "localized": 26,
-        "samples": []
+        "samples": [
+          "/fe/lol-shared-components/all-chat-icon.svg",
+          "/fe/lol-shared-components/allied-chat-icon.svg",
+          "/fe/lol-shared-components/ally-icon-border.svg"
+        ]
       },
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-shared-components/main.css",
+          "/fe/lol-shared-components/rcp-fe-lol-shared-components.css",
+          "/fe/lol-shared-components/rcp-fe-lol-shared-components.js"
+        ]
       },
       "dados": {
         "count": 14,
         "localized": 346,
-        "samples": []
+        "samples": [
+          "/fe/lol-shared-components/license.json",
+          "/fe/lol-shared-components/trans-account-verification.json",
+          "/fe/lol-shared-components/trans-challenges.json"
+        ]
       },
       "audio": {
         "count": 11,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-shared-components/audio/sfx-eternals-eog-mastery-1.ogg",
+          "/fe/lol-shared-components/audio/sfx-eternals-eog-mastery-2.ogg",
+          "/fe/lol-shared-components/audio/sfx-eternals-eog-mastery-3.ogg"
+        ]
       },
       "video": {
         "count": 13,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-shared-components/particles.webm",
+          "/fe/lol-shared-components/video/emote-celebration-1.webm",
+          "/fe/lol-shared-components/video/emote-celebration-2.webm"
+        ]
       }
     },
     "rcp-fe-lol-skins-picker": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-skins-picker/main.css",
+          "/fe/lol-skins-picker/rcp-fe-lol-skins-picker.css",
+          "/fe/lol-skins-picker/rcp-fe-lol-skins-picker.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-skins-picker/license.json",
+          "/fe/lol-skins-picker/trans.json"
+        ]
       },
       "audio": {
         "count": 2,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-skins-picker/audio/sfx-skin-tile-select.ogg",
+          "/fe/lol-skins-picker/audio/sfx-uikit-grid-hover.ogg"
+        ]
       },
       "imagem": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-skins-picker/images/control-close.png"
+        ]
       }
     },
     "rcp-fe-lol-social": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-social/main.css",
+          "/fe/lol-social/rcp-fe-lol-social.css",
+          "/fe/lol-social/rcp-fe-lol-social.js"
+        ]
       },
       "dados": {
         "count": 3,
         "localized": 59,
-        "samples": []
+        "samples": [
+          "/fe/lol-social/license.json",
+          "/fe/lol-social/trans-player-behavior.json",
+          "/fe/lol-social/trans.json"
+        ]
       },
       "imagem": {
         "count": 162,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-social/add-note-mask.svg",
+          "/fe/lol-social/add_folder_mask.png",
+          "/fe/lol-social/add_person_mask.png"
+        ]
       },
       "audio": {
         "count": 19,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-social/sounds/sfx-lobby-notif-bad-invite.ogg",
+          "/fe/lol-social/sounds/sfx-login-notif-login-fail.ogg",
+          "/fe/lol-social/sounds/sfx-soc-notif-chat-rcvd-secondary.ogg"
+        ]
       },
       "video": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-social/videos/socialpanel_bgloop.webm"
+        ]
       }
     },
     "rcp-fe-lol-static-assets": {
       "dados": {
         "count": 44,
         "localized": 28,
-        "samples": []
+        "samples": [
+          "/fe/lol-static-assets/allowedcharacters.txt",
+          "/fe/lol-static-assets/license.json",
+          "/fe/lol-static-assets/lottie/challenges/challenges-card-hover-bg.json"
+        ]
       },
       "imagem": {
         "count": 2888,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-static-assets/2019-intro-background.jpg",
+          "/fe/lol-static-assets/2019-intro-linework.png",
+          "/fe/lol-static-assets/2019-intro-placement.png"
+        ]
       },
       "video": {
         "count": 204,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-static-assets/event-hub/level-ring-fast.webm",
+          "/fe/lol-static-assets/event-hub/level-ring.webm",
+          "/fe/lol-static-assets/event-hub/union-animated.webm"
+        ]
       },
       "codigo": {
         "count": 2,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-static-assets/main.css",
+          "/fe/lol-static-assets/rcp-fe-lol-static-assets.js"
+        ]
       },
       "audio": {
         "count": 231,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-static-assets/sounds/challenges/sfx-identity-customizer-preview-selection.ogg",
+          "/fe/lol-static-assets/sounds/challenges/sfx-mini-wings-bronze.ogg",
+          "/fe/lol-static-assets/sounds/challenges/sfx-mini-wings-challenger.ogg"
+        ]
       }
     },
     "rcp-fe-lol-store": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-store/main.css",
+          "/fe/lol-store/rcp-fe-lol-store.css",
+          "/fe/lol-store/rcp-fe-lol-store.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-store/license.json",
+          "/fe/lol-store/trans.json"
+        ]
       },
       "imagem": {
         "count": 136,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-store/background.png",
+          "/fe/lol-store/spinner.png",
+          "/fe/lol-store/storefront/addon/public/img/back-disabled.png"
+        ]
       }
     },
     "rcp-fe-lol-tft-promethium": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft-promethium/main.css",
+          "/fe/lol-tft-promethium/rcp-fe-lol-tft-promethium.css",
+          "/fe/lol-tft-promethium/rcp-fe-lol-tft-promethium.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 28,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft-promethium/license.json",
+          "/fe/lol-tft-promethium/trans.json"
+        ]
       },
       "audio": {
         "count": 14,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft-promethium/audio/mus-pm-hub-base.ogg",
+          "/fe/lol-tft-promethium/audio/sfx-pm-button-noclick.ogg",
+          "/fe/lol-tft-promethium/audio/sfx-pm-hub-amb-01.ogg"
+        ]
       },
       "imagem": {
         "count": 2,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft-promethium/images/tft_eogbadge_backdrop.png",
+          "/fe/lol-tft-promethium/images/tft_promethium_eogbadge.png"
+        ]
       },
       "video": {
         "count": 9,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft-promethium/videos/promethium-node-locked-clicked.webm",
+          "/fe/lol-tft-promethium/videos/promethium-node-locked-default.webm",
+          "/fe/lol-tft-promethium/videos/promethium-node-locked-hover.webm"
+        ]
       }
     },
     "rcp-fe-lol-tft-team-planner": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft-team-planner/main.css",
+          "/fe/lol-tft-team-planner/rcp-fe-lol-tft-team-planner.css",
+          "/fe/lol-tft-team-planner/rcp-fe-lol-tft-team-planner.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft-team-planner/license.json",
+          "/fe/lol-tft-team-planner/trans.json"
+        ]
       },
       "imagem": {
         "count": 169,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft-team-planner/cteamplanner_championhighlight_hover.png",
+          "/fe/lol-tft-team-planner/cteamplanner_championhighlight_hoverselector.png",
+          "/fe/lol-tft-team-planner/gradient_bottom.png"
+        ]
       }
     },
     "rcp-fe-lol-tft-troves": {
       "imagem": {
         "count": 8,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft-troves/images/purchase-loading.gif",
+          "/fe/lol-tft-troves/images/purchase-warning.png",
+          "/fe/lol-tft-troves/images/tft_currency_treasuretoken_80x80.png"
+        ]
       },
       "dados": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft-troves/license.json"
+        ]
       },
       "codigo": {
         "count": 2,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft-troves/main.css",
+          "/fe/lol-tft-troves/rcp-fe-lol-tft-troves.js"
+        ]
       }
     },
     "rcp-fe-lol-tft": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft/main.css",
+          "/fe/lol-tft/rcp-fe-lol-tft.css",
+          "/fe/lol-tft/rcp-fe-lol-tft.js"
+        ]
       },
       "dados": {
         "count": 15,
         "localized": 113,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft/license.json",
+          "/fe/lol-tft/lottie/battlepass-xpbar/xpbar_gainlvl_bonus_in.json",
+          "/fe/lol-tft/lottie/battlepass-xpbar/xpbar_gainlvl_bonus_loop.json"
+        ]
       },
       "imagem": {
         "count": 90,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft/bronze-hover.png",
+          "/fe/lol-tft/bronze.png",
+          "/fe/lol-tft/champion_frame.png"
+        ]
       },
       "audio": {
         "count": 5,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft/sfx-uikit-generic-click-small.ogg",
+          "/fe/lol-tft/sfx-uikit-grid-click.ogg",
+          "/fe/lol-tft/sfx-uikit-grid-hover.ogg"
+        ]
       },
       "outro": {
         "count": 12,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft/spine/skill-tree/banner.skel",
+          "/fe/lol-tft/spine/skill-tree/crestprogressionbar.atlas",
+          "/fe/lol-tft/spine/skill-tree/crestprogressionbar.skel"
+        ]
       },
       "video": {
         "count": 8,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-tft/videos/background-sparkles.webm",
+          "/fe/lol-tft/videos/claimable-sparkles-free.webm",
+          "/fe/lol-tft/videos/claimable-sparkles-keystone.webm"
+        ]
       }
     },
     "rcp-fe-lol-typekit": {
       "fonte": {
         "count": 16,
         "localized": 26,
-        "samples": []
+        "samples": [
+          "/fe/lol-typekit/fonts/beaufort/beaufortforlol-bold.otf",
+          "/fe/lol-typekit/fonts/beaufort/beaufortforlol-bolditalic.otf",
+          "/fe/lol-typekit/fonts/beaufort/beaufortforlol-heavy.otf"
+        ]
       },
       "codigo": {
         "count": 5,
         "localized": 17,
-        "samples": []
+        "samples": [
+          "/fe/lol-typekit/fonts/fonts-main.css",
+          "/fe/lol-typekit/fonts/fonts.css",
+          "/fe/lol-typekit/fonts/styles.css"
+        ]
       },
       "dados": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-typekit/license.json"
+        ]
       }
     },
     "rcp-fe-lol-uikit": {
       "codigo": {
         "count": 70,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-uikit/components/components/dialog-alert/template.html",
+          "/fe/lol-uikit/components/components/dialog-april-fools/template.html",
+          "/fe/lol-uikit/components/components/dialog-celebration/template.html"
+        ]
       },
       "imagem": {
         "count": 115,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-uikit/barkspengu.png",
+          "/fe/lol-uikit/barksshaco.png",
+          "/fe/lol-uikit/btn_icon.png"
+        ]
       },
       "dados": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-uikit/license.json"
+        ]
       },
       "audio": {
         "count": 34,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-uikit/sfx-celebrate-notif-intro.ogg",
+          "/fe/lol-uikit/sfx-celebrate-receive-generic.ogg",
+          "/fe/lol-uikit/sfx-loadout-rarity-button-click.ogg"
+        ]
       },
       "video": {
         "count": 2,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-uikit/videos/celebration-bg-magic.webm",
+          "/fe/lol-uikit/videos/vignette-celebration-intro-magic.webm"
+        ]
       }
     },
     "rcp-fe-lol-yourshop": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/lol-yourshop/main.css",
+          "/fe/lol-yourshop/rcp-fe-lol-yourshop.css",
+          "/fe/lol-yourshop/rcp-fe-lol-yourshop.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 29,
-        "samples": []
+        "samples": [
+          "/fe/lol-yourshop/license.json",
+          "/fe/lol-yourshop/trans.json"
+        ]
       },
       "imagem": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/lol-yourshop/external-link-mask.png"
+        ]
       }
     },
     "rcp-fe-plugin-runner": {
       "dados": {
         "count": 1,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/plugin-runner/license.json"
+        ]
       },
       "codigo": {
         "count": 2,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/plugin-runner/main.css",
+          "/fe/plugin-runner/rcp-fe-plugin-runner.js"
+        ]
       }
     },
     "rcp-fe-tft": {
       "codigo": {
         "count": 3,
         "localized": 1,
-        "samples": []
+        "samples": [
+          "/fe/tft/main.css",
+          "/fe/tft/rcp-fe-tft.css",
+          "/fe/tft/rcp-fe-tft.js"
+        ]
       },
       "dados": {
         "count": 2,
         "localized": 28,
-        "samples": []
+        "samples": [
+          "/fe/tft/license.json",
+          "/fe/tft/trans.json"
+        ]
       },
       "imagem": {
         "count": 4,
         "localized": 0,
-        "samples": []
+        "samples": [
+          "/fe/tft/external-link-mask.png",
+          "/fe/tft/images/pardon-our-dust-message-button-hovered.png",
+          "/fe/tft/images/pardon-our-dust-message-button-pressed.png"
+        ]
       }
     }
   }
