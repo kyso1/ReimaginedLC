@@ -85,10 +85,10 @@ test('collectIdentities devolve o mapa real para substituto', () => {
 });
 
 test('assertClean aceita saída limpa e acusa segredo que sobrou', () => {
-  assert.doesNotThrow(() => assertClean([ev('/x', { a: 'limpo' })], [PUUID, 'Fulano']));
-  assert.throws(() => assertClean([ev('/x', { a: `vazou ${PUUID}` })], [PUUID]), /identidade real/);
-  assert.throws(() => assertClean([ev('/x', { a: JWT })], []), /JWT/);
-  assert.throws(() => assertClean([ev('/x', { n: 12345678 })], [12345678]), /identidade real/);
+  assert.doesNotThrow(() => assertClean([ev('/x', { a: 'limpo' })], [PUUID, 'Fulano'], []));
+  assert.throws(() => assertClean([ev('/x', { a: `vazou ${PUUID}` })], [PUUID], []), /identidade real/);
+  assert.throws(() => assertClean([ev('/x', { a: JWT })], [], []), /JWT/);
+  assert.throws(() => assertClean([ev('/x', { n: 12345678 })], [12345678], []), /identidade real/);
 });
 
 test('chaves de objeto que são identidades também são substituídas', () => {
@@ -144,7 +144,7 @@ const U2 = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 const FAKE = /^00000000-0000-4000-8000-[0-9a-f]{12}$/;
 const pass = (lines) => {
   const out = anonymize(lines);
-  assertClean(out, [...collectIdentities(lines).keys(), ...collectSecrets(lines)]);
+  assertClean(out, [...collectIdentities(lines).keys(), ...collectSecrets(lines)], []);
   return out;
 };
 
@@ -173,10 +173,10 @@ test('C2: UUID em maiúsculas recebe o mesmo substituto da forma minúscula', ()
 });
 
 test('C2: assertClean acusa UUID real e pvp.net com identidade real mesmo sem lista de segredos', () => {
-  assert.throws(() => assertClean([ev('/x', { a: U1 })], []), /identidade real/);
-  assert.throws(() => assertClean([ev('/x', { a: 'abc123@na1.pvp.net' })], []), /identidade real/);
-  assert.throws(() => assertClean([ev(`/y/${U2}`, null)], []), /identidade real/);
-  assert.doesNotThrow(() => assertClean([ev('/x', { a: '00000000-0000-4000-8000-000000000007@na1.pvp.net', b: 'anon-3@na1.pvp.net' })], []));
+  assert.throws(() => assertClean([ev('/x', { a: U1 })], [], []), /identidade real/);
+  assert.throws(() => assertClean([ev('/x', { a: 'abc123@na1.pvp.net' })], [], []), /identidade real/);
+  assert.throws(() => assertClean([ev(`/y/${U2}`, null)], [], []), /identidade real/);
+  assert.doesNotThrow(() => assertClean([ev('/x', { a: '00000000-0000-4000-8000-000000000007@na1.pvp.net', b: 'anon-3@na1.pvp.net' })], [], []));
 });
 
 test('I3: tag line sob qualquer chave e Riot ID em string', () => {
@@ -191,7 +191,7 @@ test('I4: valor de segredo é redigido onde mais aparecer e verificado por asser
   const [out] = anonymize(lines);
   assert.equal(out.data.invitationUrl, 'join?pw=[redacted]');
   assert.deepEqual([...collectSecrets(lines)], ['senhaSecreta1']);
-  assert.throws(() => assertClean([ev('/x', { u: 'join?pw=senhaSecreta1' })], collectSecrets(lines)), /identidade real/);
+  assert.throws(() => assertClean([ev('/x', { u: 'join?pw=senhaSecreta1' })], [], collectSecrets(lines)), /identidade real/);
 });
 
 test('I5: chaves de credencial comuns são redigidas', () => {
@@ -204,8 +204,8 @@ test('I6: variante codificada na URL e em outra caixa é substituída e verifica
   const lines = [ev('/lol-summoner/v1/summoners', { gameName: 'Fulano Teste' }), ev('/lol-x/v1/s?gameName=Fulano%20Teste&n=fulano teste', {})];
   const out = anonymize(lines);
   assert.equal(out[1].uri.toLowerCase().includes('fulano'), false);
-  assert.throws(() => assertClean([ev('/x/y?gameName=Fulano%20Teste', {})], ['Fulano Teste']), /identidade real/);
-  assert.throws(() => assertClean([ev('/x', { a: 'FULANO TESTE' })], ['Fulano Teste']), /identidade real/);
+  assert.throws(() => assertClean([ev('/x/y?gameName=Fulano%20Teste', {})], ['Fulano Teste'], []), /identidade real/);
+  assert.throws(() => assertClean([ev('/x', { a: 'FULANO TESTE' })], ['Fulano Teste'], []), /identidade real/);
 });
 
 test('I7: nome curto só é trocado isolado, e a primeira parte da URI nunca é tocada', () => {
@@ -219,7 +219,7 @@ test('I7: nome curto só é trocado isolado, e a primeira parte da URI nunca é 
   assert.equal(out[0].data.alone, 'lol'); // palavra solta fora de chave de identidade fica (N2)
   assert.equal(out[1].data.emailStatus, 'Verified');
   assert.match(out[1].data.email, /^anon-\d+$/);
-  assert.doesNotThrow(() => assertClean(out, ['lol']));
+  assert.doesNotThrow(() => assertClean(out, ['lol'], []));
 });
 
 test('M1: linha sem uri (não meta) também tem data limpa', () => {
@@ -253,7 +253,7 @@ test('N1: segredo que contém UUID é redigido por inteiro e o assertClean confe
   const out = pass(lines);
   assert.equal(out[0].data.url, 'x?t=[redacted]');
   assert.equal(JSON.stringify(out).includes('s3cr3tSuffixXYZ'), false);
-  assert.throws(() => assertClean([ev('/x', { u: 'a s3cr3tSuffixXYZ b' })], ['s3cr3tSuffixXYZ']), /identidade real/);
+  assert.throws(() => assertClean([ev('/x', { u: 'a s3cr3tSuffixXYZ b' })], ['s3cr3tSuffixXYZ'], []), /identidade real/);
 });
 
 test('N2: nome ou segredo igual a vocabulário do protocolo não reescreve fases nem URIs', () => {
@@ -409,4 +409,39 @@ test('P5: segredo numérico repetido como número fica; nome curto em valor de q
 test('P6: pontuação ao redor do UUID não impede coletar o nome', () => {
   const out = pass3([ev('/x', { displayName: `Fulano Teste <${U1}>`, t: 'oi Fulano Teste' })]);
   assert.equal(out[0].data.t.includes('Fulano'), false);
+});
+
+// ---- Rodada de correção 4 ----
+test('Q1: nome real que contém a palavra TAG é substituído em todo lugar', () => {
+  for (const [gameName, t] of [['TAG Fulano', 'oi TAG Fulano'], ['Fulano TAG', 'Fulano TAG venceu']]) {
+    const [out] = pass3([ev('/x', { puuid: U1, gameName, t })]);
+    assert.match(out.data.gameName, /^anon-\d+$/);
+    assert.equal(out.data.t, t.replace(gameName, out.data.gameName));
+  }
+});
+
+test('Q2: JSON embutido com chave duplicada não mantém o texto bruto com identidade', () => {
+  const lines = [ev('/x', { puuid: U1, gameName: 'Fulaninho', s: '{"a":"Fulaninho","a":"y"}' })];
+  const out = pass3(lines);
+  assert.equal(JSON.stringify(out).includes('Fulaninho'), false);
+  assert.throws(() => assertClean([ev('/x', { s: '{"a":"Fulaninho","a":"y"}' })], ['Fulaninho'], []), /identidade real/);
+});
+
+test('Q3: assertClean exige a lista de segredos', () => {
+  assert.throws(() => assertClean([ev('/x', { a: 'limpo' })], []), TypeError);
+});
+
+test('Q4: valor herdado curto com dígito não é segredo; dígito não conta como símbolo', () => {
+  const lines = [
+    ev('/lol-gameflow/v1/session', { playerCredentials: { x: 'EUW1' } }),
+    ev('/x', { p: 'EUW1 server' }),
+    ev('/lol-x/v1/s?pl=EUW1', {}),
+  ];
+  const out = pass3(lines);
+  assert.equal(out[1].data.p, 'EUW1 server');
+  assert.equal(out[2].uri, '/lol-x/v1/s?pl=EUW1');
+  const inherited = (x) => collectSecrets([ev('/x', { playerCredentials: { x } })]).has(x);
+  assert.equal(inherited('abc1234'), false);
+  assert.equal(inherited('Senha123'), true);
+  assert.equal(inherited('192.64.170.12'), true);
 });
