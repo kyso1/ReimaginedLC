@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>ReimaginedLC: modo navegador</title>
+    <link rel="riot:plugins:websocket" href="ws://127.0.0.1:47616/" />
+    <style>
+      html, body { margin: 0; height: 100%; background: #111; color: #ccc; font: 14px system-ui, sans-serif; }
+      #rcp-fe-viewport-root { position: absolute; inset: 0; display: grid; place-items: center; }
+      #mock-bar { position: fixed; top: 8px; right: 8px; z-index: 2147483647; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 60vw; }
+      #mock-bar button { font: inherit; padding: 4px 8px; }
+    </style>
+  </head>
+  <body>
+    <div id="rcp-fe-viewport-root">interface original da Riot (imitação)</div>
+    <div id="mock-bar"></div>
+    <script type="module">
+      // Imitações mínimas dos globais do Pengu, para o plugin rodar sem alteração.
+      const read = () => JSON.parse(localStorage.getItem('rlc-mock') ?? '{}');
+      const write = (data) => localStorage.setItem('rlc-mock', JSON.stringify(data));
+      window.DataStore = {
+        has: (k) => k in read(),
+        get: (k) => read()[k],
+        set: (k, v) => write({ ...read(), [k]: v }),
+        remove: (k) => { const d = read(); delete d[k]; write(d); },
+      };
+      window.Toast = { success: (m) => console.log('[toast]', m), error: (m) => console.warn('[toast]', m) };
+      window.CommandBar = {
+        addAction(action) {
+          const button = document.createElement('button');
+          button.textContent = action.name;
+          button.addEventListener('click', () => action.perform());
+          document.getElementById('mock-bar').append(button);
+        },
+      };
+      const plugin = await import('/src/index.ts');
+      plugin.init();
+      await plugin.load();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "label": "rlc-ligado-riot-oculta",
+  "takenAt": "2026-10-04T03:23:33.4155156-03:00",
+  "seconds": 60.2,
+  "logicalCores": 12,
+  "processes": {
+    "min": 8.0,
+    "max": 8.0
+  },
+  "workingSetMB": {
+    "avg": 1234.6,
+    "max": 1252.3
+  },
+  "privateMB": {
+    "avg": 2088.0,
+    "max": 2105.0
+  },
+  "cpuPercentOfOneCore": 128.85
+}

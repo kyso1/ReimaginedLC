@@ -1,7 +1,7 @@
 # Subprojeto 1: fundação
 
 Data: 2026-10-04
-Status: aguardando revisão
+Status: implementado em 2026-10-04 (ver "Alterações na implementação" e `docs/fundacao/REPORT.md`)
 Spec geral: `2026-10-03-reimaginedlc-design.md`. Dados de ambiente: `docs/dump/REPORT.md`.
 
 ## Objetivo
@@ -176,3 +176,24 @@ Lobby, fila, seleção de campeões, pós-jogo; tela de configurações; importa
 - `visibility: hidden` na interface da Riot pode interromper algo que ela faz só quando visível. Mitigação: é uma das três medições, e a alternativa (deixá-la visível atrás do root) está prevista.
 - A interface da Riot recria o próprio DOM ao trocar de fase. O root é anexado ao `body`, fora da árvore dela, e um teste no client confirma que ele sobrevive a um ciclo de fases.
 - WebM com transparência não foi medido no dump. Os temas embutidos não dependem dele.
+
+## Alterações na implementação
+
+Mudanças em relação ao texto acima, registradas em 2026-10-04 (detalhes em `docs/fundacao/REPORT.md`):
+
+- Temas embutidos ficam em `public/themes/`, que é a pasta que o Vite copia para o bundle.
+- Mídia de tema aceita, além de caminho relativo à pasta do tema, URL de asset do próprio client (`/fe/...`, `/lol-game-data/assets/...`). Valor vazio significa "sem mídia" e anula o fundo herdado.
+- Há um quarto store, `regionLocale` (`/riotclient/region-locale`), usado para o idioma dos textos e para o endereço das notas do patch.
+- O modo navegador usa dois comandos em terminais separados: `npm run mock` e `npm run dev:mock`.
+- O validador de temas ficou mais rígido que o descrito: cores só em hexadecimal de 3, 4, 6 ou 8 dígitos ou em `rgb()`, `rgba()`, `hsl()`, `hsla()` com 3 componentes e alfa opcional; famílias de fonte como lista de nomes ou textos entre aspas balanceadas; valores de token limitados a 200 caracteres.
+- A inicialização do client substitui os filhos do `body` cerca de 1,2 s após o carregamento, removendo o nosso elemento raiz. `start()` observa o `body`, remove clones, reanexa o elemento verdadeiro e manda o `App` ressincronizar a visibilidade da Riot.
+- A visibilidade da camada e da interface da Riot é sincronizada antes da pintura (efeito de layout), não no quadro seguinte.
+- `rlc.hideRiot` fica `true` por padrão: medido no client, esconder a interface da Riot reduz a CPU em cerca de 25 pontos.
+- O desempenho foi medido com o fundo em imagem do tema Vidro. O orçamento da spec fala em fundo em vídeo; essa medição ainda não foi feita.
+- Não foram construídos, por não terem uso neste subprojeto: `IconButton`, `Surface` e o `Toast` próprio (usa-se o `Toast` do Pengu diretamente).
+- Transições: só animações CSS por `@keyframes`, mais `prefers-reduced-motion`. A configuração de intensidade (`completa`, `reduzida`, `desligada`) e o caminho pela Web Animations API ficaram para depois.
+- O tema Editorial não tem tipografia maior e o Vidro lúdico não tem botões com volume: não há token para tamanho de fonte nem para sombra. Entram quando os tokens forem ampliados.
+- Os testes da LCU simulada cobrem a lógica de reprodução (`replay.mjs`), não o servidor HTTP e WebSocket.
+- O componente raiz é envolvido por um tratador de erro em `start()`, além do que envolve a tela; uma inicialização que falha desfaz o que criou (observador, elemento raiz, folha de estilo).
+- O atalho de emergência ignora a repetição automática da tecla.
+- Pendências que passam para o subprojeto 2: controles de janela e região de arraste próprios (com a camada ligada, também ficam escondidas as notificações da Riot, como convites de grupo); forma de abrir as notas do patch, já que `window.open` é bloqueado no client.
