@@ -12,7 +12,7 @@ try {
     .map((l) => JSON.parse(l));
   const clean = anonymize(raw);
   // Barreira final: se qualquer identidade real ou JWT sobrou, nada é gravado.
-  assertClean(clean, [...collectIdentities(raw).keys(), ...collectSecrets(raw)]);
+  assertClean(clean, collectIdentities(raw).keys(), collectSecrets(raw));
 
   mkdirSync('docs/dump/sessions', { recursive: true });
   const out = `docs/dump/sessions/${name}.jsonl`;

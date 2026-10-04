@@ -7,7 +7,8 @@ const TAG_KEY = /tagline|gametag/i;
 const JWT = /eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*/g;
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 const FAKE_PREFIX = '00000000-0000-4000-8000-';
-const FAKE_UUID = /(00000000-0000-4000-8000-[0-9a-f]{12})/;
+// Marcadores que o próprio anonimizador escreve: nenhuma substituição mexe dentro deles.
+const PLACEHOLDER = /(00000000-0000-4000-8000-[0-9a-f]{12}|anon-\d+|\[(?:redacted|mensagem|jwt)\]|\bTAG\b)/;
 const SUBSTITUTE = /^(00000000-0000-4000-8000-[0-9a-f]{12}|anon-\d+)$/i;
 const PVP = /([^\s@/"]+)@[^\s"/]*pvp\.net/gi;
 const BARE_WORD = /^[\p{L}\p{N}_]+$/u;
@@ -18,8 +19,8 @@ const isIdentityValue = (v) =>
 const hasUuid = (s) => new RegExp(UUID.source, 'i').test(s);
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-// Em objetos com puuid, `name` é o nome de invocador: vale como chave de identidade.
-const keyOf = (obj, k) => (k === 'name' && 'puuid' in obj ? 'gameName' : k);
+// Em objetos que já trazem uma identidade, `name` é o nome do jogador: vale como chave de identidade.
+const keyOf = (obj, k) => (k === 'name' && ['puuid', 'pid', 'gameName', 'summonerId'].some((i) => i in obj) ? 'gameName' : k);
 
 // Devolve o objeto/array se a string for JSON de objeto ou array; senão null.
 function parseEmbedded(s) {
@@ -42,7 +43,7 @@ function uriParts(uri) {
   const rest = splitUri(uri)[1];
   const qi = rest.indexOf('?');
   const query = qi < 0 ? '' : rest.slice(qi);
-  return { path: qi < 0 ? rest : rest.slice(0, qi), query, pieces: query.split(/([?&#=])/).filter((_, i) => i % 2 === 0) };
+  return { path: qi < 0 ? rest : rest.slice(0, qi), query, pieces: query.split(/([?&=])/).filter((_, i) => i % 2 === 0) };
 }
 
 // Visita strings, chaves e números. JSON embutido em string é visitado por dentro, não pelo texto bruto.
@@ -80,7 +81,7 @@ export function collectIdentities(lines) {
       addUuids(v);
       if (!identity) return;
       // Com UUID dentro (ex.: "Nome <uuid>"), o resto sem os UUIDs e sem o @host também é identidade.
-      if (hasUuid(v)) addText(v.replace(new RegExp(`${UUID.source}(@[^\\s"]*)?`, 'gi'), '').trim());
+      if (hasUuid(v)) addText(v.replace(new RegExp(`${UUID.source}(@[^\\s"]*)?`, 'gi'), '').replace(/^[\s<>()[\]{}|,;:-]+|[\s<>()[\]{}|,;:-]+$/g, ''));
       else addText(v);
     } else if (identity && isIdentityValue(v) && !map.has(v)) map.set(v, 9000000 + ++numbers);
   };
@@ -91,42 +92,53 @@ export function collectIdentities(lines) {
   return map;
 }
 
+// Um segredo "parece token" se tem 8+ caracteres com algum dígito, ou qualquer caractere fora de
+// letras, espaço, "_" e "-"; e não é só dígitos. Os demais (palavras, números) se comportam como valores curtos.
+const tokenLike = (s) => !/^\d+$/.test(s) && ((s.length >= 8 && /\d/.test(s)) || /[^\p{L}\s_-]/u.test(s));
+
 // Valores sob chaves de segredo (qualquer profundidade, inclusive JSON embutido), para redigir onde mais aparecerem.
+// Valor sob a própria chave de segredo é sempre coletado; valor só herdado de um ancestral (ex.: gameId dentro de
+// playerCredentials) só se parecer token. A subárvore inteira continua sendo redigida onde está.
 export function collectSecrets(lines) {
   const found = new Set();
-  const walk = (v, inSecret) => {
+  const walk = (v, inSecret, direct) => {
     if (typeof v === 'string') {
-      if (inSecret && v.length >= 4) found.add(v);
+      if (inSecret && v.length >= 4 && (direct || tokenLike(v))) found.add(v);
       const inner = parseEmbedded(v);
-      if (inner) walk(inner, inSecret);
+      if (inner) walk(inner, inSecret, false);
     } else if (typeof v === 'number') {
-      if (inSecret && Number.isInteger(v) && String(v).length >= 4) found.add(String(v));
-    } else if (Array.isArray(v)) for (const x of v) walk(x, inSecret);
-    else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, inSecret || SECRET_KEY.test(k));
+      const t = String(v);
+      if (inSecret && direct && Number.isInteger(v) && t.length >= 4) found.add(t);
+    } else if (Array.isArray(v)) for (const x of v) walk(x, inSecret, direct);
+    else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, inSecret || SECRET_KEY.test(k), SECRET_KEY.test(k));
   };
-  for (const line of lines) if (line.type !== 'meta') walk(line.data, false);
+  for (const line of lines) if (line.type !== 'meta') walk(line.data, false, false);
   return found;
 }
 
-// Um valor a procurar. Casa o texto, a forma codificada para URL (%20 e +). Valores de 6+ caracteres
-// casam em qualquer caixa e em qualquer lugar. Valores curtos casam só com a caixa exata e isolados
-// por não-letra/dígito, para "lol" não destruir "/lol-lobby".
-function entry(real, fake) {
+// Um valor a procurar. Casa o texto e a forma codificada para URL (%20 e +). Valores de 6+ caracteres
+// (e segredos que parecem token) casam em qualquer caixa e em qualquer lugar. Valores curtos, e segredos que são
+// palavra ou número, casam só com a caixa exata, isolados por não-letra/dígito, para "lol" não destruir
+// "/lol-lobby" nem a senha "friends" destruir "/lol-chat/v1/friends".
+// Residual aceito: um segredo só de letras ou só de dígitos que também aparece num caminho de URI, ou como
+// string solta sob outra chave, continua visível lá.
+function entry(real, fake, isSecret = false) {
   if (typeof real === 'number') return { real: String(real), fake: String(fake), text: false };
   const encoded = encodeURIComponent(real);
   const forms = [...new Set([encoded, encoded.replace(/%20/g, '+'), real])].map(esc).join('|');
-  const short = real.length < 6;
+  const short = real.length < 6 || (isSecret && !tokenLike(real));
   return {
     fake,
     text: true,
     short,
     re: new RegExp(short ? `(?<![\\p{L}\\p{N}])(?:${forms})(?![\\p{L}\\p{N}])` : forms, short ? 'gu' : 'giu'),
     whole: short ? new RegExp(`^(?:${forms})$`, 'u') : null,
+    wholeTag: short ? new RegExp(`^(?:${forms})(?=(?:%23|#)[^\\s"#&%]{2,5}$)`, 'u') : null,
   };
 }
 
-// Aplica o texto de `e` em partes fora dos UUIDs substitutos (nunca mexe dentro de um substituto).
-const outside = (s, fn) => s.split(FAKE_UUID).map((p, i) => (i % 2 ? p : fn(p))).join('');
+// Aplica o texto de `e` em partes fora dos marcadores (nunca mexe dentro de um substituto).
+const outside = (s, fn) => s.split(PLACEHOLDER).map((p, i) => (i % 2 ? p : fn(p))).join('');
 
 // mode: 'data' (valor em dados), 'path' (caminho de URI), 'whole' (pedaço de query).
 // ctx: o valor está sob uma chave de identidade, onde foi coletado.
@@ -137,6 +149,8 @@ function applyEntry(s, e, mode, ctx) {
   if (!e.short) return outside(s, (p) => p.replace(e.re, () => e.fake));
   if (mode === 'path') return s;
   if (e.whole.test(s)) return mode === 'whole' || ctx ? e.fake : s;
+  // Valor de query seguido de tag (Nome%23tag ou Nome#tag): troca o nome, blankTags apaga a tag.
+  if (mode === 'whole' && e.wholeTag.test(s)) return s.replace(e.wholeTag, e.fake);
   if (mode === 'whole' || BARE_WORD.test(s)) return s;
   return outside(s, (p) => p.replace(e.re, () => e.fake));
 }
@@ -144,11 +158,11 @@ function applyEntry(s, e, mode, ctx) {
 export function anonymize(lines) {
   const map = collectIdentities(lines);
   // Mais longos primeiro, para "FulanoSmurf" não virar "anon-1Smurf".
-  const byLength = (list) => list.sort((x, y) => String(y[0]).length - String(x[0]).length).map(([real, fake]) => entry(real, fake));
-  const idEntries = byLength([...map].filter(([real]) => !(typeof real === 'string' && hasUuid(real))));
+  const byLength = (list, isSecret) => list.sort((x, y) => String(y[0]).length - String(x[0]).length).map(([real, fake]) => entry(real, fake, isSecret));
+  const idEntries = byLength([...map].filter(([real]) => !(typeof real === 'string' && hasUuid(real))), false);
   // Segredo que é só um UUID já tem substituto estável (mapUuids); redigi-lo quebraria ids como <uuid>@host.
   const bareUuid = (s) => new RegExp('^' + UUID.source + '$', 'i').test(s);
-  const secretEntries = byLength([...collectSecrets(lines)].filter((s) => !bareUuid(s)).map((s) => [s, '[redacted]']));
+  const secretEntries = byLength([...collectSecrets(lines)].filter((s) => !bareUuid(s)).map((s) => [s, '[redacted]']), true);
 
   // ponytail: O(strings x identidades). Uma sessão tem milhares de strings e dezenas de identidades.
   // Se uma gravação ficar lenta para anonimizar, trocar por uma única regex com alternância.
@@ -165,7 +179,7 @@ export function anonymize(lines) {
     const [head] = splitUri(uri);
     const { path, query } = uriParts(uri);
     const tagged = query.replace(/([?&][^=&#]*)=([^&#]*)/g, (m, name) => (TAG_KEY.test(decodeURIComponent(name)) ? `${name}=TAG` : m));
-    return head + cleanString(path, 'path') + tagged.split(/([?&#=])/).map((p, i) => (i % 2 ? p : cleanString(p, 'whole'))).join('');
+    return head + cleanString(path, 'path') + tagged.split(/([?&=])/).map((p, i) => (i % 2 ? p : cleanString(p, 'whole'))).join('');
   };
 
   const clean = (value, key) => {
@@ -175,7 +189,12 @@ export function anonymize(lines) {
     if (key === 'statusMessage') return '';
     if (typeof value === 'string') {
       const inner = parseEmbedded(value);
-      return inner ? JSON.stringify(clean(inner, null)) : cleanString(value, 'data', key !== null && IDENTITY_KEY.test(key));
+      if (inner) {
+        const cleaned = JSON.stringify(clean(inner, null));
+        // Só reserializa se algo mudou; senão mantém a string original byte a byte.
+        return cleaned === JSON.stringify(inner) ? value : cleaned;
+      }
+      return cleanString(value, 'data', key !== null && IDENTITY_KEY.test(key));
     }
     if (typeof value === 'number') return map.has(value) ? map.get(value) : value;
     if (Array.isArray(value)) return value.map((item) => clean(item, key));
@@ -194,9 +213,9 @@ export function anonymize(lines) {
     });
 }
 
-// Barreira final. As checagens por formato valem mesmo com `secrets` vazio; as demais usam a mesma
-// regra de substituição de `anonymize`: se ela ainda trocaria algo, sobrou um valor real.
-export function assertClean(lines, secrets) {
+// Barreira final. As checagens por formato valem mesmo com `identities` e `secrets` vazios; as demais usam a
+// mesma regra de substituição de `anonymize`: se ela ainda trocaria algo, sobrou um valor real.
+export function assertClean(lines, identities, secrets = []) {
   const atoms = []; // todas as strings, para as checagens por formato
   const items = []; // o que será comparado com os valores coletados: { s, mode, ctx }
   const nums = [];
@@ -224,9 +243,10 @@ export function assertClean(lines, secrets) {
     for (const [m] of a.matchAll(UUID)) if (!m.toLowerCase().startsWith(FAKE_PREFIX)) bad('formato UUID');
     for (const m of a.matchAll(PVP)) if (!SUBSTITUTE.test(m[1])) bad('id de chat');
   }
-  for (const s of secrets) {
+  const wanted = [...[...identities].map((v) => [v, false]), ...[...secrets].map((v) => [v, true])];
+  for (const [s, isSecret] of wanted) {
     if (s === '' || s === undefined) continue;
-    const e = entry(s, '\u0000');
+    const e = entry(s, '\u0000', isSecret);
     if (typeof s === 'number' && nums.includes(String(s))) bad('valor coletado');
     if (items.some((i) => applyEntry(i.s, e, i.mode, i.ctx) !== i.s)) bad('valor coletado');
   }
