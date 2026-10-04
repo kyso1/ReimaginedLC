@@ -21,7 +21,14 @@ const hasUuid = (s) => new RegExp(UUID.source, 'i').test(s);
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Em objetos que já trazem uma identidade, `name` é o nome do jogador: vale como chave de identidade.
-const keyOf = (obj, k) => (k === 'name' && ['puuid', 'pid', 'gameName', 'summonerId'].some((i) => i in obj) ? 'gameName' : k);
+// `name` muda de sentido conforme os vizinhos: ao lado de uma identidade é nome de pessoa;
+// numa página de runas (isDeletable + isEditable) é texto livre escrito pelo dono, tratado como `note`.
+const keyOf = (obj, k) => {
+  if (k !== 'name') return k;
+  if (['puuid', 'pid', 'gameName', 'summonerId'].some((i) => i in obj)) return 'gameName';
+  if ('isDeletable' in obj && 'isEditable' in obj) return 'note';
+  return k;
+};
 
 // Devolve o objeto/array se a string for JSON de objeto ou array; senão null.
 function parseEmbedded(s) {

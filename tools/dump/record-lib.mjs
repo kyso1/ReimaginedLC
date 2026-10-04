@@ -1,5 +1,5 @@
 // URIs de alto volume que a LCU simulada não precisa reproduzir.
-const NOISE = /^\/(riot-messaging-service|data-store|lol-patch|patcher|telemetry|lol-telemetry|performance|lol-hovercard)\b/;
+const NOISE = /^\/(riot-messaging-service|data-store|lol-patch|patcher|telemetry|lol-telemetry|performance|lol-hovercard|lol-cosmetics)\b/;
 
 export function toLine(raw, t) {
   if (!raw) return null;

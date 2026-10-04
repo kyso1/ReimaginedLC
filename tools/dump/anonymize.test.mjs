@@ -482,3 +482,14 @@ test('F5: lista de bloqueio acusa valor presente, codificado ou em outra caixa, 
   assert.doesNotThrow(() => assertNotDenied(lines, []));
   assert.doesNotThrow(() => assertNotDenied(lines, ['', '  ']));
 });
+
+test('nome de página de runas é texto livre do dono e vira [mensagem]; nomes de runas ficam', () => {
+  const page = { id: 1, name: 'pagina do Fulano', isDeletable: true, isEditable: true, pageKeystone: { id: 8010, name: 'Conquistador' }, uiPerks: [{ id: 8010, name: 'Conquistador' }] };
+  const lines = [ev('/lol-perks/v1/pages', [page]), ev('/lol-perks/v1/currentpage', page)];
+  const out = anonymize(lines);
+  assert.equal(out[0].data[0].name, '[mensagem]');
+  assert.equal(out[1].data.name, '[mensagem]');
+  assert.equal(out[0].data[0].pageKeystone.name, 'Conquistador');
+  assert.equal(out[0].data[0].uiPerks[0].name, 'Conquistador');
+  pass3(lines, out);
+});

@@ -23,6 +23,7 @@ test('toLine ignora mensagem vazia, JSON inválido, outro opcode e URI ruidosa',
   assert.equal(toLine(msg('/riot-messaging-service/v1/message/x'), 0), null);
   assert.equal(toLine(msg('/data-store/v1/install-settings/x'), 0), null);
   assert.equal(toLine(msg('/lol-patch/v1/products/league_of_legends/state'), 0), null);
+  assert.equal(toLine(msg('/lol-cosmetics/v1/inventories/tft/companions'), 0), null);
 });
 
 test('attach grava eventos com tempo relativo e encerra quando o socket fecha', () => {
