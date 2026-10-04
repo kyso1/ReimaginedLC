@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { LEAGUE_DIR, readCredentials, lcuGet, lcuJson, fail } from './lcu.mjs';
-import { summarize, DECISION } from './assets-lib.mjs';
+import { summarize, DECISION, clientUrl, parseAssetPath } from './assets-lib.mjs';
 
 const LISTING_URL = 'https://raw.communitydragon.org/latest/cdragon/files.exported.txt';
 const RAW = 'dump-raw/cdragon-files.txt';
@@ -18,7 +18,8 @@ try {
     if (!res.ok) throw new Error(`download da listagem falhou: ${res.status}`);
     await pipeline(Readable.fromWeb(res.body), createWriteStream(RAW));
   }
-  const summary = summarize(readFileSync(RAW, 'utf8').split('\n'));
+  const lines = readFileSync(RAW, 'utf8').split('\n');
+  const summary = summarize(lines);
 
   // Tamanho dos WADs instalados, por plugin. Só metadados; os arquivos não são copiados.
   const pluginsDir = join(LEAGUE_DIR, 'Plugins');
@@ -36,27 +37,11 @@ try {
   const creds = readCredentials();
   const build = await lcuJson(creds, '/system/v1/builds');
 
-  // Coleta URLs /lol-game-data da summary
-  let sample = [];
-  if (summary['rcp-be-lol-game-data']) {
-    for (const cat of Object.values(summary['rcp-be-lol-game-data'])) {
-      sample.push(...cat.samples);
-    }
-  }
-
-  // Se não temos 40 URLs, escaneia o arquivo de listagem para adicionar mais
-  if (sample.length < 40) {
-    const lines = readFileSync(RAW, 'utf8').split('\n');
-    const gameDataLines = lines.filter((l) => l.includes('plugins/rcp-be-lol-game-data/global/default/'));
-    const step = Math.max(1, Math.floor(gameDataLines.length / (40 - sample.length)));
-    for (let i = 0; i < gameDataLines.length && sample.length < 40; i += step) {
-      const line = gameDataLines[i];
-      const parsed = { plugin: 'rcp-be-lol-game-data', rest: line.split('/').slice(4).join('/') };
-      const url = `/lol-game-data/assets/${parsed.rest}`;
-      if (!sample.includes(url)) sample.push(url);
-    }
-  }
-  sample = sample.slice(0, 40);
+  // Sample ~40 game-data URLs evenly across the listing
+  const gameData = lines.filter((l) => l.startsWith('plugins/rcp-be-lol-game-data/global/default/'));
+  const step = Math.max(1, Math.floor(gameData.length / 40));
+  const sample = [];
+  for (let i = 0; i < gameData.length && sample.length < 40; i += step) sample.push(clientUrl(parseAssetPath(gameData[i])));
 
   let hits = 0;
   for (const url of sample) if ((await lcuGet(creds, encodeURI(url))).status === 200) hits++;
