@@ -6,7 +6,7 @@
 
 **Architecture:** Scripts Node em `tools/dump/` falam com a LCU pelo `lockfile` (HTTPS e WebSocket em `127.0.0.1`). O que só existe dentro do client (versão do Chromium, suporte a recursos, API do Pengu) é coletado por um plugin Pengu descartável que envia JSON a um coletor HTTP local. Dados brutos ficam em `dump-raw/` (fora do git); só resultados anonimizados entram em `docs/dump/`.
 
-**Tech Stack:** Node 24 (ESM, `node:test`, `node:https`), pacote `ws`, TypeScript (apenas `tsc --noEmit` para validar os tipos gerados), PowerShell 7 para a medição de processos.
+**Tech Stack:** Node 24 (ESM, `node:test`, `node:https` com TLS validado pelo certificado raiz da Riot), pacote `ws`, TypeScript (apenas `tsc --noEmit` para validar os tipos gerados), PowerShell 7 para a medição de processos.
 
 **Spec:** `docs/superpowers/specs/2026-10-03-reimaginedlc-design.md` (seção "Subprojeto 0: dump e inventário")
 
@@ -36,6 +36,7 @@
 |---|---|
 | `package.json` | Scripts `npm` e dependências de desenvolvimento |
 | `tools/dump/lcu.mjs` | Ler `lockfile`, autenticar, `GET` na LCU |
+| `tools/dump/riotgames.pem` | Certificado raiz público da Riot, para validar o TLS da LCU |
 | `tools/dump/ping.mjs` | Verificação de conexão |
 | `tools/dump/gen-types.mjs` | Converter a descrição da LCU em TypeScript (puro) |
 | `tools/dump/fetch-api.mjs` | Baixar descrição, endpoints, eventos; gravar tipos |
@@ -61,6 +62,7 @@
 **Files:**
 - Create: `package.json`
 - Modify: `.gitignore`
+- Create: `tools/dump/riotgames.pem`
 - Create: `tools/dump/lcu.mjs`
 - Create: `tools/dump/ping.mjs`
 - Test: `tools/dump/lcu.test.mjs`
@@ -68,6 +70,7 @@
 **Interfaces:**
 - Produces:
   - `LEAGUE_DIR: string`
+  - `RIOT_CA: Buffer` (certificado raiz da Riot; passar como `ca` em qualquer conexão TLS com a LCU)
   - `parseLockfile(text: string): { port: number, password: string, protocol: string }`
   - `readCredentials(dir?: string): { port, password, protocol }` (lança `Error` com mensagem em português se o `lockfile` não existir)
   - `authHeader(password: string): string`
@@ -118,7 +121,14 @@ dump-raw/
 Run: `npm install`
 Expected: cria `node_modules/` e `package-lock.json`, sem erros.
 
-- [ ] **Step 4: Escrever o teste que falha**
+- [ ] **Step 4: Baixar o certificado raiz da Riot**
+
+A LCU usa um certificado emitido pela raiz própria da Riot. A Riot publica essa raiz; com ela o TLS é validado de verdade (verificado em 2026-10-03: `GET` com `ca` apontando para este arquivo responde 200).
+
+Run: `curl -s -o tools/dump/riotgames.pem https://static.developer.riotgames.com/docs/lol/riotgames.pem`
+Expected: arquivo de cerca de 1,5 KB cuja primeira linha é `-----BEGIN CERTIFICATE-----`.
+
+- [ ] **Step 5: Escrever o teste que falha**
 
 `tools/dump/lcu.test.mjs`:
 
@@ -153,12 +163,12 @@ test('authHeader monta Basic com usuário riot', () => {
 });
 ```
 
-- [ ] **Step 5: Rodar e confirmar a falha**
+- [ ] **Step 6: Rodar e confirmar a falha**
 
 Run: `npm test`
 Expected: FAIL com `Cannot find module` apontando para `lcu.mjs`.
 
-- [ ] **Step 6: Implementar `tools/dump/lcu.mjs`**
+- [ ] **Step 7: Implementar `tools/dump/lcu.mjs`**
 
 ```js
 import { readFileSync } from 'node:fs';
@@ -166,6 +176,7 @@ import { request } from 'node:https';
 import { join } from 'node:path';
 
 export const LEAGUE_DIR = process.env.LEAGUE_DIR ?? 'C:\\Riot Games\\League of Legends';
+export const RIOT_CA = readFileSync(new URL('./riotgames.pem', import.meta.url));
 
 export function parseLockfile(text) {
   const parts = text.trim().split(':');
@@ -201,9 +212,7 @@ export function lcuGet(creds, path) {
         path,
         method: 'GET',
         headers: { Authorization: authHeader(creds.password), Accept: 'application/json' },
-        // ponytail: certificado autoassinado da Riot aceito sem validar; só loopback.
-        // Se algum dia sair de 127.0.0.1, fixar o riotgames.pem.
-        rejectUnauthorized: false,
+        ca: RIOT_CA,
       },
       (res) => {
         const chunks = [];
@@ -229,7 +238,7 @@ export function fail(e) {
 }
 ```
 
-- [ ] **Step 7: Implementar `tools/dump/ping.mjs`**
+- [ ] **Step 8: Implementar `tools/dump/ping.mjs`**
 
 ```js
 import { readCredentials, lcuJson, fail } from './lcu.mjs';
@@ -244,21 +253,21 @@ try {
 }
 ```
 
-- [ ] **Step 8: Rodar os testes**
+- [ ] **Step 9: Rodar os testes**
 
 Run: `npm test`
 Expected: PASS, 4 testes.
 
-- [ ] **Step 9: Verificar contra o client real [manual: client aberto]**
+- [ ] **Step 10: Verificar contra o client real [manual: client aberto]**
 
 Run: `npm run dump:ping`
 Expected: `LCU ok na porta <n>. Versão <x.y.z...>. Fase: <fase>`.
 Com o client fechado, o esperado é `erro: Client do League não está aberto (...)` e código de saída 1.
 
-- [ ] **Step 10: Commit**
+- [ ] **Step 11: Commit**
 
 ```bash
-git add package.json package-lock.json .gitignore tools/dump/lcu.mjs tools/dump/lcu.test.mjs tools/dump/ping.mjs
+git add package.json package-lock.json .gitignore tools/dump/riotgames.pem tools/dump/lcu.mjs tools/dump/lcu.test.mjs tools/dump/ping.mjs
 git commit -m "Add dump tooling scaffold and LCU connection"
 ```
 
@@ -1144,7 +1153,7 @@ git commit -m "Add client memory and CPU baseline"
 - Bruto (fora do git): `dump-raw/sessions/ferramenta-de-treino.raw.jsonl`
 
 **Interfaces:**
-- Consumes: `readCredentials`, `authHeader`, `lcuGet`, `fail` de `./lcu.mjs`
+- Consumes: `readCredentials`, `authHeader`, `lcuGet`, `fail`, `RIOT_CA` de `./lcu.mjs`
 - Produces:
   - Formato da gravação (JSON Lines). Primeira linha: `{ "type": "meta", "client": string, "startedAt": string }`. Depois: `{ "type": "snapshot", "t": 0, "uri": string, "status": number, "data": any }` e `{ "type": "event", "t": number, "uri": string, "eventType": "Create" | "Update" | "Delete", "data": any }`, com `t` em milissegundos desde o início.
   - `toLine(raw: string, t: number): object | null`
@@ -1453,7 +1462,7 @@ Expected: PASS, 36 testes no total.
 ```js
 import { mkdirSync, openSync, writeSync, closeSync } from 'node:fs';
 import WebSocket from 'ws';
-import { readCredentials, authHeader, lcuGet, fail } from './lcu.mjs';
+import { readCredentials, authHeader, lcuGet, fail, RIOT_CA } from './lcu.mjs';
 import { attach } from './record-lib.mjs';
 
 const SNAPSHOT = [
@@ -1495,7 +1504,7 @@ try {
 
   const ws = new WebSocket(`wss://127.0.0.1:${creds.port}/`, {
     headers: { Authorization: authHeader(creds.password) },
-    rejectUnauthorized: false, // mesmo motivo de lcu.mjs: certificado autoassinado, só loopback
+    ca: RIOT_CA,
   });
   const finish = ({ count, reason }) => {
     closeSync(fd);
