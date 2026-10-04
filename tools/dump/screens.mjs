@@ -7,7 +7,7 @@ try {
   const plugins = await lcuJson(creds, '/plugin-manager/v2/plugins');
   const endpoints = JSON.parse(readFileSync('docs/dump/lcu/endpoints.json', 'utf8'));
   const decisions = JSON.parse(readFileSync('tools/dump/decisions.json', 'utf8'));
-  const { rows, missing, pending } = buildScreens(plugins, endpoints, decisions);
+  const { rows, missing, invalid, pending } = buildScreens(plugins, endpoints, decisions);
 
   const md = [
     '# Mapa de telas do client',
@@ -19,6 +19,8 @@ try {
     '- **cortar**: não aparece no ReimaginedLC.',
     '- **infra**: não é tela; continua carregado por baixo.',
     '',
+    'As colunas "Backends LCU" e "Endpoints" são uma estimativa: somam as dependências rcp-be-* declaradas, o namespace da LCU com o mesmo nome do plugin e, para algumas telas, uma lista manual em decisions.json. Zero significa "nenhuma correspondência encontrada", não "não usa a API". O levantamento real de endpoints de cada tela é feito na spec do subprojeto correspondente.',
+    '',
     '| Plugin | Decisão | Subprojeto | Fase do gameflow | Backends LCU | Endpoints | Nota |',
     '|---|---|---:|---|---|---:|---|',
     ...rows.map((r) => `| ${r.plugin} | ${r.decisao} | ${r.subprojeto ?? ''} | ${r.fase} | ${r.backends.join(', ')} | ${r.endpoints} | ${r.nota} |`),
@@ -28,8 +30,9 @@ try {
   const count = (k) => rows.filter((r) => r.decisao === k).length;
   console.log(`${rows.length} plugins: ${count('refazer')} refazer, ${count('embutir')} embutir, ${count('cortar')} cortar, ${count('infra')} infra.`);
   if (missing.length) console.error(`sem decisão em decisions.json: ${missing.join(', ')}`);
+  if (invalid.length) console.error(`decisão inválida em decisions.json: ${invalid.join(', ')}`);
   if (pending.length) console.error(`ainda em "investigar": ${pending.join(', ')}`);
-  if (missing.length || pending.length) process.exit(1);
+  if (missing.length || invalid.length || pending.length) process.exit(1);
 } catch (e) {
   fail(e);
 }

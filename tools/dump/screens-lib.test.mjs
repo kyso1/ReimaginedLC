@@ -56,3 +56,18 @@ test('une backend homônimo e backends manuais da decisão quando não há depen
   assert.deepEqual(by['rcp-fe-lol-parties'].backends, ['lol-lobby']);
   assert.equal(by['rcp-fe-lol-parties'].endpoints, 2);
 });
+
+test('nome de plugin igual a chave herdada de Object não casa backend', () => {
+  const { rows } = buildScreens([{ fullName: 'rcp-fe-constructor' }], [{ plugin: 'lol-lobby' }], { 'rcp-fe-constructor': d('refazer') });
+  assert.deepEqual(rows[0].backends, []);
+  assert.equal(rows[0].endpoints, 0);
+});
+
+test('acusa decisao inválida', () => {
+  const { invalid } = buildScreens(
+    [{ fullName: 'rcp-fe-a' }, { fullName: 'rcp-fe-b' }],
+    [],
+    { 'rcp-fe-a': d('refazar'), 'rcp-fe-b': d('refazer') },
+  );
+  assert.deepEqual(invalid, ['rcp-fe-a']);
+});

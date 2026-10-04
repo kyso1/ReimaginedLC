@@ -37,8 +37,8 @@
   "rcp-fe-lol-tft-promethium": { "decisao": "embutir", "fase": "None", "subprojeto": null, "nota": "Hub do evento de TFT \"Ascensão de Ao Shin\" (guias, zonas, trilha da jornada, pacote). Evento sazonal; mantém a tela original." },
   "rcp-fe-lol-esports-spectate": { "decisao": "cortar", "fase": "None", "subprojeto": null, "nota": "Assistir a partidas de esports." },
   "rcp-fe-lol-highlights": { "decisao": "cortar", "fase": "None", "subprojeto": null, "nota": "Destaques gravados." },
-  "rcp-fe-lol-jade": { "decisao": "embutir", "fase": "None", "subprojeto": null, "nota": "Experiência alternativa \"League Classic\" (JADE) com tela inicial, loja, coleção, runas, seleção de campeões e conselho de votação. Finalidade confirmada pelos textos; se está ativa neste client e como convive com rcp-fe-lol-champ-select não foi confirmado, reavaliar no subprojeto 2." },
+  "rcp-fe-lol-jade": { "decisao": "embutir", "fase": "None", "subprojeto": null, "nota": "Experiência alternativa \"League Classic\" (JADE) com tela inicial, loja, coleção, runas, seleção de campeões e conselho de votação. Finalidade indicada pelos textos; se está ativa neste client e como convive com rcp-fe-lol-champ-select não foi confirmado, reavaliar no subprojeto 2." },
   "rcp-fe-lol-pft": { "decisao": "infra", "fase": "todas", "subprojeto": null, "nota": "Componente de pesquisa de satisfação (escala Likert e botão Enviar); sem tela própria de uso diário." },
   "rcp-fe-lol-kickout": { "decisao": "infra", "fase": "todas", "subprojeto": null, "nota": "Diálogos de expulsão do client e de aviso antivício (anti-addiction) via /lol-kickout; sem interface própria de uso diário. Plugin sem trans.json: finalidade lida do código." },
-  "rcp-fe-lol-lock-and-load": { "decisao": "infra", "fase": "None", "subprojeto": null, "nota": "Coordena a espera do carregamento dos plugins e das home hubs no início (/lol-lock-and-load); não tem tela." }
+  "rcp-fe-lol-lock-and-load": { "decisao": "infra", "fase": "todas", "subprojeto": null, "nota": "Coordena a espera do carregamento dos plugins e das home hubs no início (/lol-lock-and-load); não tem tela." }
 }

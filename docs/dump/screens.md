@@ -7,6 +7,8 @@ Uma linha por plugin de interface da Riot (`rcp-fe-*`). Gerado por `npm run dump
 - **cortar**: não aparece no ReimaginedLC.
 - **infra**: não é tela; continua carregado por baixo.
 
+As colunas "Backends LCU" e "Endpoints" são uma estimativa: somam as dependências rcp-be-* declaradas, o namespace da LCU com o mesmo nome do plugin e, para algumas telas, uma lista manual em decisions.json. Zero significa "nenhuma correspondência encontrada", não "não usa a API". O levantamento real de endpoints de cada tela é feito na spec do subprojeto correspondente.
+
 | Plugin | Decisão | Subprojeto | Fase do gameflow | Backends LCU | Endpoints | Nota |
 |---|---|---:|---|---|---:|---|
 | rcp-fe-lol-navigation | refazer | 1 | todas |  | 0 | Barra de navegação e tela inicial. Vira o shell de trilho lateral. |
@@ -34,10 +36,10 @@ Uma linha por plugin de interface da Riot (`rcp-fe-*`). Gerado por `npm run dump
 | rcp-fe-lol-esports-spectate | cortar |  | None |  | 0 | Assistir a partidas de esports. |
 | rcp-fe-lol-event-hub | embutir |  | None | lol-event-hub | 28 | Central de eventos e passes. |
 | rcp-fe-lol-highlights | cortar |  | None | lol-highlights | 9 | Destaques gravados. |
-| rcp-fe-lol-jade | embutir |  | None |  | 0 | Experiência alternativa "League Classic" (JADE) com tela inicial, loja, coleção, runas, seleção de campeões e conselho de votação. Finalidade confirmada pelos textos; se está ativa neste client e como convive com rcp-fe-lol-champ-select não foi confirmado, reavaliar no subprojeto 2. |
+| rcp-fe-lol-jade | embutir |  | None |  | 0 | Experiência alternativa "League Classic" (JADE) com tela inicial, loja, coleção, runas, seleção de campeões e conselho de votação. Finalidade indicada pelos textos; se está ativa neste client e como convive com rcp-fe-lol-champ-select não foi confirmado, reavaliar no subprojeto 2. |
 | rcp-fe-lol-kickout | infra |  | todas | lol-kickout | 1 | Diálogos de expulsão do client e de aviso antivício (anti-addiction) via /lol-kickout; sem interface própria de uso diário. Plugin sem trans.json: finalidade lida do código. |
 | rcp-fe-lol-l10n | infra |  | todas | lol-l10n | 1 | Textos localizados da Riot. |
-| rcp-fe-lol-lock-and-load | infra |  | None | lol-lock-and-load | 3 | Coordena a espera do carregamento dos plugins e das home hubs no início (/lol-lock-and-load); não tem tela. |
+| rcp-fe-lol-lock-and-load | infra |  | todas | lol-lock-and-load | 3 | Coordena a espera do carregamento dos plugins e das home hubs no início (/lol-lock-and-load); não tem tela. |
 | rcp-fe-lol-new-player-experience | embutir |  | None |  | 0 | Tutorial de conta nova. |
 | rcp-fe-lol-objectives | embutir |  | None | lol-objectives | 3 | Missões e objetivos. |
 | rcp-fe-lol-paw | embutir |  | todas |  | 0 | Janela de compra. Envolve pagamento; sempre a original. |
