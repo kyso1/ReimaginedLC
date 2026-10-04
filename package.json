@@ -14,7 +14,8 @@
     "dump:plugin:remove": "node tools/dump/install-plugin.mjs --remove",
     "dump:record": "node tools/dump/record.mjs",
     "dump:anonymize": "node tools/dump/anonymize-session.mjs",
-    "dump:screens": "node tools/dump/screens.mjs"
+    "dump:screens": "node tools/dump/screens.mjs",
+    "dump:baseline": "pwsh -NoProfile -File tools/dump/baseline.ps1"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
