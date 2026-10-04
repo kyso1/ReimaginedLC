@@ -90,11 +90,17 @@ async function probeAssetUrls() {
   return out;
 }
 
-export async function load() {
-  const ok = await send('env', { ...probe(), assetUrls: await probeAssetUrls() });
-  window.Toast?.success?.(ok ? 'rlc-dump: ambiente enviado ao coletor' : 'rlc-dump: coletor fora do ar, veja o console');
+// Chaves próprias do contexto que o Pengu passa a init(); null se init() nunca foi chamado.
+let penguInit = null;
+const ownKeys = (o) => (o && (typeof o === 'object' || typeof o === 'function') ? Object.getOwnPropertyNames(o) : null);
 
-  // Confirma que um listener de teclado comum recebe Ctrl+Shift+F12 dentro do client.
+export function init(context) {
+  penguInit = { context: ownKeys(context), rcp: ownKeys(context?.rcp), socket: ownKeys(context?.socket) };
+}
+
+export async function load() {
+  // Primeiro: confirma que um listener de teclado comum recebe Ctrl+Shift+F12 dentro do client,
+  // mesmo que a sonda abaixo falhe.
   window.addEventListener(
     'keydown',
     (e) => {
@@ -105,4 +111,13 @@ export async function load() {
     },
     true,
   );
+
+  let env;
+  try {
+    env = { ...probe(), assetUrls: await probeAssetUrls(), penguInit };
+  } catch (e) {
+    env = { error: e.message, penguInit };
+  }
+  const ok = await send('env', env);
+  window.Toast?.success?.(ok ? 'rlc-dump: ambiente enviado ao coletor' : 'rlc-dump: coletor fora do ar, veja o console');
 }
