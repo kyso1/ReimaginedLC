@@ -47,3 +47,27 @@ test('recusa ciclo e profundidade acima de 3', () => {
   expect(resolveTheme('t3', map(...chain)).ok).toBe(true);
   expect(resolveTheme('t4', map(...chain))).toMatchObject({ ok: false, error: expect.stringMatching(/profundidade/) });
 });
+
+test('V8: chave __proto__ própria no manifesto não troca o protótipo dos tokens resolvidos', () => {
+  const hostile = mk('base', { tokens: { ...fullTokens(), ...JSON.parse('{"__proto__":{"polluted":"1"}}') }, backgrounds: JSON.parse('{"__proto__":"x.png"}') });
+  const r = resolveTheme('base', map(hostile));
+  expect(r.ok).toBe(true);
+  if (r.ok) {
+    expect(Object.getPrototypeOf(r.theme.tokens)).toBeNull();
+    expect(Object.getPrototypeOf(r.theme.backgrounds)).toBeNull();
+    expect((r.theme.tokens as Record<string, unknown>).polluted).toBeUndefined();
+  }
+  const manifest = JSON.parse('{"name":"base","label":"b","version":1,"extends":null,"tokens":{"__proto__":{"polluted":"1"}},"backgrounds":{},"layouts":{}}');
+  expect(resolveTheme('base', map(manifest))).toMatchObject({ ok: false });
+});
+
+test('V8: token herdado de Object.prototype não conta como presente', () => {
+  const tokens = fullTokens();
+  delete tokens['color.bg'];
+  (Object.prototype as Record<string, unknown>)['color.bg'] = '#000';
+  try {
+    expect(resolveTheme('base', map(mk('base', { tokens })))).toMatchObject({ ok: false, error: expect.stringMatching(/color\.bg/) });
+  } finally {
+    delete (Object.prototype as Record<string, unknown>)['color.bg'];
+  }
+});

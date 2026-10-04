@@ -35,3 +35,22 @@ test('mediaUrl devolve a URL do client como está e null quando não há fundo',
   expect(mediaUrl(theme({ default: { theme: 'vidro', path: '' } }), 'home', 'https://x/')).toBeNull();
   expect(mediaUrl(theme(), 'home', 'https://x/')).toBeNull();
 });
+
+test('V7: mediaUrl ignora chaves herdadas', () => {
+  const base = 'https://x/';
+  expect(mediaUrl(theme(), 'constructor', base)).toBeNull();
+  expect(mediaUrl(theme({ default: { theme: 'vidro', path: 'a.png' } }), 'toString', base)).toBe('https://x/themes/vidro/a.png');
+  expect(mediaUrl(theme(), '__proto__', base)).toBeNull();
+});
+
+test('V7: base com e sem barra final dão a mesma URL', () => {
+  const t = theme({ default: { theme: 'vidro', path: 'media/a.png' } });
+  expect(mediaUrl(t, 'home', 'https://plugins/ReimaginedLC')).toBe('https://plugins/ReimaginedLC/themes/vidro/media/a.png');
+  expect(mediaUrl(t, 'home', 'https://plugins/ReimaginedLC/')).toBe('https://plugins/ReimaginedLC/themes/vidro/media/a.png');
+});
+
+test('V7: applyTheme funciona com tokens sem protótipo', () => {
+  const el = document.createElement('div');
+  applyTheme(el, { ...theme(), tokens: Object.assign(Object.create(null), { 'color.bg': '#fff' }) });
+  expect(el.style.getPropertyValue('--rlc-color-bg')).toBe('#fff');
+});

@@ -27,14 +27,15 @@ export function resolveTheme(name: string, themes: Map<string, ThemeManifest>): 
   }
 
   const own = chain[0]!;
-  const resolved: ResolvedTheme = { name: own.name, label: own.label, tokens: {}, transition: 'fade', backgrounds: {} };
+  const resolved: ResolvedTheme = { name: own.name, label: own.label, tokens: Object.create(null), transition: 'fade', backgrounds: Object.create(null) };
   for (const manifest of chain.reverse()) {
-    Object.assign(resolved.tokens, manifest.tokens);
+    // Só chaves próprias, em objetos sem protótipo: uma chave "__proto__" vira dado, nunca troca o protótipo.
+    for (const [token, value] of Object.entries(manifest.tokens)) resolved.tokens[token] = value;
     if (manifest.transition) resolved.transition = manifest.transition;
     for (const [screen, path] of Object.entries(manifest.backgrounds)) resolved.backgrounds[screen] = { theme: manifest.name, path };
   }
 
-  const missing = Object.keys(TOKEN_KINDS).filter((token) => !(token in resolved.tokens));
+  const missing = Object.keys(TOKEN_KINDS).filter((token) => !Object.hasOwn(resolved.tokens, token));
   if (missing.length) return { ok: false, error: `tokens ausentes: ${missing.join(', ')}` };
   return { ok: true, theme: resolved };
 }

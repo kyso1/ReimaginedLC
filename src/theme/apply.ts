@@ -16,8 +16,9 @@ export function applyTheme(el: HTMLElement, theme: ResolvedTheme): void {
 
 /** URL da mídia de fundo de uma tela, ou null. `base` é a URL da pasta do plugin, terminada em `/`. */
 export function mediaUrl(theme: ResolvedTheme, screen: string, base: string): string | null {
-  const background = theme.backgrounds[screen] ?? theme.backgrounds.default;
+  const own = (key: string) => (Object.hasOwn(theme.backgrounds, key) ? theme.backgrounds[key] : undefined);
+  const background = own(screen) ?? own('default');
   if (!background || background.path === '') return null;
   if (background.path.startsWith('/')) return background.path;
-  return `${base}themes/${background.theme}/${background.path}`;
+  return `${base.endsWith('/') ? base : base + '/'}themes/${background.theme}/${background.path}`;
 }
