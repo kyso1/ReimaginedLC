@@ -41,6 +41,8 @@ Uma medição de 60 s por cenário, client ocioso na tela inicial, 12 núcleos l
 
 Orçamento: até 300 MB e até 15 pontos de CPU acima da linha "camada desligada". Dentro do orçamento nos dois cenários com a camada ligada, com folga de mais de 280 MB.
 
+As medições usaram o fundo em imagem do tema Vidro; um fundo em vídeo, que é o caso previsto no orçamento da spec, ainda não foi medido.
+
 Esconder a interface da Riot reduz o custo: com ela em `visibility: hidden`, a CPU ficou cerca de 25 pontos abaixo da camada desligada. Decisão: `rlc.hideRiot` fica `true` por padrão. Ressalva: é uma amostra por cenário, sem repetição; a diferença de 25 pontos é grande o bastante para não ser ruído, mas o valor exato não deve ser tomado como preciso.
 
 ## Tamanho
@@ -49,7 +51,7 @@ Esconder a interface da Riot reduz o custo: com ela em `visibility: hidden`, a C
 
 ## Pendências e ajustes
 
-1. **A camada cobre os controles de janela do client.** Com a camada ligada, os botões de minimizar, fechar e configurações e a área de arrastar a janela ficam escondidos. Hoje a saída é o atalho, Jogar ou "Client original". O shell precisa de controles de janela próprios e de uma região de arraste antes de a camada ficar ligada por padrão; entra no subprojeto 2.
+1. **A camada cobre os controles de janela do client.** Com a camada ligada, os botões de minimizar, fechar e configurações e a área de arrastar a janela ficam escondidos. Também ficam escondidas as notificações da Riot, como convites de grupo. Hoje a saída é o atalho, Jogar ou "Client original". O shell precisa de controles de janela próprios e de uma região de arraste antes de a camada ficar ligada por padrão; entra no subprojeto 2.
 2. **Notas do patch não abrem.** `window.open` é bloqueado. Não foi encontrada na API do client uma rota para abrir uma URL externa. Opções a avaliar: mostrar as notas num painel dentro da camada (como previsto na spec geral para a loja) ou localizar o mecanismo que a própria interface da Riot usa para links externos.
 3. **Tecla física e barra de comandos não verificadas.** Confirmar manualmente `Ctrl+Shift+F12` e as ações "ReimaginedLC: ..." em `Ctrl+K`.
 4. **Nomes das ações na barra de comandos saem em inglês** para clients em `pt_BR`, porque são registrados antes de o idioma ser conhecido.
