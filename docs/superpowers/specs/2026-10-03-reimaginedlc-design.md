@@ -80,7 +80,8 @@ Regras:
 - A configuração guarda `{ lol: "vidro", tft: "vidro-ludico" }`. O shell escolhe pelo tipo de fila do lobby atual; sem lobby, vale o último jogo usado.
 - Vídeo de fundo pausa quando a janela perde o foco e durante a partida.
 - `prefers-reduced-motion` força a intensidade reduzida.
-- As transições usam a View Transitions API se o Chromium embutido suportar; caso contrário, classes CSS. O dump confirma a versão.
+- As transições usam classes CSS e a Web Animations API. A View Transitions API não existe no Chromium 108 do client.
+- O build tem `chrome108` como alvo. Componentes não dependem de aninhamento de CSS, `color-mix()` nem `popover`.
 
 ### Fluxo de dados
 
@@ -88,7 +89,7 @@ Regras:
 2. Cada store faz um `GET` inicial e depois se atualiza pelos eventos. Não há polling.
 3. O shell lê a fase do gameflow e escolhe a tela: `None` vai para a tela inicial, `Lobby` para o lobby, `Matchmaking` e `ReadyCheck` para a fila, `ChampSelect` para a seleção, `InProgress` para uma tela mínima, `EndOfGame` para o pós-jogo.
 4. As telas leem signals e chamam ações. Uma ação é uma chamada HTTP à LCU. Não há atualização otimista: a interface muda apenas quando o evento do socket confirma.
-5. Configuração e tema ativo ficam no `DataStore` do Pengu. Temas instalados pelo usuário ficam em pasta no disco.
+5. Configuração e tema ativo ficam no `DataStore` do Pengu. O Pengu Loader 1.1.6 não expõe `PluginFS`, então o plugin não lê pastas do disco: temas embutidos são arquivos do plugin carregados por URL, e temas instalados pelo usuário são importados pela tela de configurações, com o manifesto no `DataStore` e a mídia em IndexedDB. O armazenamento de temas importados é confirmado na spec do subprojeto 5.
 
 ### Tratamento de erros
 
@@ -102,7 +103,7 @@ Regras:
 | Tema inválido | Tema Vidro aplicado, mensagem com o campo inválido |
 | Mídia falha ao carregar | Cor de fundo do tema |
 
-O atalho de emergência `Ctrl+Shift+F12` liga e desliga a camada a qualquer momento. Ele é registrado antes de qualquer outro código do plugin, para funcionar mesmo que o restante falhe ao iniciar.
+O atalho de emergência `Ctrl+Shift+F12` liga e desliga a camada a qualquer momento. Ele é registrado em `init(context)`, que o Pengu chama antes de `load`, e antes de qualquer outro código do plugin, para funcionar mesmo que o restante falhe ao iniciar.
 
 Até o fim do subprojeto 2, a camada inicia desligada e é ligada pelo atalho.
 
@@ -114,7 +115,7 @@ Até o fim do subprojeto 2, a camada inicia desligada e é ligada pelo atalho.
 
 ## Testes
 
-- **LCU simulada:** servidor local que reproduz HTTP e WebSocket a partir de gravações reais de sessão. Permite desenvolver e testar no navegador sem o client aberto.
+- **LCU simulada:** servidor local que reproduz HTTP e WebSocket a partir de gravações reais de sessão. Permite desenvolver e testar no navegador sem o client aberto. Assets `/fe/...` só são servidos dentro do client; a LCU simulada os busca na CDN do CommunityDragon.
 - **Unitários (Vitest):** stores, roteador por fase, validador de manifesto, resolução de tema por jogo.
 - **Telas:** um teste por tela contra a LCU simulada cobrindo o caminho principal.
 - **Fallback:** teste que força uma exceção na seleção de campeões e verifica que a camada se desliga.
@@ -161,3 +162,13 @@ Entregas, todas em `docs/dump/` do repositório, exceto onde indicado:
 Ferramenta: um plugin Pengu descartável de coleta e scripts Node. O plugin de coleta não faz parte do produto.
 
 Critério de conclusão: o relatório responde, para cada tela do client, se ela será refeita, embutida ou cortada, e confirma ou corrige as suposições de ambiente feitas neste documento (View Transitions, `backdrop-filter`, vídeo de fundo, API de atalhos do Pengu).
+
+## Alterações após o dump
+
+Mudanças feitas em 2026-10-04 a partir de `docs/dump/REPORT.md`:
+
+- Motor de temas: transições por classes CSS e Web Animations API; a View Transitions API não existe no Chromium 108. Alvo de build `chrome108`, sem aninhamento de CSS, `color-mix()` nem `popover`.
+- Fluxo de dados: sem `PluginFS` no Pengu 1.1.6; temas do usuário são importados e guardados no `DataStore` e em IndexedDB, em vez de lidos de uma pasta.
+- Tratamento de erros: o atalho de emergência é registrado em `init(context)`.
+- Testes: a LCU simulada busca os assets `/fe/...` na CDN do CommunityDragon.
+- Pendente: medição de base sem plugins. Até ela existir, não há orçamento de desempenho.

@@ -1,0 +1,19 @@
+{
+  "label": "plugins-atuais",
+  "takenAt": "2026-10-04T00:25:12.1344834-03:00",
+  "seconds": 60.2,
+  "logicalCores": 12,
+  "processes": {
+    "min": 8.0,
+    "max": 8.0
+  },
+  "workingSetMB": {
+    "avg": 1365.9,
+    "max": 1372.9
+  },
+  "privateMB": {
+    "avg": 2316.8,
+    "max": 2327.4
+  },
+  "cpuPercentOfOneCore": 161.93
+}
