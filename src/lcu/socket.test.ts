@@ -91,3 +91,39 @@ test('close encerra sem reconectar', () => {
   socket.close();
   expect(waits).toHaveLength(0);
 });
+
+test('close durante espera de reconexão não abre novo socket', () => {
+  const { socket, waits, last } = setup();
+  last().onopen!();
+  last().onclose!();
+  expect(waits).toHaveLength(1);
+  socket.close();
+  waits[0]!.fn();
+  expect(FakeWS.instances).toHaveLength(1);
+});
+
+test('ouvinte que lança não impede outros ouvintes', () => {
+  const { socket, last } = setup();
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+  const a = vi.fn(() => { throw new Error('erro'); });
+  const b = vi.fn();
+  socket.subscribe('/a', a);
+  socket.subscribe('/a', b);
+  last().onopen!();
+  expect(() => last().onmessage!(event('/a', { x: 1 }))).not.toThrow();
+  expect(a).toHaveBeenCalledWith('Update', { x: 1 });
+  expect(b).toHaveBeenCalledWith('Update', { x: 1 });
+  expect(error).toHaveBeenCalledOnce();
+  error.mockRestore();
+});
+
+test('reconecta na primeira abertura bem-sucedida após falhas', () => {
+  const { socket, waits, last } = setup();
+  const again = vi.fn();
+  socket.onReconnect(again);
+  last().onclose!();
+  expect(waits).toHaveLength(1);
+  waits[0]!.fn();
+  last().onopen!();
+  expect(again).toHaveBeenCalledTimes(1);
+});

@@ -13,21 +13,28 @@ export function createStore<T>(
   get: (uri: string) => Promise<Response> = (u) => fetch(u),
 ): Signal<StoreState<T>> {
   const state = signal<StoreState<T>>({ status: 'loading', data: null });
+  let updateCounter = 0;
 
-  // ponytail: um evento que chegue antes de o GET terminar é sobrescrito pela resposta do GET.
-  // A janela é de milissegundos e o próximo evento corrige; se virar problema, numerar as atualizações.
   const refresh = async () => {
+    const counter = ++updateCounter;
     try {
       const response = await get(uri);
+      if (counter !== updateCounter) return;
       if (response.status === 404) state.value = { status: 'ready', data: null };
       else if (!response.ok) state.value = { status: 'unavailable', data: null };
-      else state.value = { status: 'ready', data: (await response.json()) as T };
+      else {
+        const text = await response.text();
+        const data = text ? (JSON.parse(text) as T) : null;
+        state.value = { status: 'ready', data };
+      }
     } catch {
+      if (counter !== updateCounter) return;
       state.value = { status: 'unavailable', data: null };
     }
   };
 
   socket.subscribe(uri, (eventType, data) => {
+    ++updateCounter;
     state.value = { status: 'ready', data: eventType === 'Delete' ? null : (data as T) };
   });
   socket.onReconnect(() => void refresh());

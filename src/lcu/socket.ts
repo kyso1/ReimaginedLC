@@ -22,12 +22,14 @@ export function connect(
   let closed = false;
 
   const open = () => {
+    if (closed) return;
     const socket = new WS(url, 'wamp');
     ws = socket;
     socket.onopen = () => {
       socket.send(JSON.stringify([5, 'OnJsonApiEvent']));
+      const hadFailures = attempt > 0;
       attempt = 0;
-      if (everOpened) reconnectListeners.forEach((fn) => fn());
+      if (everOpened || hadFailures) reconnectListeners.forEach((fn) => fn());
       everOpened = true;
     };
     socket.onmessage = (message) => {
@@ -40,7 +42,13 @@ export function connect(
       if (!Array.isArray(parsed) || parsed[0] !== 8) return;
       const payload = parsed[2] as { uri?: unknown; eventType?: unknown; data?: unknown } | undefined;
       if (!payload || typeof payload.uri !== 'string') return;
-      listeners.get(payload.uri)?.forEach((fn) => fn(String(payload.eventType), payload.data));
+      listeners.get(payload.uri)?.forEach((fn) => {
+        try {
+          fn(String(payload.eventType), payload.data);
+        } catch (error) {
+          console.error('[rlc] ouvinte da LCU falhou', error);
+        }
+      });
     };
     socket.onclose = () => {
       if (closed) return;

@@ -60,3 +60,34 @@ test('refaz o GET quando o socket reconecta', async () => {
   expect(get).toHaveBeenCalledTimes(2);
   expect(store.value).toEqual({ status: 'ready', data: 'ChampSelect' });
 });
+
+test('evento que chegar antes do GET não é sobrescrito pela resposta', async () => {
+  const { socket, emit } = fakeSocket();
+  let resolve: (value: Response) => void;
+  const get = new Promise<Response>((r) => { resolve = r; });
+  const store = createStore<string>('/phase', socket, async () => get);
+  expect(store.value).toEqual({ status: 'loading', data: null });
+  emit('/phase', 'Update', 'ChampSelect');
+  expect(store.value).toEqual({ status: 'ready', data: 'ChampSelect' });
+  resolve!(res(200, 'None'));
+  await settle();
+  expect(store.value).toEqual({ status: 'ready', data: 'ChampSelect' });
+});
+
+test('GET que falha após evento não sobrescreve o data do evento', async () => {
+  const { socket, emit } = fakeSocket();
+  let resolve: (value: Response) => void;
+  const get = new Promise<Response>((r) => { resolve = r; });
+  const store = createStore<string>('/phase', socket, async () => get);
+  emit('/phase', 'Update', 'ChampSelect');
+  resolve!(res(500));
+  await settle();
+  expect(store.value).toEqual({ status: 'ready', data: 'ChampSelect' });
+});
+
+test('204 No Content é estado válido sem dados', async () => {
+  const { socket } = fakeSocket();
+  const store = createStore<string>('/phase', socket, async () => new Response(null, { status: 204 }));
+  await settle();
+  expect(store.value).toEqual({ status: 'ready', data: null });
+});
