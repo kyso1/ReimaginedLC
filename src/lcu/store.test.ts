@@ -91,3 +91,29 @@ test('204 No Content é estado válido sem dados', async () => {
   await settle();
   expect(store.value).toEqual({ status: 'ready', data: null });
 });
+
+test('evento durante leitura do corpo não é sobrescrito', async () => {
+  const { socket, emit } = fakeSocket();
+  let resolveBody: (value: string) => void;
+  const bodyPromise = new Promise<string>((r) => { resolveBody = r; });
+  const get = async () => ({ ok: true, status: 200, text: () => bodyPromise } as unknown as Response);
+  const store = createStore<string>('/phase', socket, get);
+  await settle();
+  emit('/phase', 'Update', 'ChampSelect');
+  resolveBody!(JSON.stringify('None'));
+  await settle();
+  expect(store.value).toEqual({ status: 'ready', data: 'ChampSelect' });
+});
+
+test('erro ao ler corpo após evento mantém o data do evento', async () => {
+  const { socket, emit } = fakeSocket();
+  let rejectBody: (error: Error) => void;
+  const bodyPromise = new Promise<string>((_, r) => { rejectBody = r; });
+  const get = async () => ({ ok: true, status: 200, text: () => bodyPromise } as unknown as Response);
+  const store = createStore<string>('/phase', socket, get);
+  await settle();
+  emit('/phase', 'Update', 'ChampSelect');
+  rejectBody!(new Error('erro ao ler'));
+  await settle();
+  expect(store.value).toEqual({ status: 'ready', data: 'ChampSelect' });
+});

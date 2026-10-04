@@ -13,24 +13,25 @@ export function createStore<T>(
   get: (uri: string) => Promise<Response> = (u) => fetch(u),
 ): Signal<StoreState<T>> {
   const state = signal<StoreState<T>>({ status: 'loading', data: null });
+  // Discard GET responses and events older than the latest event; counter incremented by all updates.
   let updateCounter = 0;
 
   const refresh = async () => {
     const counter = ++updateCounter;
+    let outcome: StoreState<T>;
     try {
       const response = await get(uri);
-      if (counter !== updateCounter) return;
-      if (response.status === 404) state.value = { status: 'ready', data: null };
-      else if (!response.ok) state.value = { status: 'unavailable', data: null };
+      if (response.status === 404) outcome = { status: 'ready', data: null };
+      else if (!response.ok) outcome = { status: 'unavailable', data: null };
       else {
         const text = await response.text();
         const data = text ? (JSON.parse(text) as T) : null;
-        state.value = { status: 'ready', data };
+        outcome = { status: 'ready', data };
       }
     } catch {
-      if (counter !== updateCounter) return;
-      state.value = { status: 'unavailable', data: null };
+      outcome = { status: 'unavailable', data: null };
     }
+    if (counter === updateCounter) state.value = outcome;
   };
 
   socket.subscribe(uri, (eventType, data) => {
