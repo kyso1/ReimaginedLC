@@ -117,3 +117,12 @@ test('erro ao ler corpo após evento mantém o data do evento', async () => {
   await settle();
   expect(store.value).toEqual({ status: 'ready', data: 'ChampSelect' });
 });
+
+test('refresh exposto refaz o GET e atualiza o estado', async () => {
+  const { socket } = fakeSocket();
+  const get = vi.fn().mockResolvedValueOnce(res(200, [1])).mockResolvedValueOnce(res(200, [1, 2]));
+  const store = createStore<number[]>('/games', socket, get);
+  await settle();
+  await store.refresh();
+  expect(store.value).toEqual({ status: 'ready', data: [1, 2] });
+});

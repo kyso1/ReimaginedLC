@@ -11,7 +11,7 @@ export function createStore<T>(
   uri: string,
   socket: LcuSocket,
   get: (uri: string) => Promise<Response> = (u) => fetch(u),
-): Signal<StoreState<T>> {
+): Signal<StoreState<T>> & { refresh: () => Promise<void> } {
   const state = signal<StoreState<T>>({ status: 'loading', data: null });
   // Discard GET responses and events older than the latest event; counter incremented by all updates.
   let updateCounter = 0;
@@ -40,5 +40,5 @@ export function createStore<T>(
   });
   socket.onReconnect(() => void refresh());
   void refresh();
-  return state;
+  return Object.assign(state, { refresh });
 }

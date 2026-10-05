@@ -5,6 +5,7 @@ import { setLocale } from '../i18n';
 import type { Lcu, StoreState } from '../lcu';
 import type { ResolvedTheme } from '../theme/resolve';
 import type { ThemeEngine } from '../theme/engine';
+import { fakeLcu, invitation, leader as leaderFixture, lobby as lobbyFixture, queue, readyCheck } from '../test/fixtures';
 import { App, RIOT_ROOT_ID } from './App';
 import { enabled, hideRiot, syncLayer } from './layer';
 
@@ -39,7 +40,7 @@ beforeEach(() => {
   riot = document.body.appendChild(Object.assign(document.createElement('div'), { id: RIOT_ROOT_ID }));
   root = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'rlc-root' }));
   phase = signal(ready('None')) as Lcu['gameflowPhase'];
-  lcu = { gameflowPhase: phase, currentSummoner: signal(ready(null)), build: signal(ready({ version: '16.19.823.0722' })), regionLocale: signal(ready({ locale: 'pt_BR' })) };
+  lcu = fakeLcu({ gameflowPhase: phase });
   const active = signal(vidro);
   themes = { active, available: [vidro, editorial].map(({ name, label }) => ({ name, label })), set: (name) => void (active.value = name === 'editorial' ? editorial : vidro) };
 });
@@ -117,8 +118,8 @@ test('trocar de tema muda variáveis, transição e fundo sem remontar', async (
   expect(root.querySelector('img.rlc-bg')).toBeNull();
 });
 
-test('Jogar e "Client original" desligam a camada', async () => {
-  for (const label of ['Jogar', 'Client original']) {
+test('"Client original" desliga a camada', async () => {
+  for (const label of ['Client original']) {
     enabled.value = true;
     mount();
     await flush();
@@ -235,4 +236,131 @@ test('a raiz da Riot é trocada enquanto escondida: o novo elemento guarda o pr�
   enabled.value = false;
   await short();
   expect(riot.style.visibility).toBe('collapse');
+});
+
+test('a faixa da janela aparece; fechar pede confirmação antes de encerrar o client', async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+  vi.stubGlobal('fetch', fetchMock);
+  enabled.value = true;
+  mount();
+  await flush();
+  root.querySelector<HTMLButtonElement>('button[aria-label="Fechar"]')!.click();
+  await flush();
+  expect(fetchMock).not.toHaveBeenCalled();
+  const dialog = root.querySelector('[role="dialog"]')!;
+  expect(dialog.textContent).toContain('Fechar o League of Legends?');
+  dialog.querySelector<HTMLButtonElement>('button[data-variant="primary"]')!.click();
+  await flush();
+  expect(fetchMock).toHaveBeenCalledWith('/process-control/v1/process/quit', { method: 'POST' });
+  vi.unstubAllGlobals();
+});
+
+const LobbyStub = () => <div class="lobby-stub">lobby</div>;
+
+test('em ReadyCheck mostra o aceite sobre a tela; com suppressUx não mostra', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
+  enabled.value = true;
+  phase.value = ready('ReadyCheck');
+  lcu.readyCheck.value = ready(readyCheck());
+  mount({ screens: { home: () => <div />, lobby: LobbyStub } });
+  await flush();
+  expect(root.querySelector('.lobby-stub')).not.toBeNull();
+  expect(root.querySelector('.rlc-readycheck')).not.toBeNull();
+  lcu.readyCheck.value = ready(readyCheck({ suppressUx: true }));
+  await flush();
+  expect(root.querySelector('.rlc-readycheck')).toBeNull();
+  vi.unstubAllGlobals();
+});
+
+test('aceite com a janela sem foco traz a janela para frente uma vez', async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+  vi.stubGlobal('fetch', fetchMock);
+  enabled.value = true;
+  focused.value = false;
+  phase.value = ready('ReadyCheck');
+  lcu.readyCheck.value = ready(readyCheck());
+  mount({ screens: { home: () => <div />, lobby: LobbyStub } });
+  await flush();
+  lcu.readyCheck.value = ready(readyCheck({ timer: 3 }));
+  await flush();
+  const calls = fetchMock.mock.calls.map((c) => c[0]);
+  expect(calls.filter((u) => u === '/riotclient/ux-show')).toHaveLength(1);
+  expect(calls.filter((u) => u === '/riotclient/ux-flash')).toHaveLength(1);
+  vi.unstubAllGlobals();
+});
+
+test('exceção na sobreposição de aceite desliga a camada e devolve a Riot', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  enabled.value = true;
+  phase.value = ready('ReadyCheck');
+  lcu.readyCheck.value = ready(readyCheck());
+  const Broken = (): never => {
+    throw new Error('quebrou');
+  };
+  mount({ screens: { home: () => <div />, lobby: LobbyStub }, readyCheckOverlay: Broken });
+  await flush();
+  expect(enabled.value).toBe(false);
+  expect(riot.style.visibility).toBe('');
+  vi.mocked(console.error).mockRestore();
+});
+
+test('convite pendente aparece na tela inicial', async () => {
+  enabled.value = true;
+  lcu.invitations.value = ready([invitation()]);
+  mount();
+  await flush();
+  expect(root.querySelector('.rlc-invite')!.textContent).toContain('Zeca');
+});
+
+test('Jogar abre a tela de modos e Voltar fecha', async () => {
+  enabled.value = true;
+  lcu.queues.value = ready([queue({ id: 400, name: 'Normal (escolha)' })]);
+  mount();
+  await flush();
+  [...root.querySelectorAll('button')].find((b) => b.textContent === 'Jogar')!.click();
+  await flush();
+  expect(root.querySelector('.rlc-modes')).not.toBeNull();
+  [...root.querySelectorAll('button')].find((b) => b.textContent === 'Voltar')!.click();
+  await flush();
+  expect(root.querySelector('.rlc-modes')).toBeNull();
+});
+
+test('na fase Lobby mostra o Palco e o trilho ganha o item Lobby ativo', async () => {
+  enabled.value = true;
+  phase.value = ready('Lobby');
+  lcu.lobby.value = ready(lobbyFixture([leaderFixture({ summonerName: 'Fulano' })]));
+  mount();
+  await flush();
+  expect(root.querySelector('.rlc-lobby')!.textContent).toContain('Fulano');
+  const lobbyItem = root.querySelector('.rlc-rail-item[aria-label="Lobby"]')!;
+  expect(lobbyItem.getAttribute('aria-current')).toBe('page');
+  expect(riot.style.visibility).toBe('hidden');
+});
+
+test('Personalizada na tela de modos abre a lista de salas', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('[]', { status: 200 })));
+  enabled.value = true;
+  mount();
+  await flush();
+  [...root.querySelectorAll('button')].find((b) => b.textContent === 'Jogar')!.click();
+  await flush();
+  [...root.querySelectorAll('button')].find((b) => b.textContent === 'Personalizada')!.click();
+  await flush();
+  expect(root.querySelector('.rlc-modes:not(.rlc-custom)')).toBeNull();
+  expect(root.querySelector('.rlc-custom')!.textContent).toContain('Criar sala');
+  vi.unstubAllGlobals();
+});
+
+test('tela de modos aberta na tela inicial fecha quando a rota vai para o lobby (convite aceito)', async () => {
+  enabled.value = true;
+  mount();
+  await flush();
+  [...root.querySelectorAll('button')].find((b) => b.textContent === 'Jogar')!.click();
+  await flush();
+  expect(root.querySelector('.rlc-modes')).not.toBeNull();
+  lcu.lobby.value = ready(lobbyFixture([leaderFixture()]));
+  phase.value = ready('Lobby');
+  await flush();
+  expect(root.querySelector('.rlc-lobby')).not.toBeNull();
+  expect(root.querySelector('.rlc-modes')).toBeNull();
 });
