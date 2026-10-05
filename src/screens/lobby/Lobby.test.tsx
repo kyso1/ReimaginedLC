@@ -215,3 +215,18 @@ test('em fila com a fase ainda em Lobby (como a LCU faz na fila normal), a barra
   expect(root.querySelector('.rlc-bar-clock')!.textContent).toBe('0:05');
   expect(btn('Encontrar partida')).toBeUndefined();
 });
+
+test('TFT: a coluna mostra a Pequena Lenda equipada no lugar da splash, e Personalizar abre a gaveta', async () => {
+  const tft = leader({ summonerName: 'Fulano', memberData: { 'TFT.Tactician': 'abc' } } as never);
+  const lcu = withSignals({ lobby: ready(lobby([tft], tft, { gameMode: 'TFT', queueId: 1100 })) });
+  lcu.profile = async () => ({ backgroundSkinId: 1001 });
+  lcu.game = { ...lcu.game, splash: async () => '/s.jpg', companions: async () => new Map([['abc', { itemId: 91003, name: 'Chibi Orianna', icon: '/o.png' }]]) };
+  mount(lcu);
+  await settle();
+  await settle();
+  const col = root.querySelector<HTMLElement>('.rlc-col')!;
+  expect(col.querySelector<HTMLImageElement>('.rlc-col-legend img')!.getAttribute('src')).toBe('/o.png');
+  expect(col.querySelector('.rlc-col-splash')).toBeNull();
+  act(() => btn('Personalizar')!.click());
+  expect(root.querySelector('.rlc-tft-drawer')).not.toBeNull();
+});

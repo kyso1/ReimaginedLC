@@ -32,10 +32,13 @@ interface ColumnProps {
   menu?: ComponentChildren;
   /** Conteúdo da vaga vazia (convidar, trocar de time, bot). */
   empty?: ComponentChildren;
+  /** TFT: Pequenas Lendas por contentId; a coluna mostra a do membro no lugar da splash. */
+  companions?: Lcu['game']['companions'];
 }
 
-export function Column({ member, profile, name, splash: splashOf, isLocal = false, showPositions = false, label, onSelf, menu, empty }: ColumnProps) {
-  const splash = useDecoded(useSplash(member, profile, splashOf));
+export function Column({ member, profile, name, splash: splashOf, isLocal = false, showPositions = false, label, onSelf, menu, empty, companions }: ColumnProps) {
+  const legend = useLegend(companions ? member : null, companions);
+  const splash = useDecoded(useSplash(companions ? null : member, profile, splashOf));
   const resolved = useName(member, name);
   if (!member) {
     return (
@@ -57,6 +60,11 @@ export function Column({ member, profile, name, splash: splashOf, isLocal = fals
   return (
     <div class="rlc-col" data-local={isLocal ? 'true' : undefined}>
       {splash ? <div class="rlc-col-splash" style={{ backgroundImage: `url("${splash}")` }} /> : null}
+      {legend ? (
+        <div class="rlc-col-legend" title={legend.name}>
+          <img src={legend.icon} alt={legend.name} />
+        </div>
+      ) : null}
       {onSelf ? (
         <button type="button" class="rlc-col-main" aria-label={t('positions')} onClick={onSelf}>
           {body}
@@ -98,4 +106,21 @@ function useSplash(member: Participant | null, profile: Lcu['profile'], splashOf
     return () => void (live = false);
   }, [puuid, profile, splashOf]);
   return url;
+}
+
+/** Pequena Lenda equipada do membro, pelo contentId que o lobby de TFT manda. */
+function useLegend(member: Participant | null, companions: Lcu['game']['companions'] | undefined) {
+  const [legend, setLegend] = useState<{ name: string; icon: string } | null>(null);
+  const contentId = (member as { memberData?: Record<string, string> } | null)?.memberData?.['TFT.Tactician'] ?? null;
+  useEffect(() => {
+    setLegend(null);
+    if (!contentId || !companions) return;
+    let live = true;
+    void companions().then((m) => {
+      const c = m.get(contentId);
+      if (live && c?.icon) setLegend(c);
+    });
+    return () => void (live = false);
+  }, [contentId, companions]);
+  return legend;
 }

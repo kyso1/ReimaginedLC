@@ -514,3 +514,17 @@
 #rlc-root .rlc-ed-preview { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: var(--rlc-color-bg); color: var(--rlc-color-text); font-family: var(--rlc-font-body, inherit); }
 #rlc-root .rlc-ed-sample { display: flex; flex-direction: column; gap: 16px; align-items: flex-start; padding: 32px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-lg, 16px); background: var(--rlc-color-surface); }
 #rlc-root .rlc-ed-sample h1 { margin: 0; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 40px; }
+
+#rlc-root .rlc-col-legend { position: absolute; inset: 0 0 30% 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+#rlc-root .rlc-col-legend img { width: 72%; max-width: 220px; aspect-ratio: 1; object-fit: contain; filter: drop-shadow(0 12px 24px var(--rlc-color-scrim, rgba(0, 0, 0, 0.5))); animation: rlc-fade var(--rlc-motion-duration) var(--rlc-motion-easing) both; }
+#rlc-root .rlc-tft-drawer { position: absolute; left: 24px; right: 24px; bottom: 96px; z-index: 6; display: flex; flex-direction: column; gap: 12px; height: 52%; padding: 14px 18px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-lg, 16px); background: var(--rlc-color-surface); backdrop-filter: blur(var(--rlc-blur-surface)); animation: rlc-slide var(--rlc-motion-duration) var(--rlc-motion-easing) both; }
+#rlc-root .rlc-tft-head { display: flex; gap: 12px; align-items: center; }
+#rlc-root .rlc-tft-head .rlc-input { width: 220px; margin-left: auto; }
+#rlc-root .rlc-tft-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+#rlc-root .rlc-tft-section h4 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-tft-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
+#rlc-root .rlc-tft-item { flex: none; width: 96px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; border: 2px solid transparent; border-radius: var(--rlc-radius-md); background: var(--rlc-color-bg); color: var(--rlc-color-text); font: inherit; font-size: 11px; cursor: pointer; }
+#rlc-root .rlc-tft-item img { width: 80px; height: 80px; object-fit: contain; }
+#rlc-root .rlc-tft-item span { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+#rlc-root .rlc-tft-item[aria-pressed='true'] { border-color: var(--rlc-color-accent); }
+#rlc-root .rlc-tft-item:hover { border-color: var(--rlc-color-border); }
