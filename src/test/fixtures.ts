@@ -102,6 +102,7 @@ export function fakeLcu(over: Partial<Lcu> = {}): Lcu {
     wallet: Object.assign(signal(ready<Record<string, number>>(null)), { refresh: async () => {} }),
     friendRequests: signal(ready([])),
     conversations: signal(ready([])),
+    loot: signal(ready([])),
     events: { onPrefix: () => () => {} },
     orangeEssence: Object.assign(signal(ready<Lcu['orangeEssence']['value']['data'] & object>(null)), { refresh: async () => {} }),
     ...over,

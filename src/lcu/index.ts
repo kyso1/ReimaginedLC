@@ -71,6 +71,7 @@ export interface Lcu {
   orangeEssence: Signal<StoreState<LolLootPlayerLoot>> & { refresh: () => Promise<void> };
   friendRequests: Signal<StoreState<LolChatFriendRequestResource[]>>;
   conversations: Signal<StoreState<LolChatConversationResource[]>>;
+  loot: Signal<StoreState<LolLootPlayerLoot[]>>;
   /** Eventos por prefixo de URI (mensagens de chat têm o id da mensagem na URI). */
   events: { onPrefix: (prefix: string, fn: (uri: string, eventType: string, data: unknown) => void) => () => void };
 }
@@ -145,6 +146,7 @@ export function createLcu(doc: Document = document): Lcu {
     orangeEssence: createStore('/lol-loot/v1/player-loot/CURRENCY_cosmetic', socket),
     friendRequests: createStore('/lol-chat/v2/friend-requests', socket),
     conversations: createStore('/lol-chat/v1/conversations', socket),
+    loot: createStore('/lol-loot/v1/player-loot', socket),
     events: { onPrefix: (prefix, fn) => socket.subscribePrefix(prefix, fn) },
   };
 }
