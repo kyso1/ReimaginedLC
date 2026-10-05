@@ -117,6 +117,26 @@ const TEXTS = {
     swapPositionIncoming: 'quer trocar de posição',
     swapWaiting: 'Aguardando',
     reroll: 'Rolar',
+    gameStarting: 'Abrindo a partida',
+    gameInProgress: 'Partida em andamento',
+    gameReconnect: 'Você saiu da partida',
+    gameWaitingStats: 'Carregando resultados',
+    reconnect: 'Reconectar',
+    honorTitle: 'Honrar um aliado',
+    honorWaiting: 'Aguardando',
+    skip: 'Pular',
+    victory: 'Vitória',
+    defeat: 'Derrota',
+    kda: 'KDA',
+    farm: 'Farm',
+    damage: 'Dano',
+    gold: 'Ouro',
+    fullScoreboard: 'Ver placar completo',
+    playAgain: 'Jogar de novo',
+    railChampSelect: 'Seleção',
+    railGame: 'Partida',
+    railHonor: 'Honra',
+    railPostGame: 'Resultado',
   },
   'en-US': {
     play: 'Play',
@@ -236,6 +256,26 @@ const TEXTS = {
     swapPositionIncoming: 'wants to swap positions',
     swapWaiting: 'Waiting for',
     reroll: 'Reroll',
+    gameStarting: 'Starting the game',
+    gameInProgress: 'Game in progress',
+    gameReconnect: 'You left the game',
+    gameWaitingStats: 'Loading results',
+    reconnect: 'Reconnect',
+    honorTitle: 'Honor a teammate',
+    honorWaiting: 'Waiting',
+    skip: 'Skip',
+    victory: 'Victory',
+    defeat: 'Defeat',
+    kda: 'KDA',
+    farm: 'CS',
+    damage: 'Damage',
+    gold: 'Gold',
+    fullScoreboard: 'Full scoreboard',
+    playAgain: 'Play again',
+    railChampSelect: 'Champion select',
+    railGame: 'Game',
+    railHonor: 'Honor',
+    railPostGame: 'Results',
   },
 } as const;
 
@@ -249,3 +289,6 @@ export function setLocale(locale: string): void {
 }
 
 export const t = (key: TextKey): string => TEXTS[current][key];
+
+/** Locale BCP 47 dos textos atuais, para formatar números. */
+export const locale = (): string => current;

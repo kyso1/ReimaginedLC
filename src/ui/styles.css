@@ -264,3 +264,24 @@
 #rlc-root .rlc-cs-swaps { position: absolute; top: 132px; right: 24px; z-index: 3; display: flex; flex-direction: column; gap: 8px; width: 280px; }
 #rlc-root .rlc-cs-bench { position: absolute; left: 24px; right: 24px; bottom: calc(38% + 28px); z-index: 2; display: flex; gap: 6px; align-items: center; }
 #rlc-root .rlc-cs-bench .rlc-cs-champ { width: 48px; }
+
+#rlc-root .rlc-ingame, #rlc-root .rlc-honor { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; }
+#rlc-root .rlc-ingame h2, #rlc-root .rlc-honor h2 { margin: 0; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 32px; }
+#rlc-root .rlc-honor-cards { display: flex; gap: 16px; }
+#rlc-root .rlc-honor-card { width: 160px; height: 260px; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; padding: 12px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background-color: var(--rlc-color-surface); background-size: cover; background-position: center top; color: var(--rlc-color-text); font: inherit; text-shadow: 0 1px 4px var(--rlc-color-textShadow, #000); cursor: pointer; transition: transform var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-honor-card:hover { transform: translateY(-4px); border-color: var(--rlc-color-accent); }
+#rlc-root .rlc-postgame { position: absolute; inset: 0; overflow: hidden; }
+#rlc-root .rlc-pg-bg { position: absolute; inset: 0; background-size: cover; background-position: center 20%; }
+#rlc-root .rlc-pg-bg::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, var(--rlc-color-scrim, rgba(4, 6, 12, 0.85)) 0%, transparent 70%); }
+#rlc-root .rlc-pg-main { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; padding: 12vh 0 0 56px; }
+#rlc-root .rlc-pg-result { margin: 0; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 72px; letter-spacing: 0.06em; text-transform: uppercase; }
+#rlc-root .rlc-pg-stats { display: flex; gap: 28px; }
+#rlc-root .rlc-pg-stats div { display: flex; flex-direction: column; font-size: 12px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-pg-stats b { font-size: 24px; color: var(--rlc-color-text); font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-pg-bar { width: 320px; height: 6px; border-radius: 3px; background: var(--rlc-color-surface); overflow: hidden; }
+#rlc-root .rlc-pg-bar > b { display: block; height: 100%; background: var(--rlc-color-highlight, #ffd36b); }
+#rlc-root .rlc-pg-board { position: absolute; right: 24px; top: 24px; bottom: 100px; z-index: 2; width: 46%; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 12px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-bar, rgba(10, 12, 20, 0.62)); backdrop-filter: blur(var(--rlc-blur-surface)); }
+#rlc-root .rlc-pg-board table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-pg-board td { padding: 6px 8px; border-bottom: 1px solid var(--rlc-color-border); }
+#rlc-root .rlc-pg-board tr[data-me='true'] td { background: var(--rlc-color-surface); font-weight: 700; }
+#rlc-root .rlc-pg-actions { position: absolute; left: 56px; right: 24px; bottom: 32px; z-index: 2; display: flex; justify-content: space-between; align-items: center; }

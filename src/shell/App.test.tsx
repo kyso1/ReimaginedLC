@@ -416,3 +416,15 @@ test('exceção na seleção desliga a camada e devolve a seleção da Riot', as
   expect(riot.style.visibility).toBe('');
   vi.mocked(console.error).mockRestore();
 });
+
+test('partida, honra e pós-jogo têm telas nossas e o trilho marca a tela atual', async () => {
+  enabled.value = true;
+  mount();
+  for (const [p, cls, label] of [['InProgress', '.rlc-ingame', 'Partida'], ['PreEndOfGame', '.rlc-honor', 'Honra'], ['EndOfGame', '.rlc-postgame', 'Resultado'], ['ChampSelect', '.rlc-champselect', 'Seleção']] as const) {
+    phase.value = ready(p);
+    await flush();
+    expect(root.querySelector(cls), p).not.toBeNull();
+    expect(root.querySelector(`.rlc-rail-item[aria-label="${label}"]`)!.getAttribute('aria-current')).toBe('page');
+    expect(riot.style.visibility).toBe('hidden');
+  }
+});
