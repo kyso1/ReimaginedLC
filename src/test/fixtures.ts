@@ -99,3 +99,26 @@ export function fakeLcu(over: Partial<Lcu> = {}): Lcu {
     ...over,
   };
 }
+
+// Seleção de campeões, no formato da gravação `docs/dump/sessions/selecao-personalizada.jsonl`.
+type Session = import('../lcu/types').TeamBuilderDirect_ChampSelectSession;
+type Cell = import('../lcu/types').TeamBuilderDirect_ChampSelectPlayerSelection;
+export interface ActionFixture { id: number; actorCellId: number; championId: number; completed: boolean; isInProgress: boolean; isAllyAction: boolean; pickTurn: number; duration: number; type: string }
+
+export const action = (over: Partial<ActionFixture> = {}): ActionFixture =>
+  ({ id: ++n, actorCellId: 0, championId: 0, completed: false, isInProgress: false, isAllyAction: true, pickTurn: 0, duration: 0, type: 'pick', ...over });
+
+export const cell = (over: Partial<Cell> = {}): Cell =>
+  ({
+    cellId: 0, puuid: uuid(), gameName: 'Fulano', tagLine: 'TAG', team: 1, assignedPosition: '', championId: 0, championPickIntent: 0,
+    selectedSkinId: 0, spell1Id: 4, spell2Id: 14, summonerId: ++n, nameVisibilityType: 'VISIBLE', ...over,
+  }) as Cell;
+
+export const session = (over: Partial<Session> & { actions?: ActionFixture[][] } = {}): Session =>
+  ({
+    id: uuid(), gameId: 1, queueId: 3130, localPlayerCellId: 0, isCustomGame: true,
+    timer: { phase: 'BAN_PICK', adjustedTimeLeftInPhase: 30000, totalTimeInPhase: 30000, internalNowInEpochMs: 0, isInfinite: false },
+    myTeam: [cell()], theirTeam: [], actions: [], bans: { myTeamBans: [], theirTeamBans: [], numBans: 0 },
+    trades: [], pickOrderSwaps: [], positionSwaps: [], benchEnabled: false, benchChampions: [], allowRerolling: false, rerollsRemaining: 0,
+    allowSkinSelection: true, hasSimultaneousBans: false, hasSimultaneousPicks: false, ...over,
+  }) as unknown as Session;
