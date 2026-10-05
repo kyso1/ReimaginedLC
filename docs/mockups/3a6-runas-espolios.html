@@ -1,0 +1,72 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;font:8px/1.3 system-ui,sans-serif;color:#fff;background:#06080f}
+  .s *{box-sizing:border-box}
+  .rail{position:absolute;top:0;left:0;bottom:0;width:5%;background:rgba(6,8,15,.45);z-index:3}
+  .rcol{position:absolute;top:0;right:0;bottom:0;width:5%;background:rgba(6,8,15,.5);z-index:3}
+  .win{position:absolute;top:0;right:0;height:14px;display:flex;z-index:9}.win b{width:18px;text-align:center;font-weight:400;font-size:8px;opacity:.8}
+  .tabs{position:absolute;left:9%;top:6%;display:flex;gap:11px;font-size:6.5px;opacity:.8;z-index:2;letter-spacing:.06em;text-transform:uppercase}
+  .tabs span.on{opacity:1;font-weight:700;border-bottom:1.5px solid #fff;padding-bottom:2px}
+  .glow{position:absolute;inset:0}
+  .pages{position:absolute;left:9%;top:16%;bottom:6%;width:15%;z-index:2;display:flex;flex-direction:column;gap:4px}
+  .pg{padding:4px 6px;border-radius:5px;background:rgba(255,255,255,.06);font-size:6.5px;display:flex;gap:4px;align-items:center}
+  .pg.on{background:rgba(255,200,90,.18);outline:1px solid rgba(255,200,90,.6)}
+  .pg i{width:9px;height:9px;border-radius:50%;background:#d9a14a}
+  .tree{position:absolute;z-index:2;display:flex;flex-direction:column;gap:9px;align-items:center}
+  .tree .k{font-size:6px;letter-spacing:.14em;text-transform:uppercase;opacity:.75}
+  .r{display:flex;gap:10px}
+  .r i{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25)}
+  .r i.on{background:radial-gradient(circle,#ffe2a0,#c8902a);border-color:#ffe2a0;box-shadow:0 0 8px #ffc860}
+  .r.key i{width:24px;height:24px}
+  .r.blue i.on{background:radial-gradient(circle,#b0d8ff,#3a7ac8);border-color:#b0d8ff;box-shadow:0 0 8px #6ab0ff}
+  .r.sh i{width:9px;height:9px}
+  .info{position:absolute;right:8%;top:20%;width:22%;z-index:2}
+  .info b{display:block;font-size:13px;font-weight:800}
+  .info small{display:block;font-size:6.5px;opacity:.75;margin-top:3px;line-height:1.5}
+  .btn{position:absolute;z-index:2;padding:3px 10px;border-radius:99px;font-size:7px}
+  .btn.p{background:#fff;color:#111;font-weight:700}
+  .btn.g{border:1px solid rgba(255,255,255,.4)}
+  .hero{position:absolute;left:9%;top:18%;z-index:2}
+  .hero b{display:block;font-size:22px;font-weight:900;letter-spacing:.03em;text-transform:uppercase;line-height:1}
+  .hero small{display:block;font-size:7px;opacity:.75;margin-top:4px}
+  .chest{position:absolute;left:52%;top:12%;width:90px;height:70px;border-radius:12px;background:linear-gradient(160deg,#c89a4a,#6a4a1a);box-shadow:0 0 40px rgba(255,190,90,.45);z-index:1}
+  .chips{position:absolute;left:9%;display:flex;gap:5px;z-index:2;font-size:6.5px}
+  .chips span{padding:2px 8px;border-radius:99px;border:1px solid rgba(255,255,255,.35);background:rgba(6,8,15,.4)}
+  .chips span.on{background:#fff;color:#111}
+  .strip{position:absolute;left:9%;right:5%;display:flex;gap:6px;z-index:2}
+  .t{flex:none;width:40px;height:56px;border-radius:6px;background:linear-gradient(160deg,rgba(255,255,255,.3),rgba(255,255,255,.08));position:relative;box-shadow:0 6px 14px rgba(0,0,0,.5)}
+  .t.on{transform:translateY(-5px) scale(1.06);outline:2px solid #fff}
+  .t span{position:absolute;left:3px;bottom:2px;font-size:5px}
+  .t em{position:absolute;right:3px;top:2px;font-style:normal;font-size:5.5px;background:rgba(0,0,0,.5);border-radius:3px;padding:0 2px}
+  .cur{position:absolute;right:6%;top:2px;display:flex;gap:6px;font-size:6.5px;z-index:8;padding:1px 6px;border-radius:99px;background:rgba(6,8,15,.6)}
+  .cur i{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:2px}
+  .note{font-size:12px;color:#666;margin:8px 0 0}
+</style>
+
+<h2>Runas e Espólios</h2>
+<p class="subtitle">Mesma linguagem: fundo que muda com o foco, tipografia grande, trilhos na base.</p>
+
+<div class="cards">
+  <div class="card"><div class="card-image"><div class="s">
+    <div class="glow" style="background:radial-gradient(circle at 55% 45%,rgba(200,150,50,.35),transparent 55%),radial-gradient(circle at 80% 70%,rgba(60,120,200,.25),transparent 50%)"></div>
+    <div class="rail"></div><div class="rcol"></div><div class="win"><b>—</b><b>✕</b></div>
+    <div class="tabs"><span>Campeões</span><span>Skins</span><span class="on">Runas</span><span>Feitiços</span><span>Ícones</span><span>Sentinelas</span><span>Emotes</span><span>Espólios</span></div>
+    <div class="pages"><div class="pg on"><i></i>Meio · Ahri</div><div class="pg"><i style="background:#c84a4a"></i>Selva</div><div class="pg"><i style="background:#4ac87a"></i>Topo</div><div class="pg"><i style="background:#4a8ac8"></i>Suporte</div><div class="pg" style="opacity:.7">+ nova página</div></div>
+    <div class="tree" style="left:30%;top:18%"><div class="k">Precisão</div><div class="r key"><i></i><i class="on"></i><i></i><i></i></div><div class="r"><i></i><i class="on"></i><i></i></div><div class="r"><i class="on"></i><i></i><i></i></div><div class="r"><i></i><i></i><i class="on"></i></div></div>
+    <div class="tree" style="left:52%;top:26%"><div class="k">Feitiçaria</div><div class="r blue"><i class="on"></i><i></i><i></i></div><div class="r blue"><i></i><i class="on"></i><i></i></div><div class="r sh"><i class="on"></i><i></i><i></i></div><div class="r sh"><i></i><i class="on"></i><i></i></div><div class="r sh"><i class="on"></i><i></i><i></i></div></div>
+    <div class="info"><b>Ritmo Fatal</b><small>Atacar um campeão inimigo concede velocidade de ataque crescente. Passe o mouse em qualquer runa para ler aqui.</small></div>
+    <div class="btn p" style="right:8%;bottom:8%">Salvar</div><div class="btn g" style="right:22%;bottom:8%">Recomendada ▾</div>
+  </div></div><div class="card-body"><h3>Runas</h3><p>Páginas numa coluna à esquerda. No centro, árvore principal (pedra angular grande) e secundária com fragmentos; o fundo ganha a cor dos dois caminhos. Descrição da runa em foco à direita. Salvar, renomear, apagar, nova página e "recomendada" (as que a Riot sugere para o campeão).</p></div></div>
+
+  <div class="card"><div class="card-image"><div class="s">
+    <div class="glow" style="background:radial-gradient(circle at 62% 30%,rgba(255,190,90,.28),transparent 50%)"></div>
+    <div class="chest"></div>
+    <div class="rail"></div><div class="rcol"></div><div class="win"><b>—</b><b>✕</b></div>
+    <div class="cur"><span><i style="background:#4ab0e6"></i>12.450</span><span><i style="background:#e6874a"></i>2.310</span></div>
+    <div class="tabs"><span>Campeões</span><span>Skins</span><span>Runas</span><span>Feitiços</span><span>Ícones</span><span>Sentinelas</span><span>Emotes</span><span class="on">Espólios</span></div>
+    <div class="hero"><b>Baú Hextec</b><small>2 baús · 3 chaves</small></div>
+    <div class="btn p" style="left:9%;top:44%">Abrir</div><div class="btn g" style="left:19%;top:44%">Abrir todos</div>
+    <div class="chips" style="top:58%"><span class="on">Baús e chaves</span><span>Campeões</span><span>Skins</span><span>Ícones e sentinelas</span><span>Emotes</span><span>Materiais</span></div>
+    <div class="strip" style="bottom:6%"><i class="t on"><span>Baú</span><em>×2</em></i><i class="t"><span>Chave</span><em>×3</em></i><i class="t"><span>Baú de Mestria</span></i><i class="t"><span>Cápsula</span></i><i class="t"><span>Orbe</span><em>×4</em></i></div>
+  </div></div><div class="card-body"><h3>Espólios</h3><p>Item em foco grande (com o brilho da raridade), quantidade e as ações dele: abrir, desencantar, reformar, combinar, ativar. Chips trocam a seção; Essência Azul e Laranja no chip do topo. Abrir mostra uma revelação animada do que saiu.</p></div></div>
+</div>
+<p class="note">Runas: dados de `/lol-perks/v1/perks`, `styles` e `pages`; salvar por `PUT /lol-perks/v1/pages/{id}`. Espólios: `/lol-loot/v1/player-loot` e receitas (`/lol-loot/v1/recipes/initial-item/{id}`).</p>

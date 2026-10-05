@@ -1,0 +1,61 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;font:8px/1.25 system-ui,sans-serif;color:#fff;background:linear-gradient(160deg,#3a2a12,#1a1430 55%,#0c1020)}
+  .s *{box-sizing:border-box}
+  .rail{position:absolute;top:0;left:0;bottom:0;width:5%;background:rgba(10,12,20,.55);z-index:3}
+  .rcol{position:absolute;top:0;right:0;bottom:0;width:5%;background:rgba(10,12,20,.7);z-index:3}
+  .win{position:absolute;top:0;right:0;height:14px;display:flex;z-index:9}.win b{width:18px;text-align:center;font-weight:400;font-size:8px;opacity:.8}
+  .cols{position:absolute;left:5%;right:5%;top:0;bottom:0;display:flex}
+  .c{flex:1;position:relative;border-right:1px solid rgba(0,0,0,.35);background:radial-gradient(circle at 50% 55%,rgba(255,210,120,.18),transparent 60%)}
+  .ll{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);width:34px;height:30px;border-radius:50% 50% 45% 45%;background:linear-gradient(#ffd98a,#c88a3a);box-shadow:0 4px 0 rgba(0,0,0,.35)}
+  .c .n{position:absolute;bottom:26%;left:0;right:0;text-align:center;font-weight:650}
+  .c.em .n{opacity:.6;font-weight:400}
+  .bar{position:absolute;left:20%;right:16%;bottom:5%;height:13%;border-radius:14px;background:rgba(20,14,8,.7);border:1px solid rgba(255,210,120,.35);display:flex;align-items:center;gap:8px;padding:0 10px;z-index:4}
+  .pill{background:linear-gradient(#ffd98a,#d9a14a);color:#2a1a08;font-weight:800;border-radius:99px;padding:4px 12px;box-shadow:0 2px 0 rgba(0,0,0,.35)}
+  .ghost{border:1px solid rgba(255,210,120,.5);border-radius:99px;padding:3px 9px;font-size:7px}
+  .dr{position:absolute;left:8%;right:8%;bottom:20%;height:40%;border-radius:12px;background:rgba(20,14,8,.85);border:1px solid rgba(255,210,120,.35);z-index:5;padding:7px}
+  .tabs{display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap}
+  .tabs span{padding:2px 7px;border-radius:99px;border:1px solid rgba(255,210,120,.4);font-size:6.5px}
+  .tabs span.on{background:#ffd98a;color:#2a1a08}
+  .g{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+  .g i{aspect-ratio:1;border-radius:8px;background:rgba(255,210,120,.2)}
+  .g i.on{outline:2px solid #ffd98a}
+  .side{position:absolute;left:5%;top:0;bottom:0;width:30%;background:rgba(20,14,8,.85);border-right:1px solid rgba(255,210,120,.35);z-index:5;padding:20px 8px}
+  .side .row{display:flex;align-items:center;gap:6px;padding:4px;border-radius:6px;margin-bottom:3px;font-size:7px}
+  .side .row.on{background:rgba(255,210,120,.18)}
+  .side .row i{width:16px;height:16px;border-radius:5px;background:rgba(255,210,120,.3)}
+  .side .row small{margin-left:auto;opacity:.65;font-size:6px}
+  .note{font-size:12px;color:#666;margin:8px 0 0}
+</style>
+
+<h2>Lobby do TFT e personalização</h2>
+<p class="subtitle">Tema Vidro lúdico (spec geral: formas mais redondas, botões com volume, dourado quente). No Palco do TFT cada coluna mostra a Pequena Lenda equipada do jogador no lugar da splash. Muda onde se escolhem Pequena Lenda, Arena, Explosão, Zoom, Manual e Pilar.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a-gaveta" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="rail"></div><div class="rcol"></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="cols"><div class="c"><div class="ll"></div><div class="n">Você</div></div><div class="c"><div class="ll" style="background:linear-gradient(#9ad8ff,#3a7ac8)"></div><div class="n">Zeca</div></div><div class="c em"><div class="n">+ convidar</div></div><div class="c em"><div class="n">+ convidar</div></div></div>
+      <div class="dr"><div class="tabs"><span class="on">Pequena Lenda</span><span>Arena</span><span>Explosão</span><span>Zoom</span><span>Manual</span><span>Pilar</span></div><div class="g"><i></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      <div class="bar"><b>TFT Normal ▾</b><span class="ghost">✦ Personalizar</span><span class="ghost">Sair</span><span class="pill" style="margin-left:auto">Encontrar partida</span></div>
+    </div></div>
+    <div class="card-body"><h3>A. Gaveta com abas sobre o Palco</h3><p>"Personalizar" na barra abre uma gaveta com uma aba por item, igual à gaveta da seleção de campeões. A sua coluna atualiza ao vivo quando você troca a Pequena Lenda.</p></div>
+  </div>
+
+  <div class="card" data-choice="b-lateral" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="rail"></div><div class="rcol"></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="cols" style="left:35%"><div class="c"><div class="ll"></div><div class="n">Você</div></div><div class="c"><div class="ll" style="background:linear-gradient(#9ad8ff,#3a7ac8)"></div><div class="n">Zeca</div></div><div class="c em"><div class="n">+ convidar</div></div></div>
+      <div class="side">
+        <div class="row on"><i></i>Pequena Lenda<small>Furyhorn ▸</small></div>
+        <div class="row"><i></i>Arena<small>Padrão ▸</small></div>
+        <div class="row"><i></i>Explosão<small>Fogos ▸</small></div>
+        <div class="row"><i></i>Zoom<small>Padrão ▸</small></div>
+        <div class="row"><i></i>Manual<small>Nenhum ▸</small></div>
+        <div class="row"><i></i>Pilar<small>Padrão ▸</small></div>
+      </div>
+      <div class="bar" style="left:40%"><b>TFT Normal ▾</b><span class="ghost">Sair</span><span class="pill" style="margin-left:auto">Encontrar</span></div>
+    </div></div>
+    <div class="card-body"><h3>B. Painel lateral fixo</h3><p>O Palco do TFT encolhe e um painel à esquerda lista os seis itens com o equipado de cada um; clicar abre a grade daquele item. Tudo à vista o tempo todo; o Palco perde espaço.</p></div>
+  </div>
+</div>
+<p class="note">Cores e formas são marcadores do tema Vidro lúdico. As imagens reais vêm dos inventários da LCU (`/lol-cosmetics/v1/inventories/{set}/...`).</p>

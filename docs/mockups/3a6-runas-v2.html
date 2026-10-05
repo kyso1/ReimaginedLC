@@ -1,0 +1,67 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;font:8px/1.3 system-ui,sans-serif;color:#fff;background:#06080f}
+  .s *{box-sizing:border-box}
+  .glow{position:absolute;inset:0;background:radial-gradient(circle at 40% 50%,rgba(200,150,50,.3),transparent 50%),radial-gradient(circle at 72% 55%,rgba(60,120,200,.22),transparent 45%)}
+  .rail{position:absolute;top:0;left:0;bottom:0;width:5%;background:rgba(6,8,15,.45);z-index:3}
+  .rcol{position:absolute;top:0;right:0;bottom:0;width:5%;background:rgba(6,8,15,.5);z-index:3}
+  .win{position:absolute;top:0;right:0;height:14px;display:flex;z-index:9}.win b{width:18px;text-align:center;font-weight:400;font-size:8px;opacity:.8}
+  .tabs{position:absolute;left:9%;top:6%;display:flex;gap:11px;font-size:6.5px;opacity:.8;z-index:2;letter-spacing:.06em;text-transform:uppercase}
+  .tabs span.on{opacity:1;font-weight:700;border-bottom:1.5px solid #fff;padding-bottom:2px}
+  .bar{position:absolute;left:9%;right:9%;top:15%;display:flex;gap:5px;align-items:center;z-index:2;font-size:6.5px}
+  .bar span{padding:2px 8px;border-radius:99px;border:1px solid rgba(255,255,255,.3)}
+  .bar span.on{background:rgba(255,200,90,.2);border-color:rgba(255,200,90,.8)}
+  .bar .btn{margin-left:auto;background:#fff;color:#111;font-weight:700;border:0}
+  /* grade única: 2 colunas de caminho + coluna de descrição; linhas fixas */
+  .grid{position:absolute;left:9%;right:9%;top:26%;bottom:7%;display:grid;grid-template-columns:1fr 1fr 1.1fr;grid-template-rows:14px 30px 1fr 1fr 1fr;column-gap:18px;row-gap:6px;z-index:2}
+  .hd{font-size:6.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.8;display:flex;align-items:center;gap:4px;justify-content:center}
+  .hd i{width:10px;height:10px;border-radius:50%}
+  .row{display:flex;justify-content:center;align-items:center;gap:14px;border-top:1px solid rgba(255,255,255,.08)}
+  .row i{width:15px;height:15px;border-radius:50%;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25)}
+  .row i.on{background:radial-gradient(circle,#ffe2a0,#c8902a);border-color:#ffe2a0;box-shadow:0 0 8px #ffc860}
+  .row.key i{width:26px;height:26px}
+  .row.b i.on{background:radial-gradient(circle,#b0d8ff,#3a7ac8);border-color:#b0d8ff;box-shadow:0 0 8px #6ab0ff}
+  .row.sh i{width:10px;height:10px;border-radius:3px}
+  .row.sh i.on{background:#ddd;box-shadow:none;border-color:#fff}
+  .desc{grid-column:3;grid-row:2 / span 4;border-left:1px solid rgba(255,255,255,.12);padding-left:12px}
+  .desc b{display:block;font-size:12px;font-weight:800}
+  .desc small{display:block;font-size:6.5px;opacity:.75;margin-top:4px;line-height:1.5}
+  .pages{position:absolute;left:9%;right:9%;bottom:4%;display:flex;gap:6px;z-index:2}
+  .pg{flex:1;padding:4px;border-radius:5px;background:rgba(255,255,255,.06);font-size:6.5px;text-align:center}
+  .pg.on{background:rgba(255,200,90,.18);outline:1px solid rgba(255,200,90,.6)}
+  .note{font-size:12px;color:#666;margin:8px 0 0}
+</style>
+
+<h2>Runas, alinhadas</h2>
+<p class="subtitle">Tudo numa grade: as linhas da árvore principal e da secundária ficam na mesma altura, ícones do mesmo tamanho por linha, centros alinhados.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a-colunas" onclick="toggleSelect(this)"><div class="card-image"><div class="s">
+    <div class="glow"></div><div class="rail"></div><div class="rcol"></div><div class="win"><b>—</b><b>✕</b></div>
+    <div class="tabs"><span>Campeões</span><span>Skins</span><span class="on">Runas</span><span>Feitiços</span><span>Ícones</span><span>Sentinelas</span><span>Emotes</span><span>Espólios</span></div>
+    <div class="bar"><span class="on">Meio · Ahri</span><span>Selva</span><span>Topo</span><span>Suporte</span><span>+ nova</span><span class="btn">Salvar</span></div>
+    <div class="grid">
+      <div class="hd"><i style="background:#d9a14a"></i>Precisão ▾</div><div class="hd"><i style="background:#4a8ac8"></i>Feitiçaria ▾</div><div></div>
+      <div class="row key"><i></i><i class="on"></i><i></i><i></i></div><div class="row sh"><i class="on"></i><i></i><i></i></div>
+      <div class="desc"><b>Ritmo Fatal</b><small>Atacar um campeão inimigo concede velocidade de ataque crescente. Passe o mouse em qualquer runa para ler aqui.</small></div>
+      <div class="row"><i></i><i class="on"></i><i></i></div><div class="row b"><i class="on"></i><i></i><i></i></div>
+      <div class="row"><i class="on"></i><i></i><i></i></div><div class="row b"><i></i><i class="on"></i><i></i></div>
+      <div class="row"><i></i><i></i><i class="on"></i></div><div class="row sh"><i></i><i class="on"></i><i></i></div>
+    </div>
+  </div></div><div class="card-body"><h3>A. Duas colunas em grade, páginas no topo</h3><p>Páginas como chips no topo. Duas colunas de mesma largura (principal e secundária) com linhas na mesma altura; fragmentos ocupam as linhas livres da secundária. Descrição numa terceira coluna fixa.</p></div></div>
+
+  <div class="card" data-choice="b-linhas" onclick="toggleSelect(this)"><div class="card-image"><div class="s">
+    <div class="glow"></div><div class="rail"></div><div class="rcol"></div><div class="win"><b>—</b><b>✕</b></div>
+    <div class="tabs"><span>Campeões</span><span>Skins</span><span class="on">Runas</span><span>Feitiços</span><span>Ícones</span><span>Sentinelas</span><span>Emotes</span><span>Espólios</span></div>
+    <div class="grid" style="top:15%;bottom:16%;grid-template-columns:70px 1fr 1.2fr;grid-template-rows:repeat(7,1fr);row-gap:3px">
+      <div class="hd" style="justify-content:flex-start"><i style="background:#d9a14a"></i>Precisão</div><div class="row key" style="justify-content:flex-start;border:0"><i></i><i class="on"></i><i></i><i></i></div>
+      <div class="desc" style="grid-row:1 / span 7"><b>Ritmo Fatal</b><small>Atacar um campeão inimigo concede velocidade de ataque crescente.</small></div>
+      <div></div><div class="row" style="justify-content:flex-start"><i></i><i class="on"></i><i></i></div>
+      <div></div><div class="row" style="justify-content:flex-start"><i class="on"></i><i></i><i></i></div>
+      <div></div><div class="row" style="justify-content:flex-start"><i></i><i></i><i class="on"></i></div>
+      <div class="hd" style="justify-content:flex-start"><i style="background:#4a8ac8"></i>Feitiçaria</div><div class="row b" style="justify-content:flex-start"><i class="on"></i><i></i><i></i></div>
+      <div></div><div class="row b" style="justify-content:flex-start"><i></i><i class="on"></i><i></i></div>
+      <div class="hd" style="justify-content:flex-start">Fragmentos</div><div class="row sh" style="justify-content:flex-start"><i class="on"></i><i></i><i></i><i style="margin-left:8px"></i><i class="on"></i><i></i><i style="margin-left:8px" class="on"></i><i></i><i></i></div>
+    </div>
+    <div class="pages"><div class="pg on">Meio · Ahri</div><div class="pg">Selva</div><div class="pg">Topo</div><div class="pg">Suporte</div><div class="pg">+ nova</div></div>
+  </div></div><div class="card-body"><h3>B. Uma coluna em linhas, páginas na base</h3><p>Um rótulo por linha à esquerda, runas alinhadas à esquerda numa única coluna, de cima para baixo: principal, secundária, fragmentos. Páginas como abas na base. Leitura de lista, mais compacta.</p></div></div>
+</div>

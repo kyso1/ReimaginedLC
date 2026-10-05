@@ -1,0 +1,71 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;font:8px/1.3 system-ui,sans-serif;color:#fff;background:#0c1020}
+  .s *{box-sizing:border-box}
+  .bg{position:absolute;inset:0;background:linear-gradient(90deg,rgba(12,16,32,.96) 0%,rgba(12,16,32,.85) 60%,rgba(12,16,32,.6) 100%),linear-gradient(140deg,#3a4f8f,#7a3f6f 60%,#c0705a)}
+  .rail{position:absolute;top:0;left:0;bottom:0;width:5%;background:rgba(10,12,20,.55);z-index:3}
+  .rcol{position:absolute;top:0;right:0;bottom:0;width:5%;background:rgba(10,12,20,.6);z-index:3}
+  .win{position:absolute;top:0;right:0;height:14px;display:flex;z-index:9}.win b{width:18px;text-align:center;font-weight:400;font-size:8px;opacity:.8}
+  .tabs{position:absolute;left:9%;top:9%;display:flex;gap:12px;font-size:7px;opacity:.85;z-index:2}
+  .tabs span.on{border-bottom:1.5px solid #fff;padding-bottom:2px;opacity:1;font-weight:600}
+  .area{position:absolute;left:9%;right:9%;top:20%;bottom:6%;z-index:2}
+  .m{display:grid;grid-template-columns:16px 3px 1fr 50px 50px 40px;gap:6px;align-items:center;height:16px;margin-bottom:4px;font-size:7px}
+  .m i{width:16px;height:16px;border-radius:4px;background:rgba(255,255,255,.28)}
+  .m b{height:12px;border-radius:2px;background:#5fd18a}.m b.l{background:#e66}
+  .m small{opacity:.6;font-size:6.5px}
+  .m.open{background:rgba(255,255,255,.06);border-radius:4px}
+  .detail{margin:-2px 0 6px 25px;height:30px;border-left:1px solid rgba(255,255,255,.15);padding-left:6px;font-size:6.5px;opacity:.7}
+  .fil{display:flex;gap:6px;margin-bottom:8px;font-size:6.5px}
+  .fil span{padding:1px 7px;border-radius:99px;border:1px solid rgba(255,255,255,.25)}
+  .fil span.on{background:#fff;color:#1b1b2a}
+  .rk{display:flex;gap:10px;height:62%}
+  .card2{flex:1;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);padding:8px;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center}
+  .emb{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle,#e6c04a,#7a5a1a);margin:4px 0}
+  .card2 .k{font-size:6px;opacity:.6;text-transform:uppercase;letter-spacing:.08em}
+  .card2 .v{font-size:11px;font-weight:700}
+  .card2 .x{font-size:6.5px;opacity:.65}
+  .g{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+  .ch{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:6px}
+  .ch i{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.28);border:1.5px solid #c8a04a}
+  .ch small{opacity:.6}
+  .note{font-size:12px;color:#666;margin:8px 0 0}
+</style>
+
+<h2>Abas do perfil</h2>
+<p class="subtitle">Mesmo fundo da vitrine, escurecido para leitura. Abas em texto no topo. Cada aba mostra uma coisa só.</p>
+
+<div class="cards">
+  <div class="card"><div class="card-image"><div class="s">
+    <div class="bg"></div><div class="rail"></div><div class="rcol"></div><div class="win"><b>—</b><b>✕</b></div>
+    <div class="tabs"><span>Resumo</span><span class="on">Histórico</span><span>Ranqueadas</span><span>Maestria</span></div>
+    <div class="area">
+      <div class="fil"><span class="on">Todas</span><span>Ranqueada</span><span>Normal</span><span>ARAM</span><span>TFT</span></div>
+      <div class="m open"><i></i><b></b><span>Ahri · 8/2/11</span><small>Normal</small><small>28 min</small><small>hoje</small></div>
+      <div class="detail">placar da partida: dois times, KDA, dano, itens</div>
+      <div class="m"><i></i><b class="l"></b><span>Kayn · 3/7/4</span><small>Ranqueada</small><small>31 min</small><small>hoje</small></div>
+      <div class="m"><i></i><b></b><span>Lux · 12/3/9</span><small>ARAM</small><small>19 min</small><small>ontem</small></div>
+      <div class="m"><i></i><b></b><span>Ahri · 6/1/7</span><small>Normal</small><small>25 min</small><small>ontem</small></div>
+    </div>
+  </div></div><div class="card-body"><h3>Histórico</h3><p>Uma linha por partida: campeão, marca de vitória/derrota, KDA, fila, duração, quando. Filtro por fila. Clicar abre o placar daquela partida embaixo da linha. 20 partidas, "carregar mais" no fim.</p></div></div>
+
+  <div class="card"><div class="card-image"><div class="s">
+    <div class="bg"></div><div class="rail"></div><div class="rcol"></div><div class="win"><b>—</b><b>✕</b></div>
+    <div class="tabs"><span>Resumo</span><span>Histórico</span><span class="on">Ranqueadas</span><span>Maestria</span></div>
+    <div class="area"><div class="rk">
+      <div class="card2"><div class="k">Solo/Duo</div><div class="emb"></div><div class="v">Ouro II</div><div class="x">48 PdL · 54 V / 46 D</div></div>
+      <div class="card2"><div class="k">Flex</div><div class="emb" style="background:radial-gradient(circle,#c8d0d8,#5a6470)"></div><div class="v">Prata I</div><div class="x">12 PdL · 20 V / 18 D</div></div>
+      <div class="card2"><div class="k">TFT</div><div class="emb" style="background:radial-gradient(circle,#8a6a4a,#3a2a1a)"></div><div class="v">Bronze III</div><div class="x">70 PdL</div></div>
+    </div><div style="margin-top:10px;font-size:6.5px;opacity:.6">Temporada anterior: Ouro IV · Prata I</div></div>
+  </div></div><div class="card-body"><h3>Ranqueadas</h3><p>Três cartões iguais (Solo/Duo, Flex, TFT) com emblema, elo, PdL e vitórias/derrotas. Uma linha com o elo das temporadas anteriores.</p></div></div>
+
+  <div class="card"><div class="card-image"><div class="s">
+    <div class="bg"></div><div class="rail"></div><div class="rcol"></div><div class="win"><b>—</b><b>✕</b></div>
+    <div class="tabs"><span>Resumo</span><span>Histórico</span><span>Ranqueadas</span><span class="on">Maestria</span></div>
+    <div class="area">
+      <div class="fil"><span style="width:70px;opacity:.7">buscar campeão</span><span class="on">Pontos</span><span>Nível</span><span>A–Z</span></div>
+      <div class="g">
+        <div class="ch"><i></i>Ahri<small>219k</small></div><div class="ch"><i></i>Kayn<small>180k</small></div><div class="ch"><i></i>Lux<small>95k</small></div><div class="ch"><i></i>Jinx<small>60k</small></div><div class="ch"><i></i>Yasuo<small>44k</small></div><div class="ch"><i></i>Zed<small>31k</small></div><div class="ch"><i></i>Annie<small>20k</small></div><div class="ch"><i></i>Ezreal<small>18k</small></div>
+        <div class="ch"><i></i>Garen<small>12k</small></div><div class="ch"><i></i>Lulu<small>9k</small></div><div class="ch"><i></i>Sona<small>7k</small></div><div class="ch"><i></i>Vi<small>5k</small></div>
+      </div>
+    </div>
+  </div></div><div class="card-body"><h3>Maestria</h3><p>Grade de campeões com nível (anel) e pontos, ordenável por pontos, nível ou nome, com busca. Clicar mostra o progresso do campeão.</p></div></div>
+</div>

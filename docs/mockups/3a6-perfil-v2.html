@@ -1,0 +1,67 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;font:8px/1.3 system-ui,sans-serif;color:#fff;background:#0c1020}
+  .s *{box-sizing:border-box}
+  .bg{position:absolute;inset:0;background:linear-gradient(90deg,rgba(12,16,32,.92) 0%,rgba(12,16,32,.55) 45%,rgba(12,16,32,.15) 100%),linear-gradient(140deg,#3a4f8f,#7a3f6f 60%,#c0705a)}
+  .bg.c{background:radial-gradient(circle at 50% 45%,rgba(12,16,32,.25),rgba(12,16,32,.9) 70%),linear-gradient(140deg,#3a4f8f,#7a3f6f 60%,#c0705a)}
+  .rail{position:absolute;top:0;left:0;bottom:0;width:5%;background:rgba(10,12,20,.55);z-index:3}
+  .rcol{position:absolute;top:0;right:0;bottom:0;width:5%;background:rgba(10,12,20,.6);z-index:3}
+  .win{position:absolute;top:0;right:0;height:14px;display:flex;z-index:9}.win b{width:18px;text-align:center;font-weight:400;font-size:8px;opacity:.8}
+  .tabs{position:absolute;display:flex;gap:12px;font-size:7px;opacity:.85;z-index:2}
+  .tabs span.on{border-bottom:1.5px solid #fff;padding-bottom:2px;opacity:1;font-weight:600}
+  .name{position:absolute;font-weight:800;letter-spacing:.02em;z-index:2}
+  .sub{position:absolute;font-size:7px;opacity:.7;z-index:2}
+  .tile{position:absolute;z-index:2;border-radius:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);padding:7px}
+  .tile .k{font-size:6px;opacity:.6;text-transform:uppercase;letter-spacing:.08em}
+  .tile .v{font-size:12px;font-weight:700;margin-top:3px}
+  .tile .m{font-size:6.5px;opacity:.65;margin-top:1px}
+  .chips{position:absolute;display:flex;gap:4px;z-index:2}
+  .chips i{width:14px;height:14px;border-radius:4px;background:rgba(255,255,255,.25);position:relative}
+  .chips i::after{content:"";position:absolute;left:0;right:0;bottom:-3px;height:2px;border-radius:1px;background:#5fd18a}
+  .chips i.l::after{background:#e66}
+  .ic{position:absolute;border-radius:50%;background:rgba(255,255,255,.3);border:2px solid #c8a04a;z-index:2}
+  .note{font-size:12px;color:#666;margin:8px 0 0}
+</style>
+
+<h2>Perfil, versão enxuta</h2>
+<p class="subtitle">Três propostas com no máximo três blocos de mesmo tamanho. Abas discretas em texto (Resumo, Histórico, Ranqueadas, Maestria); o detalhe fica nas abas, o Resumo só apresenta.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a-editorial" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="bg"></div><div class="rail"></div><div class="rcol"></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="tabs" style="left:9%;top:9%"><span class="on">Resumo</span><span>Histórico</span><span>Ranqueadas</span><span>Maestria</span></div>
+      <div class="name" style="left:9%;top:30%;font-size:22px">Fulano</div>
+      <div class="sub" style="left:9%;top:44%">#TAG · nível 312</div>
+      <div class="tile" style="left:9%;top:58%;width:18%;height:24%"><div class="k">Solo/Duo</div><div class="v">Ouro II</div><div class="m">48 PdL</div></div>
+      <div class="tile" style="left:29%;top:58%;width:18%;height:24%"><div class="k">Flex</div><div class="v">Prata I</div><div class="m">12 PdL</div></div>
+      <div class="tile" style="left:49%;top:58%;width:18%;height:24%"><div class="k">Maestria</div><div class="v">Ahri</div><div class="m">219 mil pontos</div></div>
+      <div class="sub" style="left:9%;top:88%">últimas partidas</div><div class="chips" style="left:24%;top:87%"><i></i><i class="l"></i><i></i><i></i><i class="l"></i></div>
+    </div></div>
+    <div class="card-body"><h3>A. Editorial à esquerda</h3><p>Splash de fundo com degradê. Nome grande, uma linha de detalhe, três cartões iguais (Solo/Duo, Flex, campeão de maior maestria) e as últimas 5 partidas como marcas de vitória/derrota.</p></div>
+  </div>
+
+  <div class="card" data-choice="b-central" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="bg c"></div><div class="rail"></div><div class="rcol"></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="tabs" style="left:50%;transform:translateX(-50%);top:9%"><span class="on">Resumo</span><span>Histórico</span><span>Ranqueadas</span><span>Maestria</span></div>
+      <div class="ic" style="left:50%;transform:translateX(-50%);top:26%;width:30px;height:30px"></div>
+      <div class="name" style="left:0;right:0;text-align:center;top:46%;font-size:16px">Fulano</div>
+      <div class="sub" style="left:0;right:0;text-align:center;top:57%">#TAG · nível 312</div>
+      <div class="tile" style="left:27%;top:68%;width:14%;height:20%;text-align:center"><div class="k">Solo/Duo</div><div class="v">Ouro II</div></div>
+      <div class="tile" style="left:43%;top:68%;width:14%;height:20%;text-align:center"><div class="k">Flex</div><div class="v">Prata I</div></div>
+      <div class="tile" style="left:59%;top:68%;width:14%;height:20%;text-align:center"><div class="k">Vitórias</div><div class="v">54%</div></div>
+    </div></div>
+    <div class="card-body"><h3>B. Centralizado</h3><p>Ícone, nome e detalhe no centro, três cartões pequenos e iguais embaixo. Simétrico e calmo; a splash aparece em volta.</p></div>
+  </div>
+
+  <div class="card" data-choice="c-minimo" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="bg"></div><div class="rail"></div><div class="rcol"></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="tabs" style="left:9%;top:9%"><span class="on">Resumo</span><span>Histórico</span><span>Ranqueadas</span><span>Maestria</span></div>
+      <div class="name" style="left:9%;top:58%;font-size:26px">Fulano</div>
+      <div class="sub" style="left:9%;top:75%;font-size:8px;opacity:.85">Ouro II · nível 312 · 54% de vitórias</div>
+    </div></div>
+    <div class="card-body"><h3>C. Só a vitrine</h3><p>Resumo é só a splash, o nome e uma linha (elo, nível, vitórias). Todo o resto nas abas. O mais limpo; menos informação de relance.</p></div>
+  </div>
+</div>
+<p class="note">Em todas: a splash de fundo é a escolhida no perfil da Riot (`backgroundSkinId`); as abas Histórico, Ranqueadas e Maestria detalham.</p>

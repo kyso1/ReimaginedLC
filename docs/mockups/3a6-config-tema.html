@@ -1,0 +1,59 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;font:8px/1.3 system-ui,sans-serif;color:#fff;background:#06080f}
+  .s *{box-sizing:border-box}
+  .rail{position:absolute;top:0;left:0;bottom:0;width:5%;background:rgba(6,8,15,.45);z-index:3}
+  .rcol{position:absolute;top:0;right:0;bottom:0;width:5%;background:rgba(6,8,15,.5);z-index:3}
+  .win{position:absolute;top:0;right:0;height:14px;display:flex;z-index:9}.win b{width:18px;text-align:center;font-weight:400;font-size:8px;opacity:.8}
+  .tabs{position:absolute;display:flex;gap:11px;font-size:6.5px;opacity:.8;z-index:2;letter-spacing:.06em;text-transform:uppercase}
+  .tabs span.on{opacity:1;font-weight:700;border-bottom:1.5px solid #fff;padding-bottom:2px}
+  .panel{position:absolute;z-index:4;background:rgba(10,12,20,.9);border-right:1px solid rgba(255,255,255,.15);padding:18px 8px 8px}
+  .sec{font-size:6px;letter-spacing:.12em;text-transform:uppercase;opacity:.6;margin:7px 0 4px}
+  .fld{display:flex;align-items:center;gap:5px;font-size:6.5px;margin-bottom:4px}
+  .fld i{width:12px;height:12px;border-radius:3px;border:1px solid rgba(255,255,255,.4)}
+  .fld u{flex:1;height:2px;border-radius:2px;background:rgba(255,255,255,.25);position:relative}
+  .fld u::after{content:"";position:absolute;left:55%;top:-3px;width:7px;height:7px;border-radius:50%;background:#fff}
+  .fld small{margin-left:auto;opacity:.6}
+  .prev{position:absolute;z-index:1;overflow:hidden;background:linear-gradient(140deg,#3a4f8f,#7a3f6f 60%,#c0705a)}
+  .prev .tag{position:absolute;left:8px;top:8px;font-size:6px;letter-spacing:.12em;text-transform:uppercase;background:rgba(6,8,15,.6);padding:1px 6px;border-radius:99px}
+  .prev .play{position:absolute;left:10%;bottom:14%;background:#fff;color:#111;font-weight:800;border-radius:99px;padding:4px 14px}
+  .prev .card{position:absolute;border-radius:7px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25)}
+  .thumbs{position:absolute;display:flex;gap:6px;z-index:2}
+  .th{width:62px;height:42px;border-radius:6px;position:relative;overflow:hidden;font-size:6px}
+  .th.on{outline:2px solid #fff}
+  .th span{position:absolute;left:4px;bottom:3px}
+  .row2{position:absolute;z-index:2;display:flex;justify-content:space-between;align-items:center;font-size:7px;border-bottom:1px solid rgba(255,255,255,.08);padding:3px 0}
+  .tg{width:16px;height:8px;border-radius:99px;background:#5fd18a;position:relative}.tg::after{content:"";position:absolute;right:1px;top:1px;width:6px;height:6px;border-radius:50%;background:#fff}
+  .tg.off{background:rgba(255,255,255,.25)}.tg.off::after{right:auto;left:1px}
+  .note{font-size:12px;color:#666;margin:8px 0 0}
+</style>
+
+<h2>Configurações e editor de tema</h2>
+<p class="subtitle">Configurações tem abas: Aparência (temas), Layouts, Geral, Jogo. "Jogo" mostra as configurações do jogo da própria Riot embutidas (spec geral). Abaixo, a aba Aparência e o editor.</p>
+
+<div class="cards">
+  <div class="card"><div class="card-image"><div class="s">
+    <div class="rail"></div><div class="rcol"></div><div class="win"><b>—</b><b>✕</b></div>
+    <div class="tabs" style="left:9%;top:7%"><span class="on">Aparência</span><span>Layouts</span><span>Geral</span><span>Jogo</span></div>
+    <div style="position:absolute;left:9%;top:17%;font-size:6px;letter-spacing:.12em;text-transform:uppercase;opacity:.6">Tema do LoL</div>
+    <div class="thumbs" style="left:9%;top:23%"><div class="th on" style="background:linear-gradient(140deg,#3a4f8f,#7a3f6f)"><span>Vidro</span></div><div class="th" style="background:#0e0e10;border:1px solid #333"><span>Editorial</span></div><div class="th" style="background:linear-gradient(140deg,#2a6a4a,#1a2a3a)"><span>Meu tema</span></div><div class="th" style="border:1px dashed rgba(255,255,255,.4)"><span>+ importar</span></div></div>
+    <div style="position:absolute;left:9%;top:47%;font-size:6px;letter-spacing:.12em;text-transform:uppercase;opacity:.6">Tema do TFT</div>
+    <div class="thumbs" style="left:9%;top:53%"><div class="th on" style="background:linear-gradient(160deg,#c89a4a,#3a2a12)"><span>Vidro lúdico</span></div><div class="th" style="border:1px dashed rgba(255,255,255,.4)"><span>+ importar</span></div></div>
+    <div class="row2" style="left:9%;width:40%;top:78%"><span>Transições</span><span style="opacity:.7">Completa ▾</span></div>
+    <div class="row2" style="left:9%;width:40%;top:86%"><span>Vídeo de fundo</span><span class="tg"></span></div>
+    <div style="position:absolute;right:9%;top:23%;width:30%;font-size:6.5px;opacity:.75;line-height:1.6;z-index:2">Clicar num tema aplica na hora. ⋯ no tema: editar (abre o editor), duplicar, exportar (.zip), apagar.</div>
+  </div></div><div class="card-body"><h3>Aparência</h3><p>Temas como miniaturas grandes, um grupo para LoL e outro para TFT; clicar aplica na hora. Importar tema (.zip ou .json), e no ⋯ de cada tema: editar, duplicar, exportar, apagar. Transições e vídeo de fundo aqui mesmo.</p></div></div>
+
+  <div class="card"><div class="card-image"><div class="s">
+    <div class="prev" style="left:30%;top:0;right:5%;bottom:0"><div class="tag">pré-visualização ao vivo · Tela inicial ▾</div><div class="card" style="left:55%;top:30%;width:35%;height:30%"></div><div class="play">Jogar</div></div>
+    <div class="rail"></div><div class="rcol"></div><div class="win"><b>—</b><b>✕</b></div>
+    <div class="panel" style="left:5%;top:0;bottom:0;width:25%">
+      <div style="font-size:9px;font-weight:800">Meu tema</div>
+      <div class="sec">Cores</div><div class="fld"><i style="background:#0b1020"></i>Fundo<small>#0b1020</small></div><div class="fld"><i style="background:#fff"></i>Destaque<small>#ffffff</small></div><div class="fld"><i style="background:rgba(255,255,255,.12)"></i>Superfície<small>12%</small></div>
+      <div class="sec">Tipografia</div><div class="fld">Títulos<small>Beaufort ▾</small></div><div class="fld">Texto<small>Spiegel ▾</small></div>
+      <div class="sec">Formas</div><div class="fld">Cantos<u></u></div><div class="fld">Desfoque<u></u></div>
+      <div class="sec">Mídia por tela</div><div class="fld">Tela inicial<small>vídeo.webm</small></div><div class="fld">Lobby<small>padrão</small></div>
+      <div class="sec">Movimento</div><div class="fld">Transição<small>Cortina ▾</small></div>
+    </div>
+  </div></div><div class="card-body"><h3>Editor de tema</h3><p>Painel à esquerda com seções (Cores, Tipografia, Formas, Mídia por tela, Movimento); o resto da tela é a pré-visualização ao vivo da tela escolhida (Início, Lobby, Seleção...). Cada mudança aparece na hora. Salvar grava o tema; Desfazer volta à última versão salva.</p></div></div>
+</div>
+<p class="note">Layouts: escolher Cinemático ou Clássico para a seleção (variante prevista na spec geral). Geral: idioma, camada ligada ao abrir, atalho. As fontes da Riot (Beaufort, Spiegel) vêm do próprio client.</p>

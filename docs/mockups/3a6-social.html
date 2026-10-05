@@ -1,0 +1,82 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;font:8px/1.25 system-ui,sans-serif;color:#fff;background:linear-gradient(140deg,#1c2a4a,#2a1f40 60%,#3a2030)}
+  .s *{box-sizing:border-box}
+  .rail{position:absolute;top:0;left:0;bottom:0;width:5%;background:rgba(10,12,20,.55);z-index:3;padding-top:14px}
+  .rail i{display:block;width:11px;height:11px;border-radius:4px;background:rgba(255,255,255,.18);margin:0 auto 6px}
+  .rail i.on{background:#fff}
+  .win{position:absolute;top:0;right:0;height:14px;display:flex;z-index:9}.win b{width:18px;text-align:center;font-weight:400;font-size:8px;opacity:.8}
+  .glass{position:absolute;background:rgba(10,12,20,.66);border:1px solid rgba(255,255,255,.2);border-radius:8px}
+  .h{font-size:6.5px;opacity:.6;text-transform:uppercase;letter-spacing:.06em;margin:5px 6px 3px}
+  .f{display:flex;align-items:center;gap:4px;padding:2px 6px;font-size:7px}
+  .f i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.35);position:relative}
+  .f i::after{content:"";position:absolute;right:-1px;bottom:-1px;width:4px;height:4px;border-radius:50%;background:#5fd18a}
+  .f i.away::after{background:#e6b04a}.f i.game::after{background:#5aa0ff}
+  .f small{margin-left:auto;opacity:.6;font-size:6px}
+  .msg{font-size:6.5px;padding:2px 6px;opacity:.9}.msg b{opacity:.7;font-weight:600}
+  .inp{position:absolute;left:5px;right:5px;bottom:5px;height:11px;border-radius:5px;border:1px solid rgba(255,255,255,.25)}
+  .tab{position:absolute;bottom:0;height:13px;padding:2px 7px;border-radius:6px 6px 0 0;background:rgba(10,12,20,.8);border:1px solid rgba(255,255,255,.2);border-bottom:0;font-size:6.5px}
+  .tab.on{background:rgba(40,46,70,.95)}
+  .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#ff6b6b;margin-left:3px}
+  .lbl{position:absolute;font-size:7px;opacity:.75}
+  .ctx{position:absolute;left:7%;bottom:22%;width:26%;height:30%}
+  .note{font-size:12px;color:#666;margin:8px 0 0}
+</style>
+
+<h2>Social: gaveta de amigos e conversas</h2>
+<p class="subtitle">A gaveta de amigos abre à direita pelo trilho (spec geral). O que muda entre as opções é onde ficam as conversas 1:1. Em todas, o chat do lobby, da seleção e do pós-jogo fica num painel recolhível no canto inferior esquerdo da própria tela.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a-abas" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="rail"><i></i><i class="on"></i><i></i></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="glass" style="right:2%;top:5%;bottom:16%;width:22%">
+        <div class="f" style="margin-top:4px;border-bottom:1px solid rgba(255,255,255,.15);padding-bottom:4px"><i></i>Você · Online ▾</div>
+        <div class="h">Pedidos (1)</div><div class="f"><i></i>Beltrano<small>✓ ✕</small></div>
+        <div class="h">Jogando (2)</div><div class="f"><i class="game"></i>Zeca<small>Ranqueada</small></div><div class="f"><i class="game"></i>Ciclano<small>ARAM</small></div>
+        <div class="h">Online (3)</div><div class="f"><i></i>Fulana</div><div class="f"><i class="away"></i>Beltrana<small>ausente</small></div><div class="f"><i></i>Joca</div>
+        <div class="h">Offline (24) ▸</div>
+      </div>
+      <div class="glass" style="right:25%;bottom:13px;width:24%;height:36%;border-radius:8px 8px 0 0">
+        <div class="h">Zeca</div><div class="msg"><b>Zeca:</b> bora uma?</div><div class="msg"><b>Você:</b> 5 min</div><div class="inp"></div>
+      </div>
+      <div class="tab on" style="right:25%">Zeca</div><div class="tab" style="right:38%">Fulana<span class="dot"></span></div>
+      <div class="glass ctx"><div class="h">Chat do lobby</div><div class="msg"><b>Zeca:</b> mid?</div><div class="inp"></div></div>
+      <div class="lbl" style="left:7%;top:8%">tela atual (lobby, seleção...)</div>
+    </div></div>
+    <div class="card-body"><h3>A. Abas de conversa na base</h3><p>Como o client atual: cada conversa é uma aba na base da tela, ao lado da gaveta, e abre uma janela por cima. Várias conversas abertas ao mesmo tempo, aviso de não lida na aba.</p></div>
+  </div>
+
+  <div class="card" data-choice="b-gaveta" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="rail"><i></i><i class="on"></i><i></i></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="glass" style="right:2%;top:5%;bottom:4%;width:26%">
+        <div class="f" style="margin-top:4px">‹ Amigos</div>
+        <div class="h">Zeca · Jogando Ranqueada</div>
+        <div class="msg"><b>Zeca:</b> bora uma?</div><div class="msg"><b>Você:</b> 5 min</div><div class="msg"><b>Zeca:</b> fechou</div>
+        <div class="inp"></div>
+      </div>
+      <div class="glass ctx"><div class="h">Chat do lobby</div><div class="msg"><b>Zeca:</b> mid?</div><div class="inp"></div></div>
+      <div class="lbl" style="left:7%;top:8%">tela atual (lobby, seleção...)</div>
+    </div></div>
+    <div class="card-body"><h3>B. Conversa dentro da gaveta</h3><p>Clicar num amigo troca a lista pela conversa, na própria gaveta ("‹ Amigos" volta). Uma conversa por vez à vista; não lidas marcadas na lista. Mais limpo, menos janelas.</p></div>
+  </div>
+
+  <div class="card" data-choice="c-dupla" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="rail"><i></i><i class="on"></i><i></i></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="glass" style="right:2%;top:5%;bottom:4%;width:16%">
+        <div class="h">Online (3)</div><div class="f"><i></i>Fulana<span class="dot"></span></div><div class="f"><i class="game"></i>Zeca</div><div class="f"><i></i>Joca</div>
+        <div class="h">Offline ▸</div>
+      </div>
+      <div class="glass" style="right:19%;top:5%;bottom:4%;width:22%">
+        <div class="h">Zeca · Ranqueada</div><div class="msg"><b>Zeca:</b> bora uma?</div><div class="msg"><b>Você:</b> 5 min</div><div class="inp"></div>
+      </div>
+      <div class="glass ctx"><div class="h">Chat do lobby</div><div class="msg"><b>Zeca:</b> mid?</div><div class="inp"></div></div>
+      <div class="lbl" style="left:7%;top:8%">tela atual (lobby, seleção...)</div>
+    </div></div>
+    <div class="card-body"><h3>C. Duas colunas</h3><p>A gaveta abre em duas colunas: lista à direita, conversa ao lado. Lista e conversa sempre visíveis juntas; ocupa mais tela enquanto aberta.</p></div>
+  </div>
+
+</div>
+<p class="note">Chat do lobby, da seleção e do pós-jogo: painel no canto inferior esquerdo, recolhível; na seleção, sobe acima da gaveta de campeões. Mensagem nova com o painel recolhido mostra um contador.</p>

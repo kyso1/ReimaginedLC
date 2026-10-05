@@ -1,0 +1,71 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;font:8px/1.3 system-ui,sans-serif;color:#fff;background:#0c1020}
+  .s *{box-sizing:border-box}
+  .bg{position:absolute;inset:0;background:linear-gradient(90deg,rgba(12,16,32,.95) 0%,rgba(12,16,32,.8) 60%,rgba(12,16,32,.5) 100%),linear-gradient(140deg,#2a4a6a,#5a3a7a 60%,#9a5a6a)}
+  .rail{position:absolute;top:0;left:0;bottom:0;width:5%;background:rgba(10,12,20,.55);z-index:3}
+  .rcol{position:absolute;top:0;right:0;bottom:0;width:5%;background:rgba(10,12,20,.6);z-index:3}
+  .win{position:absolute;top:0;right:0;height:14px;display:flex;z-index:9}.win b{width:18px;text-align:center;font-weight:400;font-size:8px;opacity:.8}
+  .tabs{position:absolute;display:flex;gap:12px;font-size:7px;opacity:.85;z-index:2}
+  .tabs span.on{border-bottom:1.5px solid #fff;padding-bottom:2px;opacity:1;font-weight:600}
+  .hd{position:absolute;z-index:2}
+  .hd b{font-size:16px;font-weight:800;letter-spacing:.04em}
+  .hd small{display:block;font-size:7px;opacity:.7}
+  .team{position:absolute;z-index:2;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);padding:5px}
+  .team .k{font-size:6px;opacity:.6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
+  .p{display:grid;grid-template-columns:12px 1fr 34px 46px 30px;gap:5px;align-items:center;height:11px;margin-bottom:2px;font-size:6.5px}
+  .p i{width:11px;height:11px;border-radius:3px;background:rgba(255,255,255,.3)}
+  .p.me{background:rgba(255,255,255,.1);border-radius:3px}
+  .items{display:flex;gap:1px}.items em{width:6px;height:6px;border-radius:1px;background:rgba(255,255,255,.25)}
+  .list{position:absolute;left:9%;top:20%;width:40%;z-index:2}
+  .m{display:grid;grid-template-columns:14px 3px 1fr 40px;gap:5px;align-items:center;height:14px;margin-bottom:3px;font-size:6.5px;padding:0 3px;border-radius:3px}
+  .m i{width:14px;height:14px;border-radius:4px;background:rgba(255,255,255,.28)}
+  .m b{height:10px;border-radius:2px;background:#5fd18a}.m b.l{background:#e66}
+  .m.sel{background:rgba(255,255,255,.12);outline:1px solid rgba(255,255,255,.3)}
+  .m small{opacity:.6}
+  .side{position:absolute;right:5%;top:0;bottom:0;width:44%;background:rgba(14,16,26,.94);border-left:1px solid rgba(255,255,255,.18);z-index:4;padding:18px 8px 8px}
+  .note{font-size:12px;color:#666;margin:8px 0 0}
+</style>
+
+<h2>Detalhe da partida (o "zoom" do histórico)</h2>
+<p class="subtitle">Abas do detalhe: Placar · Estatísticas (dano, ouro, visão, objetivos por jogador) · Gráficos (ouro e dano ao longo do tempo, da linha do tempo da partida). Muda como o detalhe abre.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a-zoom" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="bg"></div><div class="rail"></div><div class="rcol"></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="tabs" style="left:9%;top:6%"><span>‹ Histórico</span></div>
+      <div class="hd" style="left:9%;top:14%"><b>VITÓRIA</b><small>Ahri · Normal (Escolha) · 28:41 · hoje 14:20</small></div>
+      <div class="tabs" style="left:9%;top:32%"><span class="on">Placar</span><span>Estatísticas</span><span>Gráficos</span></div>
+      <div class="team" style="left:9%;right:9%;top:40%;height:26%"><div class="k">Seu time · 32 abates</div>
+        <div class="p me"><i></i><span>Você · Ahri</span><span>8/2/11</span><span class="items"><em></em><em></em><em></em><em></em><em></em><em></em></span><span>31k</span></div>
+        <div class="p"><i></i><span>Zeca · Kayn</span><span>5/4/9</span><span class="items"><em></em><em></em><em></em><em></em><em></em></span><span>22k</span></div>
+        <div class="p"><i></i><span>Beltrano · Lulu</span><span>1/3/18</span><span class="items"><em></em><em></em><em></em><em></em></span><span>9k</span></div></div>
+      <div class="team" style="left:9%;right:9%;top:69%;height:26%"><div class="k">Inimigos · 18 abates</div>
+        <div class="p"><i></i><span>Ciclano · Zed</span><span>6/5/2</span><span class="items"><em></em><em></em><em></em><em></em><em></em></span><span>24k</span></div>
+        <div class="p"><i></i><span>Fulana · Jinx</span><span>3/7/4</span><span class="items"><em></em><em></em><em></em><em></em></span><span>18k</span></div></div>
+    </div></div>
+    <div class="card-body"><h3>A. Tela própria com transição de zoom</h3><p>A linha clicada cresce até ocupar a tela (animação de zoom), com a splash do seu campeão naquela partida ao fundo. "‹ Histórico" volta encolhendo para a linha. Placar com nome, campeão, KDA, itens e dano.</p></div>
+  </div>
+
+  <div class="card" data-choice="b-painel" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="bg"></div><div class="rail"></div><div class="rcol"></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="tabs" style="left:9%;top:9%"><span>Resumo</span><span class="on">Histórico</span><span>Ranqueadas</span><span>Maestria</span></div>
+      <div class="list">
+        <div class="m sel"><i></i><b></b><span>Ahri · 8/2/11</span><small>28 min</small></div>
+        <div class="m"><i></i><b class="l"></b><span>Kayn · 3/7/4</span><small>31 min</small></div>
+        <div class="m"><i></i><b></b><span>Lux · 12/3/9</span><small>19 min</small></div>
+        <div class="m"><i></i><b></b><span>Ahri · 6/1/7</span><small>25 min</small></div>
+      </div>
+      <div class="side">
+        <div class="hd" style="position:static"><b style="font-size:12px">VITÓRIA</b><small>Normal · 28:41</small></div>
+        <div class="tabs" style="position:static;margin:6px 0"><span class="on">Placar</span><span>Estatísticas</span><span>Gráficos</span></div>
+        <div class="p me"><i></i><span>Você · Ahri</span><span>8/2/11</span><span class="items"><em></em><em></em><em></em></span><span>31k</span></div>
+        <div class="p"><i></i><span>Zeca · Kayn</span><span>5/4/9</span><span class="items"><em></em><em></em></span><span>22k</span></div>
+        <div class="p"><i></i><span>Ciclano · Zed</span><span>6/5/2</span><span class="items"><em></em><em></em></span><span>24k</span></div>
+      </div>
+    </div></div>
+    <div class="card-body"><h3>B. Painel lateral</h3><p>A lista continua à esquerda e o detalhe abre num painel à direita, com as mesmas abas. Trocar de partida é um clique na lista; o placar fica mais apertado.</p></div>
+  </div>
+</div>
+<p class="note">Itens com ícones reais (`items.json` dos dados do jogo). Nomes dos inimigos aparecem quando a fila permite.</p>
