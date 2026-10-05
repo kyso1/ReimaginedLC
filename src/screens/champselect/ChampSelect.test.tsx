@@ -104,7 +104,7 @@ test('fora da vez: sem botão de confirmar nem banir, e clique na grade não env
   expect(fetchMock).not.toHaveBeenCalled();
 });
 
-test('busca por nome e filtro por classe', async () => {
+test('busca por nome', async () => {
   setup(pickTurn());
   await settle();
   const search = root.querySelector<HTMLInputElement>('input[aria-label="Buscar campeão"]')!;
@@ -113,12 +113,49 @@ test('busca por nome e filtro por classe', async () => {
     search.dispatchEvent(new Event('input', { bubbles: true }));
   });
   expect([...root.querySelectorAll('.rlc-cs-champ')].map((c) => c.getAttribute('aria-label'))).toEqual(['Ahri']);
-  act(() => {
-    search.value = '';
-    search.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-  act(() => btn('Tanque')!.click());
-  expect([...root.querySelectorAll('.rlc-cs-champ')].map((c) => c.getAttribute('aria-label'))).toEqual(['Aatrox']);
+});
+
+const LANES = { '103': { recommendedPositions: ['MIDDLE'] }, '157': { recommendedPositions: ['MIDDLE', 'TOP'] }, '266': { recommendedPositions: ['TOP'] } };
+const grid = (favs: Record<number, string[]>) => [103, 157, 266].map((id) => ({ id, positionsFavorited: favs[id] ?? [] }));
+
+test('rota começa pela posição atribuída e filtra; clicar de novo mostra todas', async () => {
+  setup(session({ myTeam: [cell({ cellId: 0, assignedPosition: 'top' })], actions: [[action({ id: 6, type: 'pick', isInProgress: true })]] }), { lanes: ready(LANES), gridChampions: ready(grid({})) });
+  await settle();
+  expect(btn('Topo')!.getAttribute('aria-pressed')).toBe('true');
+  expect([...root.querySelectorAll('.rlc-cs-champ')].map((c) => c.getAttribute('aria-label'))).toEqual(['Aatrox', 'Yasuo']);
+  act(() => btn('Meio')!.click());
+  expect([...root.querySelectorAll('.rlc-cs-champ')].map((c) => c.getAttribute('aria-label'))).toEqual(['Ahri', 'Yasuo']);
+  act(() => btn('Meio')!.click());
+  expect(root.querySelectorAll('.rlc-cs-champ')).toHaveLength(3);
+});
+
+test('favoritos da rota vêm primeiro com estrela; a estrela alterna pela LCU', async () => {
+  setup(session({ myTeam: [cell({ cellId: 0, assignedPosition: 'middle' })], actions: [[action({ id: 6, type: 'pick', isInProgress: true })]] }), { lanes: ready(LANES), gridChampions: ready(grid({ 157: ['middle'], 103: ['top'] })) });
+  await settle();
+  const tiles = [...root.querySelectorAll('.rlc-cs-tile')];
+  expect(tiles.map((t) => t.querySelector('.rlc-cs-champ')!.getAttribute('aria-label'))).toEqual(['Yasuo', 'Ahri']);
+  expect(tiles[0]!.querySelector('.rlc-cs-fav')!.getAttribute('aria-pressed')).toBe('true');
+  expect(tiles[1]!.querySelector('.rlc-cs-fav')!.getAttribute('aria-pressed')).toBe('false');
+  act(() => tiles[1]!.querySelector<HTMLButtonElement>('.rlc-cs-fav')!.click());
+  expect(call('/lol-champ-select/v1/toggle-favorite/103/middle')[0]![1]).toEqual({ method: 'POST' });
+});
+
+test('sem rota marcada a estrela fica escondida e não há favoritos na frente', async () => {
+  setup(session({ myTeam: [cell({ cellId: 0 })], actions: [[action({ id: 6, type: 'pick', isInProgress: true })]] }), { lanes: ready(LANES), gridChampions: ready(grid({ 266: ['top'] })) });
+  await settle();
+  expect(root.querySelector('.rlc-cs-fav')).toBeNull();
+  expect([...root.querySelectorAll('.rlc-cs-champ')].map((c) => c.getAttribute('aria-label'))).toEqual(['Aatrox', 'Ahri', 'Yasuo']);
+});
+
+test('Sair só aparece com showQuitButton e chama a LCU', async () => {
+  setup(session({ myTeam: [me], showQuitButton: true } as never));
+  await settle();
+  act(() => btn('Sair da seleção')!.click());
+  expect(call('/lol-lobby-team-builder/champ-select/v1/session/quit')).toHaveLength(1);
+  render(null, root);
+  setup(session({ myTeam: [me], showQuitButton: false } as never));
+  await settle();
+  expect(btn('Sair da seleção')).toBeUndefined();
 });
 
 test('banimentos aparecem sob o time certo', async () => {
@@ -310,4 +347,23 @@ test('Confirmar fica desabilitado enquanto o destaque do clique ainda não volto
   await settle();
   act(() => btn('Yasuo')!.click());
   expect(btn('Confirmar')!.disabled).toBe(true);
+});
+
+test('id -1 (nenhum campeão) da lista de disponíveis não vira ladrilho', async () => {
+  setup(pickTurn(), { pickable: ready([-1, 103]) });
+  await settle();
+  expect([...root.querySelectorAll('.rlc-cs-champ')].map((c) => c.getAttribute('aria-label'))).toEqual(['Ahri']);
+});
+
+test('depois de alternar o favorito, a estrela segue o grid-champions do campeão (all-grid-champions fica velho)', async () => {
+  fetchMock.mockImplementation(async (url: string) =>
+    url === '/lol-champ-select/v1/grid-champions/103' ? new Response(JSON.stringify({ id: 103, positionsFavorited: ['middle'] }), { status: 200 }) : new Response(null, { status: 204 }));
+  setup(session({ myTeam: [cell({ cellId: 0, assignedPosition: 'middle' })], actions: [[action({ id: 6, type: 'pick', isInProgress: true })]] }), { lanes: ready(LANES), gridChampions: ready(grid({})) });
+  await settle();
+  const ahri = () => [...root.querySelectorAll('.rlc-cs-tile')].find((t) => t.querySelector('.rlc-cs-champ')!.getAttribute('aria-label') === 'Ahri')!;
+  act(() => ahri().querySelector<HTMLButtonElement>('.rlc-cs-fav')!.click());
+  await settle();
+  await settle();
+  expect(ahri().querySelector('.rlc-cs-fav')!.getAttribute('aria-pressed')).toBe('true');
+  expect(root.querySelectorAll('.rlc-cs-champ')[0]!.getAttribute('aria-label')).toBe('Ahri');
 });

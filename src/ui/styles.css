@@ -285,3 +285,9 @@
 #rlc-root .rlc-pg-board td { padding: 6px 8px; border-bottom: 1px solid var(--rlc-color-border); }
 #rlc-root .rlc-pg-board tr[data-me='true'] td { background: var(--rlc-color-surface); font-weight: 700; }
 #rlc-root .rlc-pg-actions { position: absolute; left: 56px; right: 24px; bottom: 32px; z-index: 2; display: flex; justify-content: space-between; align-items: center; }
+
+#rlc-root .rlc-cs-tile { position: relative; width: 56px; height: 56px; }
+#rlc-root .rlc-cs-fav { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; background: var(--rlc-color-scrim, rgba(4, 6, 12, 0.72)); color: var(--rlc-color-textMuted); font-size: 11px; line-height: 18px; cursor: pointer; opacity: 0; transition: opacity var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-cs-tile:hover .rlc-cs-fav, #rlc-root .rlc-cs-fav:focus-visible { opacity: 1; }
+#rlc-root .rlc-cs-fav[aria-pressed='true'] { opacity: 1; color: var(--rlc-color-highlight, #ffd36b); }
+#rlc-root .rlc-cs-action { display: flex; gap: 10px; align-items: center; }

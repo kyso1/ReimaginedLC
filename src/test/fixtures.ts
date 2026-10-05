@@ -96,6 +96,8 @@ export function fakeLcu(over: Partial<Lcu> = {}): Lcu {
     gameflowSession: signal(ready<Lcu['gameflowSession']['value']['data'] & object>(null)),
     honorBallot: signal(ready<Lcu['honorBallot']['value']['data'] & object>(null)),
     endOfGame: signal(ready<Lcu['endOfGame']['value']['data'] & object>(null)),
+    lanes: signal(ready({})),
+    gridChampions: signal(ready([])),
     ...over,
   };
 }
