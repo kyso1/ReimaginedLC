@@ -121,3 +121,10 @@ test('exceção no corpo do App desliga a camada e devolve a Riot', async () => 
   riot.remove();
   noise.mockRestore();
 });
+
+test('a Quicksand é declarada com os arquivos da pasta do plugin', async () => {
+  await start();
+  const css = [...document.querySelectorAll('style[data-rlc]')].map((s) => s.textContent).join('\n');
+  expect(css).toMatch(/@font-face \{ font-family: Quicksand; src: url\("\/fonts\/quicksand-latin\.woff2"\) format\("woff2"\); font-weight: 300 700;/);
+  expect(css).toContain('/fonts/quicksand-latin-ext.woff2');
+});

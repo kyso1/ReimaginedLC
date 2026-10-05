@@ -401,7 +401,7 @@ function GameSettings() {
   );
 }
 
-const FONTS = ['system-ui, sans-serif', 'Georgia, serif', '"Segoe UI", sans-serif', '"Trebuchet MS", sans-serif', 'monospace'];
+const FONTS = ['Quicksand, system-ui, sans-serif', 'system-ui, sans-serif', 'Georgia, serif', '"Segoe UI", sans-serif', '"Trebuchet MS", sans-serif', 'monospace'];
 const EASINGS = ['ease', 'ease-in-out', 'linear', 'cubic-bezier(0.7, 0, 0.2, 1)', 'cubic-bezier(0.2, 0.8, 0.2, 1)'];
 
 /** Editor de tema: painel à esquerda, prévia ao vivo à direita com o tema aplicado só nela. */

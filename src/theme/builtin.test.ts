@@ -26,3 +26,14 @@ test('editorial anula o fundo herdado e vidro lúdico o mantém', () => {
   expect(editorial.ok && editorial.theme.backgrounds.default?.path).toBe('');
   expect(ludico.ok && ludico.theme.backgrounds.default?.path).toMatch(/^\/fe\//);
 });
+
+test('a fonte padrão é a Quicksand (embutida no plugin), com reserva do sistema', () => {
+  const vidro = load('vidro') as ThemeManifest;
+  expect(vidro.tokens['font.body']).toBe('Quicksand, system-ui, sans-serif');
+  expect(vidro.tokens['font.display']).toBe('Quicksand, system-ui, sans-serif');
+  for (const name of BUILTIN.filter((n) => n !== 'vidro')) {
+    const m = load(name) as ThemeManifest;
+    expect(m.tokens['font.body'], name).toBeUndefined();
+    expect(m.tokens['font.display'], name).toBeUndefined();
+  }
+});
