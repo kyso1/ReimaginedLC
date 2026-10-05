@@ -29,7 +29,7 @@ As prévias estão em `docs/mockups/2a-jogar-fluxo.html`, `docs/mockups/2a-fila-
 |---|---|
 | Escolha da fila | Tela de modos: sobreposição em tela cheia com um cartão por mapa e as filas do mapa embaixo. Abre pelo Jogar da tela inicial e pelo nome da fila na barra do lobby |
 | Fila | A barra flutuante do Palco vira cronômetro: tempo, estimativa e Cancelar |
-| Aceite de partida | Véu escuro sobre qualquer tela, anel de contagem regressiva, Aceitar e Recusar, um ponto por jogador que aceitou |
+| Aceite de partida | Véu escuro sobre qualquer tela, anel de contagem regressiva, Aceitar e Recusar |
 | Sala personalizada | Palco em duas faixas: time azul em cima, time vermelho embaixo, meia altura por jogador |
 | Convite recebido | Cartão no canto superior direito, sobre qualquer tela, com Aceitar e Recusar |
 | Controles de janela | Faixa de arraste de 16 px no topo, minimizar e fechar à direita |
@@ -88,8 +88,8 @@ Jogar abre a tela de modos em vez de desligar a camada. As notas do patch contin
 
 ### Tela de modos
 
-- Cartões por mapa: Summoner's Rift, ARAM, TFT, Arena (quando houver fila disponível) e Personalizada. Os mapas são agrupados por `mapId` das filas disponíveis. Fila com `mapId` desconhecido entra num cartão "Outros".
-- Ao escolher um mapa, as filas dele aparecem embaixo. A Ferramenta de Treino é a fila 3140 e aparece em Summoner's Rift.
+- Cartões por grupo, no agrupamento que a própria Riot usa (`gameSelectModeGroup`): Summoner's Rift (`kSummonersRift`), ARAM (`kARAM`), TFT (`kTeamfightTactics`), Outros modos (`kAlternativeLeagueGameModes`, onde ficam Arena e eventos) e Personalizada. Entram filas com `queueAvailability` `Available`, `isVisible` verdadeiro e `gameSelectCategory` diferente de `CreateCustom`. Grupo desconhecido entra em Outros modos. Grupo sem fila não aparece.
+- Ao escolher um mapa, as filas dele aparecem embaixo. A Ferramenta de Treino (fila 3140, `gameSelectCategory` `kTraining`) aparece no grupo Summoner's Rift.
 - Confirmar: `POST /lol-lobby/v2/lobby { queueId }`. A mesma chamada cria o lobby ou troca a fila de um lobby existente.
 - A última fila confirmada fica no `DataStore` (`rlc.lastQueue`) e vem selecionada na próxima abertura.
 - Personalizada abre a lista de salas e a criação.
@@ -97,7 +97,7 @@ Jogar abre a tela de modos em vez de desligar a camada. As notas do patch contin
 ### Lista de salas e criação
 
 - Lista: nome, mapa, jogadores, cadeado quando há senha. Entrar: `POST /lol-lobby/v1/custom-games/{id}/join`, com `{ password }` quando a sala tem senha.
-- Criar: nome, senha opcional, mapa e modo, tamanho do time, política de espectadores. Envia `POST /lol-lobby/v2/lobby` com `queueId` e `customGameLobby` (`lobbyName`, `lobbyPassword`, `configuration` com `gameMode`, `mapId`, `teamSize`, `spectatorPolicy`, `mutators`). O dump mostrou que neste patch o `queueId` é obrigatório; o valor por mapa e modo é definido no plano a partir das filas `isCustom`.
+- Criar: nome, senha opcional, modo, tamanho do time, política de espectadores. O modo é uma das filas com `gameSelectCategory` `CreateCustom` (cada uma já define mapa, modo de jogo e tipo de escolha, por exemplo 3100 "SR Blind Pick Custom"). Envia `POST /lol-lobby/v2/lobby` com `queueId` da fila escolhida e `customGameLobby` (`lobbyName`, `lobbyPassword`, `configuration` com `gameMode` e `mapId` da fila, `teamSize` de 1 a 5, `spectatorPolicy` e `mutators: { id: gameTypeConfig.id }` da fila).
 
 ### Lobby Palco
 
@@ -125,8 +125,9 @@ Jogar abre a tela de modos em vez de desligar a camada. As notas do patch contin
 
 ### Aceite de partida
 
-- Anel com o tempo restante a partir de `readyCheck.timer`.
-- Um ponto por jogador; pontos verdes conforme as respostas de aceite.
+- Anel com o tempo restante a partir de `readyCheck.timer` (segundos decorridos de um total de 10).
+- A API não informa quem já aceitou (só `playerResponse` do jogador local e `declinerIds`), então não há indicador por jogador.
+- Com `suppressUx` verdadeiro (caso da Ferramenta de Treino e de filas que o client aceita sozinho), a sobreposição não aparece.
 - Aceitar: `POST /lol-matchmaking/v1/ready-check/accept`. Recusar: `POST /lol-matchmaking/v1/ready-check/decline`.
 - Depois de responder, os botões somem e fica o estado ("Aceito, aguardando os outros" ou "Recusado").
 
