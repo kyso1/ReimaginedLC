@@ -146,3 +146,24 @@ test('mensagens de sistema de entrada e saída da sala ficam de fora', async () 
   await settle();
   expect([...root.querySelectorAll('.rlc-chat-text')].map((e) => e.textContent)).toEqual(['oi']);
 });
+
+test('status recusado pela LCU volta ao valor anterior', async () => {
+  window.Toast = { success: vi.fn(), error: vi.fn() };
+  fetchMock.mockResolvedValue(new Response(JSON.stringify({ message: 'não' }), { status: 500 }));
+  act(() => render(<StatusEditor lcu={withValues({ chatMe: ready({ availability: 'chat', statusMessage: '' }) })} />, root));
+  const select = root.querySelector('select')!;
+  type(select, 'away');
+  await settle();
+  await settle();
+  expect(select.value).toBe('chat');
+  delete window.Toast;
+});
+
+test('histórico de conversa que não existe mais não mostra erro', async () => {
+  window.Toast = { success: vi.fn(), error: vi.fn() };
+  fetchMock.mockResolvedValue(new Response(JSON.stringify({ message: 'not found' }), { status: 404 }));
+  act(() => render(<ChatWindow lcu={withValues({ chatMe: ready({ puuid: 'me' }) })} conversationId="sumiu@pvp.net" title="Sumiu" onClose={() => {}} />, root));
+  await settle();
+  expect(window.Toast.error).not.toHaveBeenCalled();
+  delete window.Toast;
+});

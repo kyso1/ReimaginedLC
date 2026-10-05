@@ -4,6 +4,7 @@ import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
 import type { LolChatConversationMessageResource } from '../../lcu/types';
 import { useAction } from '../../ui/useAction';
+import { getJson } from '../profile/data';
 
 type Message = Pick<LolChatConversationMessageResource, 'id' | 'body' | 'fromPuuid' | 'timestamp' | 'type'>;
 const base = (id: string) => `/lol-chat/v1/conversations/${encodeURIComponent(id)}/messages`;
@@ -16,9 +17,8 @@ export function useConversation(lcu: Lcu, id: string | null): Message[] {
     if (!id) return;
     let live = true;
     const add = (m: Message) => setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
-    void request<Message[]>('GET', base(id))
-      .then((list) => live && setMessages((prev) => [...(list ?? []), ...prev.filter((p) => !(list ?? []).some((l) => l.id === p.id))]))
-      .catch(() => {});
+    // Leitura silenciosa: conversa que sumiu fica vazia, sem aviso de erro.
+    void getJson<Message[]>(base(id)).then((list) => live && setMessages((prev) => [...(list ?? []), ...prev.filter((p) => !(list ?? []).some((l) => l.id === p.id))]));
     // A LCU pode mandar a URI com o id cru ou codificado; escuta as duas formas.
     const prefixes = [`/lol-chat/v1/conversations/${id}/messages/`, `${base(id)}/`];
     const offs = [...new Set(prefixes)].map((p) =>

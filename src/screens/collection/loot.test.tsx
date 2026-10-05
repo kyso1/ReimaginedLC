@@ -93,3 +93,23 @@ test('rótulo da ação: texto da LCU quando vier; senão o nosso, com a essênc
   expect(actionLabel(m({ actionType: 'REROLL' }))).toBe('Reformular');
   expect(actionLabel(m({ actionType: 'SOMETHING_NEW' }))).toBe('SOMETHING_NEW');
 });
+
+test('menu de ações: uma consulta por item (passar o mouse de novo não repete), sem aviso em erro, e de novo quando a quantidade muda', async () => {
+  window.Toast = { success: vi.fn(), error: vi.fn() };
+  const lcu = fakeLcu();
+  lcu.loot.value = ready(LOOT) as Lcu['loot']['value'];
+  act(() => render(<Loot lcu={lcu} />, root));
+  await settle();
+  const menus = () => fetchMock.mock.calls.filter((c) => String(c[0]).endsWith('/context-menu')).map((c) => c[0]);
+  const hover = (i: number) => act(() => void root.querySelectorAll('.rlc-cn-card')[i]!.dispatchEvent(new MouseEvent('mouseenter')));
+  hover(1);
+  await settle();
+  hover(0);
+  await settle();
+  expect(menus()).toEqual(['/lol-loot/v1/player-loot/CHEST_generic/context-menu', '/lol-loot/v1/player-loot/MATERIAL_key/context-menu']);
+  expect(window.Toast.error).not.toHaveBeenCalled();
+  act(() => void (lcu.loot.value = ready([{ ...LOOT[0], count: 1 }, ...LOOT.slice(1)]) as Lcu['loot']['value']));
+  await settle();
+  expect(menus()).toHaveLength(3);
+  delete window.Toast;
+});

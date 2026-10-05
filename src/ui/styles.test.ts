@@ -10,3 +10,7 @@ test('styles.css não tem cor literal fora de var(--rlc-*, reserva)', () => {
     .filter((decl) => /#[0-9a-f]{3,8}\b|rgba?\(/i.test(decl) && !/var\(--rlc-[\w-]+,/.test(decl));
   expect(offenders).toEqual([]);
 });
+
+test('styles.css não depende de :has() (regra do projeto para o Chromium do client)', () => {
+  expect(readFileSync('src/ui/styles.css', 'utf8')).not.toContain(':has(');
+});

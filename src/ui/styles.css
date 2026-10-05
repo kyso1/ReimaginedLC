@@ -356,7 +356,7 @@
 #rlc-root .rlc-ctx[data-open='true'] { height: 260px; }
 #rlc-root .rlc-ctx-toggle { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border: 0; background: transparent; color: var(--rlc-color-text); font: inherit; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; text-align: left; cursor: pointer; }
 #rlc-root .rlc-ctx-count { min-width: 18px; padding: 0 5px; border-radius: var(--rlc-radius-pill); background: var(--rlc-color-danger, #c8364a); color: var(--rlc-color-onDanger, #fff); text-align: center; font-size: 11px; }
-#rlc-root .rlc-champselect ~ .rlc-ctx, #rlc-root .rlc-screen:has(.rlc-champselect) ~ .rlc-ctx { bottom: calc(38% + 36px); left: 104px; }
+#rlc-root .rlc-app[data-screen='champselect'] .rlc-ctx { bottom: calc(38% + 36px); left: 104px; }
 
 #rlc-root .rlc-profile { position: absolute; inset: 0; overflow: hidden; display: flex; flex-direction: column; padding: 36px 48px 24px; }
 #rlc-root .rlc-pf-bg { position: absolute; inset: 0; background-size: cover; background-position: center 20%; animation: rlc-fade var(--rlc-motion-duration) var(--rlc-motion-easing) both; }

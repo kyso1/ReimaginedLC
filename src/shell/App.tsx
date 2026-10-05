@@ -192,6 +192,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
     <div
       class="rlc-app"
       key={theme.name}
+      data-screen={shownView ?? screen ?? undefined}
       style={{ '--rlc-bg-dim': String(background.value.dim), '--rlc-bg-blur': `${background.value.blur}px`, '--rlc-bg-pos': `${background.value.posX}% ${background.value.posY}%` }}
     >
       <Boundary onError={onError}>

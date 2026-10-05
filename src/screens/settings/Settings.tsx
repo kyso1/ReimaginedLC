@@ -80,6 +80,11 @@ function Appearance({ lcu, themes, onEdit }: { lcu: Lcu; themes: ThemeEngine; on
       window.Toast?.error(`${t('themeInvalid')}: JSON`);
       return;
     }
+    // Mesmo nome de um tema seu: importa como cópia em vez de substituir sem avisar.
+    if (data && typeof data === 'object' && typeof (data as { name?: unknown }).name === 'string') {
+      const name = (data as { name: string }).name;
+      if (themes.list.value.some((th) => th.user && th.name === name)) data = { ...data, name: uniqueName(themes, name) };
+    }
     const result = themes.saveUser(data);
     if (result.ok) window.Toast?.success(t('themeImported'));
     else window.Toast?.error(`${t('themeInvalid')}: ${result.error}`);
@@ -156,7 +161,8 @@ function Appearance({ lcu, themes, onEdit }: { lcu: Lcu; themes: ThemeEngine; on
           message={`${t('stDeleteThemeConfirm')} ${deleting.label}?`}
           confirmLabel={t('delete')}
           onConfirm={() => {
-            themes.deleteUser(deleting.name);
+            const r = themes.deleteUser(deleting.name);
+            if (!r.ok) window.Toast?.error(`${t('stDeleteThemeFailed')}: ${r.error}`);
             setDeleting(null);
           }}
           onCancel={() => setDeleting(null)}
@@ -244,8 +250,11 @@ function SplashPicker({ lcu, onPick }: { lcu: Lcu; onPick: (skinId: number) => v
     void lcu.game.champions().then((m) => setChampions([...m.values()].sort((a, b) => a.name.localeCompare(b.name))));
   }, [lcu]);
   useEffect(() => {
+    setSkins([]);
     if (!champion) return;
-    void getJson<{ skins?: Array<{ id: number; name: string; tilePath?: string }> }>(`/lol-game-data/assets/v1/champions/${champion}.json`).then((c) => setSkins(c?.skins ?? []));
+    let live = true;
+    void getJson<{ skins?: Array<{ id: number; name: string; tilePath?: string }> }>(`/lol-game-data/assets/v1/champions/${champion}.json`).then((c) => live && setSkins(c?.skins ?? []));
+    return () => void (live = false);
   }, [champion]);
   const q = query.trim().toLowerCase();
   return (
@@ -325,13 +334,16 @@ function GameSettings() {
     void getJson<Schema>('/lol-game-settings/v1/game-settings-schema').then(setSchema);
     void getJson<Values>('/lol-game-settings/v1/game-settings').then((v) => setValues(v ?? {}));
   }, []);
-  const save = async (cat: string, key: string, value: unknown) => {
+  const save = async (cat: string, key: string, value: unknown, el: HTMLInputElement) => {
+    const previous = values[cat]?.[key] ?? schema?.[cat]?.[key]?.default;
     try {
       await request('PATCH', '/lol-game-settings/v1/game-settings', { [cat]: { [key]: value } });
       await request('POST', '/lol-game-settings/v1/save');
       setValues((v) => ({ ...v, [cat]: { ...(v[cat] ?? {}), [key]: value } }));
     } catch {
-      // O Toast já saiu em `request`; o valor na tela continua o anterior.
+      // O Toast já saiu em `request`. O navegador já mudou o controle: volta ao valor que a LCU tem.
+      if (el.type === 'checkbox') el.checked = previous === true;
+      else el.value = String(previous);
     }
   };
   if (!schema) return <p class="rlc-muted">{t('loadingQueues')}</p>;
@@ -347,7 +359,7 @@ function GameSettings() {
             if (typeof def.default === 'boolean')
               return (
                 <label key={key} class="rlc-st-check">
-                  <input type="checkbox" data-key={`${cat}.${key}`} checked={current === true} onChange={(e) => void save(cat, key, e.currentTarget.checked)} />
+                  <input type="checkbox" data-key={`${cat}.${key}`} checked={current === true} onChange={(e) => void save(cat, key, e.currentTarget.checked, e.currentTarget)} />
                   {label(key)}
                 </label>
               );
@@ -365,7 +377,7 @@ function GameSettings() {
                       const raw = e.currentTarget.value.trim();
                       const n = Number(raw);
                       if (raw === '' || !Number.isFinite(n)) return void (e.currentTarget.value = String(current));
-                      void save(cat, key, Number.isInteger(def.default) ? Math.round(n) : n);
+                      void save(cat, key, Number.isInteger(def.default) ? Math.round(n) : n, e.currentTarget);
                     }}
                   />
                 </label>

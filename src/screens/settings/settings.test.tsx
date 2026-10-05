@@ -146,7 +146,7 @@ test('jogo: número vazio não grava; campo inteiro grava inteiro', async () => 
 });
 
 test('apagar tema do usuário pede confirmação', () => {
-  const deleteUser = vi.fn();
+  const deleteUser = vi.fn(() => ({ ok: true as const }));
   const set = vi.fn();
   const themes = { ...fakeThemes(signal(vidro), [{ name: 'vidro', label: 'Vidro' }, { name: 'meu', label: 'Meu', user: true }], set), deleteUser };
   act(() => render(<Settings lcu={fakeLcu()} themes={themes} />, root));
@@ -184,4 +184,72 @@ test('fundo: arquivo novo apaga o anterior; arquivo grande demais ou de tipo err
   put.mockRestore();
   del.mockRestore();
   bg.background.value = bg.DEFAULT_BG;
+});
+
+test('jogo: gravação recusada pela LCU devolve a caixa ao valor anterior', async () => {
+  mount();
+  act(() => tab('Jogo').click());
+  await settle();
+  await settle();
+  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ message: 'não' }), { status: 500 }));
+  const audio = root.querySelector<HTMLInputElement>('input[type="checkbox"][data-key="General.EnableAudio"]')!;
+  act(() => audio.click());
+  expect(audio.checked).toBe(true);
+  await settle();
+  await settle();
+  expect(audio.checked).toBe(false);
+});
+
+test('importar tema com o nome de um tema seu cria uma cópia com outro nome', async () => {
+  const saveUser = vi.fn(() => ({ ok: true as const }));
+  const themes = { ...fakeThemes(signal(vidro), [{ name: 'vidro', label: 'Vidro' }, { name: 'meu', label: 'Meu', user: true }], vi.fn()), saveUser };
+  act(() => render(<Settings lcu={fakeLcu()} themes={themes} />, root));
+  const input = root.querySelector<HTMLInputElement>('input[type="file"][accept=".json,application/json"]')!;
+  Object.defineProperty(input, 'files', { value: [new File(['{"name":"meu","label":"Meu"}'], 'meu.json', { type: 'application/json' })] });
+  act(() => void input.dispatchEvent(new Event('change', { bubbles: true })));
+  await settle();
+  await settle();
+  expect(saveUser).toHaveBeenCalledWith(expect.objectContaining({ name: 'meu-1' }));
+});
+
+test('apagar tema recusado pelo motor mostra o motivo', () => {
+  const deleteUser = vi.fn(() => ({ ok: false as const, error: 'usado por Filho' }));
+  const themes = { ...fakeThemes(signal(vidro), [{ name: 'vidro', label: 'Vidro' }, { name: 'meu', label: 'Meu', user: true }], vi.fn()), deleteUser };
+  act(() => render(<Settings lcu={fakeLcu()} themes={themes} />, root));
+  const wrap = root.querySelector('.rlc-st-group')!.querySelector('.rlc-st-theme[data-name="meu"]')!.parentElement!;
+  act(() => wrap.querySelector<HTMLButtonElement>('.rlc-col-menu')!.click());
+  act(() => btn('Apagar', wrap)!.click());
+  act(() => [...root.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find((b) => b.textContent === 'Apagar')!.click());
+  expect(window.Toast!.error).toHaveBeenCalledWith(expect.stringContaining('usado por Filho'));
+});
+
+test('fundo: skins do campeão anterior que chegam atrasadas não aparecem', async () => {
+  let release!: () => void;
+  const slow = new Promise<void>((r) => (release = r));
+  fetchMock.mockImplementation(async (url: string) => {
+    if (url === '/lol-game-data/assets/v1/champions/1.json') {
+      await slow;
+      return new Response(JSON.stringify({ skins: [{ id: 1000, name: 'Annie' }] }), { status: 200 });
+    }
+    if (url === '/lol-game-data/assets/v1/champions/103.json') return new Response(JSON.stringify({ skins: [{ id: 103000, name: 'Ahri' }] }), { status: 200 });
+    return new Response('[]', { status: 200 });
+  });
+  const lcu = fakeLcu();
+  lcu.game = { ...lcu.game, champions: async () => new Map([[1, { id: 1, name: 'Annie', icon: '', roles: [] }], [103, { id: 103, name: 'Ahri', icon: '', roles: [] }]]) };
+  act(() => render(<Settings lcu={lcu} themes={fakeThemes(signal(vidro), [{ name: 'vidro', label: 'Vidro' }], vi.fn())} />, root));
+  act(() => btn('Splash')!.click());
+  await settle();
+  const search = root.querySelector<HTMLInputElement>('.rlc-st-picker input')!;
+  act(() => {
+    search.value = 'a';
+    search.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  act(() => btn('Annie', root.querySelector('.rlc-st-picker')!)!.click());
+  await settle();
+  act(() => btn('Ahri', root.querySelector('.rlc-st-picker .rlc-chip-row')!)!.click());
+  await settle();
+  release();
+  await settle();
+  await settle();
+  expect([...root.querySelectorAll('.rlc-st-picker .rlc-cn-card')].map((c) => c.getAttribute('aria-label'))).toEqual(['Ahri']);
 });

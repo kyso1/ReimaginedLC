@@ -28,7 +28,8 @@ export interface ThemeEngine {
   set(name: string, game?: Game): void;
   /** Valida e guarda um tema do usuário; um tema ativo com o mesmo nome é atualizado na hora. */
   saveUser(input: unknown): SaveResult;
-  deleteUser(name: string): void;
+  /** Recusa enquanto outro tema do usuário herda deste (o filho ficaria guardado e invisível). */
+  deleteUser(name: string): SaveResult;
   /** Manifesto em JSON para exportar, ou null. */
   exportTheme(name: string): string | null;
   manifest(name: string): ThemeManifest | null;
@@ -129,12 +130,15 @@ export async function createThemeEngine(base: string, get: (url: string) => Prom
       return { ok: true };
     },
     deleteUser(name) {
-      if (!userNames.has(name)) return;
+      if (!userNames.has(name)) return { ok: false, error: `"${name}" não é um tema do usuário` };
+      const children = [...userNames].map((n) => manifests.get(n)).filter((m) => m?.extends === name);
+      if (children.length) return { ok: false, error: `usado por ${children.map((m) => m!.label).join(', ')}` };
       userNames.delete(name);
       manifests.delete(name);
       persistUser();
       for (const game of ['lol', 'tft'] as const) if (forGame[game].value.name === name) setFor(game === 'tft' ? 'vidro-ludico' : FALLBACK, game);
       refresh();
+      return { ok: true };
     },
     exportTheme: (name) => (manifests.has(name) ? JSON.stringify(manifests.get(name), null, 2) : null),
     manifest: (name) => manifests.get(name) ?? null,

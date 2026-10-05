@@ -122,3 +122,13 @@ test('rascunho do editor resolve sem salvar', async () => {
   expect(engine.resolveDraft(userTheme({ tokens: { 'color.bg': 'x;y' } }))).toMatchObject({ ok: false });
   expect(engine.list.value.some((t) => t.name === 'meu-tema')).toBe(false);
 });
+
+test('apagar tema do qual outro tema seu herda é recusado, com o nome do filho', async () => {
+  const engine = await createThemeEngine('https://x/', files());
+  engine.saveUser(userTheme());
+  engine.saveUser(userTheme({ name: 'filho', label: 'Filho', extends: 'meu-tema' }));
+  expect(engine.deleteUser('meu-tema')).toMatchObject({ ok: false, error: expect.stringContaining('Filho') });
+  expect(engine.list.value.map((t) => t.name)).toEqual(expect.arrayContaining(['meu-tema', 'filho']));
+  expect(engine.deleteUser('filho')).toEqual({ ok: true });
+  expect(engine.deleteUser('meu-tema')).toEqual({ ok: true });
+});

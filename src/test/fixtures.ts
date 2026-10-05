@@ -141,7 +141,7 @@ export function fakeThemes(active: import('@preact/signals').Signal<import('../t
     available,
     set,
     saveUser: () => ({ ok: true }),
-    deleteUser: () => {},
+    deleteUser: () => ({ ok: true }),
     exportTheme: () => null,
     manifest: () => null,
     resolveDraft: () => ({ ok: false, error: 'teste' }),

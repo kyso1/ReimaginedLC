@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
@@ -50,6 +50,7 @@ export function Loot({ lcu }: { lcu: Lcu }) {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ menu: LolLootContextMenu; loot: LolLootPlayerLoot } | null>(null);
   const [reveal, setReveal] = useState<LolLootPlayerLootUpdate | null>(null);
+  const menus = useRef<MenuCache>(new Map());
   // A LCU manda itens sem lootId (count > 0, sem nome): ficam de fora.
   const all = (lcu.loot.value.data ?? []).filter((l) => l.lootId && l.type !== 'CURRENCY' && l.count > 0);
   const present = GROUPS.filter(([g]) => all.some((l) => lootGroup(l) === g));
@@ -78,7 +79,7 @@ export function Loot({ lcu }: { lcu: Lcu }) {
       <Cinema
         items={items}
         onEnter={(i) => setFocusId(String(i.id))}
-        extra={(i) => <Actions key={i.id} lootId={String(i.id)} onAction={(menu) => setConfirm({ menu, loot: list.find((l) => l.lootId === i.id)! })} busy={craft.pending} />}
+        extra={(i) => <Actions key={i.id} lootId={String(i.id)} count={list.find((l) => l.lootId === i.id)?.count ?? 0} cache={menus.current} onAction={(menu) => setConfirm({ menu, loot: list.find((l) => l.lootId === i.id)! })} busy={craft.pending} />}
         chips={present.map(([g, label]) => (
           <Chip key={g} on={group === g} onClick={() => setGroup(g)}>
             {t(label)}
@@ -121,15 +122,24 @@ export function Loot({ lcu }: { lcu: Lcu }) {
 }
 
 /** Ações do item em foco, como a LCU as oferece no menu de contexto. */
-function Actions({ lootId, onAction, busy }: { lootId: string; onAction: (m: LolLootContextMenu) => void; busy: boolean }) {
+type MenuCache = Map<string, Promise<LolLootContextMenu[]>>;
+
+/** Menu de ações do item. Uma consulta por item e quantidade (passar o mouse de novo usa o cache); falha deixa sem ações, sem aviso. */
+function Actions({ lootId, count, cache, onAction, busy }: { lootId: string; count: number; cache: MenuCache; onAction: (m: LolLootContextMenu) => void; busy: boolean }) {
   const [menu, setMenu] = useState<LolLootContextMenu[]>([]);
   useEffect(() => {
     let live = true;
-    void request<LolLootContextMenu[]>('POST', `/lol-loot/v1/player-loot/${encodeURIComponent(lootId)}/context-menu`)
-      .then((m) => live && setMenu(m ?? []))
-      .catch(() => {});
+    const key = `${lootId}:${count}`;
+    let entry = cache.get(key);
+    if (!entry) {
+      entry = fetch(`/lol-loot/v1/player-loot/${encodeURIComponent(lootId)}/context-menu`, { method: 'POST' })
+        .then((r) => (r.ok ? (r.json() as Promise<LolLootContextMenu[]>) : []))
+        .catch(() => []);
+      cache.set(key, entry);
+    }
+    void entry.then((m) => live && setMenu(Array.isArray(m) ? m : []));
     return () => void (live = false);
-  }, [lootId]);
+  }, [lootId, count, cache]);
   if (!menu.length) return null;
   return (
     <div class="rlc-lt-actions">
