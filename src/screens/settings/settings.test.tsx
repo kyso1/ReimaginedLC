@@ -7,6 +7,7 @@ import { effectiveLocale, prefs, sanitizePrefs } from '../../shell/prefs';
 import { fakeLcu, fakeThemes } from '../../test/fixtures';
 import type { ResolvedTheme } from '../../theme/resolve';
 import * as bg from '../../theme/background';
+import { update } from '../../shell/update';
 import { Settings } from './Settings';
 
 let root: HTMLElement;
@@ -252,4 +253,15 @@ test('fundo: skins do campeão anterior que chegam atrasadas não aparecem', asy
   await settle();
   await settle();
   expect([...root.querySelectorAll('.rlc-st-picker .rlc-cn-card')].map((c) => c.getAttribute('aria-label'))).toEqual(['Ahri']);
+});
+
+test('geral: versão nova aparece com botão que abre a página da release no navegador', () => {
+  update.value = { version: '0.2.0', url: 'https://github.com/kyso1/ReimaginedLC/releases/tag/v0.2.0' };
+  mount();
+  act(() => tab('Geral').click());
+  expect(root.querySelector('.rlc-st-update')!.textContent).toContain('0.2.0');
+  act(() => root.querySelector<HTMLButtonElement>('.rlc-st-update button')!.click());
+  const open = fetchMock.mock.calls.find((c) => c[0] === '/riotclient/open-url-in-browser')!;
+  expect(JSON.parse(open[1].body)).toBe('https://github.com/kyso1/ReimaginedLC/releases/tag/v0.2.0');
+  update.value = null;
 });

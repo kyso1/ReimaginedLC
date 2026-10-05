@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import preact from '@preact/preset-vite';
 import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
+import pkg from './package.json' with { type: 'json' };
 
 const MOCK = 'http://127.0.0.1:47616';
 
@@ -21,6 +22,7 @@ function copyToPengu(enabled: boolean): Plugin {
 
 export default defineConfig(({ mode }) => ({
   plugins: [preact(), copyToPengu(mode === 'client')],
+  define: { __RLC_VERSION__: JSON.stringify(pkg.version) },
   build: {
     target: 'chrome108',
     outDir: 'dist/ReimaginedLC',

@@ -299,5 +299,8 @@
   "stShortcut": "Atalho para ligar/desligar",
   "stThemeName": "Nome do tema",
   "stTransition": "Transição",
-  "stUndo": "Desfazer"
+  "stUndo": "Desfazer",
+  "updateAvailable": "Nova versão do ReimaginedLC:",
+  "updateOpen": "Ver novidades e baixar",
+  "versionLabel": "Versão"
 }

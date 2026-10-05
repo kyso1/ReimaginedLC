@@ -299,5 +299,8 @@
   "stShortcut": "Toggle shortcut",
   "stThemeName": "Theme name",
   "stTransition": "Transition",
-  "stUndo": "Undo"
+  "stUndo": "Undo",
+  "updateAvailable": "New ReimaginedLC version:",
+  "updateOpen": "See what is new and download",
+  "versionLabel": "Version"
 }

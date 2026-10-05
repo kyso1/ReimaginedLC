@@ -3,6 +3,7 @@ import { t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
 import { prefs, setPrefs, type Prefs } from '../../shell/prefs';
+import { update } from '../../shell/update';
 import { applyTheme } from '../../theme/apply';
 import { Confirm } from '../../shell/overlays/Confirm';
 import { background, BG_SCREENS, deleteMedia, MAX_MEDIA_BYTES, MEDIA, putMedia, setBackground, type BgScreen, type BgSource } from '../../theme/background';
@@ -319,6 +320,15 @@ function General() {
         </select>
       </label>
       <p class="rlc-muted">{`${t('stShortcut')}: Ctrl+Shift+F12`}</p>
+      <p class="rlc-muted">{`${t('versionLabel')} ${__RLC_VERSION__}`}</p>
+      {update.value ? (
+        <div class="rlc-st-update">
+          <span>{`${t('updateAvailable')} ${update.value.version}`}</span>
+          <button type="button" class="rlc-button" data-variant="primary" onClick={() => void request('POST', '/riotclient/open-url-in-browser', update.value!.url).catch(() => {})}>
+            {t('updateOpen')}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -9,6 +9,7 @@ import { Boundary } from './Boundary';
 import { registerCommands } from './commands';
 import { enabled, syncLayer } from './layer';
 import { effectiveLocale, prefs } from './prefs';
+import { checkForUpdate } from './update';
 
 /** Pasta do plugin. No client é a URL do próprio bundle; no servidor de desenvolvimento, a raiz. */
 const base = import.meta.env.DEV ? '/' : new URL(/* @vite-ignore */ '.', import.meta.url).href;
@@ -66,6 +67,8 @@ export async function start(): Promise<void> {
 
     const themes = await createThemeEngine(base);
     registerCommands(themes);
+    // Aviso de versão nova: em segundo plano, sem atrasar a camada.
+    void checkForUpdate(__RLC_VERSION__);
     // `h(App, ...)` e não `App(...)`: o Preact precisa montar o componente para os hooks funcionarem.
     const onError = (error: unknown) => {
       console.error('[rlc]', error);
