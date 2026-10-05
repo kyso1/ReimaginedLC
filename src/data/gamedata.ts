@@ -45,6 +45,11 @@ export function createGameData(fetcher: Fetcher = (u) => fetch(u)) {
     return map;
   });
 
+  const items = once(async () => {
+    const list = (await getJson(fetcher, '/lol-game-data/assets/v1/items.json').catch(() => null)) as Array<Record<string, unknown>> | null;
+    return new Map((Array.isArray(list) ? list : []).filter((i) => i.iconPath).map((i) => [Number(i.id), String(i.iconPath)]));
+  });
+
   // A rota `champion-splashes/{campeão}/{skin}.jpg` não carrega no client: o caminho vem do JSON do campeão.
   const skinsByChampion = new Map<number, Promise<Map<number, string>>>();
   const splash = async (skinId: number | undefined): Promise<string | null> => {
@@ -60,7 +65,7 @@ export function createGameData(fetcher: Fetcher = (u) => fetch(u)) {
     return (await skins).get(skinId) ?? null;
   };
 
-  return { champions, spells, splash };
+  return { champions, spells, splash, items };
 }
 
 export type GameData = ReturnType<typeof createGameData>;

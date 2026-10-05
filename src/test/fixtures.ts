@@ -86,7 +86,7 @@ export function fakeLcu(over: Partial<Lcu> = {}): Lcu {
     customGames: { state: signal(ready([])), refresh: async () => {} },
     profile: async () => null,
     name: async () => null,
-    game: { champions: async () => new Map(), spells: async () => new Map(), splash: async () => null },
+    game: { champions: async () => new Map(), spells: async () => new Map(), splash: async () => null, items: async () => new Map() },
     champSelect: signal(ready<Lcu['champSelect']['value']['data'] & object>(null)),
     skins: signal(ready([])),
     pickable: signal(ready([])),

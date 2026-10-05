@@ -24,6 +24,7 @@ import { InvitationCards } from './overlays/Invitations';
 import { ReadyCheckOverlay, showReadyCheck } from './overlays/ReadyCheck';
 import { screenFor, type Screen } from './router';
 import { readSetting } from './storage';
+import { Profile } from '../screens/profile/Profile';
 import { ChatTabs, ChatWindow, conversationTitle } from '../screens/social/Chat';
 import { ContextChat } from '../screens/social/ContextChat';
 import { AddFriend, FriendRequests, StatusEditor } from '../screens/social/FriendTools';
@@ -83,6 +84,8 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   /** Conversas 1:1 abertas como abas e a que está à vista. */
   const [chats, setChats] = useState<{ open: string[]; active: string | null }>({ open: [], active: null });
   const [removing, setRemoving] = useState<LolChatFriendResource | null>(null);
+  /** Perfil aberto: null é o próprio. */
+  const [profilePuuid, setProfilePuuid] = useState<string | null>(null);
   // Telas livres só fora do fluxo de partida; ao entrar na seleção (ou depois), a fase manda.
   const free = screen === 'home' || screen === 'lobby';
   useEffect(() => {
@@ -151,6 +154,13 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
     <MemberMenu
       items={[
         { label: t('chatWith'), run: () => void openChat(f) },
+        {
+          label: t('viewProfile'),
+          run: () => {
+            setProfilePuuid(f.puuid);
+            setView('profile');
+          },
+        },
         ...(lcu.lobby.value.data ? [{ label: t('inviteToLobby'), run: () => void request('POST', '/lol-lobby/v2/lobby/invitations', [{ toSummonerId: f.summonerId }]).catch(() => {}) }] : []),
         { label: t('removeFriend'), run: () => setRemoving(f) },
       ]}
@@ -174,7 +184,17 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
             { id: 'home', label: t('home'), active: screen === 'home' && !shownView, onSelect: () => setView(null) },
             ...(lcu.lobby.value.data ? [{ id: 'lobby', label: t('lobby'), active: screen === 'lobby' && !shownView, onSelect: () => setView(null) }] : []),
             ...(RAIL[screen] ? [{ id: screen, label: t(RAIL[screen]!), active: true, onSelect: () => {} }] : []),
-            ...(free ? (Object.keys(VIEW_LABEL) as View[]).map((v) => ({ id: v, label: t(VIEW_LABEL[v]), active: shownView === v, onSelect: () => setView(v) })) : []),
+            ...(free
+              ? (Object.keys(VIEW_LABEL) as View[]).map((v) => ({
+                  id: v,
+                  label: t(VIEW_LABEL[v]),
+                  active: shownView === v,
+                  onSelect: () => {
+                    if (v === 'profile') setProfilePuuid(null);
+                    setView(v);
+                  },
+                }))
+              : []),
             { id: 'original', label: t('originalClient'), onSelect: turnOff },
           ]}
         />
@@ -182,7 +202,9 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
           {shownView
             ? views[shownView]
               ? h(views[shownView]!, { lcu })
-              : <section class="rlc-unknown"><h2>{t(VIEW_LABEL[shownView])}</h2></section>
+              : shownView === 'profile' && (profilePuuid ?? lcu.chatMe.value.data?.puuid)
+                ? <Profile key={profilePuuid ?? 'me'} lcu={lcu} puuid={(profilePuuid ?? lcu.chatMe.value.data?.puuid)!} />
+                : <section class="rlc-unknown"><h2>{t(VIEW_LABEL[shownView])}</h2></section>
             : screen === 'home' && screens.home
             ? h(screens.home, { version: lcu.build.value.data?.version ?? null, locale: lcu.regionLocale.value.data?.locale ?? null, onPlay: () => setPanel('modes') })
             : screen === 'lobby' && screens.lobby
