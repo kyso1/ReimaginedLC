@@ -350,3 +350,17 @@ test('Personalizada na tela de modos abre a lista de salas', async () => {
   expect(root.querySelector('.rlc-custom')!.textContent).toContain('Criar sala');
   vi.unstubAllGlobals();
 });
+
+test('tela de modos aberta na tela inicial fecha quando a rota vai para o lobby (convite aceito)', async () => {
+  enabled.value = true;
+  mount();
+  await flush();
+  [...root.querySelectorAll('button')].find((b) => b.textContent === 'Jogar')!.click();
+  await flush();
+  expect(root.querySelector('.rlc-modes')).not.toBeNull();
+  lcu.lobby.value = ready(lobbyFixture([leaderFixture()]));
+  phase.value = ready('Lobby');
+  await flush();
+  expect(root.querySelector('.rlc-lobby')).not.toBeNull();
+  expect(root.querySelector('.rlc-modes')).toBeNull();
+});

@@ -131,3 +131,15 @@ test('bot sem nome interno (como a LCU manda) é removido com um nome qualquer n
   act(() => btn('Remover')!.click());
   expect(call('/lol-lobby/v1/lobby/custom/bots/bot/u9/100', 'DELETE')).toBeDefined();
 });
+
+test('trocar de time com dois cliques envia uma vez', () => {
+  fetchMock.mockImplementation(() => new Promise(() => {}));
+  mount();
+  const red = root.querySelectorAll('.rlc-stage')[1]!;
+  const b = btn('Trocar de time', red)!;
+  act(() => {
+    b.click();
+    b.click();
+  });
+  expect(fetchMock.mock.calls.filter((c) => c[0] === '/lol-lobby/v2/lobby/team/TEAM2')).toHaveLength(1);
+});

@@ -7,9 +7,12 @@ import { useAction } from '../../ui/useAction';
 /** Duração do aceite de partida. A LCU informa só os segundos decorridos (`timer`). */
 export const READY_CHECK_SECONDS = 10;
 
-/** O aceite aparece em ReadyCheck em andamento, exceto quando o client o resolve sozinho (`suppressUx`, como na Ferramenta de Treino). */
-export function showReadyCheck(phase: StoreState<string>, rc: StoreState<LolMatchmakingMatchmakingReadyCheckResource>): boolean {
-  return phase.data === 'ReadyCheck' && rc.data?.state === 'InProgress' && rc.data.suppressUx !== true;
+/**
+ * O aceite aparece enquanto está em andamento, exceto quando o client o resolve sozinho (`suppressUx`, como na
+ * Ferramenta de Treino). Não depende da fase: a fila normal nem passa por Matchmaking, e um aceite perdido custa penalidade.
+ */
+export function showReadyCheck(rc: StoreState<LolMatchmakingMatchmakingReadyCheckResource>): boolean {
+  return rc.data?.state === 'InProgress' && rc.data.suppressUx !== true;
 }
 
 const RADIUS = 52;

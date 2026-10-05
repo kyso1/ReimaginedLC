@@ -19,6 +19,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
   const [panel, setPanel] = useState<null | 'positions' | 'invite' | { botTeam: number }>(null);
   const [kicking, setKicking] = useState<Participant | null>(null);
   const bots = useBots(lcu.lobby.value.data?.gameConfig.isCustom === true);
+  const switchTeam = useAction((team: number) => request('POST', `/lol-lobby/v2/lobby/team/TEAM${team === 100 ? 1 : 2}`));
   const data = lcu.lobby.value.data;
   // Lobby some antes da fase mudar (expulso, saiu): mostra vazio até a rota trocar.
   if (!data) return <section class="rlc-lobby" />;
@@ -85,7 +86,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
             `${team}-${i}`,
             <>
               {localTeam !== team ? (
-                <button type="button" onClick={() => void request('POST', `/lol-lobby/v2/lobby/team/TEAM${team === 100 ? 1 : 2}`).catch(() => {})}>
+                <button type="button" disabled={switchTeam.pending} onClick={() => switchTeam.run(team)}>
                   {t('switchTeam')}
                 </button>
               ) : null}

@@ -23,12 +23,11 @@ afterEach(() => {
 const buttons = () => [...root.querySelectorAll('button')];
 const byText = (text: string) => buttons().find((b) => b.textContent === text);
 
-test('showReadyCheck: só em ReadyCheck, InProgress e sem suppressUx', () => {
-  expect(showReadyCheck(ready('ReadyCheck'), ready(readyCheck()))).toBe(true);
-  expect(showReadyCheck(ready('ReadyCheck'), ready(readyCheck({ suppressUx: true })))).toBe(false);
-  expect(showReadyCheck(ready('Matchmaking'), ready(readyCheck()))).toBe(false);
-  expect(showReadyCheck(ready('ReadyCheck'), ready(readyCheck({ state: 'Invalid' })))).toBe(false);
-  expect(showReadyCheck(ready('ReadyCheck'), ready<never>(null))).toBe(false);
+test('showReadyCheck: aceite em andamento e sem suppressUx, em qualquer fase (a fila normal pode nem passar por Matchmaking)', () => {
+  expect(showReadyCheck(ready(readyCheck()))).toBe(true);
+  expect(showReadyCheck(ready(readyCheck({ suppressUx: true })))).toBe(false);
+  expect(showReadyCheck(ready(readyCheck({ state: 'Invalid' })))).toBe(false);
+  expect(showReadyCheck(ready<never>(null))).toBe(false);
 });
 
 test('aceite: Aceitar e Recusar chamam a LCU; mostra o tempo restante', () => {

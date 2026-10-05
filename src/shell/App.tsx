@@ -53,12 +53,11 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   const theme = themes.active.value;
   const hide = visible && hideRiot.value;
   const [confirmClose, setConfirmClose] = useState(false);
-  /** Painel aberto sobre a tela: tela de modos ou lista de salas. Fecha quando a camada some. */
+  /** Painel aberto sobre a tela: tela de modos ou lista de salas. */
   const [panel, setPanel] = useState<null | 'modes' | 'custom'>(null);
-  useEffect(() => {
-    if (!visible) setPanel(null);
-  }, [visible]);
-  const readyVisible = visible && showReadyCheck(lcu.gameflowPhase.value, lcu.readyCheck.value);
+  // Fecha ao trocar de tela (convite aceito leva da tela inicial ao lobby) ou quando a camada some.
+  useEffect(() => setPanel(null), [screen, visible]);
+  const readyVisible = visible && showReadyCheck(lcu.readyCheck.value);
 
   // Aceite com a janela minimizada ou sem foco: traz a janela para frente, uma vez por aceite.
   useEffect(() => {
