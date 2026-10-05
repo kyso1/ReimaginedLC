@@ -1,0 +1,19 @@
+{
+  "label": "fluxo-2a-lobby-ligada",
+  "takenAt": "2026-10-05T02:13:56.7040735-03:00",
+  "seconds": 60.2,
+  "logicalCores": 12,
+  "processes": {
+    "min": 8.0,
+    "max": 8.0
+  },
+  "workingSetMB": {
+    "avg": 2131.3,
+    "max": 2138.7
+  },
+  "privateMB": {
+    "avg": 2044.7,
+    "max": 2051.2
+  },
+  "cpuPercentOfOneCore": 129.8
+}
