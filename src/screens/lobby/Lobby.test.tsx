@@ -184,9 +184,10 @@ test('splash do perfil vira camada de fundo da coluna', async () => {
   lcu.game = { ...lcu.game, splash: async (skinId) => (skinId === 1001 ? '/lol-game-data/assets/ASSETS/annie_1.jpg' : null) };
   mount(lcu);
   await settle();
+  await settle();
   const cols = root.querySelectorAll<HTMLElement>('.rlc-col');
-  expect(cols[0]!.style.backgroundImage).toContain('/lol-game-data/assets/ASSETS/annie_1.jpg');
-  expect(cols[1]!.style.backgroundImage).toBe('');
+  expect(cols[0]!.querySelector<HTMLElement>('.rlc-col-splash')!.style.backgroundImage).toContain('/lol-game-data/assets/ASSETS/annie_1.jpg');
+  expect(cols[1]!.querySelector('.rlc-col-splash')).toBeNull();
 });
 
 test('sem summonerName (Riot ID), a coluna mostra o nome buscado pelo puuid', async () => {

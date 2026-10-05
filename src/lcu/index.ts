@@ -5,6 +5,8 @@ import { connect } from './socket';
 import { createStore, type StoreState } from './store';
 import type {
   LolChatFriendResource,
+  LolChatUserResource,
+  LolLootPlayerLoot,
   LolEndOfGameEndOfGameStats,
   LolGameflowGameflowSession,
   LolHonorV2Ballot,
@@ -60,6 +62,11 @@ export interface Lcu {
   lanes: Signal<StoreState<Record<string, LolPerksRecommendedPositionsMapResource>>>;
   /** Grade da seleção: traz `positionsFavorited` (rotas em minúsculas) por campeão. */
   gridChampions: Signal<StoreState<TeamBuilderDirect_ChampGridChampion[]>>;
+  chatMe: Signal<StoreState<LolChatUserResource>>;
+  /** RP e Essência Azul. A rota sem `currencyTypes` responde 400; não há evento para a URI com query (atualizar com `refresh`). */
+  wallet: Signal<StoreState<Record<string, number>>> & { refresh: () => Promise<void> };
+  /** Essência Laranja (espólio `CURRENCY_cosmetic`). */
+  orangeEssence: Signal<StoreState<LolLootPlayerLoot>> & { refresh: () => Promise<void> };
 }
 
 type Fetcher = (url: string) => Promise<Response>;
@@ -127,5 +134,8 @@ export function createLcu(doc: Document = document): Lcu {
     endOfGame: createStore('/lol-end-of-game/v1/eog-stats-block', socket),
     lanes: createStore('/lol-perks/v1/recommended-champion-positions', socket),
     gridChampions: createStore('/lol-champ-select/v1/all-grid-champions', socket),
+    chatMe: createStore('/lol-chat/v1/me', socket),
+    wallet: createStore('/lol-inventory/v1/wallet?currencyTypes=' + encodeURIComponent('["RP","lol_blue_essence"]'), socket),
+    orangeEssence: createStore('/lol-loot/v1/player-loot/CURRENCY_cosmetic', socket),
   };
 }

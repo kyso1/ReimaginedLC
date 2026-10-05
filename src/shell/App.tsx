@@ -24,6 +24,7 @@ import { InvitationCards } from './overlays/Invitations';
 import { ReadyCheckOverlay, showReadyCheck } from './overlays/ReadyCheck';
 import { screenFor, type Screen } from './router';
 import { readSetting } from './storage';
+import { CurrencyChip, RightColumn } from './RightColumn';
 import { WindowBar } from './WindowBar';
 
 /** Item do trilho para as telas do fluxo da partida. */
@@ -43,6 +44,11 @@ interface Screens {
   postgame?: (props: { lcu: Lcu }) => JSX.Element;
 }
 
+/** Telas livres do trilho, abertas fora do fluxo de partida. */
+export type View = 'profile' | 'collection' | 'settings';
+type Views = Partial<Record<View, (props: { lcu: Lcu }) => JSX.Element>>;
+const VIEW_LABEL: Record<View, TextKey> = { profile: 'navProfile', collection: 'navCollection', settings: 'navSettings' };
+
 interface Props {
   root: HTMLElement;
   lcu: Lcu;
@@ -54,9 +60,10 @@ interface Props {
   screens?: Screens;
   /** Ponto de troca para testes. */
   readyCheckOverlay?: typeof ReadyCheckOverlay;
+  views?: Views;
 }
 
-export function App({ root, lcu, themes, base, focused, dom, screens = { home: Home, lobby: Lobby, champselect: ChampSelect, ingame: InGame, honor: Honor, postgame: PostGame }, readyCheckOverlay: ReadyCheck = ReadyCheckOverlay }: Props) {
+export function App({ root, lcu, themes, base, focused, dom, screens = { home: Home, lobby: Lobby, champselect: ChampSelect, ingame: InGame, honor: Honor, postgame: PostGame }, readyCheckOverlay: ReadyCheck = ReadyCheckOverlay, views = {} }: Props) {
   const domVersion = dom.value;
   const route = screenFor(lcu.gameflowPhase.value);
   // Sem a sessão de seleção não há como escolher: única fase que volta ao client original.
@@ -66,6 +73,20 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   const theme = themes.active.value;
   const hide = visible && hideRiot.value;
   const [confirmClose, setConfirmClose] = useState(false);
+  const [view, setView] = useState<View | null>(null);
+  const [rightOpen, setRightOpen] = useState(false);
+  // Telas livres só fora do fluxo de partida; ao entrar na seleção (ou depois), a fase manda.
+  const free = screen === 'home' || screen === 'lobby';
+  useEffect(() => {
+    if (!free) setView(null);
+  }, [free]);
+  const shownView = free ? view : null;
+  // A carteira não tem evento para a URI com consulta: relê ao voltar à tela inicial (depois de partida, loja, espólio).
+  useEffect(() => {
+    if (phaseName !== 'None') return;
+    void lcu.wallet.refresh();
+    void lcu.orangeEssence.refresh();
+  }, [phaseName]);
   useEffect(() => {
     if (phaseName === 'TerminatedInError') window.Toast?.error(t('gameError'));
   }, [phaseName]);
@@ -124,15 +145,20 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
         <MediaBackground src={mediaUrl(theme, screen, base)} playing={focused.value} />
         <Rail
           items={[
-            // A rota segue a fase do gameflow: os itens indicam onde se está, não navegam livremente.
-            { id: 'home', label: t('home'), active: screen === 'home', onSelect: () => {} },
-            ...(lcu.lobby.value.data ? [{ id: 'lobby', label: t('lobby'), active: screen === 'lobby', onSelect: () => {} }] : []),
+            // Início e Lobby seguem a fase do gameflow; Perfil, Coleção e Configurações abrem por cima dela, fora da partida.
+            { id: 'home', label: t('home'), active: screen === 'home' && !shownView, onSelect: () => setView(null) },
+            ...(lcu.lobby.value.data ? [{ id: 'lobby', label: t('lobby'), active: screen === 'lobby' && !shownView, onSelect: () => setView(null) }] : []),
             ...(RAIL[screen] ? [{ id: screen, label: t(RAIL[screen]!), active: true, onSelect: () => {} }] : []),
+            ...(free ? (Object.keys(VIEW_LABEL) as View[]).map((v) => ({ id: v, label: t(VIEW_LABEL[v]), active: shownView === v, onSelect: () => setView(v) })) : []),
             { id: 'original', label: t('originalClient'), onSelect: turnOff },
           ]}
         />
         <main class="rlc-screen">
-          {screen === 'home' && screens.home
+          {shownView
+            ? views[shownView]
+              ? h(views[shownView]!, { lcu })
+              : <section class="rlc-unknown"><h2>{t(VIEW_LABEL[shownView])}</h2></section>
+            : screen === 'home' && screens.home
             ? h(screens.home, { version: lcu.build.value.data?.version ?? null, locale: lcu.regionLocale.value.data?.locale ?? null, onPlay: () => setPanel('modes') })
             : screen === 'lobby' && screens.lobby
               ? h(screens.lobby, { lcu, onModes: () => setPanel('modes') })
@@ -141,6 +167,8 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
                 : // Fase desconhecida ou tela não fornecida (testes): tela de fase desconhecida, nunca o client original.
                   <Unknown phase={phaseName} onOriginal={turnOff} />}
         </main>
+        <RightColumn lcu={lcu} open={rightOpen} onOpen={() => setRightOpen(true)} onClose={() => setRightOpen(false)} />
+        <CurrencyChip lcu={lcu} />
         {panel === 'modes' ? (
           <Modes
             queues={lcu.queues.value.data ?? []}

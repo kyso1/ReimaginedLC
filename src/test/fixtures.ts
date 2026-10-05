@@ -98,6 +98,9 @@ export function fakeLcu(over: Partial<Lcu> = {}): Lcu {
     endOfGame: signal(ready<Lcu['endOfGame']['value']['data'] & object>(null)),
     lanes: signal(ready({})),
     gridChampions: signal(ready([])),
+    chatMe: signal(ready<Lcu['chatMe']['value']['data'] & object>(null)),
+    wallet: Object.assign(signal(ready<Record<string, number>>(null)), { refresh: async () => {} }),
+    orangeEssence: Object.assign(signal(ready<Lcu['orangeEssence']['value']['data'] & object>(null)), { refresh: async () => {} }),
     ...over,
   };
 }

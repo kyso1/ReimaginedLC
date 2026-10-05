@@ -3,6 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { t } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import type { LolLobbyLobbyParticipantDto } from '../../lcu/types';
+import { useDecoded } from '../../ui/useDecoded';
 import { positionKey } from './format';
 
 export type Participant = LolLobbyLobbyParticipantDto;
@@ -34,7 +35,7 @@ interface ColumnProps {
 }
 
 export function Column({ member, profile, name, splash: splashOf, isLocal = false, showPositions = false, label, onSelf, menu, empty }: ColumnProps) {
-  const splash = useSplash(member, profile, splashOf);
+  const splash = useDecoded(useSplash(member, profile, splashOf));
   const resolved = useName(member, name);
   if (!member) {
     return (
@@ -54,7 +55,8 @@ export function Column({ member, profile, name, splash: splashOf, isLocal = fals
     </>
   );
   return (
-    <div class="rlc-col" data-local={isLocal ? 'true' : undefined} style={splash ? { backgroundImage: `url("${splash}"), var(--rlc-col-base)` } : undefined}>
+    <div class="rlc-col" data-local={isLocal ? 'true' : undefined}>
+      {splash ? <div class="rlc-col-splash" style={{ backgroundImage: `url("${splash}")` }} /> : null}
       {onSelf ? (
         <button type="button" class="rlc-col-main" aria-label={t('positions')} onClick={onSelf}>
           {body}

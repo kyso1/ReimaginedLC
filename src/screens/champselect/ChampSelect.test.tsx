@@ -169,13 +169,16 @@ test('banimentos aparecem sob o time certo', async () => {
 test('fundo com a splash do campeão destacado; sem campeão, sem splash', async () => {
   setup(session({ myTeam: [cell({ cellId: 0, championPickIntent: 103 })] }));
   await settle();
+  await settle();
   expect(root.querySelector<HTMLElement>('.rlc-cs-splash')!.style.backgroundImage).toContain('/splash/103000.jpg');
   render(null, root);
   setup(session({ myTeam: [cell({ cellId: 0, championId: 103, selectedSkinId: 103005 })] }));
   await settle();
+  await settle();
   expect(root.querySelector<HTMLElement>('.rlc-cs-splash')!.style.backgroundImage).toContain('/splash/103005.jpg');
   render(null, root);
   setup(session({ myTeam: [cell({ cellId: 0 })] }));
+  await settle();
   await settle();
   expect(root.querySelector<HTMLElement>('.rlc-cs-splash')!.style.backgroundImage).toBe('');
 });

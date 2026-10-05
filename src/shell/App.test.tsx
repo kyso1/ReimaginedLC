@@ -428,3 +428,40 @@ test('partida, honra e pós-jogo têm telas nossas e o trilho marca a tela atual
     expect(riot.style.visibility).toBe('hidden');
   }
 });
+
+test('trilho navega para Perfil, Coleção e Configurações fora do fluxo de partida; Início volta', async () => {
+  enabled.value = true;
+  const Profile = () => <div class="stub-profile" />;
+  mount({ views: { profile: Profile } });
+  await flush();
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Perfil"]')!.click();
+  await flush();
+  expect(root.querySelector('.stub-profile')).not.toBeNull();
+  expect(root.querySelector('.rlc-rail-item[aria-label="Perfil"]')!.getAttribute('aria-current')).toBe('page');
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Início"]')!.click();
+  await flush();
+  expect(root.querySelector('.stub-profile')).toBeNull();
+  expect(root.textContent).toContain('Jogar');
+});
+
+test('entrar na seleção de campeões troca a tela livre pela fase', async () => {
+  enabled.value = true;
+  const Profile = () => <div class="stub-profile" />;
+  mount({ views: { profile: Profile } });
+  await flush();
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Perfil"]')!.click();
+  await flush();
+  phase.value = ready('ChampSelect');
+  lcu.champSelect.value = ready(sessionFixture());
+  await flush();
+  expect(root.querySelector('.stub-profile')).toBeNull();
+  expect(root.querySelector('.rlc-champselect')).not.toBeNull();
+  expect(root.querySelector('.rlc-rail-item[aria-label="Perfil"]')).toBeNull();
+});
+
+test('coluna da direita e chip de moedas aparecem com a camada', async () => {
+  enabled.value = true;
+  mount();
+  await flush();
+  expect(root.querySelector('.rlc-rc')).not.toBeNull();
+});
