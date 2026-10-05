@@ -8,6 +8,7 @@ import { App, RIOT_ROOT_ID } from './App';
 import { Boundary } from './Boundary';
 import { registerCommands } from './commands';
 import { enabled, syncLayer } from './layer';
+import { effectiveLocale, prefs } from './prefs';
 
 /** Pasta do plugin. No client é a URL do próprio bundle; no servidor de desenvolvimento, a raiz. */
 const base = import.meta.env.DEV ? '/' : new URL(/* @vite-ignore */ '.', import.meta.url).href;
@@ -58,8 +59,9 @@ export async function start(): Promise<void> {
 
     const lcu = createLcu();
     effect(() => {
-      const locale = lcu.regionLocale.value.data?.locale;
-      if (typeof locale === 'string') setLocale(locale);
+      const client = lcu.regionLocale.value.data?.locale;
+      const locale = effectiveLocale(prefs.value.locale, typeof client === 'string' ? client : undefined);
+      if (locale) setLocale(locale);
     });
 
     const themes = await createThemeEngine(base);

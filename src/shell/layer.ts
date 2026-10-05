@@ -1,5 +1,6 @@
 import { signal } from '@preact/signals';
 import { t } from '../i18n';
+import { loadPrefs } from './prefs';
 import { readSetting, writeSetting } from './storage';
 
 /** Camada do ReimaginedLC visível. Desligada, o client original aparece e funciona normalmente. */
@@ -9,7 +10,8 @@ export const hideRiot = signal(true);
 
 /** Relê a configuração. Chamado em `load()`, quando o DataStore já existe. */
 export function syncLayer(): void {
-  enabled.value = readSetting<unknown>('rlc.enabled', false) === true;
+  // Preferência "ao abrir o client" fixa o estado; sem ela, fica como estava da última vez.
+  enabled.value = loadPrefs().openOnStart ?? readSetting<unknown>('rlc.enabled', false) === true;
   hideRiot.value = readSetting<unknown>('rlc.hideRiot', true) !== false;
 }
 

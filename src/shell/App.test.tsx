@@ -10,6 +10,7 @@ import { background } from '../theme/background';
 import { DEFAULT_BG } from '../theme/background';
 import { App, RIOT_ROOT_ID } from './App';
 import { enabled, hideRiot, syncLayer } from './layer';
+import { DEFAULT_PREFS, prefs } from './prefs';
 
 const vidro: ResolvedTheme = { name: 'vidro', label: 'Vidro', tokens: { 'color.bg': '#0b1020' }, transition: 'wipe', backgrounds: { default: { theme: 'vidro', path: '/fe/x/a.jpg' } } };
 const editorial: ResolvedTheme = { name: 'editorial', label: 'Editorial', tokens: { 'color.bg': '#0e0e10' }, transition: 'fade', backgrounds: { default: { theme: 'editorial', path: '' } } };
@@ -52,6 +53,7 @@ afterEach(() => {
   root.remove();
   riot.remove();
   delete window.Toast;
+  prefs.value = DEFAULT_PREFS;
 });
 
 test('com a camada desligada nada aparece e a interface da Riot fica visível', async () => {
@@ -517,4 +519,29 @@ test('fundo personalizado: splash escolhida substitui o fundo do tema na tela in
   expect(root.querySelector('img.rlc-bg')!.getAttribute('src')).toBe('/s/103001.jpg');
   expect(root.querySelector<HTMLElement>('.rlc-app')!.style.getPropertyValue('--rlc-bg-dim')).toBe('0.4');
   background.value = DEFAULT_BG;
+});
+
+test('Configurações abre a tela de configurações', async () => {
+  enabled.value = true;
+  mount();
+  await flush();
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Configurações"]')!.click();
+  await flush();
+  expect(root.querySelector('.rlc-settings')).not.toBeNull();
+});
+
+test('preferências: transições vão para data-motion e vídeo desligado não toca', async () => {
+  enabled.value = true;
+  themes.active.value = { ...themes.active.value, backgrounds: { default: { theme: 'vidro', path: '/fe/x/a.webm' } } };
+  prefs.value = { ...DEFAULT_PREFS, motion: 'off', video: false };
+  mount();
+  await flush();
+  expect(root.dataset.motion).toBe('off');
+  const play = HTMLMediaElement.prototype.play as unknown as ReturnType<typeof vi.fn>;
+  play.mockClear();
+  focused.value = false;
+  await flush();
+  focused.value = true;
+  await flush();
+  expect(play).not.toHaveBeenCalled();
 });

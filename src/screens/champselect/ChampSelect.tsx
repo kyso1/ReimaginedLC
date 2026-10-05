@@ -9,6 +9,7 @@ import { RunesSpellsTab, SkinsTab } from './Loadout';
 import { Bench, SwapCards, swapMenu } from './Swaps';
 import { bansByTeam, displayedChampion, flatActions, myTurn, remainingSeconds, selectPhase, type SelectPhase, type Session } from './logic';
 import { Team } from './Teams';
+import { prefs } from '../../shell/prefs';
 
 const PHASE_TEXT: Record<SelectPhase, TextKey | null> = {
   ban: 'phaseBan',
@@ -74,7 +75,7 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   ) : null;
 
   return (
-    <section class="rlc-champselect">
+    <section class="rlc-champselect" data-layout={prefs.value.champSelectLayout}>
       <div class="rlc-cs-splash" key={splash ?? 'none'} style={splash ? { backgroundImage: `url("${splash}")` } : undefined} />
       <header class="rlc-cs-top">
         <Team cells={session.myTeam} side="mine" bans={bans.mine} active={active} localCellId={session.localPlayerCellId} champions={champions} spells={spells} name={lcu.name} menuFor={(c) => (c.cellId === session.localPlayerCellId ? null : swapMenu(session, c))} />

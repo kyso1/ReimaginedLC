@@ -25,6 +25,8 @@ import { ReadyCheckOverlay, showReadyCheck } from './overlays/ReadyCheck';
 import { screenFor, type Screen } from './router';
 import { readSetting } from './storage';
 import { Collection } from '../screens/collection/Collection';
+import { Settings } from '../screens/settings/Settings';
+import { prefs } from './prefs';
 import { Profile } from '../screens/profile/Profile';
 import { ChatTabs, ChatWindow, conversationTitle } from '../screens/social/Chat';
 import { ContextChat } from '../screens/social/ContextChat';
@@ -127,6 +129,8 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   // Layout effects: rodam logo após o commit do DOM, antes de qualquer pintura. Se a camada
   // não mostra tela, a Riot precisa estar visível já, não no próximo frame.
   useLayoutEffect(() => applyTheme(root, theme), [root, theme]);
+  const motion = prefs.value.motion;
+  useLayoutEffect(() => void (root.dataset.motion = motion), [root, motion]);
 
   /** Elemento da Riot que escondemos e o `visibility` inline que ele tinha; null quando não escondemos nada. */
   const hidden = useRef<{ el: HTMLElement; prev: string } | null>(null);
@@ -191,7 +195,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
       style={{ '--rlc-bg-dim': String(background.value.dim), '--rlc-bg-blur': `${background.value.blur}px`, '--rlc-bg-pos': `${background.value.posX}% ${background.value.posY}%` }}
     >
       <Boundary onError={onError}>
-        <MediaBackground src={custom?.src ?? mediaUrl(theme, screen, base)} video={custom?.video} playing={focused.value} />
+        <MediaBackground src={custom?.src ?? mediaUrl(theme, screen, base)} video={custom?.video} playing={focused.value && prefs.value.video} />
         <div class="rlc-bg-dim" />
         <Rail
           items={[
@@ -221,6 +225,8 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
                 ? <Profile key={profilePuuid ?? 'me'} lcu={lcu} puuid={(profilePuuid ?? lcu.chatMe.value.data?.puuid)!} />
                 : shownView === 'collection'
                   ? <Collection lcu={lcu} />
+                : shownView === 'settings'
+                  ? <Settings lcu={lcu} themes={themes} />
                 : <section class="rlc-unknown"><h2>{t(VIEW_LABEL[shownView])}</h2></section>
             : screen === 'home' && screens.home
             ? h(screens.home, { version: lcu.build.value.data?.version ?? null, locale: lcu.regionLocale.value.data?.locale ?? null, onPlay: () => setPanel('modes') })
