@@ -59,6 +59,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
       member={m}
       profile={lcu.profile}
       name={lcu.name}
+      splash={lcu.splash}
       isLocal={m ? isLocal(m) : false}
       showPositions={!config.isCustom && config.showPositionSelector}
       label={m?.isBot ? (bots.find((b) => b.id === m.botChampionId)?.name ?? t('bot')) : undefined}

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { fakeLcu, friend, leader, lobby, member, queue, ready, search } from '../../test/fixtures';
-import { formatClock, splashUrl } from './format';
+import { formatClock } from './format';
 import { Lobby } from './Lobby';
 
 let root: HTMLElement;
@@ -46,10 +46,7 @@ const withSignals = (over: Partial<Record<keyof Lcu, unknown>>) => {
   return lcu;
 };
 
-test('splashUrl e formatClock', () => {
-  expect(splashUrl(1001)).toBe('/lol-game-data/assets/v1/champion-splashes/1/1001.jpg');
-  expect(splashUrl(0)).toBeNull();
-  expect(splashUrl(undefined)).toBeNull();
+test('formatClock', () => {
   expect(formatClock(72)).toBe('1:12');
   expect(formatClock(-3)).toBe('0:00');
   expect(formatClock(605.7)).toBe('10:05');
@@ -184,10 +181,11 @@ test('lobby nulo em fase de lobby não quebra', () => {
 test('splash do perfil vira camada de fundo da coluna', async () => {
   const lcu = withSignals({});
   lcu.profile = async (puuid) => (puuid === me.puuid ? { backgroundSkinId: 1001 } : null);
+  lcu.splash = async (skinId) => (skinId === 1001 ? '/lol-game-data/assets/ASSETS/annie_1.jpg' : null);
   mount(lcu);
   await settle();
   const cols = root.querySelectorAll<HTMLElement>('.rlc-col');
-  expect(cols[0]!.style.backgroundImage).toContain('/lol-game-data/assets/v1/champion-splashes/1/1001.jpg');
+  expect(cols[0]!.style.backgroundImage).toContain('/lol-game-data/assets/ASSETS/annie_1.jpg');
   expect(cols[1]!.style.backgroundImage).toBe('');
 });
 

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { t } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import type { LolLobbyLobbyParticipantDto } from '../../lcu/types';
-import { positionKey, splashUrl } from './format';
+import { positionKey } from './format';
 
 export type Participant = LolLobbyLobbyParticipantDto;
 
@@ -20,6 +20,7 @@ interface ColumnProps {
   member: Participant | null;
   profile: Lcu['profile'];
   name: Lcu['name'];
+  splash: Lcu['splash'];
   isLocal?: boolean;
   showPositions?: boolean;
   /** Nome no lugar do nome do invocador (bots). */
@@ -32,8 +33,8 @@ interface ColumnProps {
   empty?: ComponentChildren;
 }
 
-export function Column({ member, profile, name, isLocal = false, showPositions = false, label, onSelf, menu, empty }: ColumnProps) {
-  const splash = useSplash(member, profile);
+export function Column({ member, profile, name, splash: splashOf, isLocal = false, showPositions = false, label, onSelf, menu, empty }: ColumnProps) {
+  const splash = useSplash(member, profile, splashOf);
   const resolved = useName(member, name);
   if (!member) {
     return (
@@ -82,15 +83,17 @@ function useName(member: Participant | null, name: Lcu['name']): string {
 }
 
 /** Splash do fundo de perfil do membro. Imagem que falha deixa só o gradiente da camada de baixo. */
-function useSplash(member: Participant | null, profile: Lcu['profile']): string | null {
+function useSplash(member: Participant | null, profile: Lcu['profile'], splashOf: Lcu['splash']): string | null {
   const [url, setUrl] = useState<string | null>(null);
   const puuid = member && !member.isBot ? member.puuid : null;
   useEffect(() => {
     setUrl(null);
     if (!puuid) return;
     let live = true;
-    void profile(puuid).then((p) => live && setUrl(splashUrl(p?.backgroundSkinId)));
+    void profile(puuid)
+      .then((p) => splashOf(p?.backgroundSkinId))
+      .then((u) => live && setUrl(u));
     return () => void (live = false);
-  }, [puuid, profile]);
+  }, [puuid, profile, splashOf]);
   return url;
 }

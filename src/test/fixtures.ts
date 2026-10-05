@@ -86,6 +86,7 @@ export function fakeLcu(over: Partial<Lcu> = {}): Lcu {
     customGames: { state: signal(ready([])), refresh: async () => {} },
     profile: async () => null,
     name: async () => null,
+    splash: async () => null,
     ...over,
   };
 }

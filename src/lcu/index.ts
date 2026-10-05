@@ -36,6 +36,8 @@ export interface Lcu {
   profile: (puuid: string) => Promise<Profile | null>;
   /** Nome (Riot ID, sem a tag) por puuid, com cache. A LCU manda `summonerName` vazio desde o Riot ID. */
   name: (puuid: string) => Promise<string | null>;
+  /** Caminho da splash centralizada de uma skin, ou null. */
+  splash: (skinId: number | undefined) => Promise<string | null>;
 }
 
 type Fetcher = (url: string) => Promise<Response>;
@@ -65,6 +67,27 @@ export const createNames = (fetcher: Fetcher = (u) => fetch(u)) =>
     return typeof n === 'string' && n ? n : null;
   }, fetcher);
 
+/**
+ * Splash de uma skin pelo `splashPath` do JSON do campeão (o id do campeão são os milhares do id da skin).
+ * A rota `champion-splashes/{campeão}/{skin}.jpg` não carrega no client. Cache por campeão.
+ */
+export function createSplashes(fetcher: Fetcher = (u) => fetch(u)) {
+  const champions = new Map<number, Promise<Map<number, string>>>();
+  return async (skinId: number | undefined): Promise<string | null> => {
+    if (!skinId) return null;
+    const champion = Math.floor(skinId / 1000);
+    let skins = champions.get(champion);
+    if (!skins) {
+      skins = fetcher(`/lol-game-data/assets/v1/champions/${champion}.json`)
+        .then((r) => (r.ok ? (r.json() as Promise<{ skins?: Array<{ id: number; splashPath?: string }> }>) : null))
+        .then((c) => new Map((c?.skins ?? []).filter((s) => s.splashPath).map((s) => [s.id, s.splashPath!])))
+        .catch(() => new Map<number, string>());
+      champions.set(champion, skins);
+    }
+    return (await skins).get(skinId) ?? null;
+  };
+}
+
 /** Abre o único WebSocket do plugin e cria os stores. */
 export function createLcu(doc: Document = document): Lcu {
   const link = doc.querySelector<HTMLLinkElement>('link[rel="riot:plugins:websocket"]');
@@ -91,5 +114,6 @@ export function createLcu(doc: Document = document): Lcu {
     },
     profile: createProfiles(),
     name: createNames(),
+    splash: createSplashes(),
   };
 }
