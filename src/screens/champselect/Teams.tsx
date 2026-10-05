@@ -15,19 +15,17 @@ interface TeamProps {
   champions: Map<number, Champion>;
   spells: Map<number, Spell>;
   name: Lcu['name'];
-  /** Nomes vindos de extensões, por puuid, para quem a LCU esconde. */
-  revealed?: Map<string, string>;
   /** Menu de trocas por vaga de aliado (Task 6). */
   menuFor?: (cell: Cell) => ComponentChildren;
 }
 
 /** Faixa de um time no topo: campeão, nome, feitiços e posição por vaga; banimentos embaixo. */
-export function Team({ cells, side, bans, active, localCellId, champions, spells, name, revealed, menuFor }: TeamProps) {
+export function Team({ cells, side, bans, active, localCellId, champions, spells, name, menuFor }: TeamProps) {
   return (
     <div class="rlc-cs-side" data-side={side}>
       <div class="rlc-cs-team">
         {cells.map((c) => (
-          <Slot key={c.cellId} cell={c} active={active.has(c.cellId)} local={c.cellId === localCellId} champions={champions} spells={spells} name={name} revealed={c.puuid ? revealed?.get(c.puuid) : undefined} menu={menuFor?.(c)} />
+          <Slot key={c.cellId} cell={c} active={active.has(c.cellId)} local={c.cellId === localCellId} champions={champions} spells={spells} name={name} menu={menuFor?.(c)} />
         ))}
       </div>
       <div class="rlc-cs-bans">
@@ -40,11 +38,10 @@ export function Team({ cells, side, bans, active, localCellId, champions, spells
   );
 }
 
-function Slot({ cell, active, local, champions, spells, name, revealed, menu }: { cell: Cell; active: boolean; local: boolean; champions: Map<number, Champion>; spells: Map<number, Spell>; name: Lcu['name']; revealed?: string; menu?: ComponentChildren }) {
+function Slot({ cell, active, local, champions, spells, name, menu }: { cell: Cell; active: boolean; local: boolean; champions: Map<number, Champion>; spells: Map<number, Spell>; name: Lcu['name']; menu?: ComponentChildren }) {
   const shown = displayedChampion(cell);
   const champ = shown ? champions.get(shown.championId) : undefined;
-  const found = useCellName(cell, name);
-  const label = cell.gameName || revealed || found;
+  const label = useCellName(cell, name);
   const pos = positionKey((cell.assignedPosition ?? '').toUpperCase());
   return (
     <div class="rlc-cs-cell" data-active={active ? 'true' : undefined} data-local={local ? 'true' : undefined}>
