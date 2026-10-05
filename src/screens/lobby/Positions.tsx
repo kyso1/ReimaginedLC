@@ -10,10 +10,12 @@ export function Positions({ onClose }: { onClose: () => void }) {
   const [picked, setPicked] = useState<Position[]>([]);
   useEscape(onClose);
   const done = picked[0] === 'FILL' || picked.length === 2;
-  const pick = (p: Position) => {
-    if (picked.includes(p)) setPicked(picked.filter((x) => x !== p));
-    else if (!done) setPicked([...picked, p]);
-  };
+  // Atualização funcional: dois cliques antes do próximo desenho não podem se sobrescrever.
+  const pick = (p: Position) =>
+    setPicked((prev) => {
+      if (prev.includes(p)) return prev.filter((x) => x !== p);
+      return prev[0] === 'FILL' || prev.length === 2 ? prev : [...prev, p];
+    });
   const save = useAction(async () => {
     await request('PUT', '/lol-lobby/v2/lobby/members/localMember/position-preferences', {
       firstPreference: picked[0],

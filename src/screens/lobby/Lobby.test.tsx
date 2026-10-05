@@ -197,3 +197,20 @@ test('sem summonerName (Riot ID), a coluna mostra o nome buscado pelo puuid', as
   await settle();
   expect(root.querySelector('.rlc-col')!.textContent).toContain('Fulano');
 });
+
+test('posições: dois cliques seguidos antes de redesenhar contam os dois', () => {
+  mount(withSignals({}));
+  act(() => root.querySelector<HTMLButtonElement>('.rlc-col[data-local="true"] .rlc-col-main')!.click());
+  act(() => {
+    inDialog('Meio').click();
+    inDialog('Topo').click();
+  });
+  act(() => inDialog('Confirmar').click());
+  expect(JSON.parse(call('/lol-lobby/v2/lobby/members/localMember/position-preferences')![1].body)).toEqual({ firstPreference: 'MIDDLE', secondPreference: 'TOP' });
+});
+
+test('em fila com a fase ainda em Lobby (como a LCU faz na fila normal), a barra mostra o cronômetro', () => {
+  mount(withSignals({ gameflowPhase: ready('Lobby'), search: ready(search({ timeInQueue: 5 })) }));
+  expect(root.querySelector('.rlc-bar-clock')!.textContent).toBe('0:05');
+  expect(btn('Encontrar partida')).toBeUndefined();
+});

@@ -175,7 +175,8 @@ export function LobbyBar({ lcu, title, subtitle, onTitle, leader, partyType, sta
   const cancel = useAction(() => request('DELETE', '/lol-lobby/v2/lobby/matchmaking/search'));
   const party = useAction((type: string) => request('PUT', '/lol-lobby/v2/lobby/partyType', type));
   const search = lcu.search.value.data;
-  const searching = lcu.gameflowPhase.value.data === 'Matchmaking' && search?.isCurrentlyInQueue === true;
+  // A fila normal fica na fase Lobby enquanto procura; só a busca diz se está na fila.
+  const searching = search?.isCurrentlyInQueue === true;
   const clock = useClock(search?.timeInQueue ?? 0, searching);
   const error = search?.errors?.[0];
 
