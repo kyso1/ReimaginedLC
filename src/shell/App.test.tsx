@@ -5,7 +5,7 @@ import { setLocale } from '../i18n';
 import type { Lcu, StoreState } from '../lcu';
 import type { ResolvedTheme } from '../theme/resolve';
 import type { ThemeEngine } from '../theme/engine';
-import { fakeLcu, invitation, readyCheck } from '../test/fixtures';
+import { fakeLcu, invitation, queue, readyCheck } from '../test/fixtures';
 import { App, RIOT_ROOT_ID } from './App';
 import { enabled, hideRiot, syncLayer } from './layer';
 
@@ -118,8 +118,8 @@ test('trocar de tema muda variáveis, transição e fundo sem remontar', async (
   expect(root.querySelector('img.rlc-bg')).toBeNull();
 });
 
-test('Jogar e "Client original" desligam a camada', async () => {
-  for (const label of ['Jogar', 'Client original']) {
+test('"Client original" desliga a camada', async () => {
+  for (const label of ['Client original']) {
     enabled.value = true;
     mount();
     await flush();
@@ -310,4 +310,17 @@ test('convite pendente aparece na tela inicial', async () => {
   mount();
   await flush();
   expect(root.querySelector('.rlc-invite')!.textContent).toContain('Zeca');
+});
+
+test('Jogar abre a tela de modos e Voltar fecha', async () => {
+  enabled.value = true;
+  lcu.queues.value = ready([queue({ id: 400, name: 'Normal (escolha)' })]);
+  mount();
+  await flush();
+  [...root.querySelectorAll('button')].find((b) => b.textContent === 'Jogar')!.click();
+  await flush();
+  expect(root.querySelector('.rlc-modes')).not.toBeNull();
+  [...root.querySelectorAll('button')].find((b) => b.textContent === 'Voltar')!.click();
+  await flush();
+  expect(root.querySelector('.rlc-modes')).toBeNull();
 });

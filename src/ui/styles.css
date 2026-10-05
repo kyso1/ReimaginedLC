@@ -130,3 +130,16 @@
 #rlc-root .rlc-invite-title { font-size: 12px; color: var(--rlc-color-textMuted); text-transform: uppercase; letter-spacing: 0.05em; }
 #rlc-root .rlc-invite-queue { font-size: 13px; color: var(--rlc-color-textMuted); }
 #rlc-root .rlc-invite-actions { display: flex; gap: 8px; margin-top: 6px; }
+
+#rlc-root .rlc-modes { z-index: 15; flex-direction: column; align-items: stretch; justify-content: center; gap: 24px; padding: 48px 64px 48px 112px; background: rgba(4, 6, 12, 0.8); }
+#rlc-root .rlc-modes h2 { margin: 0; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 28px; }
+#rlc-root .rlc-mode-cards { display: flex; gap: 16px; height: 42%; min-height: 180px; }
+#rlc-root .rlc-mode-card { flex: 1; display: flex; align-items: flex-end; padding: 16px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: linear-gradient(160deg, var(--rlc-color-surface), var(--rlc-color-bg)); color: var(--rlc-color-text); font: inherit; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 18px; text-align: left; cursor: pointer; transition: transform var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-mode-card:hover { transform: translateY(-2px); }
+#rlc-root .rlc-mode-card[aria-pressed='true'] { border: 2px solid var(--rlc-color-accent); }
+#rlc-root .rlc-queue-chips { display: flex; flex-wrap: wrap; gap: 10px; min-height: 40px; }
+#rlc-root .rlc-queue-chip { padding: 8px 16px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-pill); background: var(--rlc-color-surface); color: var(--rlc-color-text); font: inherit; cursor: pointer; }
+#rlc-root .rlc-queue-chip[aria-pressed='true'] { background: var(--rlc-color-accent); color: var(--rlc-color-onAccent); border-color: transparent; }
+#rlc-root .rlc-modes-actions { display: flex; justify-content: flex-end; gap: 12px; }
+#rlc-root .rlc-mode-card:focus-visible, #rlc-root .rlc-queue-chip:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 2px; }
+#rlc-root .rlc-muted { margin: 0; color: var(--rlc-color-textMuted); }

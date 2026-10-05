@@ -5,6 +5,7 @@ import { t } from '../i18n';
 import type { Lcu } from '../lcu';
 import { request } from '../lcu/request';
 import { Home } from '../screens/home/Home';
+import { LAST_QUEUE_KEY, Modes } from '../screens/modes/Modes';
 import { applyTheme, mediaUrl } from '../theme/apply';
 import type { ThemeEngine } from '../theme/engine';
 import { MediaBackground } from '../ui/MediaBackground';
@@ -15,6 +16,7 @@ import { Confirm } from './overlays/Confirm';
 import { InvitationCards } from './overlays/Invitations';
 import { ReadyCheckOverlay, showReadyCheck } from './overlays/ReadyCheck';
 import { screenFor, type Screen } from './router';
+import { readSetting } from './storage';
 import { WindowBar } from './WindowBar';
 
 /** Elemento raiz da interface da Riot. */
@@ -44,6 +46,11 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   const theme = themes.active.value;
   const hide = visible && hideRiot.value;
   const [confirmClose, setConfirmClose] = useState(false);
+  /** Painel aberto sobre a tela: tela de modos ou lista de salas. Fecha quando a camada some. */
+  const [panel, setPanel] = useState<null | 'modes' | 'custom'>(null);
+  useEffect(() => {
+    if (!visible) setPanel(null);
+  }, [visible]);
   const readyVisible = visible && showReadyCheck(lcu.gameflowPhase.value, lcu.readyCheck.value);
 
   // Aceite com a janela minimizada ou sem foco: traz a janela para frente, uma vez por aceite.
@@ -101,8 +108,16 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
           ]}
         />
         <main class="rlc-screen">
-          <ScreenComponent version={lcu.build.value.data?.version ?? null} locale={lcu.regionLocale.value.data?.locale ?? null} onPlay={turnOff} />
+          <ScreenComponent version={lcu.build.value.data?.version ?? null} locale={lcu.regionLocale.value.data?.locale ?? null} onPlay={() => setPanel('modes')} />
         </main>
+        {panel === 'modes' ? (
+          <Modes
+            queues={lcu.queues.value.data ?? []}
+            current={lcu.lobby.value.data?.gameConfig.queueId ?? readSetting<number | null>(LAST_QUEUE_KEY, null)}
+            onClose={() => setPanel(null)}
+            onCustom={() => setPanel('custom')}
+          />
+        ) : null}
         <InvitationCards invitations={lcu.invitations.value.data ?? []} queues={lcu.queues.value.data ?? []} />
         {readyVisible ? <ReadyCheck rc={lcu.readyCheck.value.data!} /> : null}
         <WindowBar onClose={() => setConfirmClose(true)} />
