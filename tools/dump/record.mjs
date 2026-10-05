@@ -16,6 +16,12 @@ const SNAPSHOT = [
   '/lol-ranked/v1/current-ranked-stats',
   '/lol-champ-select/v1/session',
   '/lol-perks/v1/pages',
+  '/lol-perks/v1/currentpage',
+  '/lol-champ-select/v1/skin-carousel-skins',
+  '/lol-champ-select/v1/pickable-champion-ids',
+  '/lol-champ-select/v1/bannable-champion-ids',
+  '/lol-honor-v2/v1/ballot',
+  '/lol-end-of-game/v1/eog-stats-block',
 ];
 
 const name = process.argv[2];
