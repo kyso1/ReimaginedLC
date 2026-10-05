@@ -100,6 +100,9 @@ export function fakeLcu(over: Partial<Lcu> = {}): Lcu {
     gridChampions: signal(ready([])),
     chatMe: signal(ready<Lcu['chatMe']['value']['data'] & object>(null)),
     wallet: Object.assign(signal(ready<Record<string, number>>(null)), { refresh: async () => {} }),
+    friendRequests: signal(ready([])),
+    conversations: signal(ready([])),
+    events: { onPrefix: () => () => {} },
     orangeEssence: Object.assign(signal(ready<Lcu['orangeEssence']['value']['data'] & object>(null)), { refresh: async () => {} }),
     ...over,
   };

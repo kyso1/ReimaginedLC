@@ -1,7 +1,10 @@
 type Listener = (eventType: string, data: unknown) => void;
+type PrefixListener = (uri: string, eventType: string, data: unknown) => void;
 
 export interface LcuSocket {
   subscribe(uri: string, fn: Listener): () => void;
+  /** Eventos de toda URI que começa com `prefix` (mensagens de chat têm o id na URI). */
+  subscribePrefix(prefix: string, fn: PrefixListener): () => void;
   onReconnect(fn: () => void): () => void;
   close(): void;
 }
@@ -16,6 +19,7 @@ export function connect(
 ): LcuSocket {
   const listeners = new Map<string, Set<Listener>>();
   const reconnectListeners = new Set<() => void>();
+  const prefixListeners = new Set<{ prefix: string; fn: PrefixListener }>();
   let ws: WebSocket | null = null;
   let attempt = 0;
   let everOpened = false;
@@ -42,13 +46,22 @@ export function connect(
       if (!Array.isArray(parsed) || parsed[0] !== 8) return;
       const payload = parsed[2] as { uri?: unknown; eventType?: unknown; data?: unknown } | undefined;
       if (!payload || typeof payload.uri !== 'string') return;
-      listeners.get(payload.uri)?.forEach((fn) => {
+      const uri = payload.uri;
+      listeners.get(uri)?.forEach((fn) => {
         try {
           fn(String(payload.eventType), payload.data);
         } catch (error) {
           console.error('[rlc] ouvinte da LCU falhou', error);
         }
       });
+      for (const p of prefixListeners) {
+        if (!uri.startsWith(p.prefix)) continue;
+        try {
+          p.fn(uri, String(payload.eventType), payload.data);
+        } catch (error) {
+          console.error('[rlc] ouvinte da LCU falhou', error);
+        }
+      }
     };
     socket.onclose = () => {
       if (closed) return;
@@ -63,6 +76,11 @@ export function connect(
       listeners.set(uri, set);
       set.add(fn);
       return () => void set.delete(fn);
+    },
+    subscribePrefix(prefix, fn) {
+      const entry = { prefix, fn };
+      prefixListeners.add(entry);
+      return () => void prefixListeners.delete(entry);
     },
     onReconnect(fn) {
       reconnectListeners.add(fn);

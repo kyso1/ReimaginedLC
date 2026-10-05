@@ -127,3 +127,17 @@ test('reconecta na primeira abertura bem-sucedida após falhas', () => {
   last().onopen!();
   expect(again).toHaveBeenCalledTimes(1);
 });
+
+test('assinatura por prefixo recebe a URI completa de cada evento que começa com o prefixo', () => {
+  const { socket, last } = setup();
+  const fn = vi.fn();
+  const off = socket.subscribePrefix('/lol-chat/v1/conversations/a@x/messages/', fn);
+  last().onopen!();
+  last().onmessage!(event('/lol-chat/v1/conversations/a@x/messages/m1', { id: 'm1' }, 'Create'));
+  last().onmessage!(event('/lol-chat/v1/conversations/b@x/messages/m2', { id: 'm2' }, 'Create'));
+  expect(fn).toHaveBeenCalledTimes(1);
+  expect(fn).toHaveBeenCalledWith('/lol-chat/v1/conversations/a@x/messages/m1', 'Create', { id: 'm1' });
+  off();
+  last().onmessage!(event('/lol-chat/v1/conversations/a@x/messages/m3', { id: 'm3' }, 'Create'));
+  expect(fn).toHaveBeenCalledTimes(1);
+});

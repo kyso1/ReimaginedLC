@@ -24,6 +24,11 @@ import { InvitationCards } from './overlays/Invitations';
 import { ReadyCheckOverlay, showReadyCheck } from './overlays/ReadyCheck';
 import { screenFor, type Screen } from './router';
 import { readSetting } from './storage';
+import { ChatTabs, ChatWindow, conversationTitle } from '../screens/social/Chat';
+import { ContextChat } from '../screens/social/ContextChat';
+import { AddFriend, FriendRequests, StatusEditor } from '../screens/social/FriendTools';
+import { MemberMenu } from '../screens/lobby/MemberMenu';
+import type { LolChatFriendResource } from '../lcu/types';
 import { CurrencyChip, RightColumn } from './RightColumn';
 import { WindowBar } from './WindowBar';
 
@@ -75,6 +80,9 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   const [confirmClose, setConfirmClose] = useState(false);
   const [view, setView] = useState<View | null>(null);
   const [rightOpen, setRightOpen] = useState(false);
+  /** Conversas 1:1 abertas como abas e a que está à vista. */
+  const [chats, setChats] = useState<{ open: string[]; active: string | null }>({ open: [], active: null });
+  const [removing, setRemoving] = useState<LolChatFriendResource | null>(null);
   // Telas livres só fora do fluxo de partida; ao entrar na seleção (ou depois), a fase manda.
   const free = screen === 'home' || screen === 'lobby';
   useEffect(() => {
@@ -133,6 +141,23 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   if (!visible || screen === null) return null;
 
   const turnOff = () => setEnabled(false);
+  const openChat = async (f: LolChatFriendResource) => {
+    // A conversa 1:1 tem o id do amigo; criada na LCU na primeira vez.
+    if (!lcu.conversations.value.data?.some((c) => c.id === f.id)) await request('POST', '/lol-chat/v1/conversations', { id: f.id, type: 'chat' }).catch(() => {});
+    setChats((c) => ({ open: c.open.includes(f.id) ? c.open : [...c.open, f.id], active: f.id }));
+  };
+  const closeChat = (id: string) => setChats((c) => ({ open: c.open.filter((x) => x !== id), active: c.active === id ? null : c.active }));
+  const friendMenu = (f: LolChatFriendResource) => (
+    <MemberMenu
+      items={[
+        { label: t('chatWith'), run: () => void openChat(f) },
+        ...(lcu.lobby.value.data ? [{ label: t('inviteToLobby'), run: () => void request('POST', '/lol-lobby/v2/lobby/invitations', [{ toSummonerId: f.summonerId }]).catch(() => {}) }] : []),
+        { label: t('removeFriend'), run: () => setRemoving(f) },
+      ]}
+    />
+  );
+  const roomId =
+    screen === 'lobby' ? lcu.lobby.value.data?.multiUserChatId : screen === 'champselect' ? lcu.champSelect.value.data?.chatDetails?.multiUserChatId : screen === 'postgame' ? lcu.endOfGame.value.data?.multiUserChatId : null;
   const onError = (error: unknown) => {
     console.error('[rlc]', error);
     enabled.value = false;
@@ -167,7 +192,35 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
                 : // Fase desconhecida ou tela não fornecida (testes): tela de fase desconhecida, nunca o client original.
                   <Unknown phase={phaseName} onOriginal={turnOff} />}
         </main>
-        <RightColumn lcu={lcu} open={rightOpen} onOpen={() => setRightOpen(true)} onClose={() => setRightOpen(false)} />
+        <RightColumn
+          lcu={lcu}
+          open={rightOpen || chats.active !== null}
+          onOpen={() => setRightOpen(true)}
+          onClose={() => setRightOpen(false)}
+          onFriend={(f) => void openChat(f)}
+          menuFor={friendMenu}
+          header={
+            <>
+              <StatusEditor lcu={lcu} />
+              <AddFriend />
+              <FriendRequests lcu={lcu} />
+            </>
+          }
+        />
+        {roomId ? <ContextChat key={roomId} lcu={lcu} roomId={roomId} defaultOpen={screen === 'champselect'} /> : null}
+        <ChatTabs lcu={lcu} open={chats.open} active={chats.active} onActivate={(id) => setChats((c) => ({ ...c, active: c.active === id ? null : id }))} onClose={closeChat} />
+        {chats.active ? <ChatWindow key={chats.active} lcu={lcu} conversationId={chats.active} title={conversationTitle(lcu, chats.active)} onClose={() => setChats((c) => ({ ...c, active: null }))} /> : null}
+        {removing ? (
+          <Confirm
+            message={`${t('removeFriendConfirm')} ${removing.gameName}`}
+            confirmLabel={t('removeFriend')}
+            onConfirm={() => {
+              void request('DELETE', `/lol-chat/v1/friends/${encodeURIComponent(removing.id)}`).catch(() => {});
+              setRemoving(null);
+            }}
+            onCancel={() => setRemoving(null)}
+          />
+        ) : null}
         <CurrencyChip lcu={lcu} />
         {panel === 'modes' ? (
           <Modes

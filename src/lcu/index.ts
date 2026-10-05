@@ -5,6 +5,8 @@ import { connect } from './socket';
 import { createStore, type StoreState } from './store';
 import type {
   LolChatFriendResource,
+  LolChatConversationResource,
+  LolChatFriendRequestResource,
   LolChatUserResource,
   LolLootPlayerLoot,
   LolEndOfGameEndOfGameStats,
@@ -67,6 +69,10 @@ export interface Lcu {
   wallet: Signal<StoreState<Record<string, number>>> & { refresh: () => Promise<void> };
   /** Essência Laranja (espólio `CURRENCY_cosmetic`). */
   orangeEssence: Signal<StoreState<LolLootPlayerLoot>> & { refresh: () => Promise<void> };
+  friendRequests: Signal<StoreState<LolChatFriendRequestResource[]>>;
+  conversations: Signal<StoreState<LolChatConversationResource[]>>;
+  /** Eventos por prefixo de URI (mensagens de chat têm o id da mensagem na URI). */
+  events: { onPrefix: (prefix: string, fn: (uri: string, eventType: string, data: unknown) => void) => () => void };
 }
 
 type Fetcher = (url: string) => Promise<Response>;
@@ -137,5 +143,8 @@ export function createLcu(doc: Document = document): Lcu {
     chatMe: createStore('/lol-chat/v1/me', socket),
     wallet: createStore('/lol-inventory/v1/wallet?currencyTypes=' + encodeURIComponent('["RP","lol_blue_essence"]'), socket),
     orangeEssence: createStore('/lol-loot/v1/player-loot/CURRENCY_cosmetic', socket),
+    friendRequests: createStore('/lol-chat/v2/friend-requests', socket),
+    conversations: createStore('/lol-chat/v1/conversations', socket),
+    events: { onPrefix: (prefix, fn) => socket.subscribePrefix(prefix, fn) },
   };
 }

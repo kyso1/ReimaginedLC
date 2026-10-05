@@ -5,7 +5,7 @@ import { setLocale } from '../i18n';
 import type { Lcu, StoreState } from '../lcu';
 import type { ResolvedTheme } from '../theme/resolve';
 import type { ThemeEngine } from '../theme/engine';
-import { fakeLcu, invitation, leader as leaderFixture, lobby as lobbyFixture, queue, readyCheck, session as sessionFixture } from '../test/fixtures';
+import { fakeLcu, friend as friendFixture, invitation, leader as leaderFixture, lobby as lobbyFixture, queue, readyCheck, session as sessionFixture } from '../test/fixtures';
 import { App, RIOT_ROOT_ID } from './App';
 import { enabled, hideRiot, syncLayer } from './layer';
 
@@ -464,4 +464,32 @@ test('coluna da direita e chip de moedas aparecem com a camada', async () => {
   mount();
   await flush();
   expect(root.querySelector('.rlc-rc')).not.toBeNull();
+});
+
+test('clicar num amigo abre a conversa (criando-a se preciso) e mantém a coluna da direita aberta', async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response('[]', { status: 200 }));
+  vi.stubGlobal('fetch', fetchMock);
+  enabled.value = true;
+  lcu.friends.value = ready([friendFixture({ id: 'zeca@pvp.net', gameName: 'Zeca', availability: 'chat' })]);
+  mount();
+  await flush();
+  root.querySelector<HTMLButtonElement>('.rlc-rc-avatar[aria-label="Zeca"]')!.click();
+  await flush();
+  expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-chat/v1/conversations' && JSON.parse(c[1].body).id === 'zeca@pvp.net')).toBe(true);
+  expect(root.querySelector('.rlc-chat-window')!.getAttribute('aria-label')).toBe('Zeca');
+  expect(root.querySelector('.rlc-rc')!.getAttribute('data-open')).toBe('true');
+  root.querySelector<HTMLButtonElement>('.rlc-chat-window button[aria-label="Fechar conversa"]')!.click();
+  await flush();
+  expect(root.querySelector('.rlc-chat-window')).toBeNull();
+  vi.unstubAllGlobals();
+});
+
+test('chat da sala aparece no lobby a partir do id da sala', async () => {
+  enabled.value = true;
+  phase.value = ready('Lobby');
+  lcu.lobby.value = ready({ ...lobbyFixture([leaderFixture()]), multiUserChatId: 'sala-1' });
+  lcu.conversations.value = ready([{ id: 'sala-1@lol-lobby.pvp.net', unreadMessageCount: 0, type: 'customGame' }] as never);
+  mount();
+  await flush();
+  expect(root.querySelector('.rlc-ctx')).not.toBeNull();
 });

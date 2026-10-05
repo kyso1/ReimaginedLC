@@ -29,13 +29,15 @@ interface Props {
   onFriend?: (f: Friend) => void;
   /** Bloco acima da lista (pedidos de amizade, adicionar amigo). */
   header?: ComponentChildren;
+  /** Menu ⋯ por amigo. */
+  menuFor?: (f: Friend) => ComponentChildren;
 }
 
 /**
  * Coluna da direita no estilo do client atual: fina e fixa com o meu ícone e os amigos online;
  * ao passar o mouse (ou ao abrir uma conversa) expande por cima da tela com perfil e a lista completa.
  */
-export function RightColumn({ lcu, open, onOpen, onClose, onFriend, header }: Props) {
+export function RightColumn({ lcu, open, onOpen, onClose, onFriend, header, menuFor }: Props) {
   const me = lcu.chatMe.value.data;
   const friends = [...(lcu.friends.value.data ?? [])].sort((a, b) => ORDER.indexOf(groupOf(a)) - ORDER.indexOf(groupOf(b)) || friendName(a).localeCompare(friendName(b)));
   const visible = friends.filter((f) => groupOf(f) !== 'offline');
@@ -72,13 +74,16 @@ export function RightColumn({ lcu, open, onOpen, onClose, onFriend, header }: Pr
                 {g === 'offline'
                   ? null
                   : list.map((f) => (
-                      <button type="button" key={f.puuid || f.id} class="rlc-rc-friend" data-group={g} onClick={() => onFriend?.(f)}>
-                        <span class="rlc-rc-avatar" data-group={g}>
-                          {f.icon ? <img src={profileIcon(f.icon)} alt="" /> : null}
-                        </span>
-                        <span class="rlc-rc-fname">{friendName(f)}</span>
-                        <small>{g === 'playing' ? queueLabel(f) : f.statusMessage}</small>
-                      </button>
+                      <div key={f.puuid || f.id} class="rlc-rc-friend" data-group={g}>
+                        <button type="button" class="rlc-rc-friend-main" onClick={() => onFriend?.(f)}>
+                          <span class="rlc-rc-avatar" data-group={g}>
+                            {f.icon ? <img src={profileIcon(f.icon)} alt="" /> : null}
+                          </span>
+                          <span class="rlc-rc-fname">{friendName(f)}</span>
+                          <small>{g === 'playing' ? queueLabel(f) : f.statusMessage}</small>
+                        </button>
+                        {menuFor?.(f)}
+                      </div>
                     ))}
               </details>
             );
