@@ -1,0 +1,91 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;font:8px/1.25 system-ui,sans-serif;color:#fff;background:linear-gradient(100deg,#0c1020 0%,#3a2a66 45%,#c05a70 100%)}
+  .s *{box-sizing:border-box}
+  .rail{position:absolute;top:0;left:0;bottom:0;width:5%;background:rgba(10,12,20,.55);z-index:3}
+  .win{position:absolute;top:0;right:0;height:14px;display:flex;z-index:9}.win b{width:18px;text-align:center;font-weight:400;font-size:8px;opacity:.8}
+  .big{position:absolute;font-size:22px;font-weight:800;letter-spacing:.04em;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+  .lbl{position:absolute;font-size:7px;opacity:.8}
+  .tm{position:absolute;left:50%;transform:translateX(-50%);top:4%;font-size:13px;font-weight:700}
+  .ph{position:absolute;left:50%;transform:translateX(-50%);top:11%;font-size:6.5px;opacity:.8;text-transform:uppercase;letter-spacing:.06em}
+  .team{position:absolute;top:4%;height:10%;width:36%;display:flex;gap:2%}
+  .p{flex:1;border-radius:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);position:relative}
+  .p.me{border:2px solid #fff}.p.act{box-shadow:0 0 0 2px #ffd36b}
+  .bans{position:absolute;top:15.5%;display:flex;gap:3px}
+  .bans i{width:10px;height:10px;border-radius:3px;background:rgba(255,255,255,.18);position:relative}
+  .bans i::after{content:"";position:absolute;left:1px;right:1px;top:50%;height:1px;background:#f66;transform:rotate(-45deg)}
+  .dk{position:absolute;left:7%;right:3%;bottom:4%;height:30%;border-radius:10px;background:rgba(10,12,20,.62);border:1px solid rgba(255,255,255,.2)}
+  .grid{position:absolute;display:grid;gap:3px}
+  .grid i{border-radius:3px;background:rgba(255,255,255,.22)}
+  .tabs{position:absolute;display:flex;gap:4px}
+  .tabs span{padding:2px 7px;border-radius:99px;border:1px solid rgba(255,255,255,.3);font-size:6.5px}
+  .tabs span.on{background:#fff;color:#1b1b2a}
+  .lk{position:absolute;background:#fff;color:#1b1b2a;font-weight:700;border-radius:99px;padding:4px 12px;font-size:8px}
+  .skins{position:absolute;display:flex;gap:4px}
+  .skins i{width:26px;height:40px;border-radius:4px;background:rgba(255,255,255,.22)}
+  .skins i.on{outline:2px solid #fff}
+  .sp{position:absolute;display:flex;gap:4px;align-items:center}
+  .sp i{width:14px;height:14px;border-radius:4px;background:rgba(255,255,255,.3)}
+  .panel{position:absolute;border-radius:8px;background:rgba(10,12,20,.62);border:1px solid rgba(255,255,255,.2);padding:6px;font-size:6.5px}
+  .trade{position:absolute;right:3%;top:24%;width:24%;border-radius:8px;background:rgba(20,24,40,.9);border:1px solid rgba(255,255,255,.3);padding:5px 7px;font-size:6.5px;z-index:5}
+  .trade b{display:inline-block;margin-top:4px;padding:1px 6px;border-radius:99px;background:#fff;color:#1b1b2a}
+  .note{font-size:12px;color:#666;margin:8px 0 0}
+</style>
+
+<h2>Seleção Cinemática: onde fica cada coisa</h2>
+<p class="subtitle">Igual nos três: times em faixas no topo com os banimentos embaixo, tempo e fase no centro, campeão destacado em tela cheia, pedido de troca como cartão à direita. Muda onde ficam grade, skins, feitiços e runas.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a-fase" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="rail"></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="team" style="left:7%"><div class="p me act"></div><div class="p"></div><div class="p"></div><div class="p"></div><div class="p"></div></div>
+      <div class="team" style="right:3%"><div class="p"></div><div class="p"></div><div class="p"></div><div class="p"></div><div class="p"></div></div>
+      <div class="bans" style="left:7%"><i></i><i></i><i></i></div><div class="bans" style="right:3%"><i></i><i></i></div>
+      <div class="tm">0:27</div><div class="ph">sua vez de escolher</div>
+      <div class="big" style="top:30%;left:9%">AHRI</div>
+      <div class="trade">Zeca quer trocar de campeão<br><b>Aceitar</b> <b style="background:none;color:#fff;border:1px solid #fff">Recusar</b></div>
+      <div class="dk"></div>
+      <div class="grid" style="left:9%;right:26%;bottom:7%;height:24%;grid-template-columns:repeat(12,1fr);grid-auto-rows:1fr"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="sp" style="right:6%;bottom:22%"><i></i><i></i><span style="font-size:6.5px">Página: Meio ▾</span></div>
+      <div class="lk" style="right:6%;bottom:9%">Confirmar</div>
+      <div class="lbl" style="left:9%;bottom:31%">antes de confirmar: grade · depois: as skins tomam o lugar da grade</div>
+    </div></div>
+    <div class="card-body"><h3>A. A gaveta muda com a fase</h3><p>Banir e escolher: grade de campeões na gaveta. Depois de confirmar: a gaveta vira o carrossel de skins. Feitiços e página de runas ficam sempre no canto direito da gaveta. Menos cliques; a tela segue o momento.</p></div>
+  </div>
+
+  <div class="card" data-choice="b-abas" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="rail"></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="team" style="left:7%"><div class="p me"></div><div class="p"></div><div class="p"></div><div class="p"></div><div class="p"></div></div>
+      <div class="team" style="right:3%"><div class="p"></div><div class="p"></div><div class="p"></div><div class="p"></div><div class="p"></div></div>
+      <div class="bans" style="left:7%"><i></i><i></i><i></i></div><div class="bans" style="right:3%"><i></i><i></i></div>
+      <div class="tm">0:41</div><div class="ph">finalização</div>
+      <div class="big" style="top:30%;left:9%">AHRI</div>
+      <div class="dk"></div>
+      <div class="tabs" style="left:9%;bottom:30%"><span>Campeões</span><span class="on">Skins</span><span>Runas e feitiços</span></div>
+      <div class="skins" style="left:9%;bottom:9%"><i></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="lk" style="right:6%;bottom:9%">Confirmar</div>
+    </div></div>
+    <div class="card-body"><h3>B. Abas na gaveta</h3><p>A gaveta tem três abas: Campeões, Skins, Runas e feitiços. A aba muda sozinha na fase certa, mas dá para trocar a qualquer momento. Mais organizado, um nível a mais.</p></div>
+  </div>
+
+  <div class="card" data-choice="c-lateral" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="rail"></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="team" style="left:7%"><div class="p me"></div><div class="p"></div><div class="p"></div><div class="p"></div><div class="p"></div></div>
+      <div class="team" style="right:3%"><div class="p"></div><div class="p"></div><div class="p"></div><div class="p"></div><div class="p"></div></div>
+      <div class="bans" style="left:7%"><i></i><i></i><i></i></div><div class="bans" style="right:3%"><i></i><i></i></div>
+      <div class="tm">0:41</div><div class="ph">finalização</div>
+      <div class="big" style="top:30%;left:9%">AHRI</div>
+      <div class="panel" style="right:3%;top:24%;width:20%;height:38%">Feitiços<div class="sp" style="position:static;margin:4px 0 8px"><i></i><i></i></div>Runas<br>Página: Meio ▾</div>
+      <div class="skins" style="left:9%;bottom:38%"><i></i><i class="on"></i><i></i><i></i><i></i><i></i></div>
+      <div class="dk" style="right:25%"></div>
+      <div class="grid" style="left:9%;right:28%;bottom:7%;height:24%;grid-template-columns:repeat(10,1fr);grid-auto-rows:1fr"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="lk" style="right:6%;bottom:9%">Confirmar</div>
+    </div></div>
+    <div class="card-body"><h3>C. Painel lateral fixo</h3><p>Feitiços e runas num painel de vidro à direita, sempre visível. Skins numa faixa de miniaturas acima da gaveta. Grade sempre na gaveta. Tudo à vista, mais carregado.</p></div>
+  </div>
+
+</div>
+<p class="note">Cores são marcadores. No client, o fundo é a splash do campeão destacado (do seu, ou da skin escolhida), e as faixas do topo mostram o ícone de cada campeão.</p>

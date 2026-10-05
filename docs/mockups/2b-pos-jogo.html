@@ -1,0 +1,63 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;font:8px/1.25 system-ui,sans-serif;color:#fff;background:#0c1020}
+  .s *{box-sizing:border-box}
+  .rail{position:absolute;top:0;left:0;bottom:0;width:5%;background:rgba(10,12,20,.55);z-index:3}
+  .win{position:absolute;top:0;right:0;height:14px;display:flex;z-index:9}.win b{width:18px;text-align:center;font-weight:400;font-size:8px;opacity:.8}
+  .res{position:absolute;font-weight:800;letter-spacing:.06em}
+  .lbl{position:absolute;font-size:7px;opacity:.8}
+  .tbl{position:absolute;border-radius:8px;background:rgba(10,12,20,.6);border:1px solid rgba(255,255,255,.18);padding:5px 6px}
+  .row{display:grid;grid-template-columns:14px 1fr 34px 60px 30px;gap:5px;align-items:center;height:11px;margin-bottom:3px;font-size:6px}
+  .row i{width:12px;height:10px;border-radius:3px;background:rgba(255,255,255,.3)}
+  .row u{height:3px;border-radius:2px;background:rgba(255,255,255,.35)}
+  .row.me{background:rgba(255,255,255,.12);border-radius:3px}
+  .items{display:flex;gap:1px}.items em{width:7px;height:7px;border-radius:2px;background:rgba(255,255,255,.25)}
+  .h{font-size:6px;opacity:.6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+  .pill{position:absolute;background:#fff;color:#1b1b2a;font-weight:700;border-radius:99px;padding:4px 12px;font-size:8px}
+  .ghost{position:absolute;border:1px solid rgba(255,255,255,.45);border-radius:99px;padding:3px 10px;font-size:7px}
+  .stat{position:absolute;display:flex;gap:10px}
+  .stat div{font-size:6px;opacity:.75}.stat div b{display:block;font-size:12px;opacity:1}
+  .bar{position:absolute;height:5px;border-radius:3px;background:rgba(255,255,255,.15)}
+  .bar b{display:block;height:100%;border-radius:3px;background:#ffd36b}
+  .note{font-size:12px;color:#666;margin:8px 0 0}
+</style>
+
+<h2>Pós-jogo</h2>
+<p class="subtitle">Depois da partida (fase EndOfGame). Em ambos: Jogar de novo volta ao lobby do grupo, Sair vai para a tela inicial.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a-placar" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s" style="background:linear-gradient(180deg,#123a2a,#0c1020 45%)">
+      <div class="rail"></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="res" style="left:8%;top:6%;font-size:20px">VITÓRIA</div>
+      <div class="lbl" style="left:8%;top:17%">Normal · 28:41</div>
+      <div class="tbl" style="left:8%;right:3%;top:24%;height:33%"><div class="h">Seu time · 32 abates</div>
+        <div class="row me"><i></i><span>Você · Ahri</span><span>8/2/11</span><span class="items"><em></em><em></em><em></em><em></em><em></em><em></em></span><u></u></div>
+        <div class="row"><i></i><span>Zeca</span><span>5/4/9</span><span class="items"><em></em><em></em><em></em><em></em><em></em></span><u></u></div>
+        <div class="row"><i></i><span>Beltrano</span><span>4/6/12</span><span class="items"><em></em><em></em><em></em><em></em></span><u></u></div></div>
+      <div class="tbl" style="left:8%;right:3%;top:59%;height:27%"><div class="h">Inimigos · 18 abates</div>
+        <div class="row"><i></i><span>—</span><span>3/7/4</span><span class="items"><em></em><em></em><em></em><em></em></span><u></u></div>
+        <div class="row"><i></i><span>—</span><span>6/5/2</span><span class="items"><em></em><em></em><em></em><em></em><em></em></span><u></u></div></div>
+      <div class="ghost" style="left:8%;bottom:4%">Sair</div>
+      <div class="pill" style="right:3%;bottom:3%">Jogar de novo</div>
+    </div></div>
+    <div class="card-body"><h3>A. Placar</h3><p>Resultado grande no topo, os dois times em tabela: campeão, nome, KDA, itens e barra de dano. Sua linha destacada. Direto e completo, mais parecido com o client atual.</p></div>
+  </div>
+
+  <div class="card" data-choice="b-destaque" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s" style="background:linear-gradient(100deg,#0c1020 0%,#2a4a66 45%,#4a7a6a 100%)">
+      <div class="rail"></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="lbl" style="right:8%;top:40%">splash do seu campeão</div>
+      <div class="res" style="left:8%;top:12%;font-size:26px">VITÓRIA</div>
+      <div class="lbl" style="left:8%;top:28%">Ahri · Normal · 28:41</div>
+      <div class="stat" style="left:8%;top:36%"><div><b>8/2/11</b>KDA</div><div><b>214</b>farm</div><div><b>31k</b>dano</div><div><b>+18</b>PdL</div></div>
+      <div class="lbl" style="left:8%;top:52%">dano causado</div><div class="bar" style="left:8%;width:30%;top:56%"><b style="width:72%"></b></div>
+      <div class="ghost" style="left:8%;top:66%">Ver placar completo ▾</div>
+      <div class="ghost" style="left:8%;bottom:4%">Sair</div>
+      <div class="pill" style="right:3%;bottom:3%">Jogar de novo</div>
+    </div></div>
+    <div class="card-body"><h3>B. Destaque seu</h3><p>Sua partida em primeiro plano sobre a splash do seu campeão: resultado, KDA, farm, dano, pontos de liga. O placar completo abre numa gaveta. Combina com o Palco e o Cinemático.</p></div>
+  </div>
+
+</div>
+<p class="note">PdL só aparece em ranqueada. Nomes dos inimigos podem vir ocultos dependendo da fila.</p>
