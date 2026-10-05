@@ -5,17 +5,27 @@ import type { LolLobbyLobbyBotChampion } from '../../lcu/types';
 import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
 
-const DIFFICULTY: Record<string, TextKey> = { INTRO: 'botINTRO', EASY: 'botEASY', MEDIUM: 'botMEDIUM', HARD: 'botHARD' };
+const DIFFICULTY: Record<string, TextKey> = {
+  INTRO: 'botINTRO', RSINTRO: 'botINTRO', EASY: 'botEASY', RSBEGINNER: 'botEASY', MEDIUM: 'botMEDIUM', RSINTERMEDIATE: 'botMEDIUM', HARD: 'botHARD',
+};
 
-/** Campeões disponíveis para bot. Leitura silenciosa: sem lista, o bot aparece como "Bot". */
+const getJson = <T,>(url: string): Promise<T | null> => fetch(url).then((r) => (r.ok ? (r.json() as Promise<T>) : null));
+
+/**
+ * Campeões disponíveis para bot, com o nome tirado do champion-summary (a LCU manda o id no campo `name`).
+ * Leitura silenciosa: sem lista, o bot aparece como "Bot".
+ */
 export function useBots(enabled: boolean): LolLobbyLobbyBotChampion[] {
   const [bots, setBots] = useState<LolLobbyLobbyBotChampion[]>([]);
   useEffect(() => {
     if (!enabled) return;
     let live = true;
-    fetch('/lol-lobby/v2/lobby/custom/available-bots')
-      .then((r) => (r.ok ? (r.json() as Promise<LolLobbyLobbyBotChampion[]>) : []))
-      .then((list) => live && setBots(Array.isArray(list) ? list.filter((b) => b.active !== false) : []))
+    Promise.all([getJson<LolLobbyLobbyBotChampion[]>('/lol-lobby/v2/lobby/custom/available-bots'), getJson<Array<{ id: number; name: string }>>('/lol-game-data/assets/v1/champion-summary.json').catch(() => null)])
+      .then(([list, summary]) => {
+        if (!live || !Array.isArray(list)) return;
+        const names = new Map((Array.isArray(summary) ? summary : []).map((c) => [c.id, c.name]));
+        setBots(list.filter((b) => b.active !== false).map((b) => ({ ...b, name: names.get(b.id) ?? b.name })));
+      })
       .catch(() => {});
     return () => void (live = false);
   }, [enabled]);
@@ -27,7 +37,8 @@ export function BotPicker({ bots, teamId, onClose }: { bots: LolLobbyLobbyBotCha
   const [difficulty, setDifficulty] = useState<string | null>(null);
   useEscape(onClose);
   const add = useAction(async () => {
-    await request('POST', '/lol-lobby/v1/lobby/custom/bots', { championId: champion!.id, botDifficulty: difficulty, teamId: String(teamId) });
+    // A LCU exige os cinco campos, `teamId` como texto e uma posição válida (testado no client: '' e 'UNSELECTED' são recusados).
+    await request('POST', '/lol-lobby/v1/lobby/custom/bots', { championId: champion!.id, botDifficulty: difficulty, teamId: String(teamId), position: 'MIDDLE', botUuid: '' });
     onClose();
   });
   return (

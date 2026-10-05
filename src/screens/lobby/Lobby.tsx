@@ -31,7 +31,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
   const memberMenu = (m: Participant, team: number = m.teamId) =>
     leader && m.isBot ? (
       <MemberMenu
-        items={[{ label: t('removeBot'), run: () => void request('DELETE', `/lol-lobby/v1/lobby/custom/bots/${encodeURIComponent(m.summonerInternalName)}/${encodeURIComponent(m.botUuid)}/${team}`).catch(() => {}) }]}
+        items={[{ label: t('removeBot'), run: () => void request('DELETE', `/lol-lobby/v1/lobby/custom/bots/${encodeURIComponent(m.summonerInternalName || 'bot')}/${encodeURIComponent(m.botUuid)}/${team}`).catch(() => {}) }]}
       />
     ) : leader && !isLocal(m) ? (
       <MemberMenu
@@ -84,7 +84,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
             `${team}-${i}`,
             <>
               {localTeam !== team ? (
-                <button type="button" onClick={() => void request('POST', `/lol-lobby/v2/lobby/team/${team}`).catch(() => {})}>
+                <button type="button" onClick={() => void request('POST', `/lol-lobby/v2/lobby/team/TEAM${team === 100 ? 1 : 2}`).catch(() => {})}>
                   {t('switchTeam')}
                 </button>
               ) : null}

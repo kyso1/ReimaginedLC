@@ -8,11 +8,16 @@ import { Lobby } from './Lobby';
 
 let root: HTMLElement;
 let fetchMock: ReturnType<typeof vi.fn>;
-const BOTS = [{ active: true, id: 1, name: 'Annie', botDifficulties: ['EASY', 'MEDIUM'] }];
+// A LCU manda o id no campo name; o nome vem do champion-summary.
+const BOTS = [{ active: true, id: 1, name: '1', botDifficulties: ['RSINTRO', 'RSINTERMEDIATE'] }];
+const SUMMARY = [{ id: 1, name: 'Annie' }];
 beforeEach(() => {
   setLocale('pt_BR');
   root = document.body.appendChild(document.createElement('div'));
-  fetchMock = vi.fn(async (url: string) => (url === '/lol-lobby/v2/lobby/custom/available-bots' ? new Response(JSON.stringify(BOTS), { status: 200 }) : new Response(null, { status: 204 })));
+  fetchMock = vi.fn(async (url: string) =>
+    url === '/lol-lobby/v2/lobby/custom/available-bots' ? new Response(JSON.stringify(BOTS), { status: 200 })
+      : url === '/lol-game-data/assets/v1/champion-summary.json' ? new Response(JSON.stringify(SUMMARY), { status: 200 })
+      : new Response(null, { status: 204 }));
   vi.stubGlobal('fetch', fetchMock);
 });
 afterEach(() => {
@@ -61,7 +66,7 @@ test('vaga do outro time troca de time; no próprio time não oferece troca', ()
   const [blue, red] = root.querySelectorAll('.rlc-stage');
   expect(btn('Trocar de time', blue!)).toBeUndefined();
   act(() => btn('Trocar de time', red!)!.click());
-  expect(call('/lol-lobby/v2/lobby/team/200', 'POST')).toBeDefined();
+  expect(call('/lol-lobby/v2/lobby/team/TEAM2', 'POST')).toBeDefined();
 });
 
 test('líder adiciona bot escolhendo campeão e dificuldade', async () => {
@@ -74,7 +79,7 @@ test('líder adiciona bot escolhendo campeão e dificuldade', async () => {
   act(() => btn('Annie', dialog)!.click());
   act(() => btn('Intermediário', dialog)!.click());
   act(() => btn('Adicionar', dialog)!.click());
-  expect(JSON.parse(call('/lol-lobby/v1/lobby/custom/bots', 'POST')![1].body)).toEqual({ championId: 1, botDifficulty: 'MEDIUM', teamId: '200' });
+  expect(JSON.parse(call('/lol-lobby/v1/lobby/custom/bots', 'POST')![1].body)).toEqual({ championId: 1, botDifficulty: 'RSINTERMEDIATE', teamId: '200', position: 'MIDDLE', botUuid: '' });
 });
 
 test('líder remove bot pelo menu', async () => {
@@ -112,4 +117,17 @@ test('líder inicia; não líder não vê Iniciar nem + bot', () => {
   mount(guest);
   expect(btn('Iniciar')).toBeUndefined();
   expect(btn('+ bot')).toBeUndefined();
+});
+
+test('bot sem nome interno (como a LCU manda) é removido com um nome qualquer no caminho', async () => {
+  const anon = member({ isBot: true, botChampionId: 1, botUuid: 'u9', summonerInternalName: '', teamId: 0 });
+  const lcu = fakeLcu();
+  lcu.gameflowPhase.value = ready('Lobby') as Lcu['gameflowPhase']['value'];
+  lcu.lobby.value = ready(lobby([me, anon], me, { isCustom: true, numPlayersPerTeam: 5, customTeam100: [me, anon], customTeam200: [] }));
+  act(() => render(<Lobby lcu={lcu} onModes={() => {}} />, root));
+  await settle();
+  const botCol = [...root.querySelectorAll('.rlc-col')].find((c) => c.textContent?.includes('Annie'))!;
+  act(() => botCol.querySelector<HTMLButtonElement>('.rlc-col-menu')!.click());
+  act(() => btn('Remover')!.click());
+  expect(call('/lol-lobby/v1/lobby/custom/bots/bot/u9/100', 'DELETE')).toBeDefined();
 });
