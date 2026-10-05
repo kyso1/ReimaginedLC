@@ -173,3 +173,74 @@ test('a aba muda para Skins quando meu campeão é confirmado, e volta à mão',
   act(() => btn('Campeões')!.click());
   expect(btn('Campeões')!.getAttribute('aria-selected')).toBe('true');
 });
+
+const skin = (id: number, over: Record<string, unknown> = {}) => ({ id, name: `Skin ${id}`, unlocked: true, disabled: false, isBase: false, tilePath: `/t/${id}.jpg`, childSkins: [], ...over });
+const lockedMe = (over = {}) => session({ myTeam: [cell({ cellId: 0, championId: 103, selectedSkinId: 103000, spell1Id: 4, spell2Id: 14, ...over })], actions: [[action({ id: 6, type: 'pick', completed: true, championId: 103 })]] });
+
+test('skins: só as desbloqueadas; clique aplica; cromas da skin selecionada aparecem e aplicam', async () => {
+  setup(lockedMe({ selectedSkinId: 103001 }), {
+    skins: ready([skin(103000, { isBase: true }), skin(103001, { childSkins: [{ id: 103010, name: 'Rubi', unlocked: true, colors: ['#f00'] }, { id: 103011, name: 'Safira', unlocked: false, colors: ['#00f'] }] }), skin(103002, { unlocked: false })]),
+  });
+  await settle();
+  expect([...root.querySelectorAll('.rlc-cs-skin')].map((s) => s.getAttribute('aria-label'))).toEqual(['Skin 103000', 'Skin 103001']);
+  expect(root.querySelector('.rlc-cs-skin[aria-pressed="true"]')!.getAttribute('aria-label')).toBe('Skin 103001');
+  expect([...root.querySelectorAll('.rlc-cs-chroma')].map((s) => s.getAttribute('aria-label'))).toEqual(['Rubi']);
+  act(() => btn('Skin 103000')!.click());
+  expect(JSON.parse(call('/lol-champ-select/v1/session/my-selection')[0]![1].body)).toEqual({ selectedSkinId: 103000 });
+  await settle();
+  act(() => btn('Rubi')!.click());
+  expect(JSON.parse(call('/lol-champ-select/v1/session/my-selection')[1]![1].body)).toEqual({ selectedSkinId: 103010 });
+});
+
+test('croma selecionada mantém a skin mãe marcada', async () => {
+  setup(lockedMe({ selectedSkinId: 103010 }), { skins: ready([skin(103001, { childSkins: [{ id: 103010, name: 'Rubi', unlocked: true, colors: [] }] })]) });
+  await settle();
+  expect(root.querySelector('.rlc-cs-skin[aria-pressed="true"]')!.getAttribute('aria-label')).toBe('Skin 103001');
+  expect(root.querySelector('.rlc-cs-chroma[aria-pressed="true"]')!.getAttribute('aria-label')).toBe('Rubi');
+});
+
+const SPELLS = new Map([
+  [4, { id: 4, name: 'Flash', icon: '/s/4.png', gameModes: ['CLASSIC', 'ARAM'] }],
+  [14, { id: 14, name: 'Incendiar', icon: '/s/14.png', gameModes: ['CLASSIC', 'ARAM'] }],
+  [11, { id: 11, name: 'Golpear', icon: '/s/11.png', gameModes: ['CLASSIC'] }],
+  [32, { id: 32, name: 'Marcar', icon: '/s/32.png', gameModes: ['ARAM'] }],
+]);
+function setupLoadout(over: Partial<Record<keyof Lcu, unknown>> = {}) {
+  const lcu = fakeLcu();
+  lcu.game = { ...lcu.game, champions: async () => CHAMPS, spells: async () => SPELLS };
+  const values: Partial<Record<keyof Lcu, unknown>> = {
+    champSelect: ready(lockedMe()),
+    gameflowSession: ready({ gameData: { queue: { gameMode: 'CLASSIC' } } }),
+    perkPages: ready([{ id: 1, name: 'Meio', isValid: true }, { id: 2, name: 'Topo', isValid: true }, { id: 3, name: 'Quebrada', isValid: false }]),
+    currentPerkPage: ready({ id: 1, name: 'Meio' }),
+    ...over,
+  };
+  for (const [k, v] of Object.entries(values)) (lcu[k as keyof Lcu] as { value: unknown }).value = v;
+  act(() => render(<ChampSelect lcu={lcu} />, root));
+}
+
+test('feitiços: slot lista os do modo atual e aplica; escolher o do outro slot troca os dois', async () => {
+  setupLoadout();
+  await settle();
+  act(() => btn('Runas e feitiços')!.click());
+  act(() => btn('Feitiço 1: Flash')!.click());
+  expect([...root.querySelectorAll('.rlc-cs-spell-option')].map((b) => b.getAttribute('aria-label'))).toEqual(['Flash', 'Golpear', 'Incendiar']);
+  act(() => btn('Golpear')!.click());
+  expect(JSON.parse(call('/lol-champ-select/v1/session/my-selection')[0]![1].body)).toEqual({ spell1Id: 11 });
+  await settle();
+  act(() => btn('Feitiço 1: Flash')!.click());
+  act(() => btn('Incendiar')!.click());
+  expect(JSON.parse(call('/lol-champ-select/v1/session/my-selection')[1]![1].body)).toEqual({ spell1Id: 14, spell2Id: 4 });
+});
+
+test('runas: páginas válidas com a atual marcada; clique troca a página', async () => {
+  setupLoadout();
+  await settle();
+  act(() => btn('Runas e feitiços')!.click());
+  const pages = [...root.querySelectorAll('.rlc-cs-page')];
+  expect(pages.map((p) => p.textContent)).toEqual(['Meio', 'Topo']);
+  expect(pages[0]!.getAttribute('aria-pressed')).toBe('true');
+  act(() => btn('Topo')!.click());
+  const [, init] = call('/lol-perks/v1/currentpage')[0]!;
+  expect(init).toEqual({ method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '2' });
+});

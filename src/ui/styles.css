@@ -241,3 +241,20 @@
 #rlc-root .rlc-cs-champ img { width: 100%; height: 100%; object-fit: cover; }
 #rlc-root .rlc-cs-champ[aria-pressed='true'] { border-color: var(--rlc-color-accent); }
 #rlc-root .rlc-cs-champ:hover { border-color: var(--rlc-color-border); }
+
+#rlc-root .rlc-cs-skins-wrap { display: flex; flex-direction: column; gap: 10px; height: 100%; }
+#rlc-root .rlc-cs-skins { display: flex; gap: 8px; overflow-x: auto; flex: 1; min-height: 0; }
+#rlc-root .rlc-cs-skin { flex: none; height: 100%; aspect-ratio: 3 / 5; padding: 0; border: 2px solid transparent; border-radius: var(--rlc-radius-sm); background: var(--rlc-color-surface); overflow: hidden; cursor: pointer; }
+#rlc-root .rlc-cs-skin img { width: 100%; height: 100%; object-fit: cover; }
+#rlc-root .rlc-cs-skin[aria-pressed='true'] { border-color: var(--rlc-color-accent); }
+#rlc-root .rlc-cs-chromas { display: flex; gap: 8px; }
+#rlc-root .rlc-cs-chroma { width: 22px; height: 22px; padding: 0; border: 2px solid var(--rlc-color-border); border-radius: 50%; background: var(--rlc-color-surface); cursor: pointer; }
+#rlc-root .rlc-cs-chroma[aria-pressed='true'] { border-color: var(--rlc-color-accent); }
+#rlc-root .rlc-cs-loadout { display: flex; gap: 32px; height: 100%; }
+#rlc-root .rlc-cs-loadout section { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+#rlc-root .rlc-cs-spell-slots, #rlc-root .rlc-cs-spell-list, #rlc-root .rlc-cs-pages { display: flex; flex-wrap: wrap; gap: 6px; }
+#rlc-root .rlc-cs-spell-slot, #rlc-root .rlc-cs-spell-option { width: 44px; height: 44px; padding: 0; border: 2px solid var(--rlc-color-border); border-radius: var(--rlc-radius-sm); background: var(--rlc-color-surface); color: var(--rlc-color-text); font: inherit; font-size: 10px; overflow: hidden; cursor: pointer; }
+#rlc-root .rlc-cs-spell-slot[aria-expanded='true'] { border-color: var(--rlc-color-accent); }
+#rlc-root .rlc-cs-spell-slot img, #rlc-root .rlc-cs-spell-option img { width: 100%; height: 100%; object-fit: cover; }
+#rlc-root .rlc-cs-page { padding: 8px 14px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-pill); background: var(--rlc-color-surface); color: var(--rlc-color-text); font: inherit; cursor: pointer; }
+#rlc-root .rlc-cs-page[aria-pressed='true'] { background: var(--rlc-color-accent); color: var(--rlc-color-onAccent); border-color: transparent; }

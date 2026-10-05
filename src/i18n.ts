@@ -105,6 +105,10 @@ const TEXTS = {
     role_marksman: 'Atirador',
     role_support: 'Suporte',
     role_tank: 'Tanque',
+    noSkins: 'Nenhuma skin disponível',
+    spells: 'Feitiços',
+    spell: 'Feitiço',
+    runePages: 'Páginas de runas',
   },
   'en-US': {
     play: 'Play',
@@ -212,6 +216,10 @@ const TEXTS = {
     role_marksman: 'Marksman',
     role_support: 'Support',
     role_tank: 'Tank',
+    noSkins: 'No skins available',
+    spells: 'Spells',
+    spell: 'Spell',
+    runePages: 'Rune pages',
   },
 } as const;
 

@@ -4,6 +4,7 @@ import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
 import { useAction } from '../../ui/useAction';
 import { ChampionGrid, Drawer, type Tab } from './Drawer';
+import { RunesSpellsTab, SkinsTab } from './Loadout';
 import { bansByTeam, displayedChampion, flatActions, myTurn, remainingSeconds, selectPhase, type SelectPhase, type Session } from './logic';
 import { Team } from './Teams';
 
@@ -74,6 +75,16 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
               // Fora da minha vez a grade só mostra; nada é enviado.
               if (turn) hover.run(turn.action.id, id);
             }}
+          />
+        ) : null}
+        {tab === 'skins' && local ? <SkinsTab skins={lcu.skins.value.data ?? []} me={local} /> : null}
+        {tab === 'runes' && local ? (
+          <RunesSpellsTab
+            me={local}
+            spells={spells}
+            gameMode={lcu.gameflowSession.value.data?.gameData?.queue?.gameMode ?? null}
+            pages={lcu.perkPages.value.data ?? []}
+            currentPage={lcu.currentPerkPage.value.data?.id ?? null}
           />
         ) : null}
       </Drawer>
