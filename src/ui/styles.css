@@ -113,3 +113,20 @@
 /* A janela do client arrasta pela faixa do topo (cerca de 45 px) mesmo fora da nossa faixa; um clique sem arrastar chega
    ao elemento. `no-drag` nos controles evita que a faixa declarada por nós engula o clique. */
 #rlc-root button, #rlc-root input, #rlc-root select, #rlc-root textarea, #rlc-root a, #rlc-root [role='button'] { -webkit-app-region: no-drag; }
+
+#rlc-root .rlc-readycheck { z-index: 30; flex-direction: column; gap: 24px; }
+#rlc-root .rlc-readycheck h2 { margin: 0; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 32px; }
+#rlc-root .rlc-ring { position: relative; width: 160px; height: 160px; }
+#rlc-root .rlc-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+#rlc-root .rlc-ring circle { fill: none; stroke-width: 6; }
+#rlc-root .rlc-ring-track { stroke: var(--rlc-color-border); }
+#rlc-root .rlc-ring-bar { stroke: var(--rlc-color-accent); stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+#rlc-root .rlc-ring-count { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-readycheck-actions { display: flex; gap: 16px; }
+#rlc-root .rlc-readycheck-state { margin: 0; color: var(--rlc-color-textMuted); font-size: 16px; }
+
+#rlc-root .rlc-invites { position: absolute; top: 24px; right: 16px; z-index: 25; display: flex; flex-direction: column; gap: 10px; width: 280px; }
+#rlc-root .rlc-invite { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-surface); backdrop-filter: blur(var(--rlc-blur-surface)); animation: rlc-fade var(--rlc-motion-duration) var(--rlc-motion-easing) both; }
+#rlc-root .rlc-invite-title { font-size: 12px; color: var(--rlc-color-textMuted); text-transform: uppercase; letter-spacing: 0.05em; }
+#rlc-root .rlc-invite-queue { font-size: 13px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-invite-actions { display: flex; gap: 8px; margin-top: 6px; }

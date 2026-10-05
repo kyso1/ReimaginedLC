@@ -19,6 +19,12 @@ const TEXTS = {
     cancel: 'Cancelar',
     quitConfirm: 'Fechar o League of Legends?',
     quit: 'Fechar',
+    matchFound: 'Partida encontrada',
+    accept: 'Aceitar',
+    decline: 'Recusar',
+    acceptedWaiting: 'Aceito, aguardando os outros',
+    declined: 'Recusado',
+    partyInvite: 'Convite de grupo',
   },
   'en-US': {
     play: 'Play',
@@ -40,6 +46,12 @@ const TEXTS = {
     cancel: 'Cancel',
     quitConfirm: 'Close League of Legends?',
     quit: 'Close',
+    matchFound: 'Match found',
+    accept: 'Accept',
+    decline: 'Decline',
+    acceptedWaiting: 'Accepted, waiting for others',
+    declined: 'Declined',
+    partyInvite: 'Party invite',
   },
 } as const;
 

@@ -1,6 +1,6 @@
 import type { Signal } from '@preact/signals';
 import type { JSX } from 'preact';
-import { useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { t } from '../i18n';
 import type { Lcu } from '../lcu';
 import { request } from '../lcu/request';
@@ -12,6 +12,8 @@ import { Rail } from '../ui/Rail';
 import { Boundary } from './Boundary';
 import { enabled, hideRiot, setEnabled } from './layer';
 import { Confirm } from './overlays/Confirm';
+import { InvitationCards } from './overlays/Invitations';
+import { ReadyCheckOverlay, showReadyCheck } from './overlays/ReadyCheck';
 import { screenFor, type Screen } from './router';
 import { WindowBar } from './WindowBar';
 
@@ -29,9 +31,11 @@ interface Props {
   /** Muda quando a raiz da Riot aparece ou é trocada. */
   dom: Signal<number>;
   screens?: Partial<Record<Screen, (props: HomeProps) => JSX.Element>>;
+  /** Ponto de troca para testes. */
+  readyCheckOverlay?: typeof ReadyCheckOverlay;
 }
 
-export function App({ root, lcu, themes, base, focused, dom, screens = { home: Home } }: Props) {
+export function App({ root, lcu, themes, base, focused, dom, screens = { home: Home }, readyCheckOverlay: ReadyCheck = ReadyCheckOverlay }: Props) {
   const domVersion = dom.value;
   const route = screenFor(lcu.gameflowPhase.value);
   // Tela sem componente ainda (lobby antes da Tarefa 5) fica com o client original.
@@ -40,6 +44,14 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   const theme = themes.active.value;
   const hide = visible && hideRiot.value;
   const [confirmClose, setConfirmClose] = useState(false);
+  const readyVisible = visible && showReadyCheck(lcu.gameflowPhase.value, lcu.readyCheck.value);
+
+  // Aceite com a janela minimizada ou sem foco: traz a janela para frente, uma vez por aceite.
+  useEffect(() => {
+    if (!readyVisible || focused.peek()) return;
+    void request('POST', '/riotclient/ux-show').catch(() => {});
+    void request('POST', '/riotclient/ux-flash').catch(() => {});
+  }, [readyVisible]);
 
   // Layout effects: rodam logo após o commit do DOM, antes de qualquer pintura. Se a camada
   // não mostra tela, a Riot precisa estar visível já, não no próximo frame.
@@ -91,6 +103,8 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
         <main class="rlc-screen">
           <ScreenComponent version={lcu.build.value.data?.version ?? null} locale={lcu.regionLocale.value.data?.locale ?? null} onPlay={turnOff} />
         </main>
+        <InvitationCards invitations={lcu.invitations.value.data ?? []} queues={lcu.queues.value.data ?? []} />
+        {readyVisible ? <ReadyCheck rc={lcu.readyCheck.value.data!} /> : null}
         <WindowBar onClose={() => setConfirmClose(true)} />
         {confirmClose ? (
           <Confirm

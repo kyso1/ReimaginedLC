@@ -5,7 +5,7 @@ import { setLocale } from '../i18n';
 import type { Lcu, StoreState } from '../lcu';
 import type { ResolvedTheme } from '../theme/resolve';
 import type { ThemeEngine } from '../theme/engine';
-import { fakeLcu } from '../test/fixtures';
+import { fakeLcu, invitation, readyCheck } from '../test/fixtures';
 import { App, RIOT_ROOT_ID } from './App';
 import { enabled, hideRiot, syncLayer } from './layer';
 
@@ -253,4 +253,61 @@ test('a faixa da janela aparece; fechar pede confirmação antes de encerrar o c
   await flush();
   expect(fetchMock).toHaveBeenCalledWith('/process-control/v1/process/quit', { method: 'POST' });
   vi.unstubAllGlobals();
+});
+
+const LobbyStub = () => <div class="lobby-stub">lobby</div>;
+
+test('em ReadyCheck mostra o aceite sobre a tela; com suppressUx não mostra', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
+  enabled.value = true;
+  phase.value = ready('ReadyCheck');
+  lcu.readyCheck.value = ready(readyCheck());
+  mount({ screens: { home: () => <div />, lobby: LobbyStub } });
+  await flush();
+  expect(root.querySelector('.lobby-stub')).not.toBeNull();
+  expect(root.querySelector('.rlc-readycheck')).not.toBeNull();
+  lcu.readyCheck.value = ready(readyCheck({ suppressUx: true }));
+  await flush();
+  expect(root.querySelector('.rlc-readycheck')).toBeNull();
+  vi.unstubAllGlobals();
+});
+
+test('aceite com a janela sem foco traz a janela para frente uma vez', async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+  vi.stubGlobal('fetch', fetchMock);
+  enabled.value = true;
+  focused.value = false;
+  phase.value = ready('ReadyCheck');
+  lcu.readyCheck.value = ready(readyCheck());
+  mount({ screens: { home: () => <div />, lobby: LobbyStub } });
+  await flush();
+  lcu.readyCheck.value = ready(readyCheck({ timer: 3 }));
+  await flush();
+  const calls = fetchMock.mock.calls.map((c) => c[0]);
+  expect(calls.filter((u) => u === '/riotclient/ux-show')).toHaveLength(1);
+  expect(calls.filter((u) => u === '/riotclient/ux-flash')).toHaveLength(1);
+  vi.unstubAllGlobals();
+});
+
+test('exceção na sobreposição de aceite desliga a camada e devolve a Riot', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  enabled.value = true;
+  phase.value = ready('ReadyCheck');
+  lcu.readyCheck.value = ready(readyCheck());
+  const Broken = (): never => {
+    throw new Error('quebrou');
+  };
+  mount({ screens: { home: () => <div />, lobby: LobbyStub }, readyCheckOverlay: Broken });
+  await flush();
+  expect(enabled.value).toBe(false);
+  expect(riot.style.visibility).toBe('');
+  vi.mocked(console.error).mockRestore();
+});
+
+test('convite pendente aparece na tela inicial', async () => {
+  enabled.value = true;
+  lcu.invitations.value = ready([invitation()]);
+  mount();
+  await flush();
+  expect(root.querySelector('.rlc-invite')!.textContent).toContain('Zeca');
 });
