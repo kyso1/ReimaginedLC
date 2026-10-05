@@ -258,3 +258,9 @@
 #rlc-root .rlc-cs-spell-slot img, #rlc-root .rlc-cs-spell-option img { width: 100%; height: 100%; object-fit: cover; }
 #rlc-root .rlc-cs-page { padding: 8px 14px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-pill); background: var(--rlc-color-surface); color: var(--rlc-color-text); font: inherit; cursor: pointer; }
 #rlc-root .rlc-cs-page[aria-pressed='true'] { background: var(--rlc-color-accent); color: var(--rlc-color-onAccent); border-color: transparent; }
+
+#rlc-root .rlc-cs-cell .rlc-col-menu { top: 4px; right: 4px; width: 22px; height: 22px; font-size: 11px; }
+#rlc-root .rlc-cs-cell .rlc-menu { top: 30px; }
+#rlc-root .rlc-cs-swaps { position: absolute; top: 132px; right: 24px; z-index: 3; display: flex; flex-direction: column; gap: 8px; width: 280px; }
+#rlc-root .rlc-cs-bench { position: absolute; left: 24px; right: 24px; bottom: calc(38% + 28px); z-index: 2; display: flex; gap: 6px; align-items: center; }
+#rlc-root .rlc-cs-bench .rlc-cs-champ { width: 48px; }

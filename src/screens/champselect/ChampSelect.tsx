@@ -5,6 +5,7 @@ import { request } from '../../lcu/request';
 import { useAction } from '../../ui/useAction';
 import { ChampionGrid, Drawer, type Tab } from './Drawer';
 import { RunesSpellsTab, SkinsTab } from './Loadout';
+import { Bench, SwapCards, swapMenu } from './Swaps';
 import { bansByTeam, displayedChampion, flatActions, myTurn, remainingSeconds, selectPhase, type SelectPhase, type Session } from './logic';
 import { Team } from './Teams';
 
@@ -57,7 +58,7 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
     <section class="rlc-champselect">
       <div class="rlc-cs-splash" style={splash ? { backgroundImage: `url("${splash}")` } : undefined} />
       <header class="rlc-cs-top">
-        <Team cells={session.myTeam} side="mine" bans={bans.mine} active={active} localCellId={session.localPlayerCellId} champions={champions} spells={spells} name={lcu.name} />
+        <Team cells={session.myTeam} side="mine" bans={bans.mine} active={active} localCellId={session.localPlayerCellId} champions={champions} spells={spells} name={lcu.name} menuFor={(c) => (c.cellId === session.localPlayerCellId ? null : swapMenu(session, c))} />
         <div class="rlc-cs-clock">
           <span class="rlc-cs-timer">{seconds}</span>
           {phaseKey ? <span class="rlc-cs-phase">{t(phaseKey)}</span> : null}
@@ -65,6 +66,8 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
         <Team cells={session.theirTeam} side="theirs" bans={bans.theirs} active={active} localCellId={-1} champions={champions} spells={spells} name={lcu.name} />
       </header>
       {shown ? <h1 class="rlc-cs-champ-name">{champions.get(shown.championId)?.name ?? ''}</h1> : null}
+      <SwapCards session={session} />
+      <Bench session={session} champions={champions} />
       <Drawer tab={tab} onTab={setTab} action={mainAction}>
         {tab === 'champions' ? (
           <ChampionGrid

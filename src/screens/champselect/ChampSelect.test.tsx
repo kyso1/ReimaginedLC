@@ -244,3 +244,55 @@ test('runas: páginas válidas com a atual marcada; clique troca a página', asy
   const [, init] = call('/lol-perks/v1/currentpage')[0]!;
   expect(init).toEqual({ method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '2' });
 });
+
+test('troca recebida: cartão com Aceitar e Recusar', async () => {
+  setup(session({ myTeam: [me, cell({ cellId: 1, gameName: 'Zeca' })], trades: [{ id: 7, cellId: 1, state: 'RECEIVED' }] as never }));
+  await settle();
+  const card = root.querySelector('.rlc-cs-swap')!;
+  expect(card.textContent).toContain('Zeca');
+  expect(card.textContent).toContain('trocar de campeão');
+  act(() => btn('Aceitar', card)!.click());
+  expect(call('/lol-champ-select/v1/session/champion-swaps/7/accept')).toHaveLength(1);
+  await settle();
+  act(() => btn('Recusar', card)!.click());
+  expect(call('/lol-champ-select/v1/session/champion-swaps/7/decline')).toHaveLength(1);
+});
+
+test('troca enviada: aguardando, com Cancelar', async () => {
+  setup(session({ myTeam: [me, cell({ cellId: 1, gameName: 'Zeca' })], pickOrderSwaps: [{ id: 8, cellId: 1, state: 'SENT' }] as never }));
+  await settle();
+  const card = root.querySelector('.rlc-cs-swap')!;
+  expect(card.textContent).toContain('Aguardando Zeca');
+  act(() => btn('Cancelar', card)!.click());
+  expect(call('/lol-champ-select/v1/session/pick-order-swaps/8/cancel')).toHaveLength(1);
+});
+
+test('menu do aliado oferece só as trocas disponíveis com ele', async () => {
+  setup(session({
+    myTeam: [me, cell({ cellId: 1, gameName: 'Zeca' }), cell({ cellId: 2, gameName: 'Beltrano' })],
+    trades: [{ id: 7, cellId: 1, state: 'AVAILABLE' }, { id: 9, cellId: 2, state: 'INVALID' }] as never,
+    positionSwaps: [{ id: 11, cellId: 1, state: 'AVAILABLE' }] as never,
+  }));
+  await settle();
+  const cells = root.querySelectorAll('.rlc-cs-team')[0]!.querySelectorAll('.rlc-cs-cell');
+  expect(cells[0]!.querySelector('.rlc-col-menu')).toBeNull();
+  expect(cells[2]!.querySelector('.rlc-col-menu')).toBeNull();
+  act(() => cells[1]!.querySelector<HTMLButtonElement>('.rlc-col-menu')!.click());
+  expect([...root.querySelectorAll('[role="menuitem"]')].map((b) => b.textContent)).toEqual(['Trocar campeão', 'Trocar posição']);
+  act(() => btn('Trocar posição')!.click());
+  expect(call('/lol-champ-select/v1/session/position-swaps/11/request')).toHaveLength(1);
+});
+
+test('ARAM: banco troca pelo clique; rolagem mostra o restante e desabilita sem rolagens', async () => {
+  const lcu = setup(session({ myTeam: [me], benchEnabled: true, benchChampions: [{ championId: 157, isPriority: false }] as never, allowRerolling: true, rerollsRemaining: 2 }));
+  await settle();
+  act(() => btn('Yasuo', root.querySelector('.rlc-cs-bench')!)!.click());
+  expect(call('/lol-champ-select/v1/session/bench/swap/157')).toHaveLength(1);
+  const reroll = btn('Rolar (2)')!;
+  act(() => reroll.click());
+  expect(call('/lol-champ-select/v1/session/my-selection/reroll')).toHaveLength(1);
+  act(() => {
+    lcu.champSelect.value = ready(session({ myTeam: [me], benchEnabled: true, benchChampions: [] as never, allowRerolling: true, rerollsRemaining: 0 }));
+  });
+  expect(btn('Rolar (0)')!.disabled).toBe(true);
+});
