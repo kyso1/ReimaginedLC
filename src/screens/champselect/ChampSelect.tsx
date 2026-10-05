@@ -3,7 +3,7 @@ import { t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
 import { useAction } from '../../ui/useAction';
-import { ChampionGrid, Drawer, type Tab } from './Drawer';
+import { ChampionGrid, Drawer, LANES, type Lane, type Tab } from './Drawer';
 import { RunesSpellsTab, SkinsTab } from './Loadout';
 import { Bench, SwapCards, swapMenu } from './Swaps';
 import { bansByTeam, displayedChampion, flatActions, myTurn, remainingSeconds, selectPhase, type SelectPhase, type Session } from './logic';
@@ -38,6 +38,14 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
 
   const hover = useAction((id: number, championId: number) => request('PATCH', `/lol-champ-select/v1/session/actions/${id}`, { championId }));
   const commit = useAction((id: number, championId: number) => request('PATCH', `/lol-champ-select/v1/session/actions/${id}`, { championId, completed: true }));
+  // `all-grid-champions` não se atualiza depois da troca; o valor confirmado vem de `grid-champions/{id}`.
+  const [favOverrides, setFavOverrides] = useState<Map<number, string[]>>(new Map());
+  const favorite = useAction(async (id: number, lane: Lane) => {
+    await request('POST', `/lol-champ-select/v1/toggle-favorite/${id}/${lane.toLowerCase()}`);
+    const fresh = await request<{ positionsFavorited?: string[] }>('GET', `/lol-champ-select/v1/grid-champions/${id}`);
+    setFavOverrides((prev) => new Map(prev).set(id, fresh?.positionsFavorited ?? []));
+  });
+  const quit = useAction(() => request('POST', '/lol-lobby-team-builder/champ-select/v1/session/quit'));
 
   if (!session) return <section class="rlc-champselect" />;
 
@@ -47,6 +55,15 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   const bans = bansByTeam(session);
   const active = new Set(flatActions(session).filter((a) => a.isInProgress && !a.completed).map((a) => a.actorCellId));
   const phaseKey = PHASE_TEXT[phase];
+
+  const assigned = (local?.assignedPosition ?? '').toUpperCase();
+  const favorites = new Map((lcu.gridChampions.value.data ?? []).map((c) => [c.id, c.positionsFavorited ?? []]));
+  for (const [id, lanes] of favOverrides) favorites.set(id, lanes);
+  const quitButton = (session as Session & { showQuitButton?: boolean }).showQuitButton ? (
+    <button type="button" class="rlc-button" data-variant="pill" disabled={quit.pending} onClick={() => quit.run()}>
+      {t('quitSelect')}
+    </button>
+  ) : null;
 
   const mainAction = turn ? (
     <button type="button" class="rlc-button" data-variant="primary" disabled={!highlighted || commit.pending || hover.pending} onClick={() => commit.run(turn.action.id, highlighted)}>
@@ -68,12 +85,25 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
       {shown ? <h1 class="rlc-cs-champ-name">{champions.get(shown.championId)?.name ?? ''}</h1> : null}
       <SwapCards session={session} />
       <Bench session={session} champions={champions} />
-      <Drawer tab={tab} onTab={setTab} action={mainAction}>
+      <Drawer
+        tab={tab}
+        onTab={setTab}
+        action={
+          <>
+            {quitButton}
+            {mainAction}
+          </>
+        }
+      >
         {tab === 'champions' ? (
           <ChampionGrid
             ids={turn ? allowed : (lcu.pickable.value.data ?? [])}
             champions={champions}
             selected={highlighted}
+            lanes={lcu.lanes.value.data ?? {}}
+            favorites={favorites}
+            initialLane={(LANES as readonly string[]).includes(assigned) ? (assigned as Lane) : null}
+            onFavorite={(id, lane) => favorite.run(id, lane)}
             onPick={(id) => {
               // Fora da minha vez a grade só mostra; nada é enviado.
               if (turn) hover.run(turn.action.id, id);

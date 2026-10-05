@@ -73,3 +73,12 @@ Precisam de uma partida real com outras pessoas:
 5. Avisar o executor, que roda `npm run dump:anonymize -- partida-normal`, confere a gravação, corrige o que divergir e então liga a camada por padrão.
 
 Ponto menor visto: com cinco jogadores por time, a vaga fica estreita e nomes longos são cortados.
+
+## Rotas, favoritos e sair (após o 2b)
+
+Pedido do dono depois de ver a seleção. Verificado no client numa sala Tournament Draft:
+
+- Separador por rota acima da grade, a partir de `/lol-perks/v1/recommended-champion-positions` (id do campeão → posições em maiúsculas). A rota começa pela posição atribuída (`assignedPosition`, em minúsculas na sessão). Campeão sem rota recomendada continua visível. O filtro por classe saiu.
+- Favoritos por rota primeiro na grade, com estrela. `POST /lol-champ-select/v1/toggle-favorite/{id}/{rota em minúsculas}` funciona, mas `/lol-champ-select/v1/all-grid-champions` continua devolvendo a lista antiga; o valor confirmado é lido de `/lol-champ-select/v1/grid-champions/{id}` depois da troca.
+- A lista de campeões disponíveis inclui o id -1 ("nenhum"), que agora é ignorado.
+- Sair da seleção (quando a sessão traz `showQuitButton`): `POST /lol-lobby-team-builder/champ-select/v1/session/quit` devolve a sala personalizada ao lobby.

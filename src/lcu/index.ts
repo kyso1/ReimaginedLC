@@ -9,6 +9,8 @@ import type {
   LolGameflowGameflowSession,
   LolHonorV2Ballot,
   LolPerksPerkPageResource,
+  LolPerksRecommendedPositionsMapResource,
+  TeamBuilderDirect_ChampGridChampion,
   TeamBuilderDirect_ChampSelectSession,
   TeamBuilderDirect_SkinSelectorSkin,
   LolGameflowGameflowPhase,
@@ -54,6 +56,10 @@ export interface Lcu {
   gameflowSession: Signal<StoreState<LolGameflowGameflowSession>>;
   honorBallot: Signal<StoreState<LolHonorV2Ballot>>;
   endOfGame: Signal<StoreState<LolEndOfGameEndOfGameStats>>;
+  /** Rotas recomendadas por campeão (id em texto → posições em maiúsculas). */
+  lanes: Signal<StoreState<Record<string, LolPerksRecommendedPositionsMapResource>>>;
+  /** Grade da seleção: traz `positionsFavorited` (rotas em minúsculas) por campeão. */
+  gridChampions: Signal<StoreState<TeamBuilderDirect_ChampGridChampion[]>>;
 }
 
 type Fetcher = (url: string) => Promise<Response>;
@@ -119,5 +125,7 @@ export function createLcu(doc: Document = document): Lcu {
     gameflowSession: createStore('/lol-gameflow/v1/session', socket),
     honorBallot: createStore('/lol-honor-v2/v1/ballot', socket),
     endOfGame: createStore('/lol-end-of-game/v1/eog-stats-block', socket),
+    lanes: createStore('/lol-perks/v1/recommended-champion-positions', socket),
+    gridChampions: createStore('/lol-champ-select/v1/all-grid-champions', socket),
   };
 }
