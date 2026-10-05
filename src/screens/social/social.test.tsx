@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { fakeLcu, friend, ready } from '../../test/fixtures';
-import { ChatTabs, ChatWindow } from './Chat';
+import { ChatTabs, ChatWindow, messageTime } from './Chat';
 import { ContextChat } from './ContextChat';
 import { AddFriend, FriendRequests, StatusEditor } from './FriendTools';
 
@@ -129,4 +129,20 @@ test('status: disponibilidade e mensagem', () => {
 
 test('amigos fixture continua válido', () => {
   expect(friend().availability).toBe('chat');
+});
+
+test('hora da mensagem: só a hora hoje; dia e hora nos outros dias', () => {
+  const now = new Date('2026-10-05T15:00:00.000Z');
+  expect(messageTime('2026-10-05T14:20:00.000Z', now)).not.toContain('/');
+  expect(messageTime('2026-10-02T15:00:00.000Z', now)).toContain('02/10');
+  expect(messageTime('lixo', now)).toBe('');
+});
+
+test('mensagens de sistema de entrada e saída da sala ficam de fora', async () => {
+  const sys = (id: string, body: string) => ({ ...msg(id, body), type: 'system' });
+  fetchMock.mockImplementation(async (url: string) => (url === '/lol-chat/v1/conversations/zeca%40pvp.net/messages' ? new Response(JSON.stringify([msg('m1', 'oi'), sys('s1', 'joined_room'), sys('s2', 'left_room')]), { status: 200 }) : new Response(null, { status: 204 })));
+  const lcu = withValues({ chatMe: ready({ puuid: 'me' }) });
+  act(() => render(<ChatWindow lcu={lcu} conversationId="zeca@pvp.net" title="Zeca" onClose={() => {}} />, root));
+  await settle();
+  expect([...root.querySelectorAll('.rlc-chat-text')].map((e) => e.textContent)).toEqual(['oi']);
 });

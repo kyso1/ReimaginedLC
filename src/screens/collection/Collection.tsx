@@ -60,7 +60,9 @@ export function Collection({ lcu }: { lcu: Lcu }) {
   const [skinChampion, setSkinChampion] = useState<number | null>(null);
   const me = lcu.chatMe.value.data;
   const sid = me?.summonerId;
-  const champions = useJson<Champion[]>(sid ? `/lol-champions/v1/inventories/${sid}/champions-minimal` : null) ?? [];
+  // A lista traz variantes de modo (Jade_Ahri, id 60103) com o mesmo nome; campeões de verdade têm id abaixo de 10000.
+  // ponytail: corte por id; trocar por champion-summary se a Riot passar de 9999 campeões.
+  const champions = (useJson<Champion[]>(sid ? `/lol-champions/v1/inventories/${sid}/champions-minimal` : null) ?? []).filter((c) => c.id < 10000);
   const skins = useJson<Skin[]>(sid ? `/lol-champions/v1/inventories/${sid}/skins-minimal` : null) ?? [];
   const mastery = useJson<Array<{ championId: number; championLevel: number; championPoints: number }>>(me?.puuid ? `/lol-champion-mastery/v1/${encodeURIComponent(me.puuid)}/champion-mastery` : null) ?? [];
 

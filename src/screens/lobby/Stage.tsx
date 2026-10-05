@@ -61,7 +61,7 @@ export function Column({ member, profile, name, splash: splashOf, isLocal = fals
     <div class="rlc-col" data-local={isLocal ? 'true' : undefined}>
       {splash ? <div class="rlc-col-splash" style={{ backgroundImage: `url("${splash}")` }} /> : null}
       {legend ? (
-        <div class="rlc-col-legend" title={legend.name}>
+        <div class="rlc-col-legend" title={legend.name} style={{ '--rlc-legend': `url("${legend.icon}")` }}>
           <img src={legend.icon} alt={legend.name} />
         </div>
       ) : null}

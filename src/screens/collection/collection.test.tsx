@@ -23,6 +23,8 @@ const champs = [
   { id: 103, name: 'Ahri', title: 'a Raposa de Nove Caudas', roles: ['mage'], baseSplashPath: '/s/103.jpg', squarePortraitPath: '/i/103.png', ownership: { owned: true } },
   { id: 266, name: 'Aatrox', title: 'a Espada Darkin', roles: ['fighter'], baseSplashPath: '/s/266.jpg', squarePortraitPath: '/i/266.png', ownership: { owned: false } },
   { id: 238, name: 'Zed', title: 'o Mestre das Sombras', roles: ['assassin'], baseSplashPath: '/s/238.jpg', squarePortraitPath: '/i/238.png', ownership: { owned: true } },
+  // Variante de modo (Jade_Ahri): mesmo nome, id alto; não é um campeão a mais.
+  { id: 60103, name: 'Ahri', title: 'a Raposa de Nove Caudas', roles: ['mage'], baseSplashPath: '/s/103.jpg', squarePortraitPath: '/i/103.png', ownership: { owned: true } },
 ];
 const skins = [
   { id: 103000, championId: 103, name: 'Ahri', isBase: true, splashPath: '/s/103000.jpg', tilePath: '/t/103000.jpg', ownership: { owned: true } },

@@ -34,10 +34,16 @@ export function useConversation(lcu: Lcu, id: string | null): Message[] {
   return messages;
 }
 
-const time = (iso: string) => {
+/** Hora da mensagem; de outro dia leva dia e mês na frente (o histórico cobre semanas). */
+export function messageTime(iso: string, now = new Date()): string {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
-};
+  if (Number.isNaN(d.getTime())) return '';
+  const hour = d.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
+  return d.toDateString() === now.toDateString() ? hour : `${d.toLocaleDateString(locale(), { day: '2-digit', month: '2-digit' })} ${hour}`;
+}
+
+/** Avisos de entrada e saída da sala que a LCU grava como mensagem de sistema. */
+const ROOM_NOISE = new Set(['joined_room', 'left_room']);
 
 /** Mensagens e campo de envio. Mensagens de sistema em cinza; texto sempre como texto (links não abrem). */
 export function ChatBody({ lcu, conversationId }: { lcu: Lcu; conversationId: string }) {
@@ -56,10 +62,10 @@ export function ChatBody({ lcu, conversationId }: { lcu: Lcu; conversationId: st
   return (
     <div class="rlc-chat-body">
       <div class="rlc-chat-msgs" ref={list}>
-        {messages.map((m) => (
+        {messages.filter((m) => !(m.type === 'system' && ROOM_NOISE.has(m.body))).map((m) => (
           <div key={m.id} class="rlc-chat-msg" data-mine={m.fromPuuid === me ? 'true' : undefined} data-system={m.type !== 'chat' && m.type !== 'groupchat' ? 'true' : undefined}>
             <span class="rlc-chat-text">{m.body}</span>
-            <small>{time(m.timestamp)}</small>
+            <small>{messageTime(m.timestamp)}</small>
           </div>
         ))}
       </div>

@@ -320,7 +320,8 @@ function GameSettings() {
       {Object.entries(schema).map(([cat, fields]) => (
         <details key={cat} class="rlc-st-cat" open={cat === 'General'}>
           <summary>{label(cat)}</summary>
-          {Object.entries(fields).map(([key, def]) => {
+          <div class="rlc-st-fields">
+            {Object.entries(fields).map(([key, def]) => {
             const current = values[cat]?.[key] ?? def.default;
             if (typeof def.default === 'boolean')
               return (
@@ -338,6 +339,7 @@ function GameSettings() {
               );
             return null;
           })}
+          </div>
         </details>
       ))}
     </div>

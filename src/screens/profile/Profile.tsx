@@ -213,11 +213,13 @@ function MatchDetail({ lcu, puuid, gameId, originY, onBack }: { lcu: Lcu; puuid:
                         <td>{champions.get(p.championId)?.icon ? <img class="rlc-md-champ" src={champions.get(p.championId)!.icon} alt="" /> : null}</td>
                         <td>{`${playerName(game, p.participantId)} · ${champions.get(p.championId)?.name ?? ''}`}</td>
                         <td>{kda(p)}</td>
-                        <td class="rlc-md-items">
-                          {[0, 1, 2, 3, 4, 5, 6].map((s) => {
-                            const icon = items.get(num(p, `item${s}`));
-                            return icon ? <img key={s} src={icon} alt="" /> : <span key={s} class="rlc-md-noitem" />;
-                          })}
+                        <td>
+                          <div class="rlc-md-items">
+                            {[0, 1, 2, 3, 4, 5, 6].map((s) => {
+                              const icon = items.get(num(p, `item${s}`));
+                              return icon ? <img key={s} src={icon} alt="" /> : <span key={s} class="rlc-md-noitem" />;
+                            })}
+                          </div>
                         </td>
                         <td>{n.format(num(p, 'totalDamageDealtToChampions'))}</td>
                       </tr>

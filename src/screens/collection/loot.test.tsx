@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { fakeLcu, ready } from '../../test/fixtures';
-import { Loot, lootGroup } from './Loot';
+import { actionLabel, Loot, lootGroup } from './Loot';
 
 let root: HTMLElement;
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -75,4 +75,21 @@ test('ação pede confirmação, cria pela receita com os itens envolvidos e rev
   expect(call[0]).toBe('/lol-loot/v1/recipes/CHEST_generic_OPEN/craft?repeat=1');
   expect(JSON.parse(call[1].body)).toEqual(['CHEST_generic', 'MATERIAL_key']);
   expect(root.querySelector('.rlc-lt-reveal')!.textContent).toContain('Skin de Ahri');
+});
+
+test('sem baús abre no primeiro grupo que tem itens; item sem lootId fica de fora', () => {
+  const lcu = fakeLcu();
+  lcu.loot.value = ready([item('CHAMPION_SKIN_RENTAL_33004', 'SKIN', { localizedName: 'Rammus do Freljord' }), item('', '', { count: 5 })]) as Lcu['loot']['value'];
+  act(() => render(<Loot lcu={lcu} />, root));
+  expect(names()).toEqual(['Rammus do Freljord']);
+  expect(chip('Skins').getAttribute('aria-pressed')).toBe('true');
+});
+
+test('rótulo da ação: texto da LCU quando vier; senão o nosso, com a essência ganha ou gasta', () => {
+  const m = (o: Record<string, unknown>) => ({ actionType: 'DISENCHANT', recipeContextMenuAction: '', essenceQuantity: 0, essenceType: '', ...o }) as never;
+  expect(actionLabel(m({ recipeContextMenuAction: 'Abrir' }))).toBe('Abrir');
+  expect(actionLabel(m({ essenceQuantity: 104, essenceType: 'CURRENCY_cosmetic' }))).toBe('Desencantar (+104 EL)');
+  expect(actionLabel(m({ actionType: 'UPGRADE', essenceQuantity: -220, essenceType: 'CURRENCY_cosmetic' }))).toBe('Liberar (−220 EL)');
+  expect(actionLabel(m({ actionType: 'REROLL' }))).toBe('Reformular');
+  expect(actionLabel(m({ actionType: 'SOMETHING_NEW' }))).toBe('SOMETHING_NEW');
 });
