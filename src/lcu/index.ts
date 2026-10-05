@@ -1,9 +1,16 @@
 import type { Signal } from '@preact/signals';
+import { createGameData, type GameData } from '../data/gamedata';
 import { request } from './request';
 import { connect } from './socket';
 import { createStore, type StoreState } from './store';
 import type {
   LolChatFriendResource,
+  LolEndOfGameEndOfGameStats,
+  LolGameflowGameflowSession,
+  LolHonorV2Ballot,
+  LolPerksPerkPageResource,
+  TeamBuilderDirect_ChampSelectSession,
+  TeamBuilderDirect_SkinSelectorSkin,
   LolGameflowGameflowPhase,
   LolGameQueuesQueue,
   LolLobbyLobbyCustomGame,
@@ -36,8 +43,17 @@ export interface Lcu {
   profile: (puuid: string) => Promise<Profile | null>;
   /** Nome (Riot ID, sem a tag) por puuid, com cache. A LCU manda `summonerName` vazio desde o Riot ID. */
   name: (puuid: string) => Promise<string | null>;
-  /** Caminho da splash centralizada de uma skin, ou null. */
-  splash: (skinId: number | undefined) => Promise<string | null>;
+  /** Campeões, feitiços e splashes, com cache. */
+  game: GameData;
+  champSelect: Signal<StoreState<TeamBuilderDirect_ChampSelectSession>>;
+  skins: Signal<StoreState<TeamBuilderDirect_SkinSelectorSkin[]>>;
+  pickable: Signal<StoreState<number[]>>;
+  bannable: Signal<StoreState<number[]>>;
+  perkPages: Signal<StoreState<LolPerksPerkPageResource[]>>;
+  currentPerkPage: Signal<StoreState<LolPerksPerkPageResource>>;
+  gameflowSession: Signal<StoreState<LolGameflowGameflowSession>>;
+  honorBallot: Signal<StoreState<LolHonorV2Ballot>>;
+  endOfGame: Signal<StoreState<LolEndOfGameEndOfGameStats>>;
 }
 
 type Fetcher = (url: string) => Promise<Response>;
@@ -67,27 +83,6 @@ export const createNames = (fetcher: Fetcher = (u) => fetch(u)) =>
     return typeof n === 'string' && n ? n : null;
   }, fetcher);
 
-/**
- * Splash de uma skin pelo `splashPath` do JSON do campeão (o id do campeão são os milhares do id da skin).
- * A rota `champion-splashes/{campeão}/{skin}.jpg` não carrega no client. Cache por campeão.
- */
-export function createSplashes(fetcher: Fetcher = (u) => fetch(u)) {
-  const champions = new Map<number, Promise<Map<number, string>>>();
-  return async (skinId: number | undefined): Promise<string | null> => {
-    if (!skinId) return null;
-    const champion = Math.floor(skinId / 1000);
-    let skins = champions.get(champion);
-    if (!skins) {
-      skins = fetcher(`/lol-game-data/assets/v1/champions/${champion}.json`)
-        .then((r) => (r.ok ? (r.json() as Promise<{ skins?: Array<{ id: number; splashPath?: string }> }>) : null))
-        .then((c) => new Map((c?.skins ?? []).filter((s) => s.splashPath).map((s) => [s.id, s.splashPath!])))
-        .catch(() => new Map<number, string>());
-      champions.set(champion, skins);
-    }
-    return (await skins).get(skinId) ?? null;
-  };
-}
-
 /** Abre o único WebSocket do plugin e cria os stores. */
 export function createLcu(doc: Document = document): Lcu {
   const link = doc.querySelector<HTMLLinkElement>('link[rel="riot:plugins:websocket"]');
@@ -114,6 +109,15 @@ export function createLcu(doc: Document = document): Lcu {
     },
     profile: createProfiles(),
     name: createNames(),
-    splash: createSplashes(),
+    game: createGameData(),
+    champSelect: createStore('/lol-champ-select/v1/session', socket),
+    skins: createStore('/lol-champ-select/v1/skin-carousel-skins', socket),
+    pickable: createStore('/lol-champ-select/v1/pickable-champion-ids', socket),
+    bannable: createStore('/lol-champ-select/v1/bannable-champion-ids', socket),
+    perkPages: createStore('/lol-perks/v1/pages', socket),
+    currentPerkPage: createStore('/lol-perks/v1/currentpage', socket),
+    gameflowSession: createStore('/lol-gameflow/v1/session', socket),
+    honorBallot: createStore('/lol-honor-v2/v1/ballot', socket),
+    endOfGame: createStore('/lol-end-of-game/v1/eog-stats-block', socket),
   };
 }

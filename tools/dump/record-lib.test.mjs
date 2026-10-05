@@ -24,6 +24,11 @@ test('toLine ignora mensagem vazia, JSON inválido, outro opcode e URI ruidosa',
   assert.equal(toLine(msg('/data-store/v1/install-settings/x'), 0), null);
   assert.equal(toLine(msg('/lol-patch/v1/products/league_of_legends/state'), 0), null);
   assert.equal(toLine(msg('/lol-cosmetics/v1/inventories/tft/companions'), 0), null);
+  assert.equal(toLine(msg('/lol-challenges/v1/challenges/local-player'), 0), null);
+  assert.equal(toLine(msg('/lol-missions/v1/missions'), 0), null);
+  assert.equal(toLine(msg('/lol-objectives/v1/objectives/lol'), 0), null);
+  // A LCU às vezes manda a URI sem a barra inicial.
+  assert.equal(toLine(msg('lol-challenges/v1/challenges/local-player'), 0), null);
 });
 
 test('attach grava eventos com tempo relativo e encerra quando o socket fecha', () => {

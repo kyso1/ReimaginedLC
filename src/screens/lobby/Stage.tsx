@@ -20,7 +20,7 @@ interface ColumnProps {
   member: Participant | null;
   profile: Lcu['profile'];
   name: Lcu['name'];
-  splash: Lcu['splash'];
+  splash: Lcu['game']['splash'];
   isLocal?: boolean;
   showPositions?: boolean;
   /** Nome no lugar do nome do invocador (bots). */
@@ -83,7 +83,7 @@ function useName(member: Participant | null, name: Lcu['name']): string {
 }
 
 /** Splash do fundo de perfil do membro. Imagem que falha deixa só o gradiente da camada de baixo. */
-function useSplash(member: Participant | null, profile: Lcu['profile'], splashOf: Lcu['splash']): string | null {
+function useSplash(member: Participant | null, profile: Lcu['profile'], splashOf: Lcu['game']['splash']): string | null {
   const [url, setUrl] = useState<string | null>(null);
   const puuid = member && !member.isBot ? member.puuid : null;
   useEffect(() => {

@@ -181,7 +181,7 @@ test('lobby nulo em fase de lobby não quebra', () => {
 test('splash do perfil vira camada de fundo da coluna', async () => {
   const lcu = withSignals({});
   lcu.profile = async (puuid) => (puuid === me.puuid ? { backgroundSkinId: 1001 } : null);
-  lcu.splash = async (skinId) => (skinId === 1001 ? '/lol-game-data/assets/ASSETS/annie_1.jpg' : null);
+  lcu.game = { ...lcu.game, splash: async (skinId) => (skinId === 1001 ? '/lol-game-data/assets/ASSETS/annie_1.jpg' : null) };
   mount(lcu);
   await settle();
   const cols = root.querySelectorAll<HTMLElement>('.rlc-col');

@@ -8,15 +8,14 @@ import { Lobby } from './Lobby';
 
 let root: HTMLElement;
 let fetchMock: ReturnType<typeof vi.fn>;
-// A LCU manda o id no campo name; o nome vem do champion-summary.
+// A LCU manda o id no campo name; o nome vem dos dados do jogo.
 const BOTS = [{ active: true, id: 1, name: '1', botDifficulties: ['RSINTRO', 'RSINTERMEDIATE'] }];
-const SUMMARY = [{ id: 1, name: 'Annie' }];
+const withChampions = (lcu: Lcu): Lcu => ({ ...lcu, game: { ...lcu.game, champions: async () => new Map([[1, { id: 1, name: 'Annie', icon: '', roles: [] }]]) } });
 beforeEach(() => {
   setLocale('pt_BR');
   root = document.body.appendChild(document.createElement('div'));
   fetchMock = vi.fn(async (url: string) =>
     url === '/lol-lobby/v2/lobby/custom/available-bots' ? new Response(JSON.stringify(BOTS), { status: 200 })
-      : url === '/lol-game-data/assets/v1/champion-summary.json' ? new Response(JSON.stringify(SUMMARY), { status: 200 })
       : new Response(null, { status: 204 }));
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -39,7 +38,7 @@ const room = (local = me) =>
     customTeam100: [me, bot], customTeam200: [zeca], customSpectators: [member({ isSpectator: true })],
   });
 const mount = (local = me) => {
-  const lcu = fakeLcu();
+  const lcu = withChampions(fakeLcu());
   lcu.gameflowPhase.value = ready('Lobby') as Lcu['gameflowPhase']['value'];
   lcu.lobby.value = ready(room(local));
   lcu.queues.value = ready([queue({ id: 3100, name: 'SR Blind Pick Custom', gameSelectCategory: 'CreateCustom' })]);
@@ -94,7 +93,7 @@ test('líder remove bot pelo menu', async () => {
 test('time vem da lista da sala, não do teamId (que a LCU manda 0)', async () => {
   const me0 = leader({ summonerName: 'Fulano', teamId: 0 });
   const bot0 = member({ isBot: true, botChampionId: 1, botUuid: 'b0', summonerInternalName: 'bot0', teamId: 0 });
-  const lcu = fakeLcu();
+  const lcu = withChampions(fakeLcu());
   lcu.gameflowPhase.value = ready('Lobby') as Lcu['gameflowPhase']['value'];
   lcu.lobby.value = ready(lobby([me0, bot0], me0, { isCustom: true, numPlayersPerTeam: 5, customTeam100: [me0], customTeam200: [bot0] }));
   act(() => render(<Lobby lcu={lcu} onModes={() => {}} />, root));
@@ -121,7 +120,7 @@ test('líder inicia; não líder não vê Iniciar nem + bot', () => {
 
 test('bot sem nome interno (como a LCU manda) é removido com um nome qualquer no caminho', async () => {
   const anon = member({ isBot: true, botChampionId: 1, botUuid: 'u9', summonerInternalName: '', teamId: 0 });
-  const lcu = fakeLcu();
+  const lcu = withChampions(fakeLcu());
   lcu.gameflowPhase.value = ready('Lobby') as Lcu['gameflowPhase']['value'];
   lcu.lobby.value = ready(lobby([me, anon], me, { isCustom: true, numPlayersPerTeam: 5, customTeam100: [me, anon], customTeam200: [] }));
   act(() => render(<Lobby lcu={lcu} onModes={() => {}} />, root));

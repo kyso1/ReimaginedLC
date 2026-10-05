@@ -1,11 +1,16 @@
 import type { Signal } from '@preact/signals';
 import { h, type JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { t } from '../i18n';
+import { t, type TextKey } from '../i18n';
 import type { Lcu } from '../lcu';
 import { request } from '../lcu/request';
+import { ChampSelect } from '../screens/champselect/ChampSelect';
+import { Honor } from '../screens/honor/Honor';
 import { Home } from '../screens/home/Home';
+import { InGame } from '../screens/ingame/InGame';
+import { PostGame } from '../screens/postgame/PostGame';
 import { Lobby } from '../screens/lobby/Lobby';
+import { Unknown } from '../screens/unknown/Unknown';
 import { CustomBrowser } from '../screens/modes/CustomBrowser';
 import { LAST_QUEUE_KEY, Modes } from '../screens/modes/Modes';
 import { applyTheme, mediaUrl } from '../theme/apply';
@@ -21,6 +26,9 @@ import { screenFor, type Screen } from './router';
 import { readSetting } from './storage';
 import { WindowBar } from './WindowBar';
 
+/** Item do trilho para as telas do fluxo da partida. */
+const RAIL: Partial<Record<Screen, TextKey>> = { champselect: 'railChampSelect', ingame: 'railGame', honor: 'railHonor', postgame: 'railPostGame' };
+
 /** Elemento raiz da interface da Riot. */
 export const RIOT_ROOT_ID = 'rcp-fe-viewport-root';
 
@@ -29,6 +37,10 @@ type LobbyProps = Parameters<typeof Lobby>[0];
 interface Screens {
   home?: (props: HomeProps) => JSX.Element;
   lobby?: (props: LobbyProps) => JSX.Element;
+  champselect?: (props: { lcu: Lcu }) => JSX.Element;
+  ingame?: (props: { lcu: Lcu }) => JSX.Element;
+  honor?: (props: { lcu: Lcu }) => JSX.Element;
+  postgame?: (props: { lcu: Lcu }) => JSX.Element;
 }
 
 interface Props {
@@ -44,15 +56,19 @@ interface Props {
   readyCheckOverlay?: typeof ReadyCheckOverlay;
 }
 
-export function App({ root, lcu, themes, base, focused, dom, screens = { home: Home, lobby: Lobby }, readyCheckOverlay: ReadyCheck = ReadyCheckOverlay }: Props) {
+export function App({ root, lcu, themes, base, focused, dom, screens = { home: Home, lobby: Lobby, champselect: ChampSelect, ingame: InGame, honor: Honor, postgame: PostGame }, readyCheckOverlay: ReadyCheck = ReadyCheckOverlay }: Props) {
   const domVersion = dom.value;
   const route = screenFor(lcu.gameflowPhase.value);
-  // Tela sem componente (testes que passam só uma) fica com o client original.
-  const screen = route && screens[route] ? route : null;
+  // Sem a sessão de seleção não há como escolher: única fase que volta ao client original.
+  const screen = route === 'champselect' && lcu.champSelect.value.status === 'unavailable' ? null : route;
+  const phaseName = lcu.gameflowPhase.value.data ?? '';
   const visible = enabled.value && screen !== null;
   const theme = themes.active.value;
   const hide = visible && hideRiot.value;
   const [confirmClose, setConfirmClose] = useState(false);
+  useEffect(() => {
+    if (phaseName === 'TerminatedInError') window.Toast?.error(t('gameError'));
+  }, [phaseName]);
   /** Painel aberto sobre a tela: tela de modos ou lista de salas. */
   const [panel, setPanel] = useState<null | 'modes' | 'custom'>(null);
   // Fecha ao trocar de tela (convite aceito leva da tela inicial ao lobby) ou quando a camada some.
@@ -111,15 +127,19 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
             // A rota segue a fase do gameflow: os itens indicam onde se está, não navegam livremente.
             { id: 'home', label: t('home'), active: screen === 'home', onSelect: () => {} },
             ...(lcu.lobby.value.data ? [{ id: 'lobby', label: t('lobby'), active: screen === 'lobby', onSelect: () => {} }] : []),
+            ...(RAIL[screen] ? [{ id: screen, label: t(RAIL[screen]!), active: true, onSelect: () => {} }] : []),
             { id: 'original', label: t('originalClient'), onSelect: turnOff },
           ]}
         />
         <main class="rlc-screen">
-          {screen === 'home' ? (
-            h(screens.home!, { version: lcu.build.value.data?.version ?? null, locale: lcu.regionLocale.value.data?.locale ?? null, onPlay: () => setPanel('modes') })
-          ) : (
-            h(screens.lobby!, { lcu, onModes: () => setPanel('modes') })
-          )}
+          {screen === 'home' && screens.home
+            ? h(screens.home, { version: lcu.build.value.data?.version ?? null, locale: lcu.regionLocale.value.data?.locale ?? null, onPlay: () => setPanel('modes') })
+            : screen === 'lobby' && screens.lobby
+              ? h(screens.lobby, { lcu, onModes: () => setPanel('modes') })
+              : screen !== 'home' && screen !== 'lobby' && screen !== 'unknown' && screens[screen]
+                ? h(screens[screen]!, { lcu })
+                : // Fase desconhecida ou tela não fornecida (testes): tela de fase desconhecida, nunca o client original.
+                  <Unknown phase={phaseName} onOriginal={turnOff} />}
         </main>
         {panel === 'modes' ? (
           <Modes
