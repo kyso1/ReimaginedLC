@@ -1,0 +1,91 @@
+<style>
+  .s{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;font:8px/1.25 system-ui,sans-serif;color:#fff;background:#0c1020}
+  .s *{box-sizing:border-box}
+  .rail{position:absolute;top:0;left:0;bottom:0;width:6%;background:rgba(10,12,20,.55);padding-top:18px;z-index:3}
+  .rail i{display:block;width:12px;height:12px;border-radius:4px;background:rgba(255,255,255,.18);margin:0 auto 6px}
+  .rail i.on{background:#fff}
+  .drag{position:absolute;top:0;left:6%;right:0;height:16px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.06) 0 6px,transparent 6px 12px);z-index:4}
+  .win{position:absolute;top:0;right:0;height:16px;display:flex;z-index:9}
+  .win b{width:22px;display:flex;align-items:center;justify-content:center;font-weight:400;font-size:9px;opacity:.85}
+  .row{position:absolute;left:6%;right:0;display:flex}
+  .col{flex:1;position:relative;border-right:1px solid rgba(0,0,0,.35)}
+  .col .n{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:7px;font-weight:650;text-shadow:0 1px 3px #000}
+  .col.em .n{opacity:.6;font-weight:400}
+  .col .k{position:absolute;top:4px;right:4px;font-size:6px;opacity:.75}
+  .tag{position:absolute;left:8%;font-size:7px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;z-index:4;text-shadow:0 1px 3px #000}
+  .bar{position:absolute;left:22%;right:14%;bottom:4%;height:12%;border-radius:12px;background:rgba(10,12,20,.7);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;padding:0 10px;gap:8px;z-index:5}
+  .pill{background:#fff;color:#1b1b2a;font-weight:700;border-radius:99px;padding:4px 12px;font-size:8px}
+  .ghost{border:1px solid rgba(255,255,255,.45);border-radius:99px;padding:3px 9px;font-size:7px}
+  .q{font-size:8px;font-weight:600}.q small{display:block;font-weight:400;opacity:.7;font-size:6.5px}
+  .panel{position:absolute;background:rgba(10,12,20,.6);border:1px solid rgba(255,255,255,.2);border-radius:10px;z-index:4;padding:8px}
+  .li{display:flex;align-items:center;gap:6px;height:16px;border-radius:5px;background:rgba(255,255,255,.1);margin-bottom:4px;padding:0 6px;font-size:7px}
+  .li b{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.45)}
+  .li.em{background:transparent;border:1px dashed rgba(255,255,255,.3);opacity:.7}
+  .h{font-size:7px;font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+  .tbl{width:100%;border-collapse:collapse;font-size:7px}
+  .tbl td,.tbl th{padding:4px 6px;border-bottom:1px solid rgba(255,255,255,.1);text-align:left}
+  .tbl th{opacity:.6;font-weight:400}
+  .tbl tr.on td{background:rgba(255,255,255,.12)}
+  .note{font-size:12px;color:#666;margin:8px 0 0}
+</style>
+
+<h2>Sala personalizada</h2>
+<p class="subtitle">Dois times de 5 e espectadores. Líder vê ⋯ em cada jogador (promover, expulsar, permitir convite) e "+ bot" nas vagas vazias.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a-duas-faixas" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s">
+      <div class="row" style="top:0;height:44%">
+        <div class="col" style="background:linear-gradient(#3a4f8f,#141a33)"><span class="k">⋯</span><div class="n">Você ★</div></div>
+        <div class="col" style="background:linear-gradient(#7a3f8f,#1c1433)"><span class="k">⋯</span><div class="n">Amigo</div></div>
+        <div class="col" style="background:linear-gradient(#5a5f6f,#1e2028)"><span class="k">⋯</span><div class="n">Bot Annie</div></div>
+        <div class="col em" style="background:#15182a"><div class="n">+ bot · trocar</div></div>
+        <div class="col em" style="background:#121524"><div class="n">+ bot · trocar</div></div>
+      </div>
+      <div class="row" style="top:44%;height:44%;border-top:2px solid rgba(0,0,0,.6)">
+        <div class="col" style="background:linear-gradient(#8f3a3a,#331414)"><span class="k">⋯</span><div class="n">Fulano</div></div>
+        <div class="col em" style="background:#1d1414"><div class="n">+ bot · trocar</div></div>
+        <div class="col em" style="background:#191212"><div class="n">+ bot · trocar</div></div>
+        <div class="col em" style="background:#1d1414"><div class="n">+ bot · trocar</div></div>
+        <div class="col em" style="background:#191212"><div class="n">+ bot · trocar</div></div>
+      </div>
+      <div class="tag" style="top:20px">Time azul</div><div class="tag" style="top:47%">Time vermelho</div>
+      <div class="rail"><i class="on"></i><i></i><i></i></div>
+      <div class="drag"></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="bar"><div class="q">Sala do Fulano ▾<small>Summoner's Rift · Às cegas · 2 espectadores</small></div><span class="ghost">convidar</span><div class="pill" style="margin-left:auto">Iniciar</div></div>
+    </div></div>
+    <div class="card-body"><h3>A. Palco em duas faixas</h3><p>O mesmo Palco, com um time em cima e outro embaixo, e meia altura por jogador. Clicar numa vaga do outro time troca de time. Os espectadores ficam contados na barra.</p></div>
+  </div>
+
+  <div class="card" data-choice="b-confronto" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="s" style="background:linear-gradient(90deg,#1a2550,#0c1020 50%,#3a1414)">
+      <div class="rail"><i class="on"></i><i></i><i></i></div>
+      <div class="drag"></div><div class="win"><b>—</b><b>✕</b></div>
+      <div class="panel" style="left:10%;top:16%;width:34%;bottom:20%"><div class="h">Time azul</div>
+        <div class="li"><b></b>Você ★<span style="margin-left:auto">⋯</span></div><div class="li"><b></b>Amigo<span style="margin-left:auto">⋯</span></div><div class="li"><b></b>Bot Annie<span style="margin-left:auto">⋯</span></div><div class="li em">+ bot · entrar</div><div class="li em">+ bot · entrar</div></div>
+      <div style="position:absolute;left:47%;top:44%;font-size:14px;font-weight:800;opacity:.5;z-index:4">VS</div>
+      <div class="panel" style="right:4%;top:16%;width:34%;bottom:20%"><div class="h">Time vermelho</div>
+        <div class="li"><b></b>Fulano<span style="margin-left:auto">⋯</span></div><div class="li em">+ bot · entrar</div><div class="li em">+ bot · entrar</div><div class="li em">+ bot · entrar</div><div class="li em">+ bot · entrar</div></div>
+      <div class="bar"><div class="q">Sala do Fulano ▾<small>Summoner's Rift · Às cegas · espectadores: 2</small></div><span class="ghost">convidar</span><div class="pill" style="margin-left:auto">Iniciar</div></div>
+    </div></div>
+    <div class="card-body"><h3>B. Confronto em listas</h3><p>Dois painéis de vidro frente a frente, com uma lista por time. Lê melhor com 10 pessoas e bots, mas sai do visual do Palco.</p></div>
+  </div>
+
+</div>
+
+<h3 style="margin-top:20px">Lista de salas e criação (mesmo desenho para A ou B)</h3>
+<div class="mockup" style="max-width:560px"><div class="mockup-body" style="padding:0"><div class="s" style="background:radial-gradient(circle at 30% 30%,#2a3566,#0c1020 70%)">
+  <div class="rail"><i class="on"></i><i></i><i></i></div>
+  <div class="drag"></div><div class="win"><b>—</b><b>✕</b></div>
+  <div class="panel" style="left:10%;top:16%;width:54%;bottom:8%"><div class="h">Salas abertas <span style="float:right;font-weight:400;opacity:.7">↻ atualizar</span></div>
+    <table class="tbl"><tr><th>Nome</th><th>Mapa</th><th>Jogadores</th><th>🔒</th></tr>
+      <tr class="on"><td>treino de lane</td><td>SR</td><td>3/10</td><td></td></tr>
+      <tr><td>aram 5x5</td><td>Abismo</td><td>7/10</td><td>🔒</td></tr>
+      <tr><td>1v1 mid</td><td>SR</td><td>1/2</td><td></td></tr></table>
+    <div style="position:absolute;right:8px;bottom:8px"><span class="pill">Entrar</span></div></div>
+  <div class="panel" style="right:4%;top:16%;width:28%;bottom:8%"><div class="h">Criar sala</div>
+    <div class="li">Nome</div><div class="li">Senha (opcional)</div><div class="li">Mapa · Modo ▾</div><div class="li">Tamanho do time ▾</div><div class="li">Espectadores ▾</div>
+    <div style="position:absolute;right:8px;bottom:8px"><span class="pill">Criar</span></div></div>
+</div></div></div>
+<p class="note">Abre ao escolher "Personalizada" na tela de modos. A Ferramenta de Treino continua sendo uma fila com um clique, sem passar por aqui.</p>
