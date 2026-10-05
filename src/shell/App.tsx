@@ -6,6 +6,7 @@ import type { Lcu } from '../lcu';
 import { request } from '../lcu/request';
 import { Home } from '../screens/home/Home';
 import { Lobby } from '../screens/lobby/Lobby';
+import { CustomBrowser } from '../screens/modes/CustomBrowser';
 import { LAST_QUEUE_KEY, Modes } from '../screens/modes/Modes';
 import { applyTheme, mediaUrl } from '../theme/apply';
 import type { ThemeEngine } from '../theme/engine';
@@ -129,6 +130,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
             onCustom={() => setPanel('custom')}
           />
         ) : null}
+        {panel === 'custom' ? <CustomBrowser lcu={lcu} onClose={() => setPanel(null)} /> : null}
         <InvitationCards invitations={lcu.invitations.value.data ?? []} queues={lcu.queues.value.data ?? []} />
         {readyVisible ? <ReadyCheck rc={lcu.readyCheck.value.data!} /> : null}
         <WindowBar onClose={() => setConfirmClose(true)} />

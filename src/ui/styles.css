@@ -180,3 +180,21 @@
 #rlc-root .rlc-friend-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
 #rlc-root .rlc-friend { padding: 8px 10px; border: 0; border-radius: var(--rlc-radius-sm); background: transparent; color: var(--rlc-color-text); font: inherit; text-align: left; cursor: pointer; }
 #rlc-root .rlc-friend:hover { background: var(--rlc-color-surface); }
+
+#rlc-root .rlc-custom-panels { display: flex; gap: 16px; flex: 1; min-height: 0; max-height: 70%; }
+#rlc-root .rlc-panel { display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-surface); backdrop-filter: blur(var(--rlc-blur-surface)); }
+#rlc-root .rlc-panel header, #rlc-root .rlc-panel footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+#rlc-root .rlc-rooms { flex: 2; min-width: 0; }
+#rlc-root .rlc-create { flex: 1; min-width: 260px; }
+#rlc-root .rlc-create .rlc-button[data-variant='primary'], #rlc-root .rlc-rooms footer .rlc-button[data-variant='primary'] { padding: 10px 28px; font-size: 15px; margin-left: auto; }
+#rlc-root .rlc-room-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+#rlc-root .rlc-room { display: grid; grid-template-columns: 1fr 140px 64px 24px; gap: 8px; padding: 8px 10px; border: 0; border-radius: var(--rlc-radius-sm); background: transparent; color: var(--rlc-color-text); font: inherit; text-align: left; cursor: pointer; }
+#rlc-root .rlc-room:hover { background: var(--rlc-color-surface); }
+#rlc-root .rlc-room[aria-pressed='true'] { background: var(--rlc-color-accent); color: var(--rlc-color-onAccent); }
+#rlc-root .rlc-room-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-lobby[data-custom='true'] .rlc-stage[data-band='blue'] { border-bottom: 2px solid rgba(0, 0, 0, 0.6); }
+#rlc-root .rlc-lobby[data-custom='true'] .rlc-col { padding-bottom: 16px; }
+#rlc-root .rlc-lobby[data-custom='true'] .rlc-stage[data-band='red'] .rlc-col { padding-bottom: 120px; }
+#rlc-root .rlc-stage[data-band='blue'] .rlc-col[data-empty='true'] { background-color: rgba(20, 40, 90, 0.35); }
+#rlc-root .rlc-stage[data-band='red'] .rlc-col[data-empty='true'] { background-color: rgba(90, 20, 30, 0.35); }
+#rlc-root .rlc-bot-list { max-height: 220px; overflow-y: auto; }

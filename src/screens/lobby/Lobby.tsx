@@ -5,6 +5,7 @@ import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
 import { Confirm } from '../../shell/overlays/Confirm';
 import { useAction } from '../../ui/useAction';
+import { BotPicker, useBots } from './BotPicker';
 import { formatClock } from './format';
 import { InviteFriends } from './InviteFriends';
 import { MemberMenu } from './MemberMenu';
@@ -15,8 +16,9 @@ const MEMBERS = '/lol-lobby/v2/lobby/members';
 
 /** Lobby no layout Palco: uma coluna por vaga e a barra flutuante com fila e busca. */
 export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
-  const [panel, setPanel] = useState<null | 'positions' | 'invite'>(null);
+  const [panel, setPanel] = useState<null | 'positions' | 'invite' | { botTeam: number }>(null);
   const [kicking, setKicking] = useState<Participant | null>(null);
+  const bots = useBots(lcu.lobby.value.data?.gameConfig.isCustom === true);
   const data = lcu.lobby.value.data;
   // Lobby some antes da fase mudar (expulso, saiu): mostra vazio até a rota trocar.
   if (!data) return <section class="rlc-lobby" />;
@@ -27,7 +29,11 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
   const isLocal = (m: Participant) => m.summonerId === local.summonerId;
 
   const memberMenu = (m: Participant) =>
-    leader && !m.isBot && !isLocal(m) ? (
+    leader && m.isBot ? (
+      <MemberMenu
+        items={[{ label: t('removeBot'), run: () => void request('DELETE', `/lol-lobby/v1/lobby/custom/bots/${encodeURIComponent(m.summonerInternalName)}/${encodeURIComponent(m.botUuid)}/${m.teamId}`).catch(() => {}) }]}
+      />
+    ) : leader && !isLocal(m) ? (
       <MemberMenu
         items={[
           { label: t('promote'), run: () => void request('POST', `${MEMBERS}/${m.summonerId}/promote`).catch(() => {}) },
@@ -46,25 +52,70 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
       </button>
     ) : null;
 
-  const slots = Array.from({ length: Math.max(config.maxLobbySize, data.members.length) }, (_, i) => data.members[i] ?? null);
   const queueName = lcu.queues.value.data?.find((q) => q.id === config.queueId)?.name ?? '';
+  const column = (m: Participant | null, key: string, empty: ComponentChildren) => (
+    <Column
+      key={m ? m.puuid || m.botUuid : key}
+      member={m}
+      profile={lcu.profile}
+      isLocal={m ? isLocal(m) : false}
+      showPositions={!config.isCustom && config.showPositionSelector}
+      label={m?.isBot ? (bots.find((b) => b.id === m.botChampionId)?.name ?? t('bot')) : undefined}
+      onSelf={m && isLocal(m) && !config.isCustom && config.showPositionSelector ? () => setPanel('positions') : undefined}
+      menu={m ? memberMenu(m) : null}
+      empty={empty}
+    />
+  );
 
-  return (
-    <section class="rlc-lobby">
-      <Stage>
-        {slots.map((m, i) => (
-          <Column
-            key={m ? m.puuid : `empty-${i}`}
-            member={m}
-            profile={lcu.profile}
-            isLocal={m ? isLocal(m) : false}
-            showPositions={config.showPositionSelector}
-            onSelf={m && isLocal(m) && config.showPositionSelector ? () => setPanel('positions') : undefined}
-            menu={m ? memberMenu(m) : null}
-            empty={inviteSlot}
-          />
-        ))}
+  let stage: ComponentChildren;
+  let bar: ComponentChildren;
+  if (config.isCustom) {
+    // Sala personalizada: um Palco por time. Vaga do outro time troca de time; o líder também põe bot.
+    const size = Math.max(1, config.numPlayersPerTeam);
+    const band = (team: 100 | 200, members: Participant[]) => (
+      <Stage band={team === 100 ? 'blue' : 'red'}>
+        {Array.from({ length: Math.max(size, members.length) }, (_, i) =>
+          column(
+            members[i] ?? null,
+            `${team}-${i}`,
+            <>
+              {local.teamId !== team ? (
+                <button type="button" onClick={() => void request('POST', `/lol-lobby/v2/lobby/team/${team}`).catch(() => {})}>
+                  {t('switchTeam')}
+                </button>
+              ) : null}
+              {leader ? (
+                <button type="button" onClick={() => setPanel({ botTeam: team })}>
+                  {t('addBot')}
+                </button>
+              ) : null}
+            </>,
+          ),
+        )}
       </Stage>
+    );
+    const spectators = config.customSpectators.length;
+    stage = (
+      <>
+        {band(100, config.customTeam100)}
+        {band(200, config.customTeam200)}
+      </>
+    );
+    bar = (
+      <LobbyBar
+        lcu={lcu}
+        title={config.customLobbyName}
+        subtitle={[queueName, spectators === 1 ? t('spectatorOne') : spectators > 1 ? `${spectators} ${t('spectatorMany')}` : ''].filter(Boolean).join(' · ')}
+        leader={leader}
+        start={leader ? { label: t('start'), path: '/lol-lobby/v1/lobby/custom/start-champ-select', enabled: true } : null}
+      >
+        {inviteSlot}
+      </LobbyBar>
+    );
+  } else {
+    const slots = Array.from({ length: Math.max(config.maxLobbySize, data.members.length) }, (_, i) => data.members[i] ?? null);
+    stage = <Stage>{slots.map((m, i) => column(m, `empty-${i}`, inviteSlot))}</Stage>;
+    bar = (
       <LobbyBar
         lcu={lcu}
         title={queueName}
@@ -73,8 +124,16 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
         partyType={data.partyType}
         start={leader ? { label: t('findMatch'), path: '/lol-lobby/v2/lobby/matchmaking/search', enabled: data.canStartActivity } : null}
       />
+    );
+  }
+
+  return (
+    <section class="rlc-lobby" data-custom={config.isCustom ? 'true' : undefined}>
+      {stage}
+      {bar}
       {panel === 'positions' ? <Positions onClose={() => setPanel(null)} /> : null}
       {panel === 'invite' ? <InviteFriends friends={lcu.friends.value.data ?? []} exclude={new Set(data.members.map((m) => m.puuid))} onClose={() => setPanel(null)} /> : null}
+      {panel && typeof panel === 'object' ? <BotPicker bots={bots} teamId={panel.botTeam} onClose={() => setPanel(null)} /> : null}
       {kicking ? (
         <Confirm
           message={`${t('kickConfirm')} ${kicking.summonerName}`}

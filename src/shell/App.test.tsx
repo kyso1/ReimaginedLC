@@ -336,3 +336,17 @@ test('na fase Lobby mostra o Palco e o trilho ganha o item Lobby ativo', async (
   expect(lobbyItem.getAttribute('aria-current')).toBe('page');
   expect(riot.style.visibility).toBe('hidden');
 });
+
+test('Personalizada na tela de modos abre a lista de salas', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('[]', { status: 200 })));
+  enabled.value = true;
+  mount();
+  await flush();
+  [...root.querySelectorAll('button')].find((b) => b.textContent === 'Jogar')!.click();
+  await flush();
+  [...root.querySelectorAll('button')].find((b) => b.textContent === 'Personalizada')!.click();
+  await flush();
+  expect(root.querySelector('.rlc-modes:not(.rlc-custom)')).toBeNull();
+  expect(root.querySelector('.rlc-custom')!.textContent).toContain('Criar sala');
+  vi.unstubAllGlobals();
+});
