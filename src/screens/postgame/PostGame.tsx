@@ -17,14 +17,12 @@ export function PostGame({ lcu }: { lcu: Lcu }) {
   const eog = lcu.endOfGame.value.data;
   const [board, setBoard] = useState(false);
   const again = useAction(() => request('POST', '/lol-lobby/v2/play-again'));
-  const leave = useAction(async () => {
-    await request('POST', '/lol-end-of-game/v1/state/dismiss-stats');
-    await request('POST', '/lol-lobby/v2/play-again-decline');
-  });
+  // As duas independentes: dismiss-stats falha quando não há resultados (404), e a recusa precisa sair mesmo assim.
+  const leave = useAction(() => Promise.allSettled([request('POST', '/lol-end-of-game/v1/state/dismiss-stats'), request('POST', '/lol-lobby/v2/play-again-decline')]));
   const num = new Intl.NumberFormat(locale());
   const me = eog?.localPlayer;
   const myTeam = eog?.teams?.find((tm) => tm.isPlayerTeam);
-  const everyone = eog?.teams?.flatMap((tm) => tm.players) ?? [];
+  const everyone = eog?.teams?.flatMap((tm) => tm.players ?? []) ?? [];
   const topDamage = Math.max(1, ...everyone.map((p) => stat(p, 'TOTAL_DAMAGE_DEALT_TO_CHAMPIONS')));
   const myDamage = stat(me, 'TOTAL_DAMAGE_DEALT_TO_CHAMPIONS');
   const result = !myTeam ? '—' : myTeam.isWinningTeam ? t('victory') : t('defeat');
@@ -34,7 +32,7 @@ export function PostGame({ lcu }: { lcu: Lcu }) {
       <div class="rlc-pg-bg" style={me?.skinSplashPath ? { backgroundImage: `url("${me.skinSplashPath}")` } : undefined} />
       <div class="rlc-pg-main">
         <h1 class="rlc-pg-result">{result}</h1>
-        {eog ? <p class="rlc-muted">{formatClock(eog.gameLength)}</p> : null}
+        {typeof eog?.gameLength === 'number' ? <p class="rlc-muted">{formatClock(eog.gameLength)}</p> : null}
         {me ? (
           <>
             <div class="rlc-pg-stats">
@@ -68,10 +66,10 @@ export function PostGame({ lcu }: { lcu: Lcu }) {
       </div>
       {board && eog ? (
         <div class="rlc-pg-board">
-          {eog.teams.map((tm, i) => (
+          {(eog.teams ?? []).map((tm, i) => (
             <table key={i}>
               <tbody>
-                {tm.players.map((p) => (
+                {(tm.players ?? []).map((p) => (
                   <tr key={p.puuid || nameOf(p)} data-me={p.puuid === me?.puuid ? 'true' : undefined}>
                     <td>{nameOf(p)}</td>
                     <td>{kda(p)}</td>

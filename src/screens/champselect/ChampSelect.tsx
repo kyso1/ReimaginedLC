@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
@@ -49,7 +49,7 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   const phaseKey = PHASE_TEXT[phase];
 
   const mainAction = turn ? (
-    <button type="button" class="rlc-button" data-variant="primary" disabled={!highlighted || commit.pending} onClick={() => commit.run(turn.action.id, highlighted)}>
+    <button type="button" class="rlc-button" data-variant="primary" disabled={!highlighted || commit.pending || hover.pending} onClick={() => commit.run(turn.action.id, highlighted)}>
       {turn.kind === 'ban' ? t('banAction') : t('confirm')}
     </button>
   ) : null;
@@ -108,17 +108,20 @@ function useLoaded<T>(load: () => Promise<T>, fallback: T, deps: unknown[] = [lo
   return value;
 }
 
-/** Segundos restantes, contados localmente e reancorados a cada leitura nova do timer da LCU. */
+/**
+ * Segundos restantes. `adjustedTimeLeftInPhase` vale no instante `internalNowInEpochMs` (relógio da LCU, mesma máquina),
+ * e a LCU reenvia o mesmo objeto sem atualizar: a âncora é esse instante, não a hora em que a tela montou.
+ * Sem o instante, ancora na primeira leitura daquele valor.
+ */
 function useSelectClock(session: Session | null): number {
   const timer = session?.timer;
-  const [anchor, setAnchor] = useState(() => ({ left: timer?.adjustedTimeLeftInPhase ?? 0, at: Date.now() }));
+  const left = timer?.adjustedTimeLeftInPhase ?? 0;
+  const at = useMemo(() => ((timer?.internalNowInEpochMs ?? 0) > 0 ? timer!.internalNowInEpochMs : Date.now()), [left, timer?.phase, timer?.internalNowInEpochMs]);
   const [, tick] = useState(0);
-  // `internalNowInEpochMs` muda a cada leitura: reancora mesmo quando o tempo restante se repete numa fase nova.
-  useEffect(() => setAnchor({ left: timer?.adjustedTimeLeftInPhase ?? 0, at: Date.now() }), [timer?.adjustedTimeLeftInPhase, timer?.phase, timer?.internalNowInEpochMs]);
   useEffect(() => {
     if (!timer || timer.isInfinite) return;
     const id = setInterval(() => tick((n) => n + 1), 1000);
     return () => clearInterval(id);
   }, [timer?.isInfinite, !!timer]);
-  return remainingSeconds(anchor.left, anchor.at, Date.now());
+  return remainingSeconds(left, at, Date.now());
 }

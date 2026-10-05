@@ -150,7 +150,7 @@ test('tempo: conta localmente e reancora a cada valor novo, mesmo repetido numa 
   act(() => void vi.advanceTimersByTime(5000));
   expect(root.querySelector('.rlc-cs-timer')!.textContent).toBe('25');
   act(() => {
-    lcu.champSelect.value = ready(session({ myTeam: [me], timer: { phase: 'FINALIZATION', adjustedTimeLeftInPhase: 30000, totalTimeInPhase: 30000, internalNowInEpochMs: 99, isInfinite: false } as never }));
+    lcu.champSelect.value = ready(session({ myTeam: [me], timer: { phase: 'FINALIZATION', adjustedTimeLeftInPhase: 30000, totalTimeInPhase: 30000, internalNowInEpochMs: Date.now(), isInfinite: false } as never }));
   });
   expect(root.querySelector('.rlc-cs-timer')!.textContent).toBe('30');
   act(() => void vi.advanceTimersByTime(40000));
@@ -295,4 +295,19 @@ test('ARAM: banco troca pelo clique; rolagem mostra o restante e desabilita sem 
     lcu.champSelect.value = ready(session({ myTeam: [me], benchEnabled: true, benchChampions: [] as never, allowRerolling: true, rerollsRemaining: 0 }));
   });
   expect(btn('Rolar (0)')!.disabled).toBe(true);
+});
+
+test('tempo ao montar no meio da fase desconta o que já passou desde o valor da LCU', () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(100000);
+  setup(session({ myTeam: [me], timer: { phase: 'BAN_PICK', adjustedTimeLeftInPhase: 34000, totalTimeInPhase: 34000, internalNowInEpochMs: 80000, isInfinite: false } as never }));
+  expect(root.querySelector('.rlc-cs-timer')!.textContent).toBe('14');
+});
+
+test('Confirmar fica desabilitado enquanto o destaque do clique ainda não voltou', async () => {
+  fetchMock.mockImplementation(() => new Promise(() => {}));
+  setup(pickTurn(103));
+  await settle();
+  act(() => btn('Yasuo')!.click());
+  expect(btn('Confirmar')!.disabled).toBe(true);
 });

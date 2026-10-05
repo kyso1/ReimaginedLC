@@ -124,3 +124,20 @@ test('pós-jogo sem dados mostra traço e mantém os botões', () => {
   expect(btn('Jogar de novo')).toBeDefined();
   expect(btn('Sair')).toBeDefined();
 });
+
+test('Sair envia a recusa mesmo se dismiss-stats falhar', async () => {
+  window.Toast = { success: vi.fn(), error: vi.fn() };
+  fetchMock.mockImplementation(async (url: string) => (url === '/lol-end-of-game/v1/state/dismiss-stats' ? new Response('{"message":"x"}', { status: 404 }) : new Response(null, { status: 204 })));
+  act(() => render(<PostGame lcu={withValues({ endOfGame: ready(eog(true)) })} />, root));
+  act(() => btn('Sair')!.click());
+  await settle();
+  expect(calls('/lol-lobby/v2/play-again-decline')).toHaveLength(1);
+  delete window.Toast;
+});
+
+test('dados parciais do pós-jogo não quebram nem mostram NaN', () => {
+  act(() => render(<PostGame lcu={withValues({ endOfGame: ready({ localPlayer: player(), teams: [{ isPlayerTeam: true, isWinningTeam: true }] }) })} />, root));
+  expect(root.textContent).not.toContain('NaN');
+  act(() => btn('Ver placar completo')!.click());
+  expect(root.querySelector('.rlc-pg-board')).not.toBeNull();
+});
