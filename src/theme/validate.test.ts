@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { validateTheme } from './validate';
 
@@ -225,4 +226,10 @@ test('V9: chave enorme gera erro curto, sem quebra de linha', () => {
     expect(e.length).toBeLessThan(200);
     expect(e).not.toMatch(/[\n\r]/);
   }
+});
+
+test('o exemplo do guia de temas (docs/THEMES.md) é um tema válido', () => {
+  const doc = readFileSync('docs/THEMES.md', 'utf8');
+  const example = /```json\n([\s\S]*?)```/.exec(doc.replace(/\r\n/g, '\n'))![1]!;
+  expect(validateTheme(JSON.parse(example))).toMatchObject({ ok: true });
 });
