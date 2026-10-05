@@ -48,3 +48,12 @@ test('customLobbyBody usa mapa, modo e mutador da fila e limita o tamanho do tim
   });
   expect(customLobbyBody(mode, { name: 'x', password: 'p', teamSize: 0, spectators: 'AllAllowed' }).customGameLobby!.configuration.teamSize).toBe(1);
 });
+
+test('a Ferramenta de Treino (kTraining) entra em Summoner\'s Rift mesmo marcada como modo alternativo', () => {
+  const groups = groupQueues([queue({ id: 400 }), queue({ id: 3140, gameSelectModeGroup: 'kAlternativeLeagueGameModes', gameSelectCategory: 'kTraining', isCustom: true })]);
+  expect(groups.map((g) => [g.id, g.queues.map((q) => q.id)])).toEqual([['sr', [400, 3140]]]);
+});
+
+test('fila sem nome fica de fora', () => {
+  expect(groupQueues([queue({ id: 843, name: '' })])).toEqual([]);
+});

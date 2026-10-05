@@ -6,7 +6,7 @@ import { writeSetting } from '../../shell/storage';
 import { Button } from '../../ui/Button';
 import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
-import { groupQueues, type ModeGroupId } from './queues';
+import { customLobbyBody, groupQueues, type ModeGroupId } from './queues';
 
 export const LAST_QUEUE_KEY = 'rlc.lastQueue';
 
@@ -21,7 +21,10 @@ export function Modes({ queues, current, onClose, onCustom }: { queues: LolGameQ
   useEscape(onClose);
 
   const confirm = useAction(async (queueId: number) => {
-    await request('POST', '/lol-lobby/v2/lobby', { queueId });
+    const q = queues.find((x) => x.id === queueId);
+    // Fila personalizada (Ferramenta de Treino) recusa `{ queueId }` sozinho: precisa do corpo de sala.
+    const body = q?.isCustom ? customLobbyBody(q, { name: q.name, password: '', teamSize: 5, spectators: 'NotAllowed' }) : { queueId };
+    await request('POST', '/lol-lobby/v2/lobby', body);
     writeSetting(LAST_QUEUE_KEY, queueId);
     onClose();
   });

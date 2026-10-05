@@ -190,3 +190,12 @@ test('splash do perfil vira camada de fundo da coluna', async () => {
   expect(cols[0]!.style.backgroundImage).toContain('/lol-game-data/assets/v1/champion-splashes/1/1001.jpg');
   expect(cols[1]!.style.backgroundImage).toBe('');
 });
+
+test('sem summonerName (Riot ID), a coluna mostra o nome buscado pelo puuid', async () => {
+  const anon = leader({ summonerName: '' });
+  const lcu = withSignals({ lobby: ready(lobby([anon])) });
+  lcu.name = async (puuid) => (puuid === anon.puuid ? 'Fulano' : null);
+  mount(lcu);
+  await settle();
+  expect(root.querySelector('.rlc-col')!.textContent).toContain('Fulano');
+});

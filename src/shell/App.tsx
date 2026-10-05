@@ -131,7 +131,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
           />
         ) : null}
         {panel === 'custom' ? <CustomBrowser lcu={lcu} onClose={() => setPanel(null)} /> : null}
-        <InvitationCards invitations={lcu.invitations.value.data ?? []} queues={lcu.queues.value.data ?? []} />
+        <InvitationCards invitations={lcu.invitations.value.data ?? []} queues={lcu.queues.value.data ?? []} name={lcu.name} />
         {readyVisible ? <ReadyCheck rc={lcu.readyCheck.value.data!} /> : null}
         <WindowBar onClose={() => setConfirmClose(true)} />
         {confirmClose ? (

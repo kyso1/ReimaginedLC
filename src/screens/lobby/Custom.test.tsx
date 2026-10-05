@@ -86,6 +86,23 @@ test('líder remove bot pelo menu', async () => {
   expect(call('/lol-lobby/v1/lobby/custom/bots/bot_annie/bot-uuid/100', 'DELETE')).toBeDefined();
 });
 
+test('time vem da lista da sala, não do teamId (que a LCU manda 0)', async () => {
+  const me0 = leader({ summonerName: 'Fulano', teamId: 0 });
+  const bot0 = member({ isBot: true, botChampionId: 1, botUuid: 'b0', summonerInternalName: 'bot0', teamId: 0 });
+  const lcu = fakeLcu();
+  lcu.gameflowPhase.value = ready('Lobby') as Lcu['gameflowPhase']['value'];
+  lcu.lobby.value = ready(lobby([me0, bot0], me0, { isCustom: true, numPlayersPerTeam: 5, customTeam100: [me0], customTeam200: [bot0] }));
+  act(() => render(<Lobby lcu={lcu} onModes={() => {}} />, root));
+  await settle();
+  const [blue, red] = root.querySelectorAll('.rlc-stage');
+  expect(btn('Trocar de time', blue!)).toBeUndefined();
+  expect(btn('Trocar de time', red!)).toBeDefined();
+  const botCol = red!.querySelector('.rlc-col')!;
+  act(() => botCol.querySelector<HTMLButtonElement>('.rlc-col-menu')!.click());
+  act(() => btn('Remover')!.click());
+  expect(call('/lol-lobby/v1/lobby/custom/bots/bot0/b0/200', 'DELETE')).toBeDefined();
+});
+
 test('líder inicia; não líder não vê Iniciar nem + bot', () => {
   mount();
   act(() => btn('Iniciar')!.click());

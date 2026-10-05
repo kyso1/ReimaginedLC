@@ -28,10 +28,10 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
   const leader = local.isLeader;
   const isLocal = (m: Participant) => m.summonerId === local.summonerId;
 
-  const memberMenu = (m: Participant) =>
+  const memberMenu = (m: Participant, team: number = m.teamId) =>
     leader && m.isBot ? (
       <MemberMenu
-        items={[{ label: t('removeBot'), run: () => void request('DELETE', `/lol-lobby/v1/lobby/custom/bots/${encodeURIComponent(m.summonerInternalName)}/${encodeURIComponent(m.botUuid)}/${m.teamId}`).catch(() => {}) }]}
+        items={[{ label: t('removeBot'), run: () => void request('DELETE', `/lol-lobby/v1/lobby/custom/bots/${encodeURIComponent(m.summonerInternalName)}/${encodeURIComponent(m.botUuid)}/${team}`).catch(() => {}) }]}
       />
     ) : leader && !isLocal(m) ? (
       <MemberMenu
@@ -53,16 +53,17 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
     ) : null;
 
   const queueName = lcu.queues.value.data?.find((q) => q.id === config.queueId)?.name ?? '';
-  const column = (m: Participant | null, key: string, empty: ComponentChildren) => (
+  const column = (m: Participant | null, key: string, empty: ComponentChildren, team?: number) => (
     <Column
       key={m ? m.puuid || m.botUuid : key}
       member={m}
       profile={lcu.profile}
+      name={lcu.name}
       isLocal={m ? isLocal(m) : false}
       showPositions={!config.isCustom && config.showPositionSelector}
       label={m?.isBot ? (bots.find((b) => b.id === m.botChampionId)?.name ?? t('bot')) : undefined}
       onSelf={m && isLocal(m) && !config.isCustom && config.showPositionSelector ? () => setPanel('positions') : undefined}
-      menu={m ? memberMenu(m) : null}
+      menu={m ? memberMenu(m, team) : null}
       empty={empty}
     />
   );
@@ -72,6 +73,9 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
   if (config.isCustom) {
     // Sala personalizada: um Palco por time. Vaga do outro time troca de time; o líder também põe bot.
     const size = Math.max(1, config.numPlayersPerTeam);
+    // A LCU manda teamId 0 nos membros da sala: o time é a lista em que o membro está.
+    const same = (a: Participant, b: Participant) => (a.puuid !== '' && a.puuid === b.puuid) || a.summonerId === b.summonerId;
+    const localTeam = config.customTeam100.some((m) => same(m, local)) ? 100 : config.customTeam200.some((m) => same(m, local)) ? 200 : 0;
     const band = (team: 100 | 200, members: Participant[]) => (
       <Stage band={team === 100 ? 'blue' : 'red'}>
         {Array.from({ length: Math.max(size, members.length) }, (_, i) =>
@@ -79,7 +83,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
             members[i] ?? null,
             `${team}-${i}`,
             <>
-              {local.teamId !== team ? (
+              {localTeam !== team ? (
                 <button type="button" onClick={() => void request('POST', `/lol-lobby/v2/lobby/team/${team}`).catch(() => {})}>
                   {t('switchTeam')}
                 </button>
@@ -90,6 +94,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
                 </button>
               ) : null}
             </>,
+            team,
           ),
         )}
       </Stage>

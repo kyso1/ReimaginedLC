@@ -34,22 +34,36 @@ export interface Lcu {
   customGames: { state: Signal<StoreState<LolLobbyLobbyCustomGame[]>>; refresh: () => Promise<void> };
   /** Perfil público de um jogador, com cache por puuid durante a sessão. null se não houver. */
   profile: (puuid: string) => Promise<Profile | null>;
+  /** Nome (Riot ID, sem a tag) por puuid, com cache. A LCU manda `summonerName` vazio desde o Riot ID. */
+  name: (puuid: string) => Promise<string | null>;
 }
 
-/** Busca de perfis com cache em memória. Falha vira null e também fica no cache. */
-export function createProfiles(fetcher: (url: string) => Promise<Response> = (u) => fetch(u)) {
-  const cache = new Map<string, Promise<Profile | null>>();
-  return (puuid: string): Promise<Profile | null> => {
+type Fetcher = (url: string) => Promise<Response>;
+
+/** Leitura por puuid com cache em memória durante a sessão. Falha vira null e também fica no cache. */
+function cachedByPuuid<T>(url: (puuid: string) => string, pick: (body: unknown) => T | null, fetcher: Fetcher) {
+  const cache = new Map<string, Promise<T | null>>();
+  return (puuid: string): Promise<T | null> => {
     let entry = cache.get(puuid);
     if (!entry) {
-      entry = fetcher(`/lol-summoner/v1/summoner-profile?puuid=${encodeURIComponent(puuid)}`)
-        .then((r) => (r.ok ? (r.json() as Promise<Profile>) : null))
+      entry = fetcher(url(encodeURIComponent(puuid)))
+        .then((r) => (r.ok ? r.json() : null))
+        .then((body: unknown) => (body ? pick(body) : null))
         .catch(() => null);
       cache.set(puuid, entry);
     }
     return entry;
   };
 }
+
+export const createProfiles = (fetcher: Fetcher = (u) => fetch(u)) =>
+  cachedByPuuid<Profile>((p) => `/lol-summoner/v1/summoner-profile?puuid=${p}`, (b) => b as Profile, fetcher);
+
+export const createNames = (fetcher: Fetcher = (u) => fetch(u)) =>
+  cachedByPuuid<string>((p) => `/lol-summoner/v1/summoners-by-puuid-cached/${p}`, (b) => {
+    const n = (b as { gameName?: unknown }).gameName;
+    return typeof n === 'string' && n ? n : null;
+  }, fetcher);
 
 /** Abre o único WebSocket do plugin e cria os stores. */
 export function createLcu(doc: Document = document): Lcu {
@@ -76,5 +90,6 @@ export function createLcu(doc: Document = document): Lcu {
       },
     },
     profile: createProfiles(),
+    name: createNames(),
   };
 }

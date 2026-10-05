@@ -92,3 +92,13 @@ test('sem filas mostra carregando e só Personalizada', () => {
   expect(root.textContent).toContain('Carregando filas');
   expect([...root.querySelectorAll('.rlc-mode-card')].map((c) => c.textContent)).toEqual(['Personalizada']);
 });
+
+test('fila personalizada (Ferramenta de Treino) cria o lobby com o corpo de sala', () => {
+  mount({ queues: [queue({ id: 3140, name: 'Treino', isCustom: true, gameMode: 'PRACTICETOOL', gameSelectCategory: 'kTraining', gameTypeConfig: { id: 19 } as never })], current: 3140 });
+  act(() => btn('Confirmar').click());
+  const [, init] = fetchMock.mock.calls.find((c) => c[0] === '/lol-lobby/v2/lobby')!;
+  expect(JSON.parse(init.body)).toEqual({
+    queueId: 3140, isCustom: true,
+    customGameLobby: { lobbyName: 'Treino', lobbyPassword: '', configuration: { gameMode: 'PRACTICETOOL', mapId: 11, mutators: { id: 19 }, spectatorPolicy: 'NotAllowed', teamSize: 5 } },
+  });
+});

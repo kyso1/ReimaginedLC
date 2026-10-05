@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest';
-import { createProfiles } from './index';
+import { createNames, createProfiles } from './index';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -20,4 +20,14 @@ test('perfil devolve null em 404, corpo inválido e falha de rede', async () => 
   expect(await profile('a')).toBeNull();
   expect(await profile('b')).toBeNull();
   expect(await profile('c')).toBeNull();
+});
+
+test('nome pelo puuid usa gameName, com cache, e null quando falha', async () => {
+  const f = vi.fn().mockResolvedValueOnce(new Response('{"gameName":"Fulano","tagLine":"TAG"}', { status: 200 })).mockResolvedValueOnce(new Response(null, { status: 404 }));
+  const name = createNames(f);
+  expect(await name('p1')).toBe('Fulano');
+  expect(await name('p1')).toBe('Fulano');
+  expect(await name('p2')).toBeNull();
+  expect(f).toHaveBeenCalledTimes(2);
+  expect(f).toHaveBeenCalledWith('/lol-summoner/v1/summoners-by-puuid-cached/p1');
 });

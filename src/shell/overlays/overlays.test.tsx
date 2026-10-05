@@ -78,3 +78,10 @@ test('convites: canAcceptInvitation falso desabilita Aceitar', () => {
   expect(byText('Aceitar')!.disabled).toBe(true);
   expect(byText('Recusar')!.disabled).toBe(false);
 });
+
+test('convite sem nome usa o nome buscado pelo puuid de quem convidou', async () => {
+  const i = invitation({ fromSummonerName: '' });
+  act(() => render(<InvitationCards invitations={[i]} queues={[]} name={async (p) => (p === i.fromPuuid ? 'Zeca' : null)} />, root));
+  await act(async () => void (await new Promise((r) => setTimeout(r, 0))));
+  expect(root.querySelector('.rlc-invite')!.textContent).toContain('Zeca');
+});

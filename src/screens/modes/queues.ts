@@ -31,8 +31,9 @@ const usable = (q: LolGameQueuesQueue) => q.queueAvailability === 'Available' &&
 export function groupQueues(queues: LolGameQueuesQueue[]): ModeGroup[] {
   const buckets = new Map<ModeGroupId, LolGameQueuesQueue[]>();
   for (const q of queues) {
-    if (!usable(q) || q.gameSelectCategory === 'CreateCustom') continue;
-    const id = GROUP[q.gameSelectModeGroup] ?? 'other';
+    if (!usable(q) || !q.name?.trim() || q.gameSelectCategory === 'CreateCustom') continue;
+    // A Ferramenta de Treino vem como modo alternativo; a spec a quer junto do mapa dela.
+    const id = q.gameSelectCategory === 'kTraining' ? 'sr' : (GROUP[q.gameSelectModeGroup] ?? 'other');
     buckets.set(id, [...(buckets.get(id) ?? []), q]);
   }
   return ORDER.filter((id) => buckets.has(id)).map((id) => ({

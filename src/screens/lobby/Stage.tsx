@@ -19,6 +19,7 @@ export function Stage({ band, children }: { band?: 'blue' | 'red'; children: Com
 interface ColumnProps {
   member: Participant | null;
   profile: Lcu['profile'];
+  name: Lcu['name'];
   isLocal?: boolean;
   showPositions?: boolean;
   /** Nome no lugar do nome do invocador (bots). */
@@ -31,8 +32,9 @@ interface ColumnProps {
   empty?: ComponentChildren;
 }
 
-export function Column({ member, profile, isLocal = false, showPositions = false, label, onSelf, menu, empty }: ColumnProps) {
+export function Column({ member, profile, name, isLocal = false, showPositions = false, label, onSelf, menu, empty }: ColumnProps) {
   const splash = useSplash(member, profile);
+  const resolved = useName(member, name);
   if (!member) {
     return (
       <div class="rlc-col" data-empty="true">
@@ -44,7 +46,7 @@ export function Column({ member, profile, isLocal = false, showPositions = false
   const body = (
     <>
       <span class="rlc-col-name">
-        {label ?? member.summonerName}
+        {label ?? resolved}
         {member.isLeader ? <span class="rlc-col-leader" title={t('leaderMark')} aria-label={t('leaderMark')}> ★</span> : null}
       </span>
       {positions.length ? <span class="rlc-col-pos">{positions.map((k) => t(k)).join(' · ')}</span> : null}
@@ -62,6 +64,21 @@ export function Column({ member, profile, isLocal = false, showPositions = false
       {menu}
     </div>
   );
+}
+
+/** Nome do membro: `summonerName` quando vier, senão o Riot ID buscado pelo puuid. */
+function useName(member: Participant | null, name: Lcu['name']): string {
+  const [found, setFound] = useState<string | null>(null);
+  const direct = member?.summonerName || null;
+  const puuid = member && !direct && !member.isBot ? member.puuid : null;
+  useEffect(() => {
+    setFound(null);
+    if (!puuid) return;
+    let live = true;
+    void name(puuid).then((n) => live && setFound(n));
+    return () => void (live = false);
+  }, [puuid, name]);
+  return direct ?? found ?? '';
 }
 
 /** Splash do fundo de perfil do membro. Imagem que falha deixa só o gradiente da camada de baixo. */
