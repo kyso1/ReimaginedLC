@@ -11,12 +11,13 @@ import { InviteFriends } from './InviteFriends';
 import { MemberMenu } from './MemberMenu';
 import { Positions } from './Positions';
 import { Column, Stage, type Participant } from './Stage';
+import { TftCustomize } from './TftCustomize';
 
 const MEMBERS = '/lol-lobby/v2/lobby/members';
 
 /** Lobby no layout Palco: uma coluna por vaga e a barra flutuante com fila e busca. */
 export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
-  const [panel, setPanel] = useState<null | 'positions' | 'invite' | { botTeam: number }>(null);
+  const [panel, setPanel] = useState<null | 'positions' | 'invite' | 'tft' | { botTeam: number }>(null);
   const [kicking, setKicking] = useState<Participant | null>(null);
   const bots = useBots(lcu.lobby.value.data?.gameConfig.isCustom === true, lcu.game);
   const switchTeam = useAction((team: number) => request('POST', `/lol-lobby/v2/lobby/team/TEAM${team === 100 ? 1 : 2}`));
@@ -53,6 +54,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
       </button>
     ) : null;
 
+  const isTft = config.gameMode === 'TFT';
   const queueName = lcu.queues.value.data?.find((q) => q.id === config.queueId)?.name ?? '';
   const column = (m: Participant | null, key: string, empty: ComponentChildren, team?: number) => (
     <Column
@@ -67,6 +69,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
       onSelf={m && isLocal(m) && !config.isCustom && config.showPositionSelector ? () => setPanel('positions') : undefined}
       menu={m ? memberMenu(m, team) : null}
       empty={empty}
+      companions={isTft ? lcu.game.companions : undefined}
     />
   );
 
@@ -130,7 +133,13 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
         leader={leader}
         partyType={data.partyType}
         start={leader ? { label: t('findMatch'), path: '/lol-lobby/v2/lobby/matchmaking/search', enabled: data.canStartActivity } : null}
-      />
+      >
+        {isTft ? (
+          <button type="button" class="rlc-button" onClick={() => setPanel('tft')}>
+            {t('tftCustomize')}
+          </button>
+        ) : null}
+      </LobbyBar>
     );
   }
 
@@ -138,6 +147,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
     <section class="rlc-lobby" data-custom={config.isCustom ? 'true' : undefined}>
       {stage}
       {bar}
+      {panel === 'tft' ? <TftCustomize onClose={() => setPanel(null)} /> : null}
       {panel === 'positions' ? <Positions onClose={() => setPanel(null)} /> : null}
       {panel === 'invite' ? <InviteFriends friends={lcu.friends.value.data ?? []} exclude={new Set(data.members.map((m) => m.puuid))} onClose={() => setPanel(null)} /> : null}
       {panel && typeof panel === 'object' ? <BotPicker bots={bots} teamId={panel.botTeam} onClose={() => setPanel(null)} /> : null}

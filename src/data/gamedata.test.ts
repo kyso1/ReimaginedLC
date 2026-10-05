@@ -46,3 +46,14 @@ test('splash: skin 0 ou ausente e falha de rede viram null', async () => {
   expect(await game.splash(undefined)).toBeNull();
   expect(await game.splash(1001)).toBeNull();
 });
+
+test('pequenas lendas: companions.json indexado por contentId', async () => {
+  const f = vi.fn().mockResolvedValue(json([{ contentId: 'abc', itemId: 91003, name: 'Chibi Orianna', loadoutsIcon: '/lol-game-data/assets/ASSETS/o.png' }, { itemId: 1 }]));
+  const game = createGameData(f);
+  const m = await game.companions();
+  await game.companions();
+  expect(f).toHaveBeenCalledTimes(1);
+  expect(f).toHaveBeenCalledWith('/lol-game-data/assets/v1/companions.json');
+  expect(m.get('abc')).toEqual({ itemId: 91003, name: 'Chibi Orianna', icon: '/lol-game-data/assets/ASSETS/o.png' });
+  expect(m.size).toBe(1);
+});

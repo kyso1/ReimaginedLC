@@ -5,9 +5,12 @@ import { setLocale } from '../i18n';
 import type { Lcu, StoreState } from '../lcu';
 import type { ResolvedTheme } from '../theme/resolve';
 import type { ThemeEngine } from '../theme/engine';
-import { fakeLcu, invitation, leader as leaderFixture, lobby as lobbyFixture, queue, readyCheck, session as sessionFixture } from '../test/fixtures';
+import { fakeLcu, fakeThemes, friend as friendFixture, invitation, leader as leaderFixture, lobby as lobbyFixture, queue, readyCheck, session as sessionFixture } from '../test/fixtures';
+import { background } from '../theme/background';
+import { DEFAULT_BG } from '../theme/background';
 import { App, RIOT_ROOT_ID } from './App';
 import { enabled, hideRiot, syncLayer } from './layer';
+import { DEFAULT_PREFS, prefs } from './prefs';
 
 const vidro: ResolvedTheme = { name: 'vidro', label: 'Vidro', tokens: { 'color.bg': '#0b1020' }, transition: 'wipe', backgrounds: { default: { theme: 'vidro', path: '/fe/x/a.jpg' } } };
 const editorial: ResolvedTheme = { name: 'editorial', label: 'Editorial', tokens: { 'color.bg': '#0e0e10' }, transition: 'fade', backgrounds: { default: { theme: 'editorial', path: '' } } };
@@ -42,7 +45,7 @@ beforeEach(() => {
   phase = signal(ready('None')) as Lcu['gameflowPhase'];
   lcu = fakeLcu({ gameflowPhase: phase });
   const active = signal(vidro);
-  themes = { active, available: [vidro, editorial].map(({ name, label }) => ({ name, label })), set: (name) => void (active.value = name === 'editorial' ? editorial : vidro) };
+  themes = fakeThemes(active, [vidro, editorial].map(({ name, label }) => ({ name, label })), (name) => void (active.value = name === 'editorial' ? editorial : vidro));
 });
 
 afterEach(() => {
@@ -50,6 +53,7 @@ afterEach(() => {
   root.remove();
   riot.remove();
   delete window.Toast;
+  prefs.value = DEFAULT_PREFS;
 });
 
 test('com a camada desligada nada aparece e a interface da Riot fica visível', async () => {
@@ -427,4 +431,117 @@ test('partida, honra e pós-jogo têm telas nossas e o trilho marca a tela atual
     expect(root.querySelector(`.rlc-rail-item[aria-label="${label}"]`)!.getAttribute('aria-current')).toBe('page');
     expect(riot.style.visibility).toBe('hidden');
   }
+});
+
+test('trilho navega para Perfil, Coleção e Configurações fora do fluxo de partida; Início volta', async () => {
+  enabled.value = true;
+  const Profile = () => <div class="stub-profile" />;
+  mount({ views: { profile: Profile } });
+  await flush();
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Perfil"]')!.click();
+  await flush();
+  expect(root.querySelector('.stub-profile')).not.toBeNull();
+  expect(root.querySelector('.rlc-rail-item[aria-label="Perfil"]')!.getAttribute('aria-current')).toBe('page');
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Início"]')!.click();
+  await flush();
+  expect(root.querySelector('.stub-profile')).toBeNull();
+  expect(root.textContent).toContain('Jogar');
+});
+
+test('entrar na seleção de campeões troca a tela livre pela fase', async () => {
+  enabled.value = true;
+  const Profile = () => <div class="stub-profile" />;
+  mount({ views: { profile: Profile } });
+  await flush();
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Perfil"]')!.click();
+  await flush();
+  phase.value = ready('ChampSelect');
+  lcu.champSelect.value = ready(sessionFixture());
+  await flush();
+  expect(root.querySelector('.stub-profile')).toBeNull();
+  expect(root.querySelector('.rlc-champselect')).not.toBeNull();
+  expect(root.querySelector('.rlc-rail-item[aria-label="Perfil"]')).toBeNull();
+});
+
+test('coluna da direita e chip de moedas aparecem com a camada', async () => {
+  enabled.value = true;
+  mount();
+  await flush();
+  expect(root.querySelector('.rlc-rc')).not.toBeNull();
+});
+
+test('clicar num amigo abre a conversa (criando-a se preciso) e mantém a coluna da direita aberta', async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response('[]', { status: 200 }));
+  vi.stubGlobal('fetch', fetchMock);
+  enabled.value = true;
+  lcu.friends.value = ready([friendFixture({ id: 'zeca@pvp.net', gameName: 'Zeca', availability: 'chat' })]);
+  mount();
+  await flush();
+  root.querySelector<HTMLButtonElement>('.rlc-rc-avatar[aria-label="Zeca"]')!.click();
+  await flush();
+  expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-chat/v1/conversations' && JSON.parse(c[1].body).id === 'zeca@pvp.net')).toBe(true);
+  expect(root.querySelector('.rlc-chat-window')!.getAttribute('aria-label')).toBe('Zeca');
+  expect(root.querySelector('.rlc-rc')!.getAttribute('data-open')).toBe('true');
+  root.querySelector<HTMLButtonElement>('.rlc-chat-window button[aria-label="Fechar conversa"]')!.click();
+  await flush();
+  expect(root.querySelector('.rlc-chat-window')).toBeNull();
+  vi.unstubAllGlobals();
+});
+
+test('chat da sala aparece no lobby a partir do id da sala', async () => {
+  enabled.value = true;
+  phase.value = ready('Lobby');
+  lcu.lobby.value = ready({ ...lobbyFixture([leaderFixture()]), multiUserChatId: 'sala-1' });
+  lcu.conversations.value = ready([{ id: 'sala-1@lol-lobby.pvp.net', unreadMessageCount: 0, type: 'customGame' }] as never);
+  mount();
+  await flush();
+  expect(root.querySelector('.rlc-ctx')).not.toBeNull();
+});
+
+test('lobby de TFT usa o tema do TFT', async () => {
+  enabled.value = true;
+  const tft: typeof vidro = { ...vidro, name: 'vidro-ludico', tokens: { 'color.bg': '#3a2a12' } };
+  themes.forGame.tft = signal(tft);
+  phase.value = ready('Lobby');
+  lcu.lobby.value = ready(lobbyFixture([leaderFixture()], undefined, { gameMode: 'TFT', queueId: 1090 }));
+  mount();
+  await flush();
+  expect(root.style.getPropertyValue('--rlc-color-bg')).toBe('#3a2a12');
+});
+
+test('fundo personalizado: splash escolhida substitui o fundo do tema na tela inicial, com escurecer', async () => {
+  enabled.value = true;
+  lcu.game = { ...lcu.game, splash: async (id) => (id === 103001 ? '/s/103001.jpg' : null) };
+  mount();
+  await flush();
+  background.value = { ...DEFAULT_BG, global: { kind: 'splash', skinId: 103001 }, dim: 0.4 };
+  await flush();
+  expect(root.querySelector('img.rlc-bg')!.getAttribute('src')).toBe('/s/103001.jpg');
+  expect(root.querySelector<HTMLElement>('.rlc-app')!.style.getPropertyValue('--rlc-bg-dim')).toBe('0.4');
+  background.value = DEFAULT_BG;
+});
+
+test('Configurações abre a tela de configurações', async () => {
+  enabled.value = true;
+  mount();
+  await flush();
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Configurações"]')!.click();
+  await flush();
+  expect(root.querySelector('.rlc-settings')).not.toBeNull();
+});
+
+test('preferências: transições vão para data-motion e vídeo desligado não toca', async () => {
+  enabled.value = true;
+  themes.active.value = { ...themes.active.value, backgrounds: { default: { theme: 'vidro', path: '/fe/x/a.webm' } } };
+  prefs.value = { ...DEFAULT_PREFS, motion: 'off', video: false };
+  mount();
+  await flush();
+  expect(root.dataset.motion).toBe('off');
+  const play = HTMLMediaElement.prototype.play as unknown as ReturnType<typeof vi.fn>;
+  play.mockClear();
+  focused.value = false;
+  await flush();
+  focused.value = true;
+  await flush();
+  expect(play).not.toHaveBeenCalled();
 });

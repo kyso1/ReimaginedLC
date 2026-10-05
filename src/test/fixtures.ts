@@ -86,7 +86,7 @@ export function fakeLcu(over: Partial<Lcu> = {}): Lcu {
     customGames: { state: signal(ready([])), refresh: async () => {} },
     profile: async () => null,
     name: async () => null,
-    game: { champions: async () => new Map(), spells: async () => new Map(), splash: async () => null },
+    game: { champions: async () => new Map(), spells: async () => new Map(), splash: async () => null, items: async () => new Map(), companions: async () => new Map() },
     champSelect: signal(ready<Lcu['champSelect']['value']['data'] & object>(null)),
     skins: signal(ready([])),
     pickable: signal(ready([])),
@@ -98,6 +98,13 @@ export function fakeLcu(over: Partial<Lcu> = {}): Lcu {
     endOfGame: signal(ready<Lcu['endOfGame']['value']['data'] & object>(null)),
     lanes: signal(ready({})),
     gridChampions: signal(ready([])),
+    chatMe: signal(ready<Lcu['chatMe']['value']['data'] & object>(null)),
+    wallet: Object.assign(signal(ready<Record<string, number>>(null)), { refresh: async () => {} }),
+    friendRequests: signal(ready([])),
+    conversations: signal(ready([])),
+    loot: signal(ready([])),
+    events: { onPrefix: () => () => {} },
+    orangeEssence: Object.assign(signal(ready<Lcu['orangeEssence']['value']['data'] & object>(null)), { refresh: async () => {} }),
     ...over,
   };
 }
@@ -124,3 +131,19 @@ export const session = (over: Partial<Session> & { actions?: ActionFixture[][] }
     trades: [], pickOrderSwaps: [], positionSwaps: [], benchEnabled: false, benchChampions: [], allowRerolling: false, rerollsRemaining: 0,
     allowSkinSelection: true, hasSimultaneousBans: false, hasSimultaneousPicks: false, ...over,
   }) as unknown as Session;
+
+/** Motor de temas de teste: só o necessário, com `set` substituível. */
+export function fakeThemes(active: import('@preact/signals').Signal<import('../theme/resolve').ResolvedTheme>, available: Array<{ name: string; label: string; user?: boolean }>, set: (name: string, game?: 'lol' | 'tft') => void): import('../theme/engine').ThemeEngine {
+  return {
+    active,
+    forGame: { lol: active, tft: active },
+    list: signal(available.map((a) => ({ ...a, user: a.user ?? false }))),
+    available,
+    set,
+    saveUser: () => ({ ok: true }),
+    deleteUser: () => {},
+    exportTheme: () => null,
+    manifest: () => null,
+    resolveDraft: () => ({ ok: false, error: 'teste' }),
+  };
+}

@@ -3,11 +3,13 @@ import { t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
 import { useAction } from '../../ui/useAction';
+import { useDecoded } from '../../ui/useDecoded';
 import { ChampionGrid, Drawer, LANES, type Lane, type Tab } from './Drawer';
 import { RunesSpellsTab, SkinsTab } from './Loadout';
 import { Bench, SwapCards, swapMenu } from './Swaps';
 import { bansByTeam, displayedChampion, flatActions, myTurn, remainingSeconds, selectPhase, type SelectPhase, type Session } from './logic';
 import { Team } from './Teams';
+import { prefs } from '../../shell/prefs';
 
 const PHASE_TEXT: Record<SelectPhase, TextKey | null> = {
   ban: 'phaseBan',
@@ -34,7 +36,8 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
     if (turn) setTab('champions');
     else if (locked) setTab('skins');
   }, [turn?.action.id, locked]);
-  const splash = useLoaded(() => lcu.game.splash(shown ? (shown.locked && local!.selectedSkinId > 0 ? local!.selectedSkinId : shown.championId * 1000) : undefined), null, [shown?.championId, shown?.locked, local?.selectedSkinId]);
+  const splashUrl = useLoaded(() => lcu.game.splash(shown ? (shown.locked && local!.selectedSkinId > 0 ? local!.selectedSkinId : shown.championId * 1000) : undefined), null, [shown?.championId, shown?.locked, local?.selectedSkinId]);
+  const splash = useDecoded(splashUrl);
 
   const hover = useAction((id: number, championId: number) => request('PATCH', `/lol-champ-select/v1/session/actions/${id}`, { championId }));
   const commit = useAction((id: number, championId: number) => request('PATCH', `/lol-champ-select/v1/session/actions/${id}`, { championId, completed: true }));
@@ -72,8 +75,8 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   ) : null;
 
   return (
-    <section class="rlc-champselect">
-      <div class="rlc-cs-splash" style={splash ? { backgroundImage: `url("${splash}")` } : undefined} />
+    <section class="rlc-champselect" data-layout={prefs.value.champSelectLayout}>
+      <div class="rlc-cs-splash" key={splash ?? 'none'} style={splash ? { backgroundImage: `url("${splash}")` } : undefined} />
       <header class="rlc-cs-top">
         <Team cells={session.myTeam} side="mine" bans={bans.mine} active={active} localCellId={session.localPlayerCellId} champions={champions} spells={spells} name={lcu.name} menuFor={(c) => (c.cellId === session.localPlayerCellId ? null : swapMenu(session, c))} />
         <div class="rlc-cs-clock">

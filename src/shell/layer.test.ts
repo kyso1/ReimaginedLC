@@ -52,3 +52,14 @@ test('toggleEnabled alterna', () => {
   expect(enabled.value).toBe(false);
   expect(data.get('rlc.enabled')).toBe(false);
 });
+
+test('preferência de abertura vence o estado guardado', () => {
+  data.set('rlc.enabled', false);
+  data.set('rlc.prefs', { openOnStart: true });
+  syncLayer();
+  expect(enabled.value).toBe(true);
+  data.set('rlc.enabled', true);
+  data.set('rlc.prefs', { openOnStart: false });
+  syncLayer();
+  expect(enabled.value).toBe(false);
+});

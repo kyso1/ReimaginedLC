@@ -7,6 +7,7 @@ function fakeSocket() {
   let reconnect: () => void = () => {};
   const socket: LcuSocket = {
     subscribe: (uri, fn) => { listeners.set(uri, fn); return () => listeners.delete(uri); },
+    subscribePrefix: () => () => {},
     onReconnect: (fn) => { reconnect = fn; return () => {}; },
     close: () => {},
   };
