@@ -5,7 +5,7 @@ import { setLocale } from '../i18n';
 import type { Lcu, StoreState } from '../lcu';
 import type { ResolvedTheme } from '../theme/resolve';
 import type { ThemeEngine } from '../theme/engine';
-import { fakeLcu, friend as friendFixture, invitation, leader as leaderFixture, lobby as lobbyFixture, queue, readyCheck, session as sessionFixture } from '../test/fixtures';
+import { fakeLcu, fakeThemes, friend as friendFixture, invitation, leader as leaderFixture, lobby as lobbyFixture, queue, readyCheck, session as sessionFixture } from '../test/fixtures';
 import { App, RIOT_ROOT_ID } from './App';
 import { enabled, hideRiot, syncLayer } from './layer';
 
@@ -42,7 +42,7 @@ beforeEach(() => {
   phase = signal(ready('None')) as Lcu['gameflowPhase'];
   lcu = fakeLcu({ gameflowPhase: phase });
   const active = signal(vidro);
-  themes = { active, available: [vidro, editorial].map(({ name, label }) => ({ name, label })), set: (name) => void (active.value = name === 'editorial' ? editorial : vidro) };
+  themes = fakeThemes(active, [vidro, editorial].map(({ name, label }) => ({ name, label })), (name) => void (active.value = name === 'editorial' ? editorial : vidro));
 });
 
 afterEach(() => {

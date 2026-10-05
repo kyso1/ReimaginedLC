@@ -131,3 +131,19 @@ export const session = (over: Partial<Session> & { actions?: ActionFixture[][] }
     trades: [], pickOrderSwaps: [], positionSwaps: [], benchEnabled: false, benchChampions: [], allowRerolling: false, rerollsRemaining: 0,
     allowSkinSelection: true, hasSimultaneousBans: false, hasSimultaneousPicks: false, ...over,
   }) as unknown as Session;
+
+/** Motor de temas de teste: só o necessário, com `set` substituível. */
+export function fakeThemes(active: import('@preact/signals').Signal<import('../theme/resolve').ResolvedTheme>, available: Array<{ name: string; label: string }>, set: (name: string, game?: 'lol' | 'tft') => void): import('../theme/engine').ThemeEngine {
+  return {
+    active,
+    forGame: { lol: active, tft: active },
+    list: signal(available.map((a) => ({ ...a, user: false }))),
+    available,
+    set,
+    saveUser: () => ({ ok: true }),
+    deleteUser: () => {},
+    exportTheme: () => null,
+    manifest: () => null,
+    resolveDraft: () => ({ ok: false, error: 'teste' }),
+  };
+}

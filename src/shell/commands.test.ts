@@ -1,6 +1,7 @@
 import { signal } from '@preact/signals';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../i18n';
+import { fakeThemes } from '../test/fixtures';
 import type { ThemeEngine } from '../theme/engine';
 import { registerCommands } from './commands';
 import { enabled, syncLayer } from './layer';
@@ -15,7 +16,7 @@ beforeEach(() => {
   syncLayer();
   actions = [];
   window.CommandBar = { addAction: (a) => void actions.push(a) };
-  themes = { active: signal({ name: 'vidro', label: 'Vidro', tokens: {}, transition: 'fade', backgrounds: {} }), available: [{ name: 'vidro', label: 'Vidro' }, { name: 'editorial', label: 'Editorial' }], set: vi.fn() };
+  themes = fakeThemes(signal({ name: 'vidro', label: 'Vidro', tokens: {}, transition: 'fade', backgrounds: {} }), [{ name: 'vidro', label: 'Vidro' }, { name: 'editorial', label: 'Editorial' }], vi.fn());
 });
 
 afterEach(() => {
