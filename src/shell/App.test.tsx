@@ -236,3 +236,20 @@ test('a raiz da Riot é trocada enquanto escondida: o novo elemento guarda o pr�
   await short();
   expect(riot.style.visibility).toBe('collapse');
 });
+
+test('a faixa da janela aparece; fechar pede confirmação antes de encerrar o client', async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+  vi.stubGlobal('fetch', fetchMock);
+  enabled.value = true;
+  mount();
+  await flush();
+  root.querySelector<HTMLButtonElement>('button[aria-label="Fechar"]')!.click();
+  await flush();
+  expect(fetchMock).not.toHaveBeenCalled();
+  const dialog = root.querySelector('[role="dialog"]')!;
+  expect(dialog.textContent).toContain('Fechar o League of Legends?');
+  dialog.querySelector<HTMLButtonElement>('button[data-variant="primary"]')!.click();
+  await flush();
+  expect(fetchMock).toHaveBeenCalledWith('/process-control/v1/process/quit', { method: 'POST' });
+  vi.unstubAllGlobals();
+});

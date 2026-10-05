@@ -12,6 +12,13 @@ const TEXTS = {
     toggleLayer: 'ligar/desligar',
     themeAction: 'tema',
     openFailed: 'Não foi possível abrir as notas do patch',
+    lcuError: 'Erro da LCU',
+    lcuOffline: 'Sem conexão com o client',
+    minimize: 'Minimizar',
+    close: 'Fechar',
+    cancel: 'Cancelar',
+    quitConfirm: 'Fechar o League of Legends?',
+    quit: 'Fechar',
   },
   'en-US': {
     play: 'Play',
@@ -26,6 +33,13 @@ const TEXTS = {
     toggleLayer: 'toggle',
     themeAction: 'theme',
     openFailed: 'Could not open the patch notes',
+    lcuError: 'LCU error',
+    lcuOffline: 'No connection to the client',
+    minimize: 'Minimize',
+    close: 'Close',
+    cancel: 'Cancel',
+    quitConfirm: 'Close League of Legends?',
+    quit: 'Close',
   },
 } as const;
 
