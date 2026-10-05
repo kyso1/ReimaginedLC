@@ -66,7 +66,7 @@ Precisam de uma partida real com outras pessoas:
 
 ## Roteiro da partida do dono
 
-1. Client aberto, camada desligada (Ctrl+Shift+F12 se estiver ligada).
+1. Client aberto, camada **ligada** (Ctrl+Shift+F12), para as telas novas serem exercitadas. Se alguma travar, o mesmo atalho volta ao client original na hora; anotar em que fase foi.
 2. No repositório: `npm run dump:record -- partida-normal` e deixar rodando.
 3. Jogar uma partida normal com escolha alternada (com banimentos), do lobby até o pós-jogo, votando na honra.
 4. Ao voltar à tela inicial, encerrar o gravador com Ctrl+C.
