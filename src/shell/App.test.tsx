@@ -5,6 +5,7 @@ import { setLocale } from '../i18n';
 import type { Lcu, StoreState } from '../lcu';
 import type { ResolvedTheme } from '../theme/resolve';
 import type { ThemeEngine } from '../theme/engine';
+import { fakeLcu } from '../test/fixtures';
 import { App, RIOT_ROOT_ID } from './App';
 import { enabled, hideRiot, syncLayer } from './layer';
 
@@ -39,7 +40,7 @@ beforeEach(() => {
   riot = document.body.appendChild(Object.assign(document.createElement('div'), { id: RIOT_ROOT_ID }));
   root = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'rlc-root' }));
   phase = signal(ready('None')) as Lcu['gameflowPhase'];
-  lcu = { gameflowPhase: phase, currentSummoner: signal(ready(null)), build: signal(ready({ version: '16.19.823.0722' })), regionLocale: signal(ready({ locale: 'pt_BR' })) };
+  lcu = fakeLcu({ gameflowPhase: phase });
   const active = signal(vidro);
   themes = { active, available: [vidro, editorial].map(({ name, label }) => ({ name, label })), set: (name) => void (active.value = name === 'editorial' ? editorial : vidro) };
 });

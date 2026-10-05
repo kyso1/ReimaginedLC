@@ -28,12 +28,14 @@ interface Props {
   focused: Signal<boolean>;
   /** Muda quando a raiz da Riot aparece ou é trocada. */
   dom: Signal<number>;
-  screens?: Record<Screen, (props: HomeProps) => JSX.Element>;
+  screens?: Partial<Record<Screen, (props: HomeProps) => JSX.Element>>;
 }
 
 export function App({ root, lcu, themes, base, focused, dom, screens = { home: Home } }: Props) {
   const domVersion = dom.value;
-  const screen = screenFor(lcu.gameflowPhase.value);
+  const route = screenFor(lcu.gameflowPhase.value);
+  // Tela sem componente ainda (lobby antes da Tarefa 5) fica com o client original.
+  const screen = route && screens[route] ? route : null;
   const visible = enabled.value && screen !== null;
   const theme = themes.active.value;
   const hide = visible && hideRiot.value;
@@ -74,7 +76,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
     enabled.value = false;
     window.Toast?.error(t('screenFailed'));
   };
-  const ScreenComponent = screens[screen];
+  const ScreenComponent = screens[screen]!;
 
   return (
     <div class="rlc-app" key={theme.name}>
