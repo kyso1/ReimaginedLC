@@ -156,3 +156,15 @@ test('dia relativo e ouro por time', () => {
   expect(relativeDay(Date.UTC(2026, 9, 4, 9), now)).toBe('ontem');
   expect(teamGold(timeline as never, { 1: 100, 6: 200 })).toEqual({ blue: [500, 900], red: [500, 700], minutes: [0, 1] });
 });
+
+test('histórico: carregar mais fica desabilitado enquanto a página carrega', async () => {
+  mount();
+  await settle();
+  act(() => tab('Histórico').click());
+  await settle();
+  await settle();
+  act(() => btn('Carregar mais').click());
+  expect(btn('Carregar mais').disabled).toBe(true);
+  await settle();
+  await settle();
+});

@@ -23,7 +23,9 @@ export interface BgSettings {
 
 export const DEFAULT_BG: BgSettings = { scope: 'global', global: { kind: 'none' }, screens: {}, random: false, dim: 0, blur: 0, posX: 50, posY: 30 };
 const KEY = 'rlc.background';
-const MEDIA = /^(image\/(png|jpeg|webp|gif)|video\/(webm|mp4))$/;
+export const MEDIA = /^(image\/(png|jpeg|webp|gif)|video\/(webm|mp4))$/;
+/** Teto do arquivo de fundo: vídeo grande pesa no IndexedDB e na memória do client. */
+export const MAX_MEDIA_BYTES = 150 * 1024 * 1024;
 
 const clamp = (v: unknown, min: number, max: number, def: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : def);
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -71,6 +73,13 @@ export function sourceFor(b: BgSettings, screen: string): BgSource | null {
   return src.kind === 'none' ? null : src;
 }
 
+/** Skin aleatória vale nas telas com fundo personalizado que não têm fonte própria. */
+export function wantsRandom(b: BgSettings, screen: string): boolean {
+  if (!b.random || !(BG_SCREENS as readonly string[]).includes(screen)) return false;
+  const own = b.scope === 'screens' ? b.screens[screen as BgScreen] : undefined;
+  return !own || own.kind === 'none';
+}
+
 /** Skin aleatória entre as possuídas, estável para a mesma semente (uma por abertura do client). */
 export function pickRandom(skins: Array<{ id: number; owned: boolean }>, seed: number): number | null {
   const owned = skins.filter((s) => s.owned);
@@ -81,21 +90,35 @@ export function pickRandom(skins: Array<{ id: number; owned: boolean }>, seed: n
 // Arquivos do usuário ficam em IndexedDB (o DataStore guarda só texto). Sem IndexedDB, nada é guardado.
 const DB = 'reimaginedlc';
 const STORE = 'media';
+// Uma conexão por sessão; falha não fica guardada para tentar de novo.
+let db: Promise<IDBDatabase | null> | null = null;
 function open(): Promise<IDBDatabase | null> {
   if (typeof indexedDB === 'undefined') return Promise.resolve(null);
-  return new Promise((resolve) => {
+  db ??= new Promise<IDBDatabase | null>((resolve) => {
     const req = indexedDB.open(DB, 1);
     req.onupgradeneeded = () => req.result.createObjectStore(STORE);
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => resolve(null);
+  }).then((d) => (d ? d : ((db = null), null)));
+  return db;
+}
+
+export async function deleteMedia(key: string): Promise<void> {
+  const d = await open();
+  if (!d) return;
+  await new Promise<void>((resolve) => {
+    const tx = d.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => resolve();
   });
 }
 
 export async function putMedia(key: string, blob: Blob): Promise<boolean> {
-  const db = await open();
-  if (!db) return false;
+  const d = await open();
+  if (!d) return false;
   return new Promise((resolve) => {
-    const tx = db.transaction(STORE, 'readwrite');
+    const tx = d.transaction(STORE, 'readwrite');
     tx.objectStore(STORE).put(blob, key);
     tx.oncomplete = () => resolve(true);
     tx.onerror = () => resolve(false);
@@ -103,10 +126,10 @@ export async function putMedia(key: string, blob: Blob): Promise<boolean> {
 }
 
 export async function getMedia(key: string): Promise<Blob | null> {
-  const db = await open();
-  if (!db) return null;
+  const d = await open();
+  if (!d) return null;
   return new Promise((resolve) => {
-    const req = db.transaction(STORE).objectStore(STORE).get(key);
+    const req = d.transaction(STORE).objectStore(STORE).get(key);
     req.onsuccess = () => resolve(req.result instanceof Blob ? req.result : null);
     req.onerror = () => resolve(null);
   });

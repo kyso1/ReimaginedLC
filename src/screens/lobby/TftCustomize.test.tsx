@@ -79,3 +79,20 @@ test('abas trocam o inventário; grupo sem nome usa o nome da aba', async () => 
   await settle();
   expect(sections()).toEqual([['Arena', ['Arena Base']]]);
 });
+
+test('resposta atrasada da aba anterior não substitui a aba atual', async () => {
+  let release!: () => void;
+  const slow = new Promise<void>((r) => (release = r));
+  const base = fetchMock.getMockImplementation() as (url: string, init?: RequestInit) => Promise<Response>;
+  fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+    if (url === '/lol-cosmetics/v1/inventories/tft/companions') await slow;
+    return base(url, init);
+  });
+  act(() => render(<TftCustomize onClose={() => {}} />, root));
+  act(() => [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find((b) => b.textContent === 'Arena')!.click());
+  await settle();
+  release();
+  await settle();
+  await settle();
+  expect(sections()).toEqual([['Arena', ['Arena Base']]]);
+});

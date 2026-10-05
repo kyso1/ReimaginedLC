@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { t, type TextKey } from '../../i18n';
 import { request } from '../../lcu/request';
 import { useAction } from '../../ui/useAction';
@@ -17,7 +17,8 @@ interface Inventory {
 }
 
 /** Aba: inventório, favoritos (só os tipos que têm) e o tipo do PUT de seleção. */
-const TABS: Array<{ key: string; label: TextKey; favorites: boolean; selection: string }> = [
+type Tab = { key: string; label: TextKey; favorites: boolean; selection: string };
+const TABS: Tab[] = [
   { key: 'companions', label: 'tftLegend', favorites: true, selection: 'companion' },
   { key: 'map-skins', label: 'tftArena', favorites: true, selection: 'tft-map-skin' },
   { key: 'damage-skins', label: 'tftBoom', favorites: true, selection: 'tft-damage-skin' },
@@ -33,17 +34,21 @@ export function TftCustomize({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState('');
   const [inventory, setInventory] = useState<Inventory | null>(null);
   const [favorites, setFavorites] = useState<Item[]>([]);
-  const load = () => getJson<Inventory>(`/lol-cosmetics/v1/inventories/tft/${tab.key}`).then(setInventory);
+  // Aba atual num ref: respostas de outra aba (troca rápida, equipar em voo) são descartadas.
+  const current = useRef(tab);
+  current.current = tab;
+  const load = (from: Tab) => getJson<Inventory>(`/lol-cosmetics/v1/inventories/tft/${from.key}`).then((inv) => current.current === from && setInventory(inv));
   useEffect(() => {
     setInventory(null);
     setFavorites([]);
-    void load();
-    if (tab.favorites) void getJson<{ favoriteItems?: Item[] }>(`/lol-cosmetics/v1/favorites/tft/${tab.key}`).then((f) => setFavorites(f?.favoriteItems ?? []));
+    void load(tab);
+    if (tab.favorites) void getJson<{ favoriteItems?: Item[] }>(`/lol-cosmetics/v1/favorites/tft/${tab.key}`).then((f) => current.current === tab && setFavorites(f?.favoriteItems ?? []));
   }, [tab]);
   // Sem UI otimista: a marca de equipado vem do inventário relido depois do PUT.
   const equip = useAction(async (itemId: number) => {
-    await request('PUT', `/lol-cosmetics/v1/selection/${tab.selection}`, itemId);
-    await load();
+    const from = tab;
+    await request('PUT', `/lol-cosmetics/v1/selection/${from.selection}`, itemId);
+    await load(from);
   });
 
   const q = query.trim().toLowerCase();

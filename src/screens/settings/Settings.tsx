@@ -4,7 +4,8 @@ import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
 import { prefs, setPrefs, type Prefs } from '../../shell/prefs';
 import { applyTheme } from '../../theme/apply';
-import { background, BG_SCREENS, putMedia, setBackground, type BgScreen, type BgSource } from '../../theme/background';
+import { Confirm } from '../../shell/overlays/Confirm';
+import { background, BG_SCREENS, deleteMedia, MAX_MEDIA_BYTES, MEDIA, putMedia, setBackground, type BgScreen, type BgSource } from '../../theme/background';
 import type { Game, ThemeEngine } from '../../theme/engine';
 import { TOKEN_KINDS, TRANSITIONS, type ThemeManifest } from '../../theme/validate';
 import { getJson } from '../profile/data';
@@ -65,6 +66,7 @@ function derive(themes: ThemeEngine, from: string, label: string): ThemeManifest
 
 function Appearance({ lcu, themes, onEdit }: { lcu: Lcu; themes: ThemeEngine; onEdit: (m: ThemeManifest) => void }) {
   const p = prefs.value;
+  const [deleting, setDeleting] = useState<{ name: string; label: string } | null>(null);
   const groups: Array<[Game, TextKey]> = [
     ['lol', 'stThemesLol'],
     ['tft', 'stThemesTft'],
@@ -114,7 +116,7 @@ function Appearance({ lcu, themes, onEdit }: { lcu: Lcu; themes: ThemeEngine; on
                         },
                       },
                       { label: t('stExport'), run: () => download(`${th.name}.json`, themes.exportTheme(th.name) ?? '{}') },
-                      ...(th.user ? [{ label: t('delete'), run: () => themes.deleteUser(th.name) }] : []),
+                      ...(th.user ? [{ label: t('delete'), run: () => setDeleting(th) }] : []),
                     ]}
                   />
                 </div>
@@ -149,6 +151,17 @@ function Appearance({ lcu, themes, onEdit }: { lcu: Lcu; themes: ThemeEngine; on
         </label>
       </section>
       <BackgroundSection lcu={lcu} />
+      {deleting ? (
+        <Confirm
+          message={`${t('stDeleteThemeConfirm')} ${deleting.label}?`}
+          confirmLabel={t('delete')}
+          onConfirm={() => {
+            themes.deleteUser(deleting.name);
+            setDeleting(null);
+          }}
+          onCancel={() => setDeleting(null)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -164,9 +177,17 @@ function BackgroundSection({ lcu }: { lcu: Lcu }) {
   const setSource = (src: BgSource) => setBackground(screen === 'global' ? { ...b, global: src } : { ...b, scope: 'screens', screens: { ...b.screens, [screen]: src } });
   const onFile = async (file: File | undefined) => {
     if (!file) return;
+    // Tipo e tamanho checados aqui: o que não passa em `sanitizeBg` sumiria na próxima abertura.
+    if (!MEDIA.test(file.type)) return void window.Toast?.error(t('stFileType'));
+    if (file.size > MAX_MEDIA_BYTES) return void window.Toast?.error(t('stFileTooBig'));
     const key = `bg-${Date.now()}`;
-    if (await putMedia(key, file)) setSource({ kind: 'file', key, mime: file.type });
-    else window.Toast?.error(t('stFileFailed'));
+    if (!(await putMedia(key, file))) return void window.Toast?.error(t('stFileFailed'));
+    const previous = current.kind === 'file' ? current.key : null;
+    setSource({ kind: 'file', key, mime: file.type });
+    // O arquivo anterior desta fonte só sai se nenhuma outra fonte ainda usa.
+    const latest = background.value;
+    const inUse = [latest.global, ...Object.values(latest.screens)].some((s) => s?.kind === 'file' && s.key === previous);
+    if (previous && !inUse) void deleteMedia(previous);
   };
   const slider = (label: TextKey, key: 'dim' | 'blur' | 'posX' | 'posY', max: number, step: number) => (
     <label class="rlc-st-slider">
@@ -334,7 +355,19 @@ function GameSettings() {
               return (
                 <label key={key} class="rlc-st-slider">
                   {label(key)}
-                  <input type="number" data-key={`${cat}.${key}`} value={Number(current)} step="any" onChange={(e) => void save(cat, key, Number(e.currentTarget.value))} />
+                  <input
+                    type="number"
+                    data-key={`${cat}.${key}`}
+                    value={Number(current)}
+                    step={Number.isInteger(def.default) ? 1 : 'any'}
+                    onChange={(e) => {
+                      // Campo vazio vira 0 em Number(''): não grava. Campo de inteiro (modos, índices) grava inteiro.
+                      const raw = e.currentTarget.value.trim();
+                      const n = Number(raw);
+                      if (raw === '' || !Number.isFinite(n)) return void (e.currentTarget.value = String(current));
+                      void save(cat, key, Number.isInteger(def.default) ? Math.round(n) : n);
+                    }}
+                  />
                 </label>
               );
             return null;

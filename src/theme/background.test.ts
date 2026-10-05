@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { DEFAULT_BG, pickRandom, sanitizeBg, sourceFor } from './background';
+import { DEFAULT_BG, pickRandom, sanitizeBg, sourceFor, wantsRandom } from './background';
 
 test('sanitizeBg aceita só o formato esperado e limita os ajustes', () => {
   expect(sanitizeBg('lixo')).toEqual(DEFAULT_BG);
@@ -23,4 +23,14 @@ test('pickRandom escolhe entre as skins possuídas de forma estável para a mesm
   expect([1, 3]).toContain(pickRandom(skins, 0.1));
   expect(pickRandom(skins, 0.1)).toBe(pickRandom(skins, 0.1));
   expect(pickRandom([], 0.5)).toBeNull();
+});
+
+test('wantsRandom: só nas telas com fundo personalizado; tela com fonte própria fica com ela', () => {
+  const b = { ...DEFAULT_BG, random: true };
+  expect(wantsRandom(b, 'home')).toBe(true);
+  expect(wantsRandom(b, 'champselect')).toBe(false);
+  expect(wantsRandom(b, 'ingame')).toBe(false);
+  expect(wantsRandom({ ...b, scope: 'screens', screens: { lobby: { kind: 'splash', skinId: 1 } } }, 'lobby')).toBe(false);
+  expect(wantsRandom({ ...b, scope: 'screens' }, 'profile')).toBe(true);
+  expect(wantsRandom({ ...b, random: false }, 'home')).toBe(false);
 });

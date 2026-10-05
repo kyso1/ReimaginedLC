@@ -133,11 +133,11 @@ export const session = (over: Partial<Session> & { actions?: ActionFixture[][] }
   }) as unknown as Session;
 
 /** Motor de temas de teste: só o necessário, com `set` substituível. */
-export function fakeThemes(active: import('@preact/signals').Signal<import('../theme/resolve').ResolvedTheme>, available: Array<{ name: string; label: string }>, set: (name: string, game?: 'lol' | 'tft') => void): import('../theme/engine').ThemeEngine {
+export function fakeThemes(active: import('@preact/signals').Signal<import('../theme/resolve').ResolvedTheme>, available: Array<{ name: string; label: string; user?: boolean }>, set: (name: string, game?: 'lol' | 'tft') => void): import('../theme/engine').ThemeEngine {
   return {
     active,
     forGame: { lol: active, tft: active },
-    list: signal(available.map((a) => ({ ...a, user: false }))),
+    list: signal(available.map((a) => ({ ...a, user: a.user ?? false }))),
     available,
     set,
     saveUser: () => ({ ok: true }),

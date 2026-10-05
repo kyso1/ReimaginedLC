@@ -6,6 +6,7 @@ import { setLocale } from '../../i18n';
 import { effectiveLocale, prefs, sanitizePrefs } from '../../shell/prefs';
 import { fakeLcu, fakeThemes } from '../../test/fixtures';
 import type { ResolvedTheme } from '../../theme/resolve';
+import * as bg from '../../theme/background';
 import { Settings } from './Settings';
 
 let root: HTMLElement;
@@ -24,7 +25,7 @@ beforeEach(() => {
   window.Toast = { success: vi.fn(), error: vi.fn() };
   root = document.body.appendChild(document.createElement('div'));
   fetchMock = vi.fn(async (url: string) => {
-    if (url === '/lol-game-settings/v1/game-settings-schema') return new Response(JSON.stringify({ General: { EnableAudio: { default: true }, CursorScale: { default: 0.5 } } }), { status: 200 });
+    if (url === '/lol-game-settings/v1/game-settings-schema') return new Response(JSON.stringify({ General: { EnableAudio: { default: true }, CursorScale: { default: 0.5 }, GameMouseSpeed: { default: 10 } } }), { status: 200 });
     if (url === '/lol-game-settings/v1/game-settings') return new Response(JSON.stringify({ General: { EnableAudio: false, CursorScale: 0.7 } }), { status: 200 });
     return new Response('true', { status: 200 });
   });
@@ -122,4 +123,65 @@ test('idioma: preferência fixa vence o do client', () => {
   expect(effectiveLocale('pt', 'en_US')).toBe('pt_BR');
   expect(effectiveLocale('en', 'pt_BR')).toBe('en_US');
   expect(effectiveLocale('auto', undefined)).toBeNull();
+});
+
+test('jogo: número vazio não grava; campo inteiro grava inteiro', async () => {
+  mount();
+  act(() => tab('Jogo').click());
+  await settle();
+  await settle();
+  const speed = root.querySelector<HTMLInputElement>('input[data-key="General.GameMouseSpeed"]')!;
+  const change = (v: string) =>
+    act(() => {
+      speed.value = v;
+      speed.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  change('');
+  await settle();
+  expect(fetchMock.mock.calls.some((c) => c[1]?.method === 'PATCH')).toBe(false);
+  change('7.6');
+  await settle();
+  const patch = fetchMock.mock.calls.find((c) => c[1]?.method === 'PATCH')!;
+  expect(JSON.parse(patch[1].body)).toEqual({ General: { GameMouseSpeed: 8 } });
+});
+
+test('apagar tema do usuário pede confirmação', () => {
+  const deleteUser = vi.fn();
+  const set = vi.fn();
+  const themes = { ...fakeThemes(signal(vidro), [{ name: 'vidro', label: 'Vidro' }, { name: 'meu', label: 'Meu', user: true }], set), deleteUser };
+  act(() => render(<Settings lcu={fakeLcu()} themes={themes} />, root));
+  const wrap = root.querySelector('.rlc-st-group')!.querySelector('.rlc-st-theme[data-name="meu"]')!.parentElement!;
+  act(() => wrap.querySelector<HTMLButtonElement>('.rlc-col-menu')!.click());
+  act(() => btn('Apagar', wrap)!.click());
+  expect(deleteUser).not.toHaveBeenCalled();
+  act(() => [...root.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find((b) => b.textContent === 'Apagar')!.click());
+  expect(deleteUser).toHaveBeenCalledWith('meu');
+});
+
+test('fundo: arquivo novo apaga o anterior; arquivo grande demais ou de tipo errado é recusado', async () => {
+  const put = vi.spyOn(bg, 'putMedia').mockResolvedValue(true);
+  const del = vi.spyOn(bg, 'deleteMedia').mockResolvedValue();
+  bg.background.value = { ...bg.DEFAULT_BG, global: { kind: 'file', key: 'bg-old', mime: 'image/png' } };
+  mount();
+  const input = root.querySelector<HTMLInputElement>('.rlc-st-bg input[type="file"]')!;
+  const pick = async (file: File) => {
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+    act(() => void input.dispatchEvent(new Event('change', { bubbles: true })));
+    await settle();
+    await settle();
+  };
+  await pick(new File(['x'], 'a.svg', { type: 'image/svg+xml' }));
+  expect(put).not.toHaveBeenCalled();
+  const big = new File(['x'], 'big.webm', { type: 'video/webm' });
+  Object.defineProperty(big, 'size', { value: bg.MAX_MEDIA_BYTES + 1 });
+  await pick(big);
+  expect(put).not.toHaveBeenCalled();
+  expect(window.Toast!.error).toHaveBeenCalledTimes(2);
+  await pick(new File(['x'], 'b.png', { type: 'image/png' }));
+  expect(put).toHaveBeenCalledTimes(1);
+  expect(del).toHaveBeenCalledWith('bg-old');
+  expect(bg.background.value.global).toMatchObject({ kind: 'file', mime: 'image/png' });
+  put.mockRestore();
+  del.mockRestore();
+  bg.background.value = bg.DEFAULT_BG;
 });

@@ -109,11 +109,15 @@ function History({ lcu, puuid }: { lcu: Lcu; puuid: string }) {
   const [filter, setFilter] = useState<QueueFilter>('all');
   const [open, setOpen] = useState<{ gameId: number; originY: number } | null>(null);
   const [exhausted, setExhausted] = useState(false);
+  // Página em voo: o botão fica desabilitado (dois cliques pulariam uma página).
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     let live = true;
+    setLoading(true);
     const beg = count - PAGE;
     void getJson<{ games?: { games?: Game[] } }>(`/lol-match-history/v1/products/lol/${encodeURIComponent(puuid)}/matches?begIndex=${beg}&endIndex=${count}`).then((r) => {
       if (!live) return;
+      setLoading(false);
       const page = r?.games?.games ?? [];
       if (!page.length) setExhausted(true);
       setGames((prev) => [...prev.slice(0, beg), ...page]);
@@ -157,7 +161,7 @@ function History({ lcu, puuid }: { lcu: Lcu; puuid: string }) {
           })}
       </div>
       {!exhausted && games.length ? (
-        <button type="button" class="rlc-button" data-variant="pill" onClick={() => setCount(count + PAGE)}>
+        <button type="button" class="rlc-button" data-variant="pill" disabled={loading} onClick={() => setCount(count + PAGE)}>
           {t('loadMore')}
         </button>
       ) : null}
