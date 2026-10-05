@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { setLocale, t } from './i18n';
+import { setLocale, t } from './index';
 
 test('pt_BR usa os textos em português', () => {
   setLocale('pt_BR');
