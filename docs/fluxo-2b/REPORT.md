@@ -35,3 +35,41 @@ Lista de skins do campeão escolhido, cada uma com `id`, `name`, `unlocked`, `ow
 ### Não coberto pela gravação
 
 Trocas reais (sem outro humano), banco e rolagem do ARAM, skins além da base, partida, honra e pós-jogo.
+
+## Verificação no client
+
+Conduzida por dentro do client com o plugin de diagnóstico descartável e a ponte local do 2a, numa sala Tournament Draft (3130) com um bot. Client em `en_US`, então os textos apareceram em inglês. Plugin e ponte removidos ao fim; camada desligada; sem lobby.
+
+| # | Item | Resultado | Observação |
+|---|---|---|---|
+| 1 | Seleção aparece com a camada ligada e a Riot escondida | ok | Faixas, tempo, fase, gaveta com abas. |
+| 2 | Banir pela grade e pelo botão Ban | ok | Banimento concluído (`PATCH` com `completed: true`) e mostrado sob o nosso time. |
+| 3 | Destacar e confirmar | ok | Splash da Ahri em tela cheia ao destacar; confirmação aceita pela LCU. |
+| 4 | Aba muda sozinha | ok | Depois de confirmar, a aba ficou em Campeões porque o próximo banimento do jogador já estava em andamento (correto); a troca para Skins depois de confirmar está coberta por teste. |
+| 5 | Skins | ok, parcial | A conta só tem a skin base do campeão usado; a lista mostrou a base marcada. Troca de skin e cromas cobertas por teste. |
+| 6 | Feitiços | ok | Flash trocado por Ghost pelo slot 1. |
+| 7 | Página de runas | ok | Troca e volta à página original. |
+| 8 | Cancelar a seleção | ok | Fase `None`, camada de volta na tela inicial. |
+
+Defeito encontrado e corrigido: a grade de campeões saía achatada (o `aspect-ratio` dos itens não segurava a altura dentro da grade no Chromium 108); itens com tamanho fixo. Vaga do time limitada a um quinto da faixa.
+
+## Não verificado
+
+Precisam de uma partida real com outras pessoas:
+
+- trocas de campeão, ordem e posição;
+- banco e rolagem do ARAM;
+- telas de partida (início, em andamento, reconexão, carregando resultados);
+- honra (corpo `{ recipientPuuid, honorType: 'HEART' }` e o efeito de Pular são suposições);
+- pós-jogo (campos de `eog-stats-block`, `dismiss-stats` e `play-again-decline`);
+- PdL e itens no placar, deixados de fora até a gravação mostrar os campos.
+
+## Roteiro da partida do dono
+
+1. Client aberto, camada desligada (Ctrl+Shift+F12 se estiver ligada).
+2. No repositório: `npm run dump:record -- partida-normal` e deixar rodando.
+3. Jogar uma partida normal com escolha alternada (com banimentos), do lobby até o pós-jogo, votando na honra.
+4. Ao voltar à tela inicial, encerrar o gravador com Ctrl+C.
+5. Avisar o executor, que roda `npm run dump:anonymize -- partida-normal`, confere a gravação, corrige o que divergir e então liga a camada por padrão.
+
+Ponto menor visto: com cinco jogadores por time, a vaga fica estreita e nomes longos são cortados.

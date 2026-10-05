@@ -210,7 +210,7 @@
 #rlc-root .rlc-cs-side[data-side='theirs'] { align-items: flex-end; }
 #rlc-root .rlc-cs-team { display: flex; gap: 6px; width: 100%; }
 #rlc-root .rlc-cs-side[data-side='theirs'] .rlc-cs-team { flex-direction: row-reverse; }
-#rlc-root .rlc-cs-cell { position: relative; flex: 1; min-width: 0; display: flex; gap: 6px; align-items: center; padding: 6px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-sm); background: var(--rlc-color-surface); backdrop-filter: blur(var(--rlc-blur-surface)); }
+#rlc-root .rlc-cs-cell { position: relative; flex: 0 1 20%; min-width: 0; display: flex; gap: 6px; align-items: center; padding: 6px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-sm); background: var(--rlc-color-surface); backdrop-filter: blur(var(--rlc-blur-surface)); }
 #rlc-root .rlc-cs-cell[data-active='true'] { border-color: var(--rlc-color-highlight, #ffd36b); box-shadow: 0 0 0 1px var(--rlc-color-highlight, #ffd36b); }
 #rlc-root .rlc-cs-cell[data-local='true'] .rlc-cs-name { font-weight: 700; }
 #rlc-root .rlc-cs-icon { flex: none; width: 36px; height: 36px; border-radius: var(--rlc-radius-sm); overflow: hidden; background: var(--rlc-color-bg); }
@@ -236,8 +236,8 @@
 #rlc-root .rlc-cs-grid-wrap { display: flex; flex-direction: column; gap: 8px; height: 100%; }
 #rlc-root .rlc-cs-filters { display: flex; gap: 6px; align-items: center; }
 #rlc-root .rlc-cs-filters .rlc-input { width: 220px; }
-#rlc-root .rlc-cs-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; align-content: start; }
-#rlc-root .rlc-cs-champ { aspect-ratio: 1; padding: 0; border: 2px solid transparent; border-radius: var(--rlc-radius-sm); background: var(--rlc-color-surface); color: var(--rlc-color-text); font: inherit; font-size: 10px; overflow: hidden; cursor: pointer; }
+#rlc-root .rlc-cs-grid { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, 56px); grid-auto-rows: 56px; gap: 6px; align-content: start; }
+#rlc-root .rlc-cs-champ { width: 56px; height: 56px; padding: 0; border: 2px solid transparent; border-radius: var(--rlc-radius-sm); background: var(--rlc-color-surface); color: var(--rlc-color-text); font: inherit; font-size: 10px; overflow: hidden; cursor: pointer; }
 #rlc-root .rlc-cs-champ img { width: 100%; height: 100%; object-fit: cover; }
 #rlc-root .rlc-cs-champ[aria-pressed='true'] { border-color: var(--rlc-color-accent); }
 #rlc-root .rlc-cs-champ:hover { border-color: var(--rlc-color-border); }
