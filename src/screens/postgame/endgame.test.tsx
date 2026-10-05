@@ -52,7 +52,7 @@ test('partida: Reconnect mostra Reconectar e chama a LCU', () => {
 const ally = (over = {}) => ({ puuid: 'p1', summonerName: '', championName: 'Ahri', championId: 103, skinSplashPath: '/s/ahri.jpg', role: '', botPlayer: false, ...over });
 
 test('honra: um cartão por aliado; clique honra pelo puuid; Pular esconde os cartões', async () => {
-  const lcu = withValues({ honorBallot: ready({ eligibleAllies: [ally(), ally({ puuid: 'p2', championName: 'Yasuo', summonerName: 'Zeca' })], eligibleOpponents: [] }) });
+  const lcu = withValues({ honorBallot: ready({ eligibleAllies: [ally(), ally({ puuid: 'p2', summonerId: 42, championName: 'Yasuo', summonerName: 'Zeca' })], eligibleOpponents: [], gameId: 777 }) });
   lcu.name = async (p) => (p === 'p1' ? 'Fulano' : null);
   act(() => render(<Honor lcu={lcu} />, root));
   await settle();
@@ -62,7 +62,7 @@ test('honra: um cartão por aliado; clique honra pelo puuid; Pular esconde os ca
   expect(cards[0]!.textContent).toContain('Ahri');
   expect(cards[1]!.textContent).toContain('Zeca');
   act(() => (cards[1] as HTMLButtonElement).click());
-  expect(JSON.parse(calls('/lol-honor-v2/v1/honor-player')[0]![1].body)).toEqual({ recipientPuuid: 'p2', honorType: 'HEART' });
+  expect(JSON.parse(calls('/lol-honor-v2/v1/honor-player')[0]![1].body)).toEqual({ puuid: 'p2', summonerId: 42, honorType: 'HEART', gameId: 777 });
   act(() => btn('Pular')!.click());
   expect(root.querySelectorAll('.rlc-honor-card')).toHaveLength(0);
 });

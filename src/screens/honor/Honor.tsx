@@ -12,7 +12,10 @@ import { useAction } from '../../ui/useAction';
 export function Honor({ lcu }: { lcu: Lcu }) {
   const ballot = lcu.honorBallot.value.data;
   const [skipped, setSkipped] = useState(false);
-  const honor = useAction((puuid: string) => request('POST', '/lol-honor-v2/v1/honor-player', { recipientPuuid: puuid, honorType: 'HEART' }));
+  // Corpo da rota v2 segundo o esquema da LCU (LolHonorV2ApiHonorPlayerServerRequest); `honorType` ainda a confirmar numa partida real.
+  const honor = useAction((p: LolHonorV2EligiblePlayer) =>
+    request('POST', '/lol-honor-v2/v1/honor-player', { puuid: p.puuid, summonerId: p.summonerId, honorType: 'HEART', gameId: ballot?.gameId ?? 0 }),
+  );
   const allies = ballot?.eligibleAllies ?? [];
   return (
     <section class="rlc-honor">
@@ -21,7 +24,7 @@ export function Honor({ lcu }: { lcu: Lcu }) {
         <>
           <div class="rlc-honor-cards">
             {allies.map((p) => (
-              <HonorCard key={p.puuid} player={p} name={lcu.name} disabled={honor.pending} onHonor={() => honor.run(p.puuid)} />
+              <HonorCard key={p.puuid} player={p} name={lcu.name} disabled={honor.pending} onHonor={() => honor.run(p)} />
             ))}
           </div>
           <button type="button" class="rlc-button" onClick={() => setSkipped(true)}>
