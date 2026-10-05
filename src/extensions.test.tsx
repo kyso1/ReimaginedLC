@@ -2,7 +2,7 @@ import { signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { clearExtensions, registerExtension } from './extensions';
+import { clearExtensions, registerExtension, startServices } from './extensions';
 import { setLocale } from './i18n';
 import type { Lcu } from './lcu';
 import { Collection } from './screens/collection/Collection';
@@ -66,4 +66,12 @@ test('seleção: nomes da extensão preenchem jogadores ocultos; botões e cart�
   expect([...root.querySelectorAll('.rlc-cs-name')].map((n) => n.textContent)).toEqual(['Fulano', 'Zeca#BR1']);
   expect(root.querySelector('.rlc-cs-action .stub-dodge')).not.toBeNull();
   expect(root.querySelector('.stub-skin')).not.toBeNull();
+});
+
+test('serviços registrados recebem a LCU ao iniciar', () => {
+  const service = vi.fn();
+  registerExtension({ services: [service] });
+  const lcu = fakeLcu();
+  startServices(lcu);
+  expect(service).toHaveBeenCalledWith(lcu);
 });

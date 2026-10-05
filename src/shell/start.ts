@@ -10,6 +10,7 @@ import { registerCommands } from './commands';
 import { enabled, syncLayer } from './layer';
 import { effectiveLocale, prefs } from './prefs';
 import { checkForUpdate } from './update';
+import { startServices } from '../extensions';
 
 /** Pasta do plugin. No client é a URL do próprio bundle; no servidor de desenvolvimento, a raiz. */
 const base = import.meta.env.DEV ? '/' : new URL(/* @vite-ignore */ '.', import.meta.url).href;
@@ -66,6 +67,7 @@ export async function start(): Promise<void> {
     guard();
 
     const lcu = createLcu();
+    startServices(lcu);
     effect(() => {
       const client = lcu.regionLocale.value.data?.locale;
       const locale = effectiveLocale(prefs.value.locale, typeof client === 'string' ? client : undefined);

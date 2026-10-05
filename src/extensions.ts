@@ -21,6 +21,8 @@ export interface Extension {
   skinCards?: Array<ComponentType<{ lcu: Lcu; me: TeamBuilderDirect_ChampSelectPlayerSelection }>>;
   /** Hook chamado em toda renderização da seleção: nome por puuid para quem a LCU esconde. */
   useCellNames?: (lcu: Lcu) => Map<string, string>;
+  /** Tarefas de fundo (aceitar partida etc.), iniciadas uma vez com a LCU, com a camada ligada ou não. */
+  services?: Array<(lcu: Lcu) => void>;
 }
 
 const registry: Required<Omit<Extension, 'useCellNames'>> & { useCellNames: Array<NonNullable<Extension['useCellNames']>> } = {
@@ -28,6 +30,7 @@ const registry: Required<Omit<Extension, 'useCellNames'>> & { useCellNames: Arra
   collectionTabs: [],
   champSelectActions: [],
   skinCards: [],
+  services: [],
   useCellNames: [],
 };
 
@@ -37,10 +40,21 @@ export function registerExtension(ext: Extension): void {
   registry.collectionTabs.push(...(ext.collectionTabs ?? []));
   registry.champSelectActions.push(...(ext.champSelectActions ?? []));
   registry.skinCards.push(...(ext.skinCards ?? []));
+  registry.services.push(...(ext.services ?? []));
   if (ext.useCellNames) registry.useCellNames.push(ext.useCellNames);
 }
 
 export const extensions = (): Readonly<typeof registry> => registry;
+
+export function startServices(lcu: Lcu): void {
+  for (const service of registry.services) {
+    try {
+      service(lcu);
+    } catch (e) {
+      console.error('[rlc] serviço de extensão falhou', e);
+    }
+  }
+}
 
 /** Só para testes. */
 export function clearExtensions(): void {
