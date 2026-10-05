@@ -10,6 +10,7 @@ import { Bench, SwapCards, swapMenu } from './Swaps';
 import { bansByTeam, displayedChampion, flatActions, myTurn, remainingSeconds, selectPhase, type SelectPhase, type Session } from './logic';
 import { Team } from './Teams';
 import { prefs } from '../../shell/prefs';
+import { extensions, useExtensionNames } from '../../extensions';
 
 const PHASE_TEXT: Record<SelectPhase, TextKey | null> = {
   ban: 'phaseBan',
@@ -49,6 +50,7 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
     setFavOverrides((prev) => new Map(prev).set(id, fresh?.positionsFavorited ?? []));
   });
   const quit = useAction(() => request('POST', '/lol-lobby-team-builder/champ-select/v1/session/quit'));
+  const revealed = useExtensionNames(lcu);
 
   if (!session) return <section class="rlc-champselect" />;
 
@@ -78,7 +80,7 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
     <section class="rlc-champselect" data-layout={prefs.value.champSelectLayout}>
       <div class="rlc-cs-splash" key={splash ?? 'none'} style={splash ? { backgroundImage: `url("${splash}")` } : undefined} />
       <header class="rlc-cs-top">
-        <Team cells={session.myTeam} side="mine" bans={bans.mine} active={active} localCellId={session.localPlayerCellId} champions={champions} spells={spells} name={lcu.name} menuFor={(c) => (c.cellId === session.localPlayerCellId ? null : swapMenu(session, c))} />
+        <Team cells={session.myTeam} side="mine" bans={bans.mine} active={active} localCellId={session.localPlayerCellId} champions={champions} spells={spells} name={lcu.name} revealed={revealed} menuFor={(c) => (c.cellId === session.localPlayerCellId ? null : swapMenu(session, c))} />
         <div class="rlc-cs-clock">
           <span class="rlc-cs-timer">{seconds}</span>
           {phaseKey ? <span class="rlc-cs-phase">{t(phaseKey)}</span> : null}
@@ -93,6 +95,9 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
         onTab={setTab}
         action={
           <>
+            {extensions().champSelectActions.map((Action, i) => (
+              <Action key={i} lcu={lcu} />
+            ))}
             {quitButton}
             {mainAction}
           </>
@@ -113,7 +118,7 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
             }}
           />
         ) : null}
-        {tab === 'skins' && local ? <SkinsTab skins={lcu.skins.value.data ?? []} me={local} /> : null}
+        {tab === 'skins' && local ? <SkinsTab lcu={lcu} skins={lcu.skins.value.data ?? []} me={local} /> : null}
         {tab === 'runes' && local ? (
           <RunesSpellsTab
             me={local}

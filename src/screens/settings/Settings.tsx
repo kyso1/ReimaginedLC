@@ -9,6 +9,7 @@ import { Confirm } from '../../shell/overlays/Confirm';
 import { background, BG_SCREENS, deleteMedia, MAX_MEDIA_BYTES, MEDIA, putMedia, setBackground, type BgScreen, type BgSource } from '../../theme/background';
 import type { Game, ThemeEngine } from '../../theme/engine';
 import { TOKEN_KINDS, TRANSITIONS, type ThemeManifest } from '../../theme/validate';
+import { extensions } from '../../extensions';
 import { getJson } from '../profile/data';
 import { MemberMenu } from '../lobby/MemberMenu';
 
@@ -22,7 +23,8 @@ const TABS: Array<[Tab, TextKey]> = [
 
 /** Configurações: aparência (temas, fundo), layouts, geral e as configurações do jogo. */
 export function Settings({ lcu, themes }: { lcu: Lcu; themes: ThemeEngine }) {
-  const [tab, setTab] = useState<Tab>('appearance');
+  const [tab, setTab] = useState<Tab | string>('appearance');
+  const extra = extensions().settingsTabs;
   const [editing, setEditing] = useState<ThemeManifest | null>(null);
   if (editing) return <ThemeEditor themes={themes} initial={editing} onClose={() => setEditing(null)} />;
   return (
@@ -33,12 +35,18 @@ export function Settings({ lcu, themes }: { lcu: Lcu; themes: ThemeEngine }) {
             {t(label)}
           </button>
         ))}
+        {extra.map((x) => (
+          <button type="button" key={x.id} aria-current={tab === x.id ? 'page' : undefined} onClick={() => setTab(x.id)}>
+            {x.label()}
+          </button>
+        ))}
       </nav>
       <div class="rlc-st-body">
         {tab === 'appearance' ? <Appearance lcu={lcu} themes={themes} onEdit={setEditing} /> : null}
         {tab === 'layouts' ? <Layouts /> : null}
         {tab === 'general' ? <General /> : null}
         {tab === 'game' ? <GameSettings /> : null}
+        {extra.map((x) => (tab === x.id ? <x.render key={x.id} lcu={lcu} /> : null))}
       </div>
     </section>
   );

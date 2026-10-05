@@ -7,6 +7,7 @@ import { LANES, type Lane } from '../champselect/Drawer';
 import { positionKey } from '../lobby/format';
 import { getJson } from '../profile/data';
 import { Chip, Cinema, type CinemaItem } from './Cinema';
+import { extensions } from '../../extensions';
 import { Loot } from './Loot';
 import { Runes } from './Runes';
 
@@ -82,6 +83,11 @@ export function Collection({ lcu }: { lcu: Lcu }) {
             {t(label)}
           </button>
         ))}
+        {extensions().collectionTabs.map((x) => (
+          <button type="button" key={x.id} aria-current={tab === x.id ? 'page' : undefined} onClick={() => setTab(x.id as Tab)}>
+            {x.label()}
+          </button>
+        ))}
       </nav>
       {tab === 'champions' ? (
         <ChampionsTab
@@ -102,6 +108,7 @@ export function Collection({ lcu }: { lcu: Lcu }) {
       {tab === 'wards' ? <WardsTab sid={sid} /> : null}
       {tab === 'emotes' ? <EmotesTab /> : null}
       {tab === 'loot' ? <Loot lcu={lcu} /> : null}
+      {extensions().collectionTabs.map((x) => (tab === x.id ? <x.render key={x.id} lcu={lcu} /> : null))}
     </section>
   );
 }

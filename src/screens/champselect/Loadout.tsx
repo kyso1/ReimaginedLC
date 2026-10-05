@@ -5,6 +5,8 @@ import { request } from '../../lcu/request';
 import type { LolPerksPerkPageResource, TeamBuilderDirect_SkinSelectorSkin } from '../../lcu/types';
 import { useAction } from '../../ui/useAction';
 import type { Cell } from './logic';
+import { extensions } from '../../extensions';
+import type { Lcu } from '../../lcu';
 
 const MY_SELECTION = '/lol-champ-select/v1/session/my-selection';
 
@@ -17,13 +19,14 @@ interface Chroma {
 }
 
 /** Skins desbloqueadas do campeão escolhido; cromas desbloqueadas da skin selecionada embaixo. */
-export function SkinsTab({ skins, me }: { skins: Skin[]; me: Cell }) {
+export function SkinsTab({ lcu, skins, me }: { lcu: Lcu; skins: Skin[]; me: Cell }) {
   const apply = useAction((selectedSkinId: number) => request('PATCH', MY_SELECTION, { selectedSkinId }));
   const owned = skins.filter((s) => s.unlocked && !s.disabled);
   const chromasOf = (s: Skin) => ((s.childSkins ?? []) as unknown as Chroma[]).filter((c) => c.unlocked);
   // Croma escolhida mantém a skin mãe marcada.
   const parent = owned.find((s) => s.id === me.selectedSkinId || chromasOf(s).some((c) => c.id === me.selectedSkinId));
-  if (owned.length === 0) return <p class="rlc-muted">{t('noSkins')}</p>;
+  const cards = extensions().skinCards;
+  if (owned.length === 0 && cards.length === 0) return <p class="rlc-muted">{t('noSkins')}</p>;
   return (
     <div class="rlc-cs-skins-wrap">
       <div class="rlc-cs-skins">
@@ -31,6 +34,9 @@ export function SkinsTab({ skins, me }: { skins: Skin[]; me: Cell }) {
           <button type="button" key={s.id} class="rlc-cs-skin" aria-label={s.name} title={s.name} aria-pressed={s === parent} disabled={apply.pending} onClick={() => apply.run(s.id)}>
             {s.tilePath ? <img src={s.tilePath} alt="" /> : null}
           </button>
+        ))}
+        {cards.map((Card, i) => (
+          <Card key={`x${i}`} lcu={lcu} me={me} />
         ))}
       </div>
       {parent && chromasOf(parent).length ? (
