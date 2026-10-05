@@ -1,10 +1,11 @@
 import type { Signal } from '@preact/signals';
-import type { JSX } from 'preact';
+import { h, type JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { t } from '../i18n';
 import type { Lcu } from '../lcu';
 import { request } from '../lcu/request';
 import { Home } from '../screens/home/Home';
+import { Lobby } from '../screens/lobby/Lobby';
 import { LAST_QUEUE_KEY, Modes } from '../screens/modes/Modes';
 import { applyTheme, mediaUrl } from '../theme/apply';
 import type { ThemeEngine } from '../theme/engine';
@@ -23,6 +24,11 @@ import { WindowBar } from './WindowBar';
 export const RIOT_ROOT_ID = 'rcp-fe-viewport-root';
 
 type HomeProps = Parameters<typeof Home>[0];
+type LobbyProps = Parameters<typeof Lobby>[0];
+interface Screens {
+  home?: (props: HomeProps) => JSX.Element;
+  lobby?: (props: LobbyProps) => JSX.Element;
+}
 
 interface Props {
   root: HTMLElement;
@@ -32,15 +38,15 @@ interface Props {
   focused: Signal<boolean>;
   /** Muda quando a raiz da Riot aparece ou é trocada. */
   dom: Signal<number>;
-  screens?: Partial<Record<Screen, (props: HomeProps) => JSX.Element>>;
+  screens?: Screens;
   /** Ponto de troca para testes. */
   readyCheckOverlay?: typeof ReadyCheckOverlay;
 }
 
-export function App({ root, lcu, themes, base, focused, dom, screens = { home: Home }, readyCheckOverlay: ReadyCheck = ReadyCheckOverlay }: Props) {
+export function App({ root, lcu, themes, base, focused, dom, screens = { home: Home, lobby: Lobby }, readyCheckOverlay: ReadyCheck = ReadyCheckOverlay }: Props) {
   const domVersion = dom.value;
   const route = screenFor(lcu.gameflowPhase.value);
-  // Tela sem componente ainda (lobby antes da Tarefa 5) fica com o client original.
+  // Tela sem componente (testes que passam só uma) fica com o client original.
   const screen = route && screens[route] ? route : null;
   const visible = enabled.value && screen !== null;
   const theme = themes.active.value;
@@ -95,7 +101,6 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
     enabled.value = false;
     window.Toast?.error(t('screenFailed'));
   };
-  const ScreenComponent = screens[screen]!;
 
   return (
     <div class="rlc-app" key={theme.name}>
@@ -103,12 +108,18 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
         <MediaBackground src={mediaUrl(theme, screen, base)} playing={focused.value} />
         <Rail
           items={[
-            { id: 'home', label: t('home'), active: true, onSelect: () => {} },
+            // A rota segue a fase do gameflow: os itens indicam onde se está, não navegam livremente.
+            { id: 'home', label: t('home'), active: screen === 'home', onSelect: () => {} },
+            ...(lcu.lobby.value.data ? [{ id: 'lobby', label: t('lobby'), active: screen === 'lobby', onSelect: () => {} }] : []),
             { id: 'original', label: t('originalClient'), onSelect: turnOff },
           ]}
         />
         <main class="rlc-screen">
-          <ScreenComponent version={lcu.build.value.data?.version ?? null} locale={lcu.regionLocale.value.data?.locale ?? null} onPlay={() => setPanel('modes')} />
+          {screen === 'home' ? (
+            h(screens.home!, { version: lcu.build.value.data?.version ?? null, locale: lcu.regionLocale.value.data?.locale ?? null, onPlay: () => setPanel('modes') })
+          ) : (
+            h(screens.lobby!, { lcu, onModes: () => setPanel('modes') })
+          )}
         </main>
         {panel === 'modes' ? (
           <Modes

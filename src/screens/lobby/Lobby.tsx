@@ -1,0 +1,182 @@
+import type { ComponentChildren } from 'preact';
+import { useEffect, useState } from 'preact/hooks';
+import { t } from '../../i18n';
+import type { Lcu } from '../../lcu';
+import { request } from '../../lcu/request';
+import { Confirm } from '../../shell/overlays/Confirm';
+import { useAction } from '../../ui/useAction';
+import { formatClock } from './format';
+import { InviteFriends } from './InviteFriends';
+import { MemberMenu } from './MemberMenu';
+import { Positions } from './Positions';
+import { Column, Stage, type Participant } from './Stage';
+
+const MEMBERS = '/lol-lobby/v2/lobby/members';
+
+/** Lobby no layout Palco: uma coluna por vaga e a barra flutuante com fila e busca. */
+export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
+  const [panel, setPanel] = useState<null | 'positions' | 'invite'>(null);
+  const [kicking, setKicking] = useState<Participant | null>(null);
+  const data = lcu.lobby.value.data;
+  // Lobby some antes da fase mudar (expulso, saiu): mostra vazio até a rota trocar.
+  if (!data) return <section class="rlc-lobby" />;
+
+  const local = data.localMember;
+  const config = data.gameConfig;
+  const leader = local.isLeader;
+  const isLocal = (m: Participant) => m.summonerId === local.summonerId;
+
+  const memberMenu = (m: Participant) =>
+    leader && !m.isBot && !isLocal(m) ? (
+      <MemberMenu
+        items={[
+          { label: t('promote'), run: () => void request('POST', `${MEMBERS}/${m.summonerId}/promote`).catch(() => {}) },
+          m.allowedInviteOthers
+            ? { label: t('revokeInvite'), run: () => void request('POST', `${MEMBERS}/${m.summonerId}/revoke-invite`).catch(() => {}) }
+            : { label: t('grantInvite'), run: () => void request('POST', `${MEMBERS}/${m.summonerId}/grant-invite`).catch(() => {}) },
+          { label: t('kick'), run: () => setKicking(m) },
+        ]}
+      />
+    ) : null;
+
+  const inviteSlot =
+    leader || local.allowedInviteOthers ? (
+      <button type="button" class="rlc-col-invite" onClick={() => setPanel('invite')}>
+        + {t('invite')}
+      </button>
+    ) : null;
+
+  const slots = Array.from({ length: Math.max(config.maxLobbySize, data.members.length) }, (_, i) => data.members[i] ?? null);
+  const queueName = lcu.queues.value.data?.find((q) => q.id === config.queueId)?.name ?? '';
+
+  return (
+    <section class="rlc-lobby">
+      <Stage>
+        {slots.map((m, i) => (
+          <Column
+            key={m ? m.puuid : `empty-${i}`}
+            member={m}
+            profile={lcu.profile}
+            isLocal={m ? isLocal(m) : false}
+            showPositions={config.showPositionSelector}
+            onSelf={m && isLocal(m) && config.showPositionSelector ? () => setPanel('positions') : undefined}
+            menu={m ? memberMenu(m) : null}
+            empty={inviteSlot}
+          />
+        ))}
+      </Stage>
+      <LobbyBar
+        lcu={lcu}
+        title={queueName}
+        onTitle={leader ? onModes : undefined}
+        leader={leader}
+        partyType={data.partyType}
+        start={leader ? { label: t('findMatch'), path: '/lol-lobby/v2/lobby/matchmaking/search', enabled: data.canStartActivity } : null}
+      />
+      {panel === 'positions' ? <Positions onClose={() => setPanel(null)} /> : null}
+      {panel === 'invite' ? <InviteFriends friends={lcu.friends.value.data ?? []} exclude={new Set(data.members.map((m) => m.puuid))} onClose={() => setPanel(null)} /> : null}
+      {kicking ? (
+        <Confirm
+          message={`${t('kickConfirm')} ${kicking.summonerName}`}
+          confirmLabel={t('kick')}
+          onConfirm={() => {
+            void request('POST', `${MEMBERS}/${kicking.summonerId}/kick`).catch(() => {});
+            setKicking(null);
+          }}
+          onCancel={() => setKicking(null)}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+interface BarProps {
+  lcu: Lcu;
+  title: string;
+  subtitle?: string;
+  onTitle?: () => void;
+  leader: boolean;
+  /** Ausente na sala personalizada, que não tem lobby aberto ou fechado. */
+  partyType?: string;
+  /** Ação principal do líder (Encontrar partida ou Iniciar); null para quem não é líder. */
+  start: { label: string; path: string; enabled: boolean } | null;
+  children?: ComponentChildren;
+}
+
+/** Barra flutuante do Palco. Em busca, vira cronômetro com estimativa e Cancelar. */
+export function LobbyBar({ lcu, title, subtitle, onTitle, leader, partyType, start, children }: BarProps) {
+  const leave = useAction(() => request('DELETE', '/lol-lobby/v2/lobby'));
+  const begin = useAction((path: string) => request('POST', path));
+  const cancel = useAction(() => request('DELETE', '/lol-lobby/v2/lobby/matchmaking/search'));
+  const party = useAction((type: string) => request('PUT', '/lol-lobby/v2/lobby/partyType', type));
+  const search = lcu.search.value.data;
+  const searching = lcu.gameflowPhase.value.data === 'Matchmaking' && search?.isCurrentlyInQueue === true;
+  const clock = useClock(search?.timeInQueue ?? 0, searching);
+  const error = search?.errors?.[0];
+
+  return (
+    <div class="rlc-bar-wrap">
+      {error ? (
+        <div class="rlc-bar-error" role="status">
+          {error.message}
+          {error.penaltyTimeRemaining > 0 ? <strong> {formatClock(error.penaltyTimeRemaining)}</strong> : null}
+        </div>
+      ) : null}
+      <div class="rlc-bar">
+        <div class="rlc-bar-title">
+          {onTitle && !searching ? (
+            <button type="button" class="rlc-bar-queue" onClick={onTitle}>
+              {title} ▾
+            </button>
+          ) : (
+            <span class="rlc-bar-queue">{title}</span>
+          )}
+          {subtitle ? <small>{subtitle}</small> : null}
+        </div>
+        {leader && partyType && !searching ? (
+          <button type="button" class="rlc-button" data-variant="pill" disabled={party.pending} onClick={() => party.run(partyType === 'open' ? 'closed' : 'open')}>
+            {partyType === 'open' ? t('openLobby') : t('closedLobby')}
+          </button>
+        ) : null}
+        {children}
+        {!searching ? (
+          <button type="button" class="rlc-button" data-variant="pill" disabled={leave.pending} onClick={() => leave.run()}>
+            {t('leave')}
+          </button>
+        ) : null}
+        <div class="rlc-bar-end">
+          {searching ? (
+            <>
+              <span class="rlc-bar-clock">{formatClock(clock)}</span>
+              <small>
+                {formatClock(search?.estimatedQueueTime ?? 0)} {t('estimated')}
+              </small>
+              {leader ? (
+                <button type="button" class="rlc-button" disabled={cancel.pending} onClick={() => cancel.run()}>
+                  {t('cancel')}
+                </button>
+              ) : null}
+            </>
+          ) : start ? (
+            <button type="button" class="rlc-button" data-variant="primary" disabled={!start.enabled || begin.pending} onClick={() => begin.run(start.path)}>
+              {start.label}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Tempo na fila contado localmente a partir do último valor da LCU, que só chega em eventos esparsos. */
+function useClock(base: number, active: boolean): number {
+  const [anchor, setAnchor] = useState(() => ({ base, at: Date.now() }));
+  const [, tick] = useState(0);
+  useEffect(() => setAnchor({ base, at: Date.now() }), [base]);
+  useEffect(() => {
+    if (!active) return;
+    const id = setInterval(() => tick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, [active]);
+  return active ? anchor.base + (Date.now() - anchor.at) / 1000 : base;
+}

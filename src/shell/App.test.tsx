@@ -5,7 +5,7 @@ import { setLocale } from '../i18n';
 import type { Lcu, StoreState } from '../lcu';
 import type { ResolvedTheme } from '../theme/resolve';
 import type { ThemeEngine } from '../theme/engine';
-import { fakeLcu, invitation, queue, readyCheck } from '../test/fixtures';
+import { fakeLcu, invitation, leader as leaderFixture, lobby as lobbyFixture, queue, readyCheck } from '../test/fixtures';
 import { App, RIOT_ROOT_ID } from './App';
 import { enabled, hideRiot, syncLayer } from './layer';
 
@@ -323,4 +323,16 @@ test('Jogar abre a tela de modos e Voltar fecha', async () => {
   [...root.querySelectorAll('button')].find((b) => b.textContent === 'Voltar')!.click();
   await flush();
   expect(root.querySelector('.rlc-modes')).toBeNull();
+});
+
+test('na fase Lobby mostra o Palco e o trilho ganha o item Lobby ativo', async () => {
+  enabled.value = true;
+  phase.value = ready('Lobby');
+  lcu.lobby.value = ready(lobbyFixture([leaderFixture({ summonerName: 'Fulano' })]));
+  mount();
+  await flush();
+  expect(root.querySelector('.rlc-lobby')!.textContent).toContain('Fulano');
+  const lobbyItem = root.querySelector('.rlc-rail-item[aria-label="Lobby"]')!;
+  expect(lobbyItem.getAttribute('aria-current')).toBe('page');
+  expect(riot.style.visibility).toBe('hidden');
 });
