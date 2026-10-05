@@ -24,6 +24,7 @@ import { InvitationCards } from './overlays/Invitations';
 import { ReadyCheckOverlay, showReadyCheck } from './overlays/ReadyCheck';
 import { screenFor, type Screen } from './router';
 import { readSetting } from './storage';
+import { Collection } from '../screens/collection/Collection';
 import { Profile } from '../screens/profile/Profile';
 import { ChatTabs, ChatWindow, conversationTitle } from '../screens/social/Chat';
 import { ContextChat } from '../screens/social/ContextChat';
@@ -204,6 +205,8 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
               ? h(views[shownView]!, { lcu })
               : shownView === 'profile' && (profilePuuid ?? lcu.chatMe.value.data?.puuid)
                 ? <Profile key={profilePuuid ?? 'me'} lcu={lcu} puuid={(profilePuuid ?? lcu.chatMe.value.data?.puuid)!} />
+                : shownView === 'collection'
+                  ? <Collection lcu={lcu} />
                 : <section class="rlc-unknown"><h2>{t(VIEW_LABEL[shownView])}</h2></section>
             : screen === 'home' && screens.home
             ? h(screens.home, { version: lcu.build.value.data?.version ?? null, locale: lcu.regionLocale.value.data?.locale ?? null, onPlay: () => setPanel('modes') })
