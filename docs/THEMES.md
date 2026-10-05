@@ -29,7 +29,7 @@ The easiest way to start is the editor in **Settings › Appearance › New them
 |---|---|
 | `name` | Identifier: lowercase letters, digits and `-`, up to 40 characters. It cannot be the name of a built-in theme (`vidro`, `vidro-ludico`, `editorial`). |
 | `label` | Name shown in Settings. |
-| `version` | Theme version, a whole number. |
+| `version` | Format version. Must be `1`. |
 | `extends` | Theme this one starts from, or `null`. A theme with `extends` lists only what it changes. Built-in themes and your own themes can be parents. A theme with no parent must define every token. |
 | `tokens` | Visual values, listed below. |
 | `transition` | Screen change animation: `wipe`, `fade`, `slide` or `zoom`. |

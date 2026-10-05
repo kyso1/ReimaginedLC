@@ -113,3 +113,15 @@ test('menu de ações: uma consulta por item (passar o mouse de novo não repete
   expect(menus()).toHaveLength(3);
   delete window.Toast;
 });
+
+test('menu de ações é consultado de novo quando o espólio muda (ganhou chave), mesmo com a mesma quantidade do item', async () => {
+  const lcu = fakeLcu();
+  lcu.loot.value = ready(LOOT) as Lcu['loot']['value'];
+  act(() => render(<Loot lcu={lcu} />, root));
+  await settle();
+  const menus = () => fetchMock.mock.calls.filter((c) => String(c[0]) === '/lol-loot/v1/player-loot/CHEST_generic/context-menu').length;
+  expect(menus()).toBe(1);
+  act(() => void (lcu.loot.value = ready([...LOOT, item('MATERIAL_key2', 'CHEST')]) as Lcu['loot']['value']));
+  await settle();
+  expect(menus()).toBe(2);
+});

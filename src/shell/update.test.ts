@@ -4,7 +4,7 @@ import { checkForUpdate, isNewer, RELEASES_API, update } from './update';
 
 const store = new Map<string, unknown>();
 const DAY = 24 * 60 * 60 * 1000;
-const release = (tag: string) => new Response(JSON.stringify({ tag_name: tag, html_url: `https://github.com/x/releases/tag/${tag}` }), { status: 200 });
+const release = (tag: string) => new Response(JSON.stringify({ tag_name: tag, html_url: `https://github.com/kyso1/ReimaginedLC/releases/tag/${tag}` }), { status: 200 });
 
 beforeEach(() => {
   setLocale('pt_BR');
@@ -31,7 +31,7 @@ test('versão nova: avisa uma vez e guarda o resultado; no mesmo dia não consul
   const fetcher = vi.fn(async () => release('v0.2.0'));
   await checkForUpdate('0.1.0', 1000, fetcher);
   expect(fetcher).toHaveBeenCalledWith(RELEASES_API);
-  expect(update.value).toEqual({ version: '0.2.0', url: 'https://github.com/x/releases/tag/v0.2.0' });
+  expect(update.value).toEqual({ version: '0.2.0', url: 'https://github.com/kyso1/ReimaginedLC/releases/tag/v0.2.0' });
   expect(window.Toast!.success).toHaveBeenCalledTimes(1);
   update.value = null;
   await checkForUpdate('0.1.0', 1000 + DAY / 2, fetcher);
@@ -60,4 +60,15 @@ test('sem versão nova, falha de rede ou resposta estranha: nada aparece, e só 
   await checkForUpdate('0.1.0', 1000, async () => new Response(JSON.stringify({ tag_name: 'v0.3.0', html_url: 'https://evil.example/x' }), { status: 200 }));
   expect(update.value).toBeNull();
   expect(window.Toast!.success).not.toHaveBeenCalled();
+});
+
+test('só aceita a página de release deste projeto, e um checkedAt no futuro não congela a consulta', async () => {
+  const other = async () => new Response(JSON.stringify({ tag_name: 'v9.0.0', html_url: 'https://github.com/outro/repo/releases/tag/v9.0.0' }), { status: 200 });
+  await checkForUpdate('0.1.0', 1000, other);
+  expect(update.value).toBeNull();
+  store.set('rlc.update', { checkedAt: 9e15, version: '99.0.0', url: 'https://github.com/kyso1/ReimaginedLC/releases/tag/v99.0.0', notified: null });
+  const fetcher = vi.fn(async () => new Response(JSON.stringify({ tag_name: ' v0.2.0 ', html_url: 'https://github.com/kyso1/ReimaginedLC/releases/tag/v0.2.0' }), { status: 200 }));
+  await checkForUpdate('0.1.0', 1000, fetcher);
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(update.value).toEqual({ version: '0.2.0', url: 'https://github.com/kyso1/ReimaginedLC/releases/tag/v0.2.0' });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
@@ -50,7 +50,8 @@ export function Loot({ lcu }: { lcu: Lcu }) {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ menu: LolLootContextMenu; loot: LolLootPlayerLoot } | null>(null);
   const [reveal, setReveal] = useState<LolLootPlayerLootUpdate | null>(null);
-  const menus = useRef<MenuCache>(new Map());
+  // Cache do menu vale para um estado do espólio: qualquer mudança (chave nova, essência gasta) consulta de novo.
+  const menus = useMemo<MenuCache>(() => new Map(), [lcu.loot.value]);
   // A LCU manda itens sem lootId (count > 0, sem nome): ficam de fora.
   const all = (lcu.loot.value.data ?? []).filter((l) => l.lootId && l.type !== 'CURRENCY' && l.count > 0);
   const present = GROUPS.filter(([g]) => all.some((l) => lootGroup(l) === g));
@@ -79,7 +80,7 @@ export function Loot({ lcu }: { lcu: Lcu }) {
       <Cinema
         items={items}
         onEnter={(i) => setFocusId(String(i.id))}
-        extra={(i) => <Actions key={i.id} lootId={String(i.id)} count={list.find((l) => l.lootId === i.id)?.count ?? 0} cache={menus.current} onAction={(menu) => setConfirm({ menu, loot: list.find((l) => l.lootId === i.id)! })} busy={craft.pending} />}
+        extra={(i) => <Actions key={i.id} lootId={String(i.id)} count={list.find((l) => l.lootId === i.id)?.count ?? 0} cache={menus} onAction={(menu) => setConfirm({ menu, loot: list.find((l) => l.lootId === i.id)! })} busy={craft.pending} />}
         chips={present.map(([g, label]) => (
           <Chip key={g} on={group === g} onClick={() => setGroup(g)}>
             {t(label)}

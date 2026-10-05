@@ -5,7 +5,8 @@ import { readSetting, writeSetting } from './storage';
 export const RELEASES_API = 'https://api.github.com/repos/kyso1/ReimaginedLC/releases/latest';
 const KEY = 'rlc.update';
 const DAY = 24 * 60 * 60 * 1000;
-const GITHUB = 'https://github.com/';
+// Só abre a página de release deste projeto (a URL vai para o navegador do sistema).
+const RELEASES_PAGE = 'https://github.com/kyso1/ReimaginedLC/releases/tag/v';
 
 /** Versão nova publicada, ou null. Só avisa: a atualização é manual (a spec proíbe atualizar sozinho). */
 export const update = signal<{ version: string; url: string } | null>(null);
@@ -40,27 +41,28 @@ export async function checkForUpdate(current: string, now = Date.now(), fetcher:
   const cached: Cached = {
     checkedAt: typeof raw?.checkedAt === 'number' ? raw.checkedAt : null,
     version: typeof raw?.version === 'string' ? raw.version : null,
-    url: typeof raw?.url === 'string' && raw.url.startsWith(GITHUB) ? raw.url : null,
+    url: typeof raw?.url === 'string' && raw.url.startsWith(RELEASES_PAGE) ? raw.url : null,
     notified: typeof raw?.notified === 'string' ? raw.notified : null,
   };
   let { version, url } = cached;
-  const due = cached.checkedAt === null || now - cached.checkedAt >= DAY;
+  // checkedAt no futuro (relógio mudou, armazenamento adulterado) conta como vencido.
+  const due = cached.checkedAt === null || cached.checkedAt > now || now - cached.checkedAt >= DAY;
   if (due) {
     version = null;
     url = null;
     try {
       const r = await fetcher(RELEASES_API);
       const body = r.ok ? ((await r.json()) as { tag_name?: unknown; html_url?: unknown }) : null;
-      // Só abre página do GitHub: a URL vai para o navegador do sistema.
-      if (typeof body?.tag_name === 'string' && typeof body.html_url === 'string' && body.html_url.startsWith(GITHUB)) {
-        version = body.tag_name.replace(/^v/, '');
+      if (typeof body?.tag_name === 'string' && typeof body.html_url === 'string' && body.html_url.startsWith(RELEASES_PAGE)) {
+        version = body.tag_name.trim().replace(/^v/, '');
         url = body.html_url;
       }
     } catch {
       // Sem rede ou bloqueado: tenta de novo amanhã.
     }
   }
-  const fresh = version && url && isNewer(current, version) ? { version, url } : null;
+  // Versão e URL precisam concordar: a URL é a página da tag dessa versão.
+  const fresh = version && url === `${RELEASES_PAGE}${version}` && isNewer(current, version) ? { version, url } : null;
   update.value = fresh;
   let notified = cached.notified;
   if (fresh && notified !== fresh.version) {
