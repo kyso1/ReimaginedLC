@@ -201,3 +201,43 @@
 
 #rlc-root .rlc-unknown { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
 #rlc-root .rlc-unknown h2 { margin: 0; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 28px; }
+
+#rlc-root .rlc-champselect { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; }
+#rlc-root .rlc-cs-splash { position: absolute; inset: 0; background-size: cover; background-position: center 20%; transition: background-image var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-cs-splash::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, var(--rlc-color-scrim, rgba(4, 6, 12, 0.55)) 0%, transparent 30%, transparent 55%, var(--rlc-color-scrim, rgba(4, 6, 12, 0.8)) 100%); }
+#rlc-root .rlc-cs-top { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 24px 24px 0; }
+#rlc-root .rlc-cs-side { display: flex; flex-direction: column; gap: 6px; width: 40%; }
+#rlc-root .rlc-cs-side[data-side='theirs'] { align-items: flex-end; }
+#rlc-root .rlc-cs-team { display: flex; gap: 6px; width: 100%; }
+#rlc-root .rlc-cs-side[data-side='theirs'] .rlc-cs-team { flex-direction: row-reverse; }
+#rlc-root .rlc-cs-cell { position: relative; flex: 1; min-width: 0; display: flex; gap: 6px; align-items: center; padding: 6px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-sm); background: var(--rlc-color-surface); backdrop-filter: blur(var(--rlc-blur-surface)); }
+#rlc-root .rlc-cs-cell[data-active='true'] { border-color: var(--rlc-color-highlight, #ffd36b); box-shadow: 0 0 0 1px var(--rlc-color-highlight, #ffd36b); }
+#rlc-root .rlc-cs-cell[data-local='true'] .rlc-cs-name { font-weight: 700; }
+#rlc-root .rlc-cs-icon { flex: none; width: 36px; height: 36px; border-radius: var(--rlc-radius-sm); overflow: hidden; background: var(--rlc-color-bg); }
+#rlc-root .rlc-cs-icon img { width: 100%; height: 100%; object-fit: cover; opacity: 0.55; }
+#rlc-root .rlc-cs-icon[data-locked='true'] img { opacity: 1; }
+#rlc-root .rlc-cs-meta { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#rlc-root .rlc-cs-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+#rlc-root .rlc-cs-sub { display: flex; gap: 3px; align-items: center; font-size: 11px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-cs-spell { width: 14px; height: 14px; border-radius: 3px; }
+#rlc-root .rlc-cs-bans { display: flex; gap: 4px; min-height: 22px; }
+#rlc-root .rlc-cs-bans img, #rlc-root .rlc-cs-ban-empty { width: 22px; height: 22px; border-radius: 4px; filter: grayscale(1); opacity: 0.8; background: var(--rlc-color-surface); }
+#rlc-root .rlc-cs-clock { display: flex; flex-direction: column; align-items: center; gap: 2px; padding-top: 4px; }
+#rlc-root .rlc-cs-timer { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-cs-phase { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-cs-champ-name { position: relative; z-index: 1; margin: 6vh 0 0 48px; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 56px; letter-spacing: 0.04em; text-transform: uppercase; }
+#rlc-root .rlc-cs-drawer { position: absolute; left: 24px; right: 24px; bottom: 20px; z-index: 2; display: flex; flex-direction: column; gap: 10px; height: 38%; padding: 12px 16px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-bar, rgba(10, 12, 20, 0.62)); backdrop-filter: blur(var(--rlc-blur-surface)); }
+#rlc-root .rlc-cs-tabs { display: flex; gap: 6px; align-items: center; }
+#rlc-root .rlc-cs-tabs [role='tab'] { padding: 6px 14px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-pill); background: transparent; color: var(--rlc-color-text); font: inherit; cursor: pointer; }
+#rlc-root .rlc-cs-tabs [role='tab'][aria-selected='true'] { background: var(--rlc-color-accent); color: var(--rlc-color-onAccent); border-color: transparent; }
+#rlc-root .rlc-cs-action { margin-left: auto; }
+#rlc-root .rlc-cs-action .rlc-button[data-variant='primary'] { padding: 10px 32px; font-size: 16px; }
+#rlc-root .rlc-cs-panel { flex: 1; min-height: 0; overflow: hidden; }
+#rlc-root .rlc-cs-grid-wrap { display: flex; flex-direction: column; gap: 8px; height: 100%; }
+#rlc-root .rlc-cs-filters { display: flex; gap: 6px; align-items: center; }
+#rlc-root .rlc-cs-filters .rlc-input { width: 220px; }
+#rlc-root .rlc-cs-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; align-content: start; }
+#rlc-root .rlc-cs-champ { aspect-ratio: 1; padding: 0; border: 2px solid transparent; border-radius: var(--rlc-radius-sm); background: var(--rlc-color-surface); color: var(--rlc-color-text); font: inherit; font-size: 10px; overflow: hidden; cursor: pointer; }
+#rlc-root .rlc-cs-champ img { width: 100%; height: 100%; object-fit: cover; }
+#rlc-root .rlc-cs-champ[aria-pressed='true'] { border-color: var(--rlc-color-accent); }
+#rlc-root .rlc-cs-champ:hover { border-color: var(--rlc-color-border); }

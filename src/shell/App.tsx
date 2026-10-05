@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { t } from '../i18n';
 import type { Lcu } from '../lcu';
 import { request } from '../lcu/request';
+import { ChampSelect } from '../screens/champselect/ChampSelect';
 import { Home } from '../screens/home/Home';
 import { Lobby } from '../screens/lobby/Lobby';
 import { Unknown } from '../screens/unknown/Unknown';
@@ -30,6 +31,7 @@ type LobbyProps = Parameters<typeof Lobby>[0];
 interface Screens {
   home?: (props: HomeProps) => JSX.Element;
   lobby?: (props: LobbyProps) => JSX.Element;
+  champselect?: (props: { lcu: Lcu }) => JSX.Element;
 }
 
 interface Props {
@@ -45,10 +47,11 @@ interface Props {
   readyCheckOverlay?: typeof ReadyCheckOverlay;
 }
 
-export function App({ root, lcu, themes, base, focused, dom, screens = { home: Home, lobby: Lobby }, readyCheckOverlay: ReadyCheck = ReadyCheckOverlay }: Props) {
+export function App({ root, lcu, themes, base, focused, dom, screens = { home: Home, lobby: Lobby, champselect: ChampSelect }, readyCheckOverlay: ReadyCheck = ReadyCheckOverlay }: Props) {
   const domVersion = dom.value;
   const route = screenFor(lcu.gameflowPhase.value);
-  const screen = route;
+  // Sem a sessão de seleção não há como escolher: única fase que volta ao client original.
+  const screen = route === 'champselect' && lcu.champSelect.value.status === 'unavailable' ? null : route;
   const phaseName = lcu.gameflowPhase.value.data ?? '';
   const visible = enabled.value && screen !== null;
   const theme = themes.active.value;
@@ -123,7 +126,9 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
             ? h(screens.home, { version: lcu.build.value.data?.version ?? null, locale: lcu.regionLocale.value.data?.locale ?? null, onPlay: () => setPanel('modes') })
             : screen === 'lobby' && screens.lobby
               ? h(screens.lobby, { lcu, onModes: () => setPanel('modes') })
-              : // Telas do 2b ainda sem componente caem na de fase desconhecida, nunca no client original.
+              : screen === 'champselect' && screens.champselect
+                ? h(screens.champselect, { lcu })
+                : // Telas do 2b ainda sem componente caem na de fase desconhecida, nunca no client original.
                 <Unknown phase={phaseName} onOriginal={turnOff} />}
         </main>
         {panel === 'modes' ? (

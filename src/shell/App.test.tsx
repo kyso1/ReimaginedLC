@@ -5,7 +5,7 @@ import { setLocale } from '../i18n';
 import type { Lcu, StoreState } from '../lcu';
 import type { ResolvedTheme } from '../theme/resolve';
 import type { ThemeEngine } from '../theme/engine';
-import { fakeLcu, invitation, leader as leaderFixture, lobby as lobbyFixture, queue, readyCheck } from '../test/fixtures';
+import { fakeLcu, invitation, leader as leaderFixture, lobby as lobbyFixture, queue, readyCheck, session as sessionFixture } from '../test/fixtures';
 import { App, RIOT_ROOT_ID } from './App';
 import { enabled, hideRiot, syncLayer } from './layer';
 
@@ -387,4 +387,32 @@ test('TerminatedInError mostra a tela inicial e avisa uma vez', async () => {
   await flush();
   expect(window.Toast!.error).toHaveBeenCalledTimes(1);
   expect(window.Toast!.error).toHaveBeenCalledWith('A partida terminou com erro');
+});
+
+test('ChampSelect mostra a seleção; com a sessão indisponível, o client original', async () => {
+  enabled.value = true;
+  phase.value = ready('ChampSelect');
+  lcu.champSelect.value = ready(sessionFixture());
+  mount();
+  await flush();
+  expect(root.querySelector('.rlc-champselect')).not.toBeNull();
+  expect(riot.style.visibility).toBe('hidden');
+  lcu.champSelect.value = { status: 'unavailable', data: null };
+  await flush();
+  expect(root.dataset.visible).toBe('false');
+  expect(riot.style.visibility).toBe('');
+});
+
+test('exceção na seleção desliga a camada e devolve a seleção da Riot', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  enabled.value = true;
+  phase.value = ready('ChampSelect');
+  const Broken = (): never => {
+    throw new Error('quebrou');
+  };
+  mount({ screens: { home: () => <div />, champselect: Broken } });
+  await flush();
+  expect(enabled.value).toBe(false);
+  expect(riot.style.visibility).toBe('');
+  vi.mocked(console.error).mockRestore();
 });
