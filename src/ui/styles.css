@@ -461,3 +461,6 @@
 #rlc-root .rlc-lt-reveal-cards { display: flex; gap: 16px; perspective: 800px; }
 #rlc-root .rlc-lt-reveal-card { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 150px; padding: 12px; border: 1px solid var(--rlc-color-highlight, #c8a04a); border-radius: var(--rlc-radius-md); background: var(--rlc-color-surface); box-shadow: 0 0 30px var(--rlc-color-highlight, #c8a04a); animation: rlc-reveal 600ms var(--rlc-motion-easing) both; }
 #rlc-root .rlc-lt-reveal-card img { width: 120px; height: 120px; object-fit: cover; border-radius: var(--rlc-radius-sm); }
+
+#rlc-root .rlc-bg { object-position: var(--rlc-bg-pos, 50% 30%); filter: blur(var(--rlc-bg-blur, 0)); }
+#rlc-root .rlc-bg-dim { position: absolute; inset: 0; pointer-events: none; background: var(--rlc-color-shade, rgba(0, 0, 0, 1)); opacity: var(--rlc-bg-dim, 0); }

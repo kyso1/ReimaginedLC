@@ -6,6 +6,8 @@ import type { Lcu, StoreState } from '../lcu';
 import type { ResolvedTheme } from '../theme/resolve';
 import type { ThemeEngine } from '../theme/engine';
 import { fakeLcu, fakeThemes, friend as friendFixture, invitation, leader as leaderFixture, lobby as lobbyFixture, queue, readyCheck, session as sessionFixture } from '../test/fixtures';
+import { background } from '../theme/background';
+import { DEFAULT_BG } from '../theme/background';
 import { App, RIOT_ROOT_ID } from './App';
 import { enabled, hideRiot, syncLayer } from './layer';
 
@@ -492,4 +494,27 @@ test('chat da sala aparece no lobby a partir do id da sala', async () => {
   mount();
   await flush();
   expect(root.querySelector('.rlc-ctx')).not.toBeNull();
+});
+
+test('lobby de TFT usa o tema do TFT', async () => {
+  enabled.value = true;
+  const tft: typeof vidro = { ...vidro, name: 'vidro-ludico', tokens: { 'color.bg': '#3a2a12' } };
+  themes.forGame.tft = signal(tft);
+  phase.value = ready('Lobby');
+  lcu.lobby.value = ready(lobbyFixture([leaderFixture()], undefined, { gameMode: 'TFT', queueId: 1090 }));
+  mount();
+  await flush();
+  expect(root.style.getPropertyValue('--rlc-color-bg')).toBe('#3a2a12');
+});
+
+test('fundo personalizado: splash escolhida substitui o fundo do tema na tela inicial, com escurecer', async () => {
+  enabled.value = true;
+  lcu.game = { ...lcu.game, splash: async (id) => (id === 103001 ? '/s/103001.jpg' : null) };
+  mount();
+  await flush();
+  background.value = { ...DEFAULT_BG, global: { kind: 'splash', skinId: 103001 }, dim: 0.4 };
+  await flush();
+  expect(root.querySelector('img.rlc-bg')!.getAttribute('src')).toBe('/s/103001.jpg');
+  expect(root.querySelector<HTMLElement>('.rlc-app')!.style.getPropertyValue('--rlc-bg-dim')).toBe('0.4');
+  background.value = DEFAULT_BG;
 });

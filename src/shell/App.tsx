@@ -31,7 +31,9 @@ import { ContextChat } from '../screens/social/ContextChat';
 import { AddFriend, FriendRequests, StatusEditor } from '../screens/social/FriendTools';
 import { MemberMenu } from '../screens/lobby/MemberMenu';
 import type { LolChatFriendResource } from '../lcu/types';
+import { background, loadBg } from '../theme/background';
 import { CurrencyChip, RightColumn } from './RightColumn';
+import { useBackground } from './useBackground';
 import { WindowBar } from './WindowBar';
 
 /** Item do trilho para as telas do fluxo da partida. */
@@ -77,7 +79,9 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   const screen = route === 'champselect' && lcu.champSelect.value.status === 'unavailable' ? null : route;
   const phaseName = lcu.gameflowPhase.value.data ?? '';
   const visible = enabled.value && screen !== null;
-  const theme = themes.active.value;
+  // Tema por jogo: lobby ou partida de TFT usa o tema do TFT.
+  const isTft = lcu.lobby.value.data?.gameConfig.gameMode === 'TFT' || lcu.gameflowSession.value.data?.gameData?.queue?.gameMode === 'TFT';
+  const theme = isTft ? themes.forGame.tft.value : themes.active.value;
   const hide = visible && hideRiot.value;
   const [confirmClose, setConfirmClose] = useState(false);
   const [view, setView] = useState<View | null>(null);
@@ -93,6 +97,11 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
     if (!free) setView(null);
   }, [free]);
   const shownView = free ? view : null;
+  // Fundo personalizado: lido do DataStore uma vez; a tela de configurações troca o signal ao vivo.
+  useEffect(() => {
+    background.value = loadBg();
+  }, []);
+  const custom = useBackground(lcu, shownView ?? screen ?? '');
   // A carteira não tem evento para a URI com consulta: relê ao voltar à tela inicial (depois de partida, loja, espólio).
   useEffect(() => {
     if (phaseName !== 'None') return;
@@ -176,9 +185,14 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   };
 
   return (
-    <div class="rlc-app" key={theme.name}>
+    <div
+      class="rlc-app"
+      key={theme.name}
+      style={{ '--rlc-bg-dim': String(background.value.dim), '--rlc-bg-blur': `${background.value.blur}px`, '--rlc-bg-pos': `${background.value.posX}% ${background.value.posY}%` }}
+    >
       <Boundary onError={onError}>
-        <MediaBackground src={mediaUrl(theme, screen, base)} playing={focused.value} />
+        <MediaBackground src={custom?.src ?? mediaUrl(theme, screen, base)} video={custom?.video} playing={focused.value} />
+        <div class="rlc-bg-dim" />
         <Rail
           items={[
             // Início e Lobby seguem a fase do gameflow; Perfil, Coleção e Configurações abrem por cima dela, fora da partida.
