@@ -18,7 +18,7 @@ const MEMBERS = '/lol-lobby/v2/lobby/members';
 export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
   const [panel, setPanel] = useState<null | 'positions' | 'invite' | { botTeam: number }>(null);
   const [kicking, setKicking] = useState<Participant | null>(null);
-  const bots = useBots(lcu.lobby.value.data?.gameConfig.isCustom === true);
+  const bots = useBots(lcu.lobby.value.data?.gameConfig.isCustom === true, lcu.game);
   const switchTeam = useAction((team: number) => request('POST', `/lol-lobby/v2/lobby/team/TEAM${team === 100 ? 1 : 2}`));
   const data = lcu.lobby.value.data;
   // Lobby some antes da fase mudar (expulso, saiu): mostra vazio até a rota trocar.
@@ -60,7 +60,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
       member={m}
       profile={lcu.profile}
       name={lcu.name}
-      splash={lcu.splash}
+      splash={lcu.game.splash}
       isLocal={m ? isLocal(m) : false}
       showPositions={!config.isCustom && config.showPositionSelector}
       label={m?.isBot ? (bots.find((b) => b.id === m.botChampionId)?.name ?? t('bot')) : undefined}

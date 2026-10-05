@@ -1,15 +1,21 @@
 import { expect, test } from 'vitest';
 import { screenFor } from './router';
 
-test('None é a tela inicial; Lobby, Matchmaking e ReadyCheck são o lobby', () => {
-  expect(screenFor({ status: 'ready', data: 'None' })).toBe('home');
-  for (const phase of ['Lobby', 'Matchmaking', 'ReadyCheck']) expect(screenFor({ status: 'ready', data: phase })).toBe('lobby');
+const at = (phase: string) => screenFor({ status: 'ready', data: phase });
+
+test('cada fase do gameflow tem tela nossa', () => {
+  expect(at('None')).toBe('home');
+  expect(at('TerminatedInError')).toBe('home');
+  for (const p of ['Lobby', 'Matchmaking', 'ReadyCheck']) expect(at(p)).toBe('lobby');
+  expect(at('ChampSelect')).toBe('champselect');
+  for (const p of ['GameStart', 'InProgress', 'Reconnect', 'WaitingForStats']) expect(at(p)).toBe('ingame');
+  expect(at('PreEndOfGame')).toBe('honor');
+  expect(at('EndOfGame')).toBe('postgame');
 });
 
-test('fases do 2b em diante e fases desconhecidas ficam com o client original', () => {
-  for (const phase of ['ChampSelect', 'GameStart', 'InProgress', 'Reconnect', 'WaitingForStats', 'PreEndOfGame', 'EndOfGame', 'TerminatedInError', 'FaseNova']) {
-    expect(screenFor({ status: 'ready', data: phase })).toBeNull();
-  }
+test('fase desconhecida tem a tela de fase desconhecida', () => {
+  expect(at('FaseNova')).toBe('unknown');
+  expect(at('CheckedIntoTournament')).toBe('unknown');
 });
 
 test('store carregando, indisponível ou sem dados não tem tela', () => {

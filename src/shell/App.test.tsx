@@ -81,11 +81,11 @@ test('com hideRiot desligado a interface da Riot não é escondida', async () =>
   expect(riot.style.visibility).toBe('');
 });
 
-test('fase sem tela nossa oculta a camada e devolve a interface da Riot; voltar a None mostra de novo', async () => {
+test('fase ainda desconhecida (store carregando) oculta a camada e devolve a interface da Riot; voltar a None mostra de novo', async () => {
   enabled.value = true;
   mount();
   await flush();
-  phase.value = ready('ChampSelect');
+  phase.value = { status: 'loading', data: null };
   await flush();
   expect(root.dataset.visible).toBe('false');
   expect(root.querySelector('.rlc-app')).toBeNull();
@@ -151,11 +151,11 @@ test('sem o elemento raiz da Riot a camada funciona do mesmo jeito', async () =>
   expect(root.dataset.visible).toBe('true');
 });
 
-test('sai da fase None: a camada some e a Riot volta na hora, sem esperar o frame', async () => {
+test('sai da fase None para um estado sem tela: a camada some e a Riot volta na hora, sem esperar o frame', async () => {
   enabled.value = true;
   mount();
   await flush();
-  phase.value = ready('ChampSelect');
+  phase.value = { status: 'loading', data: null };
   await short();
   expect(root.dataset.visible).toBe('false');
   expect(riot.style.visibility).toBe('');
@@ -363,4 +363,28 @@ test('tela de modos aberta na tela inicial fecha quando a rota vai para o lobby 
   await flush();
   expect(root.querySelector('.rlc-lobby')).not.toBeNull();
   expect(root.querySelector('.rlc-modes')).toBeNull();
+});
+
+test('fase desconhecida mostra o nome da fase e o botão Client original', async () => {
+  enabled.value = true;
+  phase.value = ready('FaseNova' as never);
+  mount();
+  await flush();
+  const screen = root.querySelector('.rlc-unknown')!;
+  expect(screen.textContent).toContain('FaseNova');
+  [...screen.querySelectorAll('button')].find((b) => b.textContent === 'Client original')!.click();
+  await flush();
+  expect(enabled.value).toBe(false);
+});
+
+test('TerminatedInError mostra a tela inicial e avisa uma vez', async () => {
+  enabled.value = true;
+  phase.value = ready('TerminatedInError');
+  mount();
+  await flush();
+  expect(root.textContent).toContain('Jogar');
+  dom.value++;
+  await flush();
+  expect(window.Toast!.error).toHaveBeenCalledTimes(1);
+  expect(window.Toast!.error).toHaveBeenCalledWith('A partida terminou com erro');
 });

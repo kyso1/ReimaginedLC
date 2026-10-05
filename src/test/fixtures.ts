@@ -86,7 +86,16 @@ export function fakeLcu(over: Partial<Lcu> = {}): Lcu {
     customGames: { state: signal(ready([])), refresh: async () => {} },
     profile: async () => null,
     name: async () => null,
-    splash: async () => null,
+    game: { champions: async () => new Map(), spells: async () => new Map(), splash: async () => null },
+    champSelect: signal(ready<Lcu['champSelect']['value']['data'] & object>(null)),
+    skins: signal(ready([])),
+    pickable: signal(ready([])),
+    bannable: signal(ready([])),
+    perkPages: signal(ready([])),
+    currentPerkPage: signal(ready<Lcu['currentPerkPage']['value']['data'] & object>(null)),
+    gameflowSession: signal(ready<Lcu['gameflowSession']['value']['data'] & object>(null)),
+    honorBallot: signal(ready<Lcu['honorBallot']['value']['data'] & object>(null)),
+    endOfGame: signal(ready<Lcu['endOfGame']['value']['data'] & object>(null)),
     ...over,
   };
 }

@@ -87,6 +87,8 @@ const TEXTS = {
     botEASY: 'Iniciante',
     botMEDIUM: 'Intermediário',
     botHARD: 'Difícil',
+    unknownPhase: 'Fase ainda não suportada',
+    gameError: 'A partida terminou com erro',
   },
   'en-US': {
     play: 'Play',
@@ -176,6 +178,8 @@ const TEXTS = {
     botEASY: 'Beginner',
     botMEDIUM: 'Intermediate',
     botHARD: 'Hard',
+    unknownPhase: 'Phase not supported yet',
+    gameError: 'The game ended with an error',
   },
 } as const;
 

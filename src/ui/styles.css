@@ -198,3 +198,6 @@
 #rlc-root .rlc-stage[data-band='blue'] .rlc-col[data-empty='true'] { background-color: var(--rlc-color-teamBlue, rgba(20, 40, 90, 0.35)); }
 #rlc-root .rlc-stage[data-band='red'] .rlc-col[data-empty='true'] { background-color: var(--rlc-color-teamRed, rgba(90, 20, 30, 0.35)); }
 #rlc-root .rlc-bot-list { max-height: 220px; overflow-y: auto; }
+
+#rlc-root .rlc-unknown { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+#rlc-root .rlc-unknown h2 { margin: 0; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 28px; }

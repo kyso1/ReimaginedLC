@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { t, type TextKey } from '../../i18n';
 import { request } from '../../lcu/request';
+import type { GameData } from '../../data/gamedata';
 import type { LolLobbyLobbyBotChampion } from '../../lcu/types';
 import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
@@ -15,20 +16,19 @@ const getJson = <T,>(url: string): Promise<T | null> => fetch(url).then((r) => (
  * Campeões disponíveis para bot, com o nome tirado do champion-summary (a LCU manda o id no campo `name`).
  * Leitura silenciosa: sem lista, o bot aparece como "Bot".
  */
-export function useBots(enabled: boolean): LolLobbyLobbyBotChampion[] {
+export function useBots(enabled: boolean, game: GameData): LolLobbyLobbyBotChampion[] {
   const [bots, setBots] = useState<LolLobbyLobbyBotChampion[]>([]);
   useEffect(() => {
     if (!enabled) return;
     let live = true;
-    Promise.all([getJson<LolLobbyLobbyBotChampion[]>('/lol-lobby/v2/lobby/custom/available-bots'), getJson<Array<{ id: number; name: string }>>('/lol-game-data/assets/v1/champion-summary.json').catch(() => null)])
-      .then(([list, summary]) => {
+    Promise.all([getJson<LolLobbyLobbyBotChampion[]>('/lol-lobby/v2/lobby/custom/available-bots'), game.champions()])
+      .then(([list, champions]) => {
         if (!live || !Array.isArray(list)) return;
-        const names = new Map((Array.isArray(summary) ? summary : []).map((c) => [c.id, c.name]));
-        setBots(list.filter((b) => b.active !== false).map((b) => ({ ...b, name: names.get(b.id) ?? b.name })));
+        setBots(list.filter((b) => b.active !== false).map((b) => ({ ...b, name: champions.get(b.id)?.name ?? b.name })));
       })
       .catch(() => {});
     return () => void (live = false);
-  }, [enabled]);
+  }, [enabled, game]);
   return bots;
 }
 
