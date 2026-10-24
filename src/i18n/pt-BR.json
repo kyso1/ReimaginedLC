@@ -1110,5 +1110,6 @@
   "stCssOn": "Aplicar CSS",
   "stCssOnDesc": "Vale por cima do tema, só com a interface nova ligada.",
   "stCssAsk": "O que mudar? Ex.: trilho mais largo, botões quadrados",
-  "stCssBlocked": "CSS recusado"
+  "stCssBlocked": "CSS recusado",
+  "statusDnd": "Ocupado"
 }

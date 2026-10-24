@@ -14,7 +14,7 @@ export { friendName, presenceOf, profileIcon, type Presence } from '../screens/s
 const byPresence = (a: Friend, b: Friend) => PRESENCE_ORDER.indexOf(presenceOf(a)) - PRESENCE_ORDER.indexOf(presenceOf(b)) || friendName(a).localeCompare(friendName(b));
 /** A pasta padrão vem como `**Default`. */
 const groupLabel = (g: Pick<LolChatGroupResource, 'name'>) => (g.name === '**Default' ? t('groupGeneral') : g.name);
-const availabilityKey = (a: string | undefined): TextKey => (a === 'away' ? 'statusAway' : a === 'offline' ? 'statusInvisible' : a === 'dnd' ? 'groupPlaying' : 'statusOnline');
+const availabilityKey = (a: string | undefined): TextKey => (a === 'away' ? 'statusAway' : a === 'offline' ? 'statusInvisible' : a === 'dnd' ? 'statusDnd' : a === 'mobile' ? 'statusMobile' : 'statusOnline');
 /** Altura reservada ao cartão para não sair por baixo da janela. */
 const CARD_ROOM = 240;
 

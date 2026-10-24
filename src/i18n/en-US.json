@@ -1110,5 +1110,6 @@
   "stCssOn": "Apply CSS",
   "stCssOnDesc": "Applies on top of the theme, only while the new interface is on.",
   "stCssAsk": "What should change? E.g. wider rail, square buttons",
-  "stCssBlocked": "CSS rejected"
+  "stCssBlocked": "CSS rejected",
+  "statusDnd": "Busy"
 }

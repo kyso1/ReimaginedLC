@@ -1,8 +1,9 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { t } from '../../i18n';
+import { t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
+import { chooseAvailability } from '../../plugins/appearOffline';
 import type { LolChatFriendRequestResource } from '../../lcu/types';
 import { readSetting, writeSetting } from '../../shell/storage';
 import { useAction } from '../../ui/useAction';
@@ -127,7 +128,16 @@ export function AddFriend({ onDone }: { onDone?: () => void }) {
   );
 }
 
-/** Disponibilidade (online, ausente, invisível) com o ponto da cor dela, e mensagem de status editável no lugar. */
+/** Status que o jogador pode escolher; `dnd` aparece para os amigos como ocupado (o client também usa em partida). */
+const AVAILABILITY: Array<[string, TextKey]> = [
+  ['chat', 'statusOnline'],
+  ['away', 'statusAway'],
+  ['dnd', 'statusDnd'],
+  ['mobile', 'statusMobile'],
+  ['offline', 'statusInvisible'],
+];
+
+/** Disponibilidade com o ponto da cor dela, e mensagem de status editável no lugar. */
 export function StatusEditor({ lcu }: { lcu: Lcu }) {
   const me = lcu.chatMe.value.data;
   const [message, setMessage] = useState(me?.statusMessage ?? '');
@@ -138,9 +148,9 @@ export function StatusEditor({ lcu }: { lcu: Lcu }) {
     sent.current = null;
   }, [me?.statusMessage]);
   const put = (body: Record<string, string>) => request('PUT', '/lol-chat/v1/me', body);
-  const saveAvailability = useAction(put);
+  const saveAvailability = useAction((body: { availability: string }) => chooseAvailability(body.availability));
   const saveMessage = useAction(put);
-  const availability = me?.availability === 'away' || me?.availability === 'offline' ? me.availability : 'chat';
+  const availability = AVAILABILITY.some(([a]) => a === me?.availability) ? me!.availability : 'chat';
   const commit = () => {
     const text = message.trim();
     if (text === (sent.current ?? me?.statusMessage ?? '')) return;
@@ -152,9 +162,11 @@ export function StatusEditor({ lcu }: { lcu: Lcu }) {
       <label class="rlc-status-avail" data-avail={availability}>
         <i aria-hidden="true" />
         <select aria-label={t('statusOnline')} value={availability} onChange={(e) => saveAvailability.run({ availability: e.currentTarget.value })}>
-          <option value="chat">{t('statusOnline')}</option>
-          <option value="away">{t('statusAway')}</option>
-          <option value="offline">{t('statusInvisible')}</option>
+          {AVAILABILITY.map(([value, label]) => (
+            <option key={value} value={value}>
+              {t(label)}
+            </option>
+          ))}
         </select>
       </label>
       <input

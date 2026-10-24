@@ -1,16 +1,32 @@
 import { effect } from '@preact/signals';
 import type { Lcu } from '../lcu';
 import { request } from '../lcu/request';
-import { prefs } from '../shell/prefs';
+import { prefs, setPrefs } from '../shell/prefs';
 
 /** Espera antes de reafirmar (a LCU às vezes troca o status duas vezes seguidas) e intervalo mínimo entre envios. */
 export const SETTLE_MS = 1500;
 export const MIN_GAP_MS = 5000;
 
+/** Status para onde voltar ao desligar (o que o jogador escolheu no seletor, ou online). */
+let restoreTo = 'chat';
+
+/**
+ * Status escolhido pelo jogador no seletor. Com "aparecer offline" ligado, qualquer escolha que não seja invisível
+ * desliga o plugin e vai para ela; sem isso o plugin devolvia o status para offline logo em seguida.
+ */
+export function chooseAvailability(next: string): Promise<unknown> {
+  if (next !== 'offline' && prefs.peek().appearOffline) {
+    restoreTo = next;
+    setPrefs({ appearOffline: false });
+    return Promise.resolve();
+  }
+  return request('PUT', '/lol-chat/v1/me', { availability: next });
+}
+
 /**
  * Aparecer offline: enquanto ligado, põe o status do chat em `offline` e reafirma sempre que a LCU mudar
  * (ao entrar em partida o client põe `dnd`). O intervalo mínimo entre envios impede laço com a LCU.
- * Ao desligar, volta para `chat`. Só vale com o client aberto; a troca pode aparecer por um instante.
+ * Ao desligar, volta para `chat` (ou para o status escolhido em `chooseAvailability`). Só vale com o client aberto; a troca pode aparecer por um instante.
  */
 export function startAppearOffline(lcu: Lcu, now: () => number = Date.now): () => void {
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -25,8 +41,9 @@ export function startAppearOffline(lcu: Lcu, now: () => number = Date.now): () =
     const availability = lcu.chatMe.value.data?.availability;
     if (!on) {
       cancel();
-      if (wasOn && availability === 'offline') void request('PUT', '/lol-chat/v1/me', { availability: 'chat' }).catch(() => {});
+      if (wasOn && availability === 'offline') void request('PUT', '/lol-chat/v1/me', { availability: restoreTo }).catch(() => {});
       wasOn = false;
+      restoreTo = 'chat';
       return;
     }
     wasOn = true;

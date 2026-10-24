@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { DEFAULT_PREFS, prefs } from '../shell/prefs';
 import { fakeLcu, readyCheck, ready } from '../test/fixtures';
 import type { Lcu } from '../lcu';
-import { MIN_GAP_MS, SETTLE_MS, startAppearOffline } from './appearOffline';
+import { chooseAvailability, MIN_GAP_MS, SETTLE_MS, startAppearOffline } from './appearOffline';
 import { startAutoAccept } from './autoAccept';
 
 let calls: Array<[string, string, unknown]>;
@@ -94,4 +94,30 @@ test('aparecer offline: desligar volta para chat; desligado de início não mexe
   me(lcu, 'offline');
   prefs.value = { ...DEFAULT_PREFS, appearOffline: false };
   expect(calls).toEqual([['PUT', '/lol-chat/v1/me', { availability: 'chat' }]]);
+});
+
+test('aparecer offline: escolher outro status no seletor desliga o plugin e vai para ele, sem voltar a offline', async () => {
+  const lcu = fakeLcu();
+  me(lcu, 'offline');
+  prefs.value = { ...DEFAULT_PREFS, appearOffline: true };
+  stop = startAppearOffline(lcu);
+  await chooseAvailability('away');
+  expect(prefs.value.appearOffline).toBe(false);
+  expect(calls).toEqual([['PUT', '/lol-chat/v1/me', { availability: 'away' }]]);
+  me(lcu, 'away');
+  vi.advanceTimersByTime(60_000);
+  expect(calls).toHaveLength(1);
+});
+
+test('seletor sem o plugin: só troca o status', async () => {
+  const lcu = fakeLcu();
+  me(lcu, 'chat');
+  stop = startAppearOffline(lcu);
+  await chooseAvailability('mobile');
+  await chooseAvailability('offline');
+  expect(calls).toEqual([
+    ['PUT', '/lol-chat/v1/me', { availability: 'mobile' }],
+    ['PUT', '/lol-chat/v1/me', { availability: 'offline' }],
+  ]);
+  expect(prefs.value.appearOffline).toBe(false);
 });

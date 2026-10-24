@@ -46,6 +46,7 @@
 #rlc-root .rlc-rc-me[data-avail='away']::after { background: var(--rlc-color-away, #e6b04a); }
 #rlc-root .rlc-rc-me[data-avail='dnd']::after { background: var(--rlc-color-playing, #5aa0ff); }
 #rlc-root .rlc-rc-me[data-avail='offline']::after { background: var(--rlc-color-textMuted); }
+#rlc-root .rlc-rc-me[data-avail='mobile']::after { background: var(--rlc-color-mobile, #9aa4b8); }
 #rlc-root .rlc-rc-head { display: flex; align-items: center; gap: 4px; }
 #rlc-root .rlc-rc-head .rlc-rc-name { flex: 1; min-width: 0; }
 /* Alfinete: apagado quando solta, aceso (acento) quando fixa. */
@@ -62,6 +63,8 @@
 #rlc-root .rlc-status-avail i { width: 7px; height: 7px; border-radius: 50%; background: var(--rlc-color-online, #5fd18a); }
 #rlc-root .rlc-status-avail[data-avail='away'] i { background: var(--rlc-color-away, #e6b04a); }
 #rlc-root .rlc-status-avail[data-avail='offline'] i { background: var(--rlc-color-textMuted); }
+#rlc-root .rlc-status-avail[data-avail='dnd'] i { background: var(--rlc-color-playing, #5aa0ff); }
+#rlc-root .rlc-status-avail[data-avail='mobile'] i { background: var(--rlc-color-mobile, #9aa4b8); }
 #rlc-root .rlc-status-avail::after { content: ''; position: absolute; right: 2px; top: 50%; width: 5px; height: 5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-75%) rotate(45deg); pointer-events: none; }
 #rlc-root .rlc-status-avail select { appearance: none; padding: 1px 14px 1px 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 #rlc-root .rlc-status-avail:hover { color: var(--rlc-color-text); }
