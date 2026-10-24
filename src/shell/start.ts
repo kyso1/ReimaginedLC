@@ -16,6 +16,7 @@ import { startServices } from '../extensions';
 import { startAppearOffline } from '../plugins/appearOffline';
 import { startAutoAccept } from '../plugins/autoAccept';
 import { startSpotify } from '../plugins/spotify';
+import { startCustomCss } from '../theme/customCss';
 
 /**
  * Pasta das fontes e temas. Pelo carregador (loader/), a que ele publica (o bundle chega por blob:); sem ele, a URL do
@@ -84,6 +85,8 @@ export async function start(): Promise<void> {
     startAutoAccept(lcu);
     startAppearOffline(lcu);
     startSpotify(lcu);
+    // CSS do usuário: depois do nosso <style>, para vencer na cascata.
+    startCustomCss();
     effect(() => {
       const client = lcu.regionLocale.value.data?.locale;
       const locale = effectiveLocale(prefs.value.locale, typeof client === 'string' ? client : undefined);

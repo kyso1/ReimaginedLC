@@ -1,4 +1,5 @@
 {
+  "$schema": "../../../docs/theme.schema.json",
   "name": "editorial",
   "label": "Editorial",
   "version": 1,

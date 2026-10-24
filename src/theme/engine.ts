@@ -2,7 +2,7 @@ import { signal, type Signal } from '@preact/signals';
 import { t } from '../i18n';
 import { readSetting, writeSetting } from '../shell/storage';
 import { resolveTheme, type ResolvedTheme } from './resolve';
-import { validateTheme, type ThemeManifest } from './validate';
+import { SCHEMA_URL, validateTheme, type ThemeManifest } from './validate';
 
 export const BUILTIN: readonly string[] = ['vidro', 'vidro-ludico', 'editorial'];
 const FALLBACK = 'vidro';
@@ -140,7 +140,7 @@ export async function createThemeEngine(base: string, get: (url: string) => Prom
       refresh();
       return { ok: true };
     },
-    exportTheme: (name) => (manifests.has(name) ? JSON.stringify(manifests.get(name), null, 2) : null),
+    exportTheme: (name) => (manifests.has(name) ? JSON.stringify({ $schema: SCHEMA_URL, ...manifests.get(name) }, null, 2) : null),
     manifest: (name) => manifests.get(name) ?? null,
     resolveDraft(input) {
       const result = validateTheme(input);

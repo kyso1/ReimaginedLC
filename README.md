@@ -120,13 +120,13 @@ When an update is ready, a notice with a **Reload** button appears in **Settings
 | Problem | Fix |
 |---|---|
 | Nothing changes after installing | Make sure the file is at `plugins/ReimaginedLC/index.js`, that Pengu Loader is activated, then press **Ctrl+Shift+F12**. |
-| "A screen failed" message, then the original client comes back | Reload with **Ctrl+Shift+R**. If it repeats, open an [issue](https://github.com/kyso1/ReimaginedLC/issues) saying which screen. |
+| "A screen failed" message, then the original client comes back | Reload with **Ctrl+Shift+R**. If it repeats, copy the report in **Settings › General › Error report** and paste it into an [issue](https://github.com/kyso1/ReimaginedLC/issues) or an AI. |
 | Client feels slow | Turn on **Lite mode** in **Settings › General** (no glass blur, paused background videos). |
 | Stuck on "Waiting" after a match | Update to the latest version; the post-game steps are completed automatically. |
 
 ## Themes and language
 
-- **Themes.** Vidro, Vidro lúdico (the default for TFT) and Editorial ship with the plugin. Create your own in **Settings › Appearance › New theme**, or import a JSON file. See [the theme guide](docs/THEMES.md).
+- **Themes.** Vidro, Vidro lúdico (the default for TFT) and Editorial ship with the plugin. Create your own in **Settings › Appearance › New theme**, or import a JSON file. The theme editor can write a prompt for ChatGPT, Claude or any AI and load the reply back; for deeper changes there is **Custom CSS**. See [the theme guide](docs/THEMES.md).
 - **Language.** The interface is in Portuguese (Brazil) and English, following the client language. Champion, item and queue names come from the client, already translated.
 
 ## Development
@@ -138,7 +138,7 @@ npx vite build --mode client          # builds and copies into the Pengu plugins
 ```
 
 - `docs/publicacao.md` explains the release flow and the update signing.
-- See [CONTRIBUTING.md](CONTRIBUTING.md) for code conventions.
+- See [CONTRIBUTING.md](CONTRIBUTING.md) for code conventions. AI coding agents read [AGENTS.md](AGENTS.md).
 
 ## License
 

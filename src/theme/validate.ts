@@ -12,7 +12,7 @@ export interface ThemeManifest {
   layouts: Record<string, string>;
 }
 
-export const TOKEN_KINDS: Record<string, TokenKind> = {
+const CORE_TOKENS: Record<string, TokenKind> = {
   'color.bg': 'color',
   'color.surface': 'color',
   'color.border': 'color',
@@ -30,6 +30,39 @@ export const TOKEN_KINDS: Record<string, TokenKind> = {
   'motion.duration': 'duration',
   'motion.easing': 'easing',
 };
+
+// Opcionais: sem valor, cada tela usa a cor padrão do próprio CSS.
+const OPTIONAL_KINDS: Record<string, TokenKind> = {
+  'color.highlight': 'color',
+  'color.danger': 'color',
+  'color.onDanger': 'color',
+  'color.win': 'color',
+  'color.loss': 'color',
+  'color.premium': 'color',
+  'color.online': 'color',
+  'color.away': 'color',
+  'color.playing': 'color',
+  'color.teamBlue': 'color',
+  'color.teamRed': 'color',
+  'color.scrim': 'color',
+  'color.shade': 'color',
+  'color.textShadow': 'color',
+  'color.glassTop': 'color',
+  'color.glassBottom': 'color',
+  'color.glassCard': 'color',
+  'color.glassCardHover': 'color',
+  'color.bar': 'color',
+  'color.sheetTop': 'color',
+  'color.sheetBottom': 'color',
+  'radius.lg': 'length',
+};
+
+export const TOKEN_KINDS: Record<string, TokenKind> = { ...CORE_TOKENS, ...OPTIONAL_KINDS };
+/** Tokens que um tema pode deixar de fora mesmo sem `extends`. */
+export const OPTIONAL_TOKENS: ReadonlySet<string> = new Set(Object.keys(OPTIONAL_KINDS));
+
+/** Schema publicado (gerado por theme/ai.ts); vai no `$schema` dos temas exportados. */
+export const SCHEMA_URL = 'https://raw.githubusercontent.com/kyso1/ReimaginedLC/master/docs/theme.schema.json';
 
 export const TRANSITIONS: readonly Transition[] = ['wipe', 'fade', 'slide', 'zoom'];
 
@@ -63,7 +96,7 @@ const BARE = String.raw`${HAS_LETTER}[${FAMILY_CHARS}]+(?: [${FAMILY_CHARS}]+)*`
 const FAMILY = `(?:${QUOTED}|${BARE})`;
 const FONT = `${FAMILY}(?:, ?${FAMILY})*`;
 
-const FORMAT: Record<TokenKind, RegExp> = {
+export const FORMAT: Record<TokenKind, RegExp> = {
   color: new RegExp(`^(?:${COLOR})$`, 'i'),
   length: /^\d+(\.\d+)?(px|rem|%)$/,
   duration: /^\d+(\.\d+)?(ms|s)$/,
@@ -83,7 +116,8 @@ const MEDIA_EXT = ['png', 'jpg', 'webp', 'gif', 'webm', 'mp4'].map((e) => [...e]
 const RELATIVE_MEDIA = new RegExp(String.raw`^[\w.-]+(?:/[\w.-]+)*\.(?:${MEDIA_EXT})$`);
 // Caminho do client: prefixo fixo em minúsculas, segmentos de [\w.-], extensão de mídia.
 const CLIENT_MEDIA = new RegExp(String.raw`^/(?:fe|lol-game-data/assets)(?:/[\w.-]+)+\.(?:${MEDIA_EXT})$`);
-const ROOT_KEYS = new Set(['name', 'label', 'version', 'extends', 'tokens', 'transition', 'backgrounds', 'layouts']);
+// `$schema` só serve a editores e IAs (docs/theme.schema.json); é aceito e descartado.
+const ROOT_KEYS = new Set(['$schema', 'name', 'label', 'version', 'extends', 'tokens', 'transition', 'backgrounds', 'layouts']);
 
 const isRecord = (v: unknown): v is Record<string, unknown> => {
   if (typeof v !== 'object' || v === null) return false;
@@ -102,6 +136,7 @@ export function validateTheme(input: unknown): Result {
   if (!isRecord(input)) return fail('tema', 'precisa ser um objeto');
   for (const key of Object.keys(input)) if (!ROOT_KEYS.has(key)) return fail(key, 'campo desconhecido');
 
+  if (input.$schema !== undefined && (typeof input.$schema !== 'string' || input.$schema.length > MAX_MEDIA_PATH)) return fail('schema', 'precisa ser uma URL');
   const { name, label, version, tokens = {}, transition, backgrounds = {}, layouts = {} } = input;
   const parent = input.extends ?? null;
 

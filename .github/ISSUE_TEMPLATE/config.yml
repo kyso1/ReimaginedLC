@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Theme guide
+    url: https://github.com/kyso1/ReimaginedLC/blob/master/docs/THEMES.md
+    about: Theme format, AI prompt and custom CSS.

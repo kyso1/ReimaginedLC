@@ -312,6 +312,43 @@ test('editor: mudar uma cor atualiza a prévia e salvar envia o tema; nomes leg�
   expect(saveUser).toHaveBeenCalledWith(expect.objectContaining({ tokens: expect.objectContaining({ 'color.bg': '#ff0000' }), extends: 'vidro' }));
 });
 
+test('editor: copia o prompt para IA e aplica a resposta colada; erro vira prompt de correção', async () => {
+  const writeText = vi.fn(() => Promise.resolve());
+  Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+  const resolveDraft = vi.fn((m: unknown) => ({ ok: true as const, theme: { ...vidro, tokens: { ...(m as { tokens: Record<string, string> }).tokens } } }));
+  mount({ resolveDraft, manifest: () => ({ name: 'vidro', label: 'Vidro', version: 1, extends: null, tokens: { 'color.bg': '#0b1020' }, backgrounds: {}, layouts: {} }) });
+  area('look');
+  act(() => btn('Novo tema')!.click());
+  const ask = root.querySelector<HTMLTextAreaElement>('.rlc-ed-ai textarea')!;
+  act(() => {
+    ask.value = 'roxo neon';
+    ask.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  act(() => root.querySelector<HTMLButtonElement>('[data-ai="copy"]')!.click());
+  await settle();
+  expect(writeText).toHaveBeenCalledWith(expect.stringContaining('Request: roxo neon'));
+
+  const paste = (text: string) => {
+    const reply = root.querySelector<HTMLTextAreaElement>('.rlc-ed-reply')!;
+    act(() => {
+      reply.value = text;
+      reply.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    act(() => root.querySelector<HTMLButtonElement>('[data-ai="apply"]')!.click());
+  };
+  act(() => root.querySelector<HTMLButtonElement>('[data-ai="paste"]')!.click());
+  paste('```json\n{"name":"neon","label":"Neon","version":1,"extends":"vidro","tokens":{"color.bg":"nope"}}\n```');
+  expect(root.querySelector('.rlc-ed-error')!.textContent).toContain('tokens.color.bg');
+  act(() => root.querySelector<HTMLButtonElement>('[data-ai="fix"]')!.click());
+  await settle();
+  expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining('tokens.color.bg'));
+
+  paste('Pronto:\n```json\n{"name":"neon","label":"Neon","version":1,"extends":"vidro","tokens":{"color.bg":"#120022"}}\n```');
+  expect(root.querySelector('.rlc-ed-error')).toBeNull();
+  expect(root.querySelector<HTMLInputElement>('.rlc-ed-name')!.value).toBe('Neon');
+  expect(root.querySelector<HTMLElement>('.rlc-ed-preview')!.style.getPropertyValue('--rlc-color-bg')).toBe('#120022');
+});
+
 test('idioma: preferência fixa vence o do client', () => {
   expect(effectiveLocale('auto', 'en_US')).toBe('en_US');
   expect(effectiveLocale('pt', 'en_US')).toBe('pt_BR');

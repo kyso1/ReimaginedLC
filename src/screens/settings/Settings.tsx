@@ -8,7 +8,12 @@ import { applyTheme } from '../../theme/apply';
 import { Confirm } from '../../shell/overlays/Confirm';
 import { background, BG_SCREENS, deleteMedia, MAX_MEDIA_BYTES, MEDIA, putMedia, setBackground, type BgScreen, type BgSource } from '../../theme/background';
 import type { Game, ThemeEngine } from '../../theme/engine';
-import { TOKEN_KINDS, TRANSITIONS, type ThemeManifest, type Transition } from '../../theme/validate';
+import { OPTIONAL_TOKENS, TOKEN_KINDS, TRANSITIONS, validateTheme, type ThemeManifest, type Transition } from '../../theme/validate';
+import { extractJson, fixPrompt, themePrompt } from '../../theme/ai';
+import { contrastIssues } from '../../theme/contrast';
+import { cssPrompt, customCss, MAX_CSS, setCustomCss } from '../../theme/customCss';
+import { copyText } from '../../shell/clipboard';
+import { errorReport, ISSUES_URL, lastError } from '../../shell/report';
 import { extensions } from '../../extensions';
 import { BuiltIns, Marketplace } from '../../plugins/Marketplace';
 import { roseStatus, startRose, useRose } from '../../plugins/rose';
@@ -53,11 +58,11 @@ const AREAS: Array<[Area, TextKey, TextKey]> = [
 
 // Linhas das áreas da camada, para a busca achar a configuração pelo nome.
 const OWN_ROWS: Partial<Record<Area, TextKey[]>> = {
-  look: ['stThemesLol', 'stThemesTft', 'stImport', 'stNewTheme', 'stBackground', 'stBgScreen', 'stBgSource', 'stBgRandom', 'stBgDim', 'stBgBlur', 'stBgPosX', 'stBgPosY'],
+  look: ['stThemesLol', 'stThemesTft', 'stImport', 'stNewTheme', 'stCss', 'stBackground', 'stBgScreen', 'stBgSource', 'stBgRandom', 'stBgDim', 'stBgBlur', 'stBgPosX', 'stBgPosY'],
   anim: ['stMotion', 'stVideo', 'stReadyAnim', 'stLobbyAnim'],
   sound: ['stAmbient', 'stAmbientVol', 'stClicks', 'stClickVol'],
   plug: ['stRunesAuto', 'stRunesMatchup', 'stRunesLock', 'stAllSplashes', 'mkAutoAccept', 'mkAcceptDelay', 'mkOffline', 'roseName', 'spName', 'spStatus', 'mkTitle'],
-  general: ['stLanguage', 'stOpenOnStart', 'perfLite', 'perfPotato', 'stShortcut', 'versionLabel'],
+  general: ['stLanguage', 'stOpenOnStart', 'perfLite', 'perfPotato', 'stShortcut', 'versionLabel', 'stReport'],
   chat: ['socialPinned'],
 };
 
@@ -153,7 +158,7 @@ export function Settings({ lcu, themes }: { lcu: Lcu; themes: ThemeEngine }) {
             </>
           ) : null}
           {area === 'plug' ? <Plugins /> : null}
-          {area === 'general' ? <General /> : null}
+          {area === 'general' ? <General lcu={lcu} themes={themes} /> : null}
           {area === 'chat' ? (
             <section class="rlc-st-card">
               <Row name={t('socialPinned')} desc={t('socialPinnedDesc')}>
@@ -432,6 +437,7 @@ function Appearance({ lcu, themes, onEdit }: { lcu: Lcu; themes: ThemeEngine; on
         </section>
       ))}
       <BackgroundSection lcu={lcu} />
+      <CustomCssSection />
       {deleting ? (
         <Confirm
           message={`${t('stDeleteThemeConfirm')} ${deleting.label}?`}
@@ -445,6 +451,39 @@ function Appearance({ lcu, themes, onEdit }: { lcu: Lcu; themes: ThemeEngine; on
         />
       ) : null}
     </div>
+  );
+}
+
+/** CSS próprio do usuário, com aviso de risco e o mesmo fluxo de IA do editor de tema. */
+function CustomCssSection() {
+  const saved = customCss.value;
+  const [css, setCss] = useState(saved.css);
+  const [ask, setAsk] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const save = (on: boolean, text = css) => {
+    const e = setCustomCss({ on: on && text.trim() !== '', css: text });
+    setError(e);
+    if (!e) window.Toast?.success(t('themeSaved'));
+  };
+  return (
+    <section class="rlc-st-css rlc-st-card" data-name={t('stCss')}>
+      <h3>{t('stCss')}</h3>
+      <p class="rlc-st-css-warn">{t('stCssWarn')}</p>
+      <Row name={t('stCssOn')} desc={t('stCssOnDesc')}>
+        <Switch label={t('stCssOn')} checked={saved.on} onChange={(on) => save(on, saved.css)} />
+      </Row>
+      <textarea class="rlc-input rlc-st-css-code" rows={10} spellcheck={false} maxLength={MAX_CSS} aria-label={t('stCss')} placeholder="#rlc-root .rlc-button { ... }" value={css} onInput={(e) => setCss(e.currentTarget.value)} />
+      <textarea class="rlc-input" rows={2} aria-label={t('stAiAsk')} placeholder={t('stCssAsk')} value={ask} onInput={(e) => setAsk(e.currentTarget.value)} />
+      {error ? <p class="rlc-ed-error">{`${t('stCssBlocked')}: ${error}`}</p> : null}
+      <div class="rlc-chip-row">
+        <button type="button" class="rlc-button" data-variant="primary" data-css="save" onClick={() => save(true)}>
+          {t('save')}
+        </button>
+        <button type="button" class="rlc-button" data-css="ai" onClick={() => void copyText(cssPrompt(css, ask), t('stAiCopied'))}>
+          {t('stAiCopy')}
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -584,8 +623,9 @@ function PotatoRow() {
   );
 }
 
-function General() {
+function General({ lcu, themes }: { lcu: Lcu; themes: ThemeEngine }) {
   const p = prefs.value;
+  const report = () => errorReport({ phase: lcu.gameflowPhase.value.data ?? null, theme: themes.forGame.lol.value.name, tftTheme: themes.forGame.tft.value.name });
   return (
     <section class="rlc-st-card rlc-st-general">
       <Row name={t('stLanguage')} desc={t('stLanguageDesc')}>
@@ -603,6 +643,16 @@ function General() {
       </Row>
       <Row name={t('versionLabel')}>
         <span class="rlc-muted">{__RLC_VERSION__}</span>
+      </Row>
+      <Row name={t('stReport')} desc={t(lastError() ? 'stReportDescErr' : 'stReportDesc')}>
+        <div class="rlc-chip-row">
+          <button type="button" class="rlc-button" data-report="copy" onClick={() => void copyText(report(), t('stAiCopied'))}>
+            {t('stReportCopy')}
+          </button>
+          <a class="rlc-button" href={ISSUES_URL} target="_blank" rel="noreferrer">
+            {t('stReportIssue')}
+          </a>
+        </div>
       </Row>
       {update.value ? (
         <div class="rlc-st-update">
@@ -631,12 +681,19 @@ const tokenLabel = (token: string) => t(`stTok_${token}` as TextKey) || humanize
 function ThemeEditor({ themes, initial, onClose }: { themes: ThemeEngine; initial: ThemeManifest; onClose: () => void }) {
   const [draft, setDraft] = useState<ThemeManifest>(initial);
   const [error, setError] = useState<string | null>(null);
+  const [ask, setAsk] = useState('');
+  const [reply, setReply] = useState<string | null>(null);
   const preview = useRef<HTMLDivElement>(null);
   const resolved = themes.resolveDraft(draft);
   useLayoutEffect(() => {
     if (preview.current && resolved.ok) applyTheme(preview.current, resolved.theme);
   });
-  const setToken = (token: string, value: string) => setDraft({ ...draft, tokens: { ...draft.tokens, [token]: value } });
+  const setToken = (token: string, value: string) => {
+    const tokens = { ...draft.tokens, [token]: value };
+    // Opcional apagado volta ao padrão do CSS, em vez de virar um valor vazio que o validador recusa.
+    if (value === '' && OPTIONAL_TOKENS.has(token)) delete tokens[token];
+    setDraft({ ...draft, tokens });
+  };
   const choice = (token: string, value: string, list: string[], label: (v: string) => string) => (
     <select class="rlc-input" data-token={token} value={value} onChange={(e) => setToken(token, e.currentTarget.value)}>
       {[value, ...list.filter((f) => f !== value)].filter(Boolean).map((f) => (
@@ -649,6 +706,7 @@ function ThemeEditor({ themes, initial, onClose }: { themes: ThemeEngine; initia
   const field = (token: string) => {
     const kind = TOKEN_KINDS[token];
     const value = draft.tokens[token] ?? '';
+    if (OPTIONAL_TOKENS.has(token) && value === '') return <input class="rlc-input" data-token={token} value="" placeholder={t('stTokDefault')} onChange={(e) => setToken(token, e.currentTarget.value.trim())} />;
     if (kind === 'color' && /^#[0-9a-f]{6}$/i.test(value || '#000000'))
       return <input type="color" data-token={token} value={value || '#000000'} onInput={(e) => setToken(token, e.currentTarget.value)} />;
     if (kind === 'font') return choice(token, value, FONTS, fontLabel);
@@ -659,6 +717,21 @@ function ThemeEditor({ themes, initial, onClose }: { themes: ThemeEngine; initia
     }
     return <input class="rlc-input" data-token={token} value={value} onInput={(e) => setToken(token, e.currentTarget.value)} />;
   };
+  // Resposta da IA colada: só entra no rascunho se passar no validador; o erro vai pronto para devolver à IA.
+  const applyReply = () => {
+    let parsed: unknown;
+    try {
+      parsed = extractJson(reply ?? '');
+    } catch {
+      return setError(`${t('themeInvalid')}: JSON`);
+    }
+    const r = validateTheme(parsed);
+    if (!r.ok) return setError(r.error);
+    setError(null);
+    setReply(null);
+    setDraft(r.theme);
+  };
+  const warnings = contrastIssues(resolved.ok ? resolved.theme.tokens : draft.tokens);
   const save = () => {
     const r = themes.saveUser(draft);
     if (r.ok) {
@@ -670,12 +743,23 @@ function ThemeEditor({ themes, initial, onClose }: { themes: ThemeEngine; initia
     <section class="rlc-editor">
       <aside class="rlc-ed-panel">
         <input class="rlc-input rlc-ed-name" aria-label={t('stThemeName')} value={draft.label} maxLength={40} onInput={(e) => setDraft({ ...draft, label: e.currentTarget.value })} />
-        {Object.keys(TOKEN_KINDS).map((token) => (
-          <label key={token} class="rlc-ed-field">
-            <span>{tokenLabel(token)}</span>
-            {field(token)}
-          </label>
-        ))}
+        {Object.keys(TOKEN_KINDS)
+          .filter((token) => !OPTIONAL_TOKENS.has(token))
+          .map((token) => (
+            <label key={token} class="rlc-ed-field">
+              <span>{tokenLabel(token)}</span>
+              {field(token)}
+            </label>
+          ))}
+        <details class="rlc-ed-more">
+          <summary>{t('stTokAdvanced')}</summary>
+          {[...OPTIONAL_TOKENS].map((token) => (
+            <label key={token} class="rlc-ed-field">
+              <span>{tokenLabel(token)}</span>
+              {field(token)}
+            </label>
+          ))}
+        </details>
         <label class="rlc-ed-field">
           <span>{t('stTransition')}</span>
           <select class="rlc-input" value={draft.transition ?? 'wipe'} onChange={(e) => setDraft({ ...draft, transition: e.currentTarget.value as ThemeManifest['transition'] })}>
@@ -686,7 +770,44 @@ function ThemeEditor({ themes, initial, onClose }: { themes: ThemeEngine; initia
             ))}
           </select>
         </label>
-        {error ? <p class="rlc-ed-error">{error}</p> : resolved.ok ? null : <p class="rlc-ed-error">{resolved.error}</p>}
+        {warnings.length ? (
+          <ul class="rlc-ed-warn" aria-label={t('stContrast')}>
+            {warnings.map((w) => (
+              <li key={`${w.text}-${w.background}`}>{`${t('stContrast')}: ${tokenLabel(w.text)} / ${tokenLabel(w.background)} ${w.ratio}:1 (${t('stContrastMin')} ${w.min}:1)`}</li>
+            ))}
+          </ul>
+        ) : null}
+        <section class="rlc-ed-ai">
+          <h3>{t('stAiTitle')}</h3>
+          <p class="rlc-muted">{t('stAiDesc')}</p>
+          <textarea class="rlc-input" rows={2} aria-label={t('stAiAsk')} placeholder={t('stAiAsk')} value={ask} onInput={(e) => setAsk(e.currentTarget.value)} />
+          <div class="rlc-chip-row">
+            <button type="button" class="rlc-button" data-ai="copy" onClick={() => void copyText(themePrompt(draft, ask), t('stAiCopied'))}>
+              {t('stAiCopy')}
+            </button>
+            <button type="button" class="rlc-button" data-ai="paste" aria-expanded={reply !== null} onClick={() => setReply(reply === null ? '' : null)}>
+              {t('stAiPaste')}
+            </button>
+          </div>
+          {reply !== null ? (
+            <>
+              <textarea class="rlc-input rlc-ed-reply" rows={6} aria-label={t('stAiPaste')} placeholder={t('stAiPasteHint')} value={reply} onInput={(e) => setReply(e.currentTarget.value)} />
+              <button type="button" class="rlc-button" data-variant="primary" data-ai="apply" disabled={!reply.trim()} onClick={applyReply}>
+                {t('stAiApply')}
+              </button>
+            </>
+          ) : null}
+        </section>
+        {error ? (
+          <div class="rlc-ed-error">
+            <p>{error}</p>
+            <button type="button" class="rlc-button" data-ai="fix" onClick={() => void copyText(fixPrompt(error), t('stAiCopied'))}>
+              {t('stAiCopyFix')}
+            </button>
+          </div>
+        ) : resolved.ok ? null : (
+          <p class="rlc-ed-error">{resolved.error}</p>
+        )}
         <div class="rlc-dialog-actions">
           <button type="button" class="rlc-button" data-variant="primary" onClick={save}>
             {t('save')}

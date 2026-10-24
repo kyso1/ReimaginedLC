@@ -120,13 +120,13 @@ Quando uma atualização fica pronta, aparece um aviso com o botão **Recarregar
 | Problema | Solução |
 |---|---|
 | Nada muda depois de instalar | Confira se o arquivo está em `plugins/ReimaginedLC/index.js` e se o Pengu Loader está ativado. Depois aperte **Ctrl+Shift+F12**. |
-| Aviso "uma tela falhou" e o client original volta | Recarregue com **Ctrl+Shift+R**. Se repetir, abra uma [issue](https://github.com/kyso1/ReimaginedLC/issues) dizendo qual tela. |
+| Aviso "uma tela falhou" e o client original volta | Recarregue com **Ctrl+Shift+R**. Se repetir, copie o relatório em **Configurações › Geral › Relatório de erro** e cole numa [issue](https://github.com/kyso1/ReimaginedLC/issues) ou numa IA. |
 | Client lento | Ligue o **Modo leve** em **Configurações › Geral** (sem desfoque de vidro e com vídeos de fundo pausados). |
 | Preso em "Aguardando" depois da partida | Atualize para a última versão; as etapas do pós-jogo são concluídas sozinhas. |
 
 ## Temas e idioma
 
-- **Temas.** Vidro, Vidro lúdico (padrão no TFT) e Editorial vêm com o plugin. Crie o seu em **Configurações › Aparência › Novo tema** ou importe um JSON. Veja o [guia de temas](docs/THEMES.md).
+- **Temas.** Vidro, Vidro lúdico (padrão no TFT) e Editorial vêm com o plugin. Crie o seu em **Configurações › Aparência › Novo tema** ou importe um JSON. O editor de tema monta um prompt para o ChatGPT, o Claude ou qualquer IA e carrega a resposta de volta; para mudanças maiores existe o **CSS personalizado**. Veja o [guia de temas](docs/THEMES.md).
 - **Idioma.** A interface está em português (Brasil) e inglês, seguindo o idioma do client. Nomes de campeões, itens e filas vêm do client, já traduzidos.
 
 ## Desenvolvimento
@@ -138,7 +138,7 @@ npx vite build --mode client          # compila e copia para a pasta de plugins 
 ```
 
 - `docs/publicacao.md` explica o fluxo de lançamento e a assinatura das atualizações.
-- Veja o [CONTRIBUTING.md](CONTRIBUTING.md) para as convenções de código.
+- Veja o [CONTRIBUTING.md](CONTRIBUTING.md) para as convenções de código. Agentes de IA leem o [AGENTS.md](AGENTS.md).
 
 ## Licença
 

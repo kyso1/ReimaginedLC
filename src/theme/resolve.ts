@@ -1,4 +1,4 @@
-import { TOKEN_KINDS, type ThemeManifest, type Transition } from './validate';
+import { OPTIONAL_TOKENS, TOKEN_KINDS, type ThemeManifest, type Transition } from './validate';
 
 export interface ResolvedTheme {
   name: string;
@@ -35,7 +35,7 @@ export function resolveTheme(name: string, themes: Map<string, ThemeManifest>): 
     for (const [screen, path] of Object.entries(manifest.backgrounds)) resolved.backgrounds[screen] = { theme: manifest.name, path };
   }
 
-  const missing = Object.keys(TOKEN_KINDS).filter((token) => !Object.hasOwn(resolved.tokens, token));
+  const missing = Object.keys(TOKEN_KINDS).filter((token) => !OPTIONAL_TOKENS.has(token) && !Object.hasOwn(resolved.tokens, token));
   if (missing.length) return { ok: false, error: `tokens ausentes: ${missing.join(', ')}` };
   return { ok: true, theme: resolved };
 }

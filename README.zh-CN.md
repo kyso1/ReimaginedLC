@@ -123,13 +123,13 @@ Pengu Loader/
 | 问题 | 解决方法 |
 |---|---|
 | 安装后没有任何变化 | 确认文件位于 `plugins/ReimaginedLC/index.js`，并且 Pengu Loader 已激活。然后按 **Ctrl+Shift+F12**。 |
-| 提示"某个界面出错"，随后原版客户端恢复 | 按 **Ctrl+Shift+R** 重新加载。如果反复出现，请提交 [issue](https://github.com/kyso1/ReimaginedLC/issues) 并注明是哪个界面。 |
+| 提示"某个界面出错"，随后原版客户端恢复 | 按 **Ctrl+Shift+R** 重新加载。如果反复出现，请在 **Settings › General › Error report** 中复制报告，粘贴到 [issue](https://github.com/kyso1/ReimaginedLC/issues) 或 AI 中。 |
 | 客户端卡顿 | 在 **Settings › General** 中开启 **Lite mode**（关闭毛玻璃模糊，暂停背景视频）。 |
 | 对局结束后卡在"等待"界面 | 更新到最新版本；赛后步骤会自动完成。 |
 
 ## 主题与语言
 
-- **主题：** 插件自带 Vidro、Vidro lúdico（云顶之弈默认主题）和 Editorial 三个主题。可以在 **Settings › Appearance › New theme** 中创建自己的主题，也可以导入 JSON 文件。参见[主题指南](docs/THEMES.md)（英文）。
+- **主题：** 插件自带 Vidro、Vidro lúdico（云顶之弈默认主题）和 Editorial 三个主题。可以在 **Settings › Appearance › New theme** 中创建自己的主题，也可以导入 JSON 文件。主题编辑器可以为 ChatGPT、Claude 等 AI 生成提示词，并把回复直接载入；需要更大的改动时可以使用**自定义 CSS**。参见[主题指南](docs/THEMES.md)（英文）。
 - **语言：** 界面目前只有葡萄牙语（巴西）和英语，跟随客户端语言。英雄、物品和队列名称来自客户端本身，已经翻译好。
 
 ## 开发
@@ -141,7 +141,7 @@ npx vite build --mode client          # 构建并复制到 Pengu 插件文件夹
 ```
 
 - `docs/publicacao.md`（葡萄牙语）说明了发布流程和更新签名。
-- 代码规范参见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+- 代码规范参见 [CONTRIBUTING.md](CONTRIBUTING.md)。AI 编程助手请阅读 [AGENTS.md](AGENTS.md)。
 
 ## 许可证
 

@@ -1,0 +1,306 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/kyso1/ReimaginedLC/master/docs/theme.schema.json",
+  "title": "ReimaginedLC theme",
+  "description": "A ReimaginedLC theme: data only, no CSS or code. See docs/THEMES.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "label",
+    "version",
+    "extends",
+    "tokens"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]{1,40}$",
+      "not": {
+        "enum": [
+          "vidro",
+          "vidro-ludico",
+          "editorial"
+        ]
+      },
+      "description": "Identifier: lowercase letters, digits and -. Cannot be a built-in theme name."
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60,
+      "description": "Name shown in Settings."
+    },
+    "version": {
+      "const": 1
+    },
+    "extends": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-z0-9-]{1,40}$",
+      "description": "Parent theme (vidro, vidro-ludico, editorial or a user theme). With a parent, list only the tokens you change. With null, every non-optional token is required."
+    },
+    "tokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "color.bg": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Base background behind everything (usually dark). Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla()."
+        },
+        "color.surface": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Panels and cards over the background art. Keep it translucent (alpha 0.08-0.9). Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla()."
+        },
+        "color.border": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Thin borders of panels, inputs and chips. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla()."
+        },
+        "color.text": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Main text. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla()."
+        },
+        "color.textMuted": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Secondary text: descriptions, counters, timestamps. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla()."
+        },
+        "color.accent": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Primary buttons, selected chips, active tab underline. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla()."
+        },
+        "color.onAccent": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Text and icons on top of color.accent. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla()."
+        },
+        "font.body": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:(?:'(?=[\\p{N}_ -]*\\p{L})[ \\p{L}\\p{N}_-]+'|\"(?=[\\p{N}_ -]*\\p{L})[ \\p{L}\\p{N}_-]+\")|(?=[\\p{N}_ -]*\\p{L})[\\p{L}\\p{N}_-]+(?: [\\p{L}\\p{N}_-]+)*)(?:, ?(?:(?:'(?=[\\p{N}_ -]*\\p{L})[ \\p{L}\\p{N}_-]+'|\"(?=[\\p{N}_ -]*\\p{L})[ \\p{L}\\p{N}_-]+\")|(?=[\\p{N}_ -]*\\p{L})[\\p{L}\\p{N}_-]+(?: [\\p{L}\\p{N}_-]+)*))*$",
+          "description": "Font stack for body text. Only fonts installed on Windows, or Quicksand (bundled). Format: comma-separated font families, quoted when they contain spaces."
+        },
+        "font.display": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:(?:'(?=[\\p{N}_ -]*\\p{L})[ \\p{L}\\p{N}_-]+'|\"(?=[\\p{N}_ -]*\\p{L})[ \\p{L}\\p{N}_-]+\")|(?=[\\p{N}_ -]*\\p{L})[\\p{L}\\p{N}_-]+(?: [\\p{L}\\p{N}_-]+)*)(?:, ?(?:(?:'(?=[\\p{N}_ -]*\\p{L})[ \\p{L}\\p{N}_-]+'|\"(?=[\\p{N}_ -]*\\p{L})[ \\p{L}\\p{N}_-]+\")|(?=[\\p{N}_ -]*\\p{L})[\\p{L}\\p{N}_-]+(?: [\\p{L}\\p{N}_-]+)*))*$",
+          "description": "Font stack for big titles. Format: comma-separated font families, quoted when they contain spaces."
+        },
+        "font.displayWeight": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^[1-9]\\d0$",
+          "description": "Weight of big titles, 100-900 in steps of 10. Format: 100-900 in steps of 10."
+        },
+        "radius.sm": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^\\d+(\\.\\d+)?(px|rem|%)$",
+          "description": "Corner radius of small controls (chips, inputs). Format: number + px, rem or %."
+        },
+        "radius.md": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^\\d+(\\.\\d+)?(px|rem|%)$",
+          "description": "Corner radius of cards and panels. Format: number + px, rem or %."
+        },
+        "radius.pill": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^\\d+(\\.\\d+)?(px|rem|%)$",
+          "description": "Corner radius of pill buttons (999px = fully round). Format: number + px, rem or %."
+        },
+        "blur.surface": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^\\d+(\\.\\d+)?(px|rem|%)$",
+          "description": "Backdrop blur of glass panels (0px disables the glass look). Format: number + px, rem or %."
+        },
+        "motion.duration": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^\\d+(\\.\\d+)?(ms|s)$",
+          "description": "Duration of hover and screen transitions. Format: number + ms or s."
+        },
+        "motion.easing": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:linear|ease|ease-in|ease-out|ease-in-out|cubic-bezier\\( ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)){3} ?\\))$",
+          "description": "Easing of transitions. Format: linear, ease, ease-in, ease-out, ease-in-out or cubic-bezier(a, b, c, d)."
+        },
+        "color.highlight": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Active/turn highlight (e.g. the player picking in champion select). Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.danger": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Destructive actions, errors, enemy team accents. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.onDanger": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Text on top of color.danger. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.win": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Victory, positive LP, success checks. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.loss": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Defeat, negative LP. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.premium": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Premium pass rewards and borders. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.online": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Friend status dot: online. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.away": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Friend status dot: away. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.playing": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Friend status dot: in game. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.teamBlue": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Blue side tint (lobby slots, champion select). Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.teamRed": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Red side tint. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.scrim": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Dark vignette over splash art so text stays readable. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.shade": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Drop shadow color of raised cards and menus. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.textShadow": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Shadow behind text drawn over art. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.glassTop": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Top of the gradient of glass panels (champion select, drawers). Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.glassBottom": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Bottom of the gradient of glass panels. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.glassCard": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Cards inside glass panels. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.glassCardHover": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Cards inside glass panels, on hover. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.bar": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Floating bars (lobby bar, queue pill, Spotify widget). Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.sheetTop": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Top of the match history sheet. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "color.sheetBottom": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\)|(?:hsla?)\\((?:-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?:, ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?|-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:%|deg)?(?: -?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?){2}(?: ?\\/ ?-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)%?)?)\\))$",
+          "description": "Bottom of the match history sheet. Format: hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() or hsl()/hsla(). Optional."
+        },
+        "radius.lg": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^\\d+(\\.\\d+)?(px|rem|%)$",
+          "description": "Corner radius of large hero panels. Format: number + px, rem or %. Optional."
+        }
+      }
+    },
+    "transition": {
+      "enum": [
+        "wipe",
+        "fade",
+        "slide",
+        "zoom"
+      ],
+      "description": "Screen change animation."
+    },
+    "backgrounds": {
+      "type": "object",
+      "description": "Background per screen (default, home, lobby, profile, collection, postgame): a client asset path.",
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 300,
+        "pattern": "^(|/(fe|lol-game-data/assets)(/[\\w.-]+)+\\.(png|jpg|webp|gif|webm|mp4))$"
+      }
+    },
+    "layouts": {
+      "type": "object",
+      "maxProperties": 0,
+      "description": "Reserved. Use {}."
+    }
+  }
+}

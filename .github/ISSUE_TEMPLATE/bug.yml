@@ -1,0 +1,31 @@
+name: Bug report
+description: A screen fails, looks wrong or does something unexpected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Open **Settings › General › Error report**, click **Copy report** and paste it below. It has the version, game phase, theme and the last error, and no account data.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what you saw. Screenshots help; hide names you do not want to share.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the lobby
+        2. Pick Ranked Solo/Duo
+        3. ...
+  - type: textarea
+    id: report
+    attributes:
+      label: Error report
+      description: Paste from Settings › General › Error report › Copy report.
+      render: markdown
+    validations:
+      required: true
