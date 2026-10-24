@@ -97,6 +97,6 @@ For changes that tokens cannot express (layout, sizes, hiding something), **Sett
 
 - It is yours alone: it is not part of the theme file, so shared themes stay data-only and safe to import.
 - Every selector should start with `#rlc-root`. The screen is on `#rlc-root .rlc-app[data-screen="..."]`. Open DevTools with **Ctrl+Shift+I** to find class names.
-- `@import`, `url()` outside client paths (`/fe/...`, `/lol-game-data/assets/...`), `expression()` and `javascript:` are rejected. The client is Chromium 108: no CSS nesting, `:has()` or `color-mix()`.
+- `@import`, `url()` outside client paths (`/fe/...`, `/lol-game-data/assets/...`), `image-set()`, backslash escapes (`\201C`), `expression()` and `javascript:` are rejected. The client is Chromium 108: no CSS nesting, `:has()` or `color-mix()`.
 - **Copy prompt for AI** works here too, with your CSS and request.
 - It only applies while the new interface is on. If a screen breaks, turn the switch off or press **Ctrl+Shift+F12**.

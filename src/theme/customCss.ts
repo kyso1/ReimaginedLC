@@ -17,6 +17,8 @@ export const MAX_CSS = 50_000;
 const BLOCKED: Array<[RegExp, string]> = [
   [/@import/i, '@import'],
   [/url\(\s*(?!['"]?\/(?:fe|lol-game-data\/assets)\/)/i, 'url() (only /fe/ and /lol-game-data/assets/ paths)'],
+  // image-set() aceita string sem url(): carregaria de fora.
+  [/image-set\s*\(/i, 'image-set()'],
   [/expression\s*\(/i, 'expression()'],
   [/javascript:/i, 'javascript:'],
   [/-moz-binding|behavior\s*:/i, 'binding/behavior'],
@@ -26,7 +28,12 @@ const BLOCKED: Array<[RegExp, string]> = [
 /** Motivo da recusa, ou null se o CSS pode entrar. */
 export function checkCss(css: string): string | null {
   if (css.length > MAX_CSS) return `> ${MAX_CSS} chars`;
-  for (const [re, what] of BLOCKED) if (re.test(css)) return what;
+  // Escape CSS (`u\72l(`, `@\69mport`) esconderia qualquer palavra da lista: barra invertida não entra.
+  // ponytail: recusa também escapes legítimos (content: "\201C"); trocar por parse via CSSOM se alguém precisar.
+  if (css.includes('\\')) return 'backslash escapes';
+  // Comentário entre letras não forma palavra em CSS, mas pode separar tokens (`url(/**/"https:…")`): checa sem eles.
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  for (const [re, what] of BLOCKED) if (re.test(bare)) return what;
   return null;
 }
 
@@ -70,7 +77,7 @@ export function cssPrompt(css: string, request: string): string {
     '- Every selector must start with #rlc-root. The app root is #rlc-root .rlc-app, and its data-screen attribute names the screen: home, lobby, modes, champselect, ingame, postgame, honor, profile, collection, store, events, settings.',
     '- Classes start with rlc- (e.g. .rlc-button, .rlc-rail, .rlc-input). Do not guess names you are unsure of: ask the user to open DevTools (Ctrl+Shift+I) and copy the element.',
     '- Prefer theme variables over literal values: var(--rlc-color-bg), var(--rlc-color-surface), var(--rlc-color-border), var(--rlc-color-text), var(--rlc-color-textMuted), var(--rlc-color-accent), var(--rlc-color-onAccent), var(--rlc-radius-sm|md|pill), var(--rlc-blur-surface), var(--rlc-motion-duration), var(--rlc-motion-easing), var(--rlc-font-body), var(--rlc-font-display).',
-    '- Not allowed (the app rejects it): @import, url() other than /fe/... or /lol-game-data/assets/... client paths, expression(), javascript:. Unsupported in Chromium 108: CSS nesting, :has(), color-mix(), @scope.',
+    '- Not allowed (the app rejects it): @import, url() other than /fe/... or /lol-game-data/assets/... client paths, image-set(), backslash escapes, expression(), javascript:. Unsupported in Chromium 108: CSS nesting, :has(), color-mix(), @scope.',
     '- Keep text readable (WCAG 4.5:1) and keep focus outlines visible.',
     '',
     'Current CSS:',

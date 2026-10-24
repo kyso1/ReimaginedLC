@@ -16,6 +16,13 @@ test('recusa o que carrega coisa de fora ou executa código', () => {
   expect(checkCss('#rlc-root .x { background: url("//evil.example/t.png"); }')).toContain('url()');
   expect(checkCss('#rlc-root .x { width: expression(alert(1)); }')).toBe('expression()');
   expect(checkCss('x'.repeat(50_001))).toContain('chars');
+  // Desvios: escapes CSS, image-set sem url(), comentário entre url( e a string.
+  expect(checkCss('#rlc-root .x { background: u\\72l(https://evil.example/t.png); }')).toBe('backslash escapes');
+  expect(checkCss('@\\69mport "https://evil.example/x.css";')).toBe('backslash escapes');
+  expect(checkCss('#rlc-root .x { background: image-set("https://evil.example/t.png" 1x); }')).toBe('image-set()');
+  expect(checkCss('#rlc-root .x { background: -webkit-image-set("https://evil.example/t.png" 1x); }')).toBe('image-set()');
+  expect(checkCss('#rlc-root .x { background: url(/**/"https://evil.example/t.png"); }')).toContain('url()');
+  expect(checkCss('#rlc-root .x { /* url(https://ok-in-comment) */ color: var(--rlc-color-text); }')).toBeNull();
 });
 
 test('só aplica ligado e com a camada à vista', () => {
