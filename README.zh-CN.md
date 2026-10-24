@@ -48,12 +48,12 @@ ReimaginedLC 在原版客户端之上绘制自己的界面。原版客户端在�
 
 | | |
 |---|---|
-| ![房间](docs/screenshots/lobby.png) | ![英雄选择](docs/screenshots/champselect.png) |
-| 房间 | 英雄选择 |
-| ![赛后](docs/screenshots/postgame.png) | ![个人资料](docs/screenshots/profile.png) |
-| 赛后 | 个人资料 |
-| ![收藏](docs/screenshots/collection.png) | ![设置](docs/screenshots/settings.png) |
-| 收藏 | 设置与插件 |
+| ![房间](docs/screenshots/lobby.png) | ![收藏](docs/screenshots/collection.png) |
+| 房间 | 收藏 |
+| ![个人资料](docs/screenshots/profile.png) | ![设置](docs/screenshots/settings.png) |
+| 个人资料 | 设置与插件 |
+| ![商店](docs/screenshots/store.png) | ![活动](docs/screenshots/events.png) |
+| 商店 | 活动 |
 
 ## 安装
 

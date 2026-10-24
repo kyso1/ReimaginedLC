@@ -45,12 +45,12 @@ ReimaginedLC draws its own screens over the original client. The original client
 
 | | |
 |---|---|
-| ![Lobby](docs/screenshots/lobby.png) | ![Champion select](docs/screenshots/champselect.png) |
-| Lobby | Champion select |
-| ![Post-game](docs/screenshots/postgame.png) | ![Profile](docs/screenshots/profile.png) |
-| Post-game | Profile |
-| ![Collection](docs/screenshots/collection.png) | ![Settings](docs/screenshots/settings.png) |
-| Collection | Settings and plugins |
+| ![Lobby](docs/screenshots/lobby.png) | ![Collection](docs/screenshots/collection.png) |
+| Lobby | Collection |
+| ![Profile](docs/screenshots/profile.png) | ![Settings](docs/screenshots/settings.png) |
+| Profile | Settings and plugins |
+| ![Store](docs/screenshots/store.png) | ![Events](docs/screenshots/events.png) |
+| Store | Events |
 
 ## Installation
 
