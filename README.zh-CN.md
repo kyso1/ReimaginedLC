@@ -76,8 +76,8 @@ ReimaginedLC 在原版客户端之上绘制自己的界面。原版客户端在�
    - 如果变成了 `plugins\ReimaginedLC\ReimaginedLC\index.js`，请把里面那层文件夹移到上一级。
 5. **打开英雄联盟客户端**
    - 如果客户端已经打开，按 **Ctrl+Shift+R** 重新加载。
-6. **开启新界面**
-   - 按 **Ctrl+Shift+F12**。之后再打开客户端时，新界面会保持开启。
+6. **完成**
+   - 第一次打开时新界面会自动启用。按 **Ctrl+Shift+F12** 可在新界面和 Riot 原版界面之间切换，客户端会记住你的选择。
 
 ```text
 Pengu Loader/
@@ -122,7 +122,7 @@ Pengu Loader/
 
 | 问题 | 解决方法 |
 |---|---|
-| 安装后没有任何变化 | 确认文件位于 `plugins/ReimaginedLC/index.js`，并且 Pengu Loader 已激活。然后按 **Ctrl+Shift+F12**。 |
+| 安装后没有任何变化 | 确认文件位于 `plugins/ReimaginedLC/index.js`，并且 Pengu Loader 已激活。然后按 **Ctrl+Shift+R** 重新加载客户端。 |
 | 提示"某个界面出错"，随后原版客户端恢复 | 按 **Ctrl+Shift+R** 重新加载。如果反复出现，请在 **Settings › General › Error report** 中复制报告，粘贴到 [issue](https://github.com/kyso1/ReimaginedLC/issues) 或 AI 中。 |
 | 客户端卡顿 | 在 **Settings › General** 中开启 **Lite mode**（关闭毛玻璃模糊，暂停背景视频）。 |
 | 对局结束后卡在"等待"界面 | 更新到最新版本；赛后步骤会自动完成。 |

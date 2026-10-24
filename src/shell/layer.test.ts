@@ -14,10 +14,16 @@ afterEach(() => {
   delete window.Toast;
 });
 
-test('a camada começa desligada quando não há configuração', () => {
+test('na primeira vez (nada gravado) a camada já abre ligada', () => {
+  syncLayer();
+  expect(enabled.value).toBe(true);
+  expect(hideRiot.value).toBe(true);
+});
+
+test('desligada uma vez, continua desligada', () => {
+  data.set('rlc.enabled', false);
   syncLayer();
   expect(enabled.value).toBe(false);
-  expect(hideRiot.value).toBe(true);
 });
 
 test('syncLayer lê a configuração guardada', () => {
@@ -47,10 +53,10 @@ test('setEnabled persiste e avisa', () => {
 test('toggleEnabled alterna', () => {
   syncLayer();
   toggleEnabled();
-  expect(enabled.value).toBe(true);
-  toggleEnabled();
   expect(enabled.value).toBe(false);
   expect(data.get('rlc.enabled')).toBe(false);
+  toggleEnabled();
+  expect(enabled.value).toBe(true);
 });
 
 test('preferência de abertura vence o estado guardado', () => {

@@ -5,6 +5,8 @@ import { enabled, syncLayer } from './layer';
 beforeEach(() => {
   delete window.DataStore;
   syncLayer();
+  // Sem DataStore a camada abriria ligada (primeira vez); estes testes partem dela desligada.
+  enabled.value = false;
 });
 
 const press = (init: KeyboardEventInit) => window.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }));

@@ -14,6 +14,8 @@ beforeEach(() => {
   setLocale('pt_BR');
   delete window.DataStore;
   syncLayer();
+  // Sem DataStore a camada abriria ligada (primeira vez); estes testes partem dela desligada.
+  enabled.value = false;
   actions = [];
   window.CommandBar = { addAction: (a) => void actions.push(a) };
   themes = fakeThemes(signal({ name: 'vidro', label: 'Vidro', tokens: {}, transition: 'fade', backgrounds: {} }), [{ name: 'vidro', label: 'Vidro' }, { name: 'editorial', label: 'Editorial' }], vi.fn());

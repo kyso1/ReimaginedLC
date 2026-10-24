@@ -73,8 +73,8 @@ O ReimaginedLC desenha as próprias telas por cima do client original. O client 
    - Se ficar `plugins\ReimaginedLC\ReimaginedLC\index.js`, suba a pasta de dentro um nível.
 5. **Abra o client do League.**
    - Se ele já estava aberto, recarregue com **Ctrl+Shift+R**.
-6. **Ligue a interface nova.**
-   - Aperte **Ctrl+Shift+F12**. Ela continua ligada da próxima vez que você abrir o client.
+6. **Pronto.**
+   - A interface nova já abre sozinha na primeira vez. **Ctrl+Shift+F12** alterna entre ela e a interface da Riot, e o client lembra a sua escolha.
 
 ```text
 Pengu Loader/
@@ -119,7 +119,7 @@ Quando uma atualização fica pronta, aparece um aviso com o botão **Recarregar
 
 | Problema | Solução |
 |---|---|
-| Nada muda depois de instalar | Confira se o arquivo está em `plugins/ReimaginedLC/index.js` e se o Pengu Loader está ativado. Depois aperte **Ctrl+Shift+F12**. |
+| Nada muda depois de instalar | Confira se o arquivo está em `plugins/ReimaginedLC/index.js` e se o Pengu Loader está ativado. Depois recarregue o client com **Ctrl+Shift+R**. |
 | Aviso "uma tela falhou" e o client original volta | Recarregue com **Ctrl+Shift+R**. Se repetir, copie o relatório em **Configurações › Geral › Relatório de erro** e cole numa [issue](https://github.com/kyso1/ReimaginedLC/issues) ou numa IA. |
 | Client lento | Ligue o **Modo leve** em **Configurações › Geral** (sem desfoque de vidro e com vídeos de fundo pausados). |
 | Preso em "Aguardando" depois da partida | Atualize para a última versão; as etapas do pós-jogo são concluídas sozinhas. |

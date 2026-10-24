@@ -73,8 +73,8 @@ ReimaginedLC draws its own screens over the original client. The original client
    - If you end up with `plugins\ReimaginedLC\ReimaginedLC\index.js`, move the inner folder up one level.
 5. **Open the League client.**
    - If it was already open, reload it with **Ctrl+Shift+R**.
-6. **Turn on the new interface.**
-   - Press **Ctrl+Shift+F12**. It stays on the next time you open the client.
+6. **Done.**
+   - The new interface opens on its own the first time. **Ctrl+Shift+F12** switches between it and Riot's interface, and the client remembers your choice.
 
 ```text
 Pengu Loader/
@@ -119,7 +119,7 @@ When an update is ready, a notice with a **Reload** button appears in **Settings
 
 | Problem | Fix |
 |---|---|
-| Nothing changes after installing | Make sure the file is at `plugins/ReimaginedLC/index.js`, that Pengu Loader is activated, then press **Ctrl+Shift+F12**. |
+| Nothing changes after installing | Make sure the file is at `plugins/ReimaginedLC/index.js`, that Pengu Loader is activated, then reload the client with **Ctrl+Shift+R**. |
 | "A screen failed" message, then the original client comes back | Reload with **Ctrl+Shift+R**. If it repeats, copy the report in **Settings › General › Error report** and paste it into an [issue](https://github.com/kyso1/ReimaginedLC/issues) or an AI. |
 | Client feels slow | Turn on **Lite mode** in **Settings › General** (no glass blur, paused background videos). |
 | Stuck on "Waiting" after a match | Update to the latest version; the post-game steps are completed automatically. |

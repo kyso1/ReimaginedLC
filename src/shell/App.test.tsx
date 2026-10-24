@@ -42,6 +42,8 @@ beforeEach(() => {
   HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined) as unknown as HTMLMediaElement['play'];
   HTMLMediaElement.prototype.pause = vi.fn() as unknown as HTMLMediaElement['pause'];
   syncLayer();
+  // Sem DataStore a camada abriria ligada (primeira vez); estes testes partem dela desligada.
+  enabled.value = false;
   focused.value = true;
   riot = document.body.appendChild(Object.assign(document.createElement('div'), { id: RIOT_ROOT_ID }));
   root = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'rlc-root' }));
