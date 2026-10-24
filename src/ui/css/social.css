@@ -171,6 +171,8 @@
 #rlc-root .rlc-chat-input { margin: 6px 8px 8px; width: auto; }
 #rlc-root .rlc-ctx { position: absolute; left: 80px; bottom: 16px; z-index: 6; display: flex; flex-direction: column; width: 300px; max-height: 260px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-scrim, rgba(10, 12, 20, 0.85)); backdrop-filter: blur(var(--rlc-blur-surface)); }
 #rlc-root .rlc-ctx[data-open='true'] { height: 260px; }
+/* `.rlc-input` tem largura 100%: com a margem passava da borda do chat da sala. */
+#rlc-root .rlc-ctx .rlc-chat-input { width: auto; align-self: stretch; }
 #rlc-root .rlc-ctx-toggle { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border: 0; background: transparent; color: var(--rlc-color-text); font: inherit; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; text-align: left; cursor: pointer; }
 #rlc-root .rlc-ctx-count { min-width: 18px; padding: 0 5px; border-radius: var(--rlc-radius-pill); background: var(--rlc-color-danger, #c8364a); color: var(--rlc-color-onDanger, #fff); text-align: center; font-size: 11px; }
 #rlc-root .rlc-app[data-screen='champselect'] .rlc-ctx { left: 84px; bottom: 16px; width: clamp(200px, calc((100% - 120px) * 0.19), 260px); max-height: clamp(44px, calc(100% - 440px), 260px); }

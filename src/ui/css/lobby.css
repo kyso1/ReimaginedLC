@@ -43,3 +43,9 @@
 @keyframes rlc-col-wait { 40% { opacity: 0.9; } }
 @media (prefers-reduced-motion: reduce) { #rlc-root .rlc-col-wait i { animation: none; opacity: 0.7; } }
 #rlc-root[data-motion='off'] .rlc-col-wait i { animation: none; opacity: 0.7; }
+
+/* Chat da sala (social.css: 260px de altura a 16px do fundo, no canto esquerdo) cobria o nome e o elo da primeira vaga:
+   a vaga da esquerda da faixa de baixo sobe o conteúdo acima dele. */
+#rlc-root .rlc-app[data-screen='lobby'] .rlc-stage:not([data-band='blue']) > .rlc-col:first-child:not([data-empty='true']) { padding-bottom: 292px; }
+/* A arte central (tático do TFT) sobe junto, para o nome não ficar por cima dela. */
+#rlc-root .rlc-app[data-screen='lobby'] .rlc-stage:not([data-band='blue']) > .rlc-col:first-child:not([data-empty='true']) > .rlc-col-legend { padding-bottom: calc(20% + 180px); }
