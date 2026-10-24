@@ -31,9 +31,9 @@ export function checkCss(css: string): string | null {
   // Escape CSS (`u\72l(`, `@\69mport`) esconderia qualquer palavra da lista: barra invertida não entra.
   // ponytail: recusa também escapes legítimos (content: "\201C"); trocar por parse via CSSOM se alguém precisar.
   if (css.includes('\\')) return 'backslash escapes';
-  // Comentário entre letras não forma palavra em CSS, mas pode separar tokens (`url(/**/"https:…")`): checa sem eles.
-  const bare = css.replace(/\/\*[\s\S]*?\*\//g, ' ');
-  for (const [re, what] of BLOCKED) if (re.test(bare)) return what;
+  // Checa o texto cru, sem tirar comentários: "/*" dentro de string esconderia um url() real. Comentário logo após
+  // `url(` já cai na regra (não começa com /fe/), e comentário no meio de uma palavra não a forma em CSS.
+  for (const [re, what] of BLOCKED) if (re.test(css)) return what;
   return null;
 }
 

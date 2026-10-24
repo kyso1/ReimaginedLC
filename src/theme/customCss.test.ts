@@ -22,7 +22,8 @@ test('recusa o que carrega coisa de fora ou executa código', () => {
   expect(checkCss('#rlc-root .x { background: image-set("https://evil.example/t.png" 1x); }')).toBe('image-set()');
   expect(checkCss('#rlc-root .x { background: -webkit-image-set("https://evil.example/t.png" 1x); }')).toBe('image-set()');
   expect(checkCss('#rlc-root .x { background: url(/**/"https://evil.example/t.png"); }')).toContain('url()');
-  expect(checkCss('#rlc-root .x { /* url(https://ok-in-comment) */ color: var(--rlc-color-text); }')).toBeNull();
+  // "/*" dentro de strings não pode esconder o url() entre elas.
+  expect(checkCss('#rlc-root .a { content: "/*"; } #rlc-root .b { background: url(https://evil.example/t.png); } #rlc-root .c { content: "*/"; }')).toContain('url()');
 });
 
 test('só aplica ligado e com a camada à vista', () => {
