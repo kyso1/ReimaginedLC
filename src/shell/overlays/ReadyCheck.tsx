@@ -2,7 +2,10 @@ import { t } from '../../i18n';
 import type { StoreState } from '../../lcu';
 import { request } from '../../lcu/request';
 import type { LolMatchmakingMatchmakingReadyCheckResource } from '../../lcu/types';
+import { ModeEmblem } from '../../screens/modes/Emblems';
+import type { ModeGroupId } from '../../screens/modes/queues';
 import { useAction } from '../../ui/useAction';
+import { prefs } from '../prefs';
 
 /** Duração do aceite de partida. A LCU informa só os segundos decorridos (`timer`). */
 export const READY_CHECK_SECONDS = 10;
@@ -15,36 +18,43 @@ export function showReadyCheck(rc: StoreState<LolMatchmakingMatchmakingReadyChec
   return rc.data?.state === 'InProgress' && rc.data.suppressUx !== true;
 }
 
-const RADIUS = 52;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-
-export function ReadyCheckOverlay({ rc }: { rc: LolMatchmakingMatchmakingReadyCheckResource }) {
+/**
+ * Partida encontrada como cortina de vidro: duas placas se fecham do alto e de baixo, o emblema do modo acende no
+ * encontro e o tempo corre numa barra. Animação desligável (`readyCheckAnim`) e ausente com movimento desligado.
+ */
+export function ReadyCheckOverlay({ rc, mode = 'sr', queueName }: { rc: LolMatchmakingMatchmakingReadyCheckResource; mode?: ModeGroupId | 'custom'; queueName?: string }) {
   const accept = useAction(() => request('POST', '/lol-matchmaking/v1/ready-check/accept'));
   const decline = useAction(() => request('POST', '/lol-matchmaking/v1/ready-check/decline'));
   const remaining = Math.max(0, Math.ceil(READY_CHECK_SECONDS - rc.timer));
   const busy = accept.pending || decline.pending;
+  const animate = prefs.value.readyCheckAnim && prefs.value.motion !== 'off';
   return (
-    <div class="rlc-veil rlc-readycheck" role="alertdialog" aria-modal="true" aria-label={t('matchFound')}>
-      <h2>{t('matchFound')}</h2>
-      <div class="rlc-ring">
-        <svg viewBox="0 0 120 120" aria-hidden="true">
-          <circle class="rlc-ring-track" cx="60" cy="60" r={RADIUS} />
-          <circle class="rlc-ring-bar" cx="60" cy="60" r={RADIUS} stroke-dasharray={CIRCUMFERENCE} stroke-dashoffset={CIRCUMFERENCE * (1 - remaining / READY_CHECK_SECONDS)} />
-        </svg>
-        <span class="rlc-ring-count">{remaining}</span>
-      </div>
-      {rc.playerResponse === 'None' ? (
-        <div class="rlc-readycheck-actions">
-          <button type="button" class="rlc-button" data-variant="primary" disabled={busy} onClick={() => accept.run()}>
-            {t('accept')}
-          </button>
-          <button type="button" class="rlc-button" disabled={busy} onClick={() => decline.run()}>
-            {t('decline')}
-          </button>
+    <div class="rlc-veil rlc-readycheck" role="alertdialog" aria-modal="true" aria-label={t('matchFound')} data-anim={animate ? 'true' : undefined} data-response={rc.playerResponse}>
+      <span class="rlc-rcheck-plate" data-side="top" aria-hidden="true" />
+      <span class="rlc-rcheck-plate" data-side="bottom" aria-hidden="true" />
+      <div class="rlc-rcheck-body">
+        <ModeEmblem id={mode} />
+        <h2>{t('matchFound')}</h2>
+        <div class="rlc-rcheck-time">
+          <span class="rlc-rcheck-bar" aria-hidden="true">
+            <i style={{ width: `${(remaining / READY_CHECK_SECONDS) * 100}%` }} />
+          </span>
+          <span class="rlc-ring-count">{remaining}</span>
         </div>
-      ) : (
-        <p class="rlc-readycheck-state">{rc.playerResponse === 'Accepted' ? t('acceptedWaiting') : t('declined')}</p>
-      )}
+        {queueName ? <p class="rlc-rcheck-queue">{queueName}</p> : null}
+        {rc.playerResponse === 'None' ? (
+          <div class="rlc-readycheck-actions">
+            <button type="button" class="rlc-button" data-variant="primary" disabled={busy} onClick={() => accept.run()}>
+              {t('accept')}
+            </button>
+            <button type="button" class="rlc-button" disabled={busy} onClick={() => decline.run()}>
+              {t('decline')}
+            </button>
+          </div>
+        ) : (
+          <p class="rlc-readycheck-state">{rc.playerResponse === 'Accepted' ? t('acceptedWaiting') : t('declined')}</p>
+        )}
+      </div>
     </div>
   );
 }

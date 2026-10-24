@@ -8,12 +8,22 @@ import { App, RIOT_ROOT_ID } from './App';
 import { Boundary } from './Boundary';
 import { registerCommands } from './commands';
 import { enabled, syncLayer } from './layer';
+import { probeLite } from './perf';
 import { effectiveLocale, prefs } from './prefs';
-import { checkForUpdate } from './update';
+import { watchUpdates } from './update';
+import type { LoaderState } from '../../loader/shared';
 import { startServices } from '../extensions';
+import { startAppearOffline } from '../plugins/appearOffline';
+import { startAutoAccept } from '../plugins/autoAccept';
+import { startSpotify } from '../plugins/spotify';
 
-/** Pasta do plugin. No client é a URL do próprio bundle; no servidor de desenvolvimento, a raiz. */
-const base = import.meta.env.DEV ? '/' : new URL(/* @vite-ignore */ '.', import.meta.url).href;
+/**
+ * Pasta das fontes e temas. Pelo carregador (loader/), a que ele publica (o bundle chega por blob:); sem ele, a URL do
+ * próprio bundle; no servidor de desenvolvimento, a raiz.
+ */
+const base = import.meta.env.DEV
+  ? '/'
+  : ((window as Window & { __rlcLoader?: LoaderState }).__rlcLoader?.base ?? new URL(/* @vite-ignore */ '.', import.meta.url).href);
 
 export async function start(): Promise<void> {
   if (document.getElementById('rlc-root')) return;
@@ -41,6 +51,8 @@ export async function start(): Promise<void> {
     const focused = signal(document.hasFocus());
     window.addEventListener('focus', () => void (focused.value = true));
     window.addEventListener('blur', () => void (focused.value = false));
+    // Modo leve automático: decidido uma vez, no primeiro minuto (perf.ts).
+    probeLite(focused);
 
     // O boot do client troca os filhos do body: troca nossa raiz por um clone sem árvore e cria a
     // raiz da Riot depois. Mantém a raiz real anexada e avisa o App quando algo mudou.
@@ -68,6 +80,10 @@ export async function start(): Promise<void> {
 
     const lcu = createLcu();
     startServices(lcu);
+    // Plugins embutidos: rodam com a camada ligada ou não.
+    startAutoAccept(lcu);
+    startAppearOffline(lcu);
+    startSpotify(lcu);
     effect(() => {
       const client = lcu.regionLocale.value.data?.locale;
       const locale = effectiveLocale(prefs.value.locale, typeof client === 'string' ? client : undefined);
@@ -76,11 +92,17 @@ export async function start(): Promise<void> {
 
     const themes = await createThemeEngine(base);
     registerCommands(themes);
-    // Aviso de versão nova: em segundo plano, sem atrasar a camada.
-    void checkForUpdate(__RLC_VERSION__);
+    // Aviso de versão nova pronta (o carregador baixa e verifica em segundo plano).
+    watchUpdates(lcu);
     // `h(App, ...)` e não `App(...)`: o Preact precisa montar o componente para os hooks funcionarem.
     const onError = (error: unknown) => {
       console.error('[rlc]', error);
+      // Sobrevive ao recarregar a página: dá para ler depois em sessionStorage['rlc:lastError'].
+      try {
+        sessionStorage.setItem('rlc:lastError', `${new Date().toISOString()} ${error instanceof Error ? error.stack : String(error)}`);
+      } catch {
+        // sem armazenamento: fica só no console
+      }
       enabled.value = false;
       window.Toast?.error(t('screenFailed'));
     };

@@ -1,6 +1,7 @@
 name: Release
 
-# Push a tag v<version> matching package.json; the zip goes to a GitHub release.
+# Push a tag v<version> matching package.json. Publishes the signed single-file bundle to the cdn-v<version> tag
+# (served by jsDelivr, read by the loader's auto-update) and the zip (loader + local copy of the app) to a release.
 on:
   push:
     tags: ['v*']
@@ -24,8 +25,35 @@ jobs:
           [ "$GITHUB_REF_NAME" = "v$version" ] || { echo "tag $GITHUB_REF_NAME != v$version"; exit 1; }
       - run: npm test
       - run: npm run build
+      - run: npm run build:loader
+      - run: npm run build:cdn
+      - name: Sign manifests
+        env:
+          RLC_SIGNING_KEY: ${{ secrets.RLC_SIGNING_KEY }}
+        run: |
+          node scripts/manifest.ts dist-cdn/ReimaginedLC "${GITHUB_REF_NAME#v}"
+          node scripts/manifest.ts dist/ReimaginedLC "${GITHUB_REF_NAME#v}"
+      - name: Publish to CDN tag
+        env:
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          # Orphan commit with only the bundle files; the tag is immutable (push fails if it already exists).
+          ver="${GITHUB_REF_NAME#v}"
+          export GIT_INDEX_FILE="$RUNNER_TEMP/cdn-index"
+          git --work-tree=dist-cdn/ReimaginedLC add -A -f .
+          commit=$(git commit-tree "$(git write-tree)" -m "cdn v$ver")
+          unset GIT_INDEX_FILE
+          git tag "cdn-v$ver" "$commit"
+          git push origin "refs/tags/cdn-v$ver"
       - name: Zip
-        run: cd dist && zip -r "../ReimaginedLC-${GITHUB_REF_NAME#v}.zip" ReimaginedLC
+        run: |
+          mkdir -p pkg/ReimaginedLC
+          cp dist-loader/ReimaginedLC/index.js pkg/ReimaginedLC/
+          cp -r dist/ReimaginedLC pkg/ReimaginedLC/app
+          cd pkg && zip -r "../ReimaginedLC-${GITHUB_REF_NAME#v}.zip" ReimaginedLC
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}

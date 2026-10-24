@@ -83,6 +83,7 @@ export function fakeLcu(over: Partial<Lcu> = {}): Lcu {
     invitations: signal(ready([])),
     queues: signal(ready([])),
     friends: signal(ready([])),
+    friendGroups: signal(ready([])),
     customGames: { state: signal(ready([])), refresh: async () => {} },
     profile: async () => null,
     name: async () => null,
@@ -95,13 +96,14 @@ export function fakeLcu(over: Partial<Lcu> = {}): Lcu {
     currentPerkPage: signal(ready<Lcu['currentPerkPage']['value']['data'] & object>(null)),
     gameflowSession: signal(ready<Lcu['gameflowSession']['value']['data'] & object>(null)),
     honorBallot: signal(ready<Lcu['honorBallot']['value']['data'] & object>(null)),
+    honorRecognition: signal(ready([])),
     endOfGame: signal(ready<Lcu['endOfGame']['value']['data'] & object>(null)),
     lanes: signal(ready({})),
     gridChampions: signal(ready([])),
     chatMe: signal(ready<Lcu['chatMe']['value']['data'] & object>(null)),
     wallet: Object.assign(signal(ready<Record<string, number>>(null)), { refresh: async () => {} }),
     friendRequests: signal(ready([])),
-    conversations: signal(ready([])),
+    conversations: Object.assign(signal(ready([])), { refresh: async () => {} }),
     loot: signal(ready([])),
     events: { onPrefix: () => () => {} },
     orangeEssence: Object.assign(signal(ready<Lcu['orangeEssence']['value']['data'] & object>(null)), { refresh: async () => {} }),
@@ -147,3 +149,30 @@ export function fakeThemes(active: import('@preact/signals').Signal<import('../t
     resolveDraft: () => ({ ok: false, error: 'teste' }),
   };
 }
+
+// Fim de jogo, no formato de /lol-end-of-game/v1/eog-stats-block (chaves de `stats` do client oficial).
+type EogStats = import('../lcu/types').LolEndOfGameEndOfGameStats;
+type EogPlayer = import('../lcu/types').LolEndOfGameEndOfGamePlayer;
+
+export const eogPlayer = (over: Partial<EogPlayer> & { stats?: Record<string, number> } = {}): EogPlayer =>
+  ({
+    puuid: uuid(), riotIdGameName: 'Fulano', riotIdTagLine: 'TAG', summonerName: '', championId: 103, championName: 'Ahri', teamId: 100,
+    spell1Id: 4, spell2Id: 14, items: [3089, 3020, 4645, 0, 0, 0, 3340], skinSplashPath: '/s/ahri.jpg', championSquarePortraitPath: '/p/ahri.png',
+    botPlayer: false, isLocalPlayer: false, level: 16, ...over,
+    stats: {
+      CHAMPIONS_KILLED: 3, NUM_DEATHS: 5, ASSISTS: 4, MINIONS_KILLED: 150, NEUTRAL_MINIONS_KILLED: 10, GOLD_EARNED: 10000,
+      TOTAL_DAMAGE_DEALT_TO_CHAMPIONS: 15000, VISION_SCORE: 20, LEVEL: 15, PERK0: 8112, PERK_SUB_STYLE: 8300, ...over.stats,
+    },
+  }) as EogPlayer;
+
+/** Bloco do fim de jogo: você no time 100 com um aliado; o time 200 com um inimigo. */
+export const eogBlock = (win: boolean, local = eogPlayer({ isLocalPlayer: true }), over: Partial<EogStats> = {}): EogStats =>
+  ({
+    gameId: 3200000001, gameLength: 1721, gameMode: 'CLASSIC', queueType: 'RANKED_SOLO_5x5', ranked: true, localPlayer: local,
+    currentLevel: 212, previousLevel: 212, leveledUp: false, experienceEarned: 240, experienceTotal: 1800, nextLevelXp: 3000, missionsXpEarned: 0,
+    teams: [
+      { teamId: 100, isPlayerTeam: true, isWinningTeam: win, players: [local, eogPlayer({ riotIdGameName: 'Zeca', championId: 64, championName: 'Lee Sin' })] },
+      { teamId: 200, isPlayerTeam: false, isWinningTeam: !win, players: [eogPlayer({ riotIdGameName: 'Beltrano', teamId: 200, championId: 238, championName: 'Zed' })] },
+    ],
+    ...over,
+  }) as EogStats;

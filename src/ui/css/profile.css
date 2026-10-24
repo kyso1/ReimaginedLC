@@ -1,0 +1,279 @@
+/* profile: estilos da tela, carregados por @import em styles.css. Cores só por var(--rlc-*, reserva). */
+
+/*
+ * Vitrine: brasão (ícone + borda) ao lado do nome, sem o estandarte. Em Resumo fica no meio da altura, à esquerda;
+ * com o histórico aberto sobe e encolhe numa faixa de herói acima do quadro. --rlc-pf-crest é o lado do brasão.
+ */
+#rlc-root .rlc-profile { --rlc-pf-bw: clamp(104px, 21vh, 168px); --rlc-pf-crest: clamp(120px, 24vh, 184px); --rlc-pf-ease: cubic-bezier(0.2, 0.8, 0.2, 1); }
+#rlc-root .rlc-profile[data-sheet] { --rlc-pf-crest: clamp(72px, 13vh, 104px); }
+#rlc-root .rlc-profile[data-tab] > .rlc-pf-showcase { position: absolute; top: 38%; left: 48px; right: 48px; display: flex; align-items: center; gap: 28px; pointer-events: none; transition: top 350ms var(--rlc-pf-ease), gap 350ms var(--rlc-pf-ease); }
+#rlc-root .rlc-profile[data-sheet] > .rlc-pf-showcase { top: 68px; gap: 18px; }
+#rlc-root .rlc-pf-showcase > * { pointer-events: auto; }
+#rlc-root .rlc-pf-who { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+#rlc-root .rlc-pf-name { margin: 0; max-width: 100%; font-family: var(--rlc-font-display); font-weight: 900; font-size: clamp(36px, 5.6vw, 88px); line-height: 1; letter-spacing: 0.02em; overflow-wrap: anywhere; text-shadow: 0 4px 24px var(--rlc-color-textShadow, #000); transition: font-size 350ms var(--rlc-pf-ease); }
+#rlc-root .rlc-profile[data-sheet] .rlc-pf-name { font-size: clamp(30px, 3.6vw, 52px); }
+#rlc-root .rlc-pf-title { margin: 0; font-size: 18px; color: var(--rlc-color-text, #fff); opacity: 0.85; }
+#rlc-root .rlc-profile[data-sheet] .rlc-pf-title { font-size: 14px; }
+#rlc-root .rlc-pf-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 4px 0 0; font-size: 16px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+#rlc-root .rlc-pf-line .rlc-rank { font-size: 16px; opacity: 1; }
+#rlc-root .rlc-pf-line .rlc-rank img { width: 24px; height: 24px; }
+#rlc-root .rlc-profile.rlc-profile > .rlc-pf-customize { position: absolute; right: 32px; bottom: 28px; z-index: 2; animation: rlc-fade var(--rlc-motion-duration, 0.2s) var(--rlc-motion-easing, ease) both; }
+/* Na faixa de herói o Personalizar some (o clique no brasão continua abrindo a identidade). */
+#rlc-root .rlc-profile[data-sheet] .rlc-pf-customize { display: none; }
+#rlc-root .rlc-pf-id[data-bare] { width: var(--rlc-pf-crest); transition: width 350ms var(--rlc-pf-ease); }
+#rlc-root .rlc-pf-id[data-bare] .rlc-pf-crest { width: 100%; height: auto; aspect-ratio: 1; margin-top: 0; }
+
+#rlc-root .rlc-pf-id { flex: none; position: relative; display: flex; flex-direction: column; align-items: center; width: var(--rlc-pf-bw); }
+#rlc-root .rlc-pf-banner { display: block; width: 100%; height: calc(var(--rlc-pf-bw) * 2.55); padding: 0; border: 0; background: transparent center bottom / contain no-repeat; }
+/* A arte do estandarte ocupa 68% da largura e o corpo acaba a 90% da altura: o brasão fica centrado a ~78% dela, dentro do corpo. */
+#rlc-root .rlc-pf-crest { position: relative; z-index: 1; width: calc(var(--rlc-pf-bw) * 0.84); height: calc(var(--rlc-pf-bw) * 0.84); margin-top: calc(var(--rlc-pf-bw) * -0.97); }
+#rlc-root .rlc-pf-ring { position: absolute; inset: 0; padding: 0; border: 0; border-radius: 50%; background: transparent; }
+#rlc-root .rlc-pf-face { position: absolute; inset: 18%; padding: 0; border: 0; border-radius: 50%; overflow: hidden; background: var(--rlc-color-bg, #0b1020); }
+#rlc-root .rlc-pf-icon { display: block; width: 100%; height: 100%; object-fit: cover; }
+#rlc-root .rlc-pf-border { position: absolute; inset: -12%; width: 124%; height: 124%; pointer-events: none; }
+#rlc-root .rlc-pf-rim { position: absolute; inset: 15%; border-radius: 50%; border: 4px solid var(--rlc-color-border, rgba(255, 255, 255, 0.4)); }
+#rlc-root [data-crest='none'] .rlc-pf-rim { border-color: transparent; }
+#rlc-root [data-crest='ranked'][data-tier='iron'] .rlc-pf-rim, #rlc-root [data-crest='ranked'][data-tier='bronze'] .rlc-pf-rim { border-color: var(--rlc-color-tierBronze, #a5704c); }
+#rlc-root [data-crest='ranked'][data-tier='silver'] .rlc-pf-rim { border-color: var(--rlc-color-tierSilver, #a9b6c2); }
+#rlc-root [data-crest='ranked'][data-tier='gold'] .rlc-pf-rim { border-color: var(--rlc-color-tierGold, #e7c25a); box-shadow: 0 0 12px var(--rlc-color-tierGold, #e7c25a); }
+#rlc-root [data-crest='ranked'][data-tier='platinum'] .rlc-pf-rim, #rlc-root [data-crest='ranked'][data-tier='emerald'] .rlc-pf-rim { border-color: var(--rlc-color-tierEmerald, #4fd1a5); box-shadow: 0 0 12px var(--rlc-color-tierEmerald, #4fd1a5); }
+#rlc-root [data-crest='ranked'][data-tier='diamond'] .rlc-pf-rim { border-color: var(--rlc-color-tierDiamond, #7fb4ff); box-shadow: 0 0 12px var(--rlc-color-tierDiamond, #7fb4ff); }
+#rlc-root [data-crest='ranked'][data-tier='master'] .rlc-pf-rim, #rlc-root [data-crest='ranked'][data-tier='grandmaster'] .rlc-pf-rim, #rlc-root [data-crest='ranked'][data-tier='challenger'] .rlc-pf-rim { border-color: var(--rlc-color-tierMaster, #c77dff); box-shadow: 0 0 14px var(--rlc-color-tierMaster, #c77dff); }
+#rlc-root .rlc-pf-level { position: absolute; left: 50%; bottom: 2%; z-index: 1; transform: translateX(-50%); padding: 1px 8px; border-radius: var(--rlc-radius-pill, 99px); background: var(--rlc-color-bg, #0b1020); border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.2)); font-size: 12px; pointer-events: none; }
+/* Editável (só no próprio perfil): cada parte é um botão que abre a aba dela. */
+#rlc-root .rlc-pf-id[data-editable] button { cursor: pointer; transition: filter var(--rlc-motion-duration, 200ms) var(--rlc-motion-easing, ease); }
+#rlc-root .rlc-pf-id[data-editable] button:hover { filter: brightness(1.2); }
+#rlc-root .rlc-pf-id[data-editable] button:focus-visible { outline: 2px solid var(--rlc-color-text, #fff); outline-offset: 2px; }
+
+/* Janela de identidade: prévia à esquerda, abas à direita. */
+#rlc-root .rlc-profile > .rlc-veil.rlc-idm-veil { position: absolute; inset: 0; z-index: 20; }
+@keyframes rlc-idm-pop { from { transform: scale(0.94); opacity: 0; } }
+#rlc-root .rlc-idm { display: flex; width: 76%; height: 82%; overflow: hidden; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.14)); border-radius: var(--rlc-radius-lg, 16px); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(10, 12, 20, 0.6)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.8))); backdrop-filter: blur(16px) brightness(0.75); animation: rlc-idm-pop var(--rlc-motion-duration, 300ms) var(--rlc-motion-easing, ease) both; }
+#rlc-root .rlc-idm-preview { --rlc-pf-bw: clamp(80px, 15vh, 128px); position: relative; flex: none; width: 34%; overflow: hidden; border-right: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.12)); }
+#rlc-root .rlc-idm-preview .rlc-pf-id { position: absolute; left: 50%; top: 0; transform: translateX(-50%); }
+#rlc-root .rlc-idm-who { position: absolute; left: 20px; right: 20px; bottom: 24px; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+#rlc-root .rlc-idm-who b { font-family: var(--rlc-font-display); font-size: 28px; line-height: 1.1; overflow-wrap: anywhere; }
+#rlc-root .rlc-idm-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 20px 22px; }
+#rlc-root .rlc-idm-panel .rlc-tabs-text { margin-bottom: 0; }
+#rlc-root .rlc-idm-panel > .rlc-input { max-width: 280px; }
+#rlc-root .rlc-idm-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+#rlc-root .rlc-idm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; }
+#rlc-root .rlc-idm-grid[data-kind='banners'] { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+#rlc-root .rlc-idm-grid[data-kind='skins'] { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+#rlc-root .rlc-idm-grid button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0; border: 0; border-radius: var(--rlc-radius-sm, 6px); background: transparent; color: var(--rlc-color-text, #fff); font: inherit; cursor: pointer; outline: 2px solid transparent; outline-offset: 2px; }
+#rlc-root .rlc-idm-grid button:hover { outline-color: var(--rlc-color-border, rgba(255, 255, 255, 0.35)); }
+#rlc-root .rlc-idm-grid button[aria-pressed='true'] { outline-color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-idm-grid small { font-size: 11px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+#rlc-root .rlc-idm-icon img { width: 100%; aspect-ratio: 1; border-radius: var(--rlc-radius-sm, 6px); object-fit: cover; display: block; }
+#rlc-root .rlc-idm-border { position: relative; }
+#rlc-root .rlc-idm-border img { width: 100%; aspect-ratio: 1; object-fit: contain; }
+#rlc-root .rlc-idm-border .rlc-pf-rim { position: relative; inset: auto; display: block; width: 70%; aspect-ratio: 1; margin: 15%; }
+/* A arte do estandarte já traz o recorte com ponta (fundo transparente): sem caixa nem clip-path por trás. */
+#rlc-root .rlc-idm-banner span { width: 100%; aspect-ratio: 0.392; background: transparent center / contain no-repeat; }
+#rlc-root .rlc-idm-skin img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: center 20%; border-radius: var(--rlc-radius-sm, 6px); display: block; }
+#rlc-root .rlc-idm-group { margin: 6px 0 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); }
+#rlc-root .rlc-idm-skins { display: flex; flex-direction: column; gap: 6px; }
+#rlc-root .rlc-idm-body > .rlc-muted { margin: 0; font-size: 12px; }
+
+/* Itens com aspect-ratio: a linha do grid mede pela altura máxima (senão achata no Chromium do client). */
+#rlc-root .rlc-idm-grid { grid-auto-rows: max-content; }
+/* Grade grande: o Chromium pula os itens fora da tela; `auto` guarda a altura real depois da primeira vez. */
+#rlc-root .rlc-idm-grid button { content-visibility: auto; contain-intrinsic-size: auto 64px auto 72px; }
+#rlc-root .rlc-idm-grid .rlc-idm-border { contain-intrinsic-size: auto 64px auto 92px; }
+#rlc-root .rlc-idm-grid[data-kind='skins'] button { contain-intrinsic-size: auto 150px auto 108px; }
+
+/* Detalhe da partida. */
+#rlc-root .rlc-md-result { margin: 0; font-family: var(--rlc-font-display); font-weight: 900; font-size: 48px; text-transform: uppercase; letter-spacing: 0.06em; }
+#rlc-root .rlc-md-team { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; font-variant-numeric: tabular-nums; background: var(--rlc-color-surface, rgba(20, 26, 43, 0.7)); border-radius: var(--rlc-radius-md, 10px); overflow: hidden; }
+#rlc-root .rlc-md-team td, #rlc-root .rlc-md-team th { padding: 6px 8px; border-bottom: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.1)); text-align: left; vertical-align: middle; }
+#rlc-root .rlc-md-team tbody tr:last-child td { border-bottom: 0; }
+#rlc-root .rlc-md-team th { color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); font-size: 12px; font-weight: 600; white-space: nowrap; }
+#rlc-root .rlc-md-team tr[data-me='true'] td { background: var(--rlc-color-hover, rgba(255, 255, 255, 0.06)); font-weight: 700; }
+#rlc-root .rlc-md-team small { display: block; font-size: 11px; font-weight: 400; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); }
+#rlc-root .rlc-md-who { display: inline-flex; align-items: center; gap: 8px; }
+#rlc-root .rlc-md-mini { flex: none; display: block; width: 22px; height: 22px; border-radius: 4px; background: var(--rlc-color-bg, #0b1020); }
+
+/* Placar: largura fixa por coluna; o nome é a única que estica (e corta com reticências). */
+#rlc-root .rlc-md-board { table-layout: fixed; min-width: 780px; }
+#rlc-root .rlc-md-board col[data-col='champ'] { width: 52px; }
+#rlc-root .rlc-md-board col[data-col='loadout'] { width: 54px; }
+#rlc-root .rlc-md-board col[data-col='kda'] { width: 84px; }
+#rlc-root .rlc-md-board col[data-col='cs'] { width: 74px; }
+#rlc-root .rlc-md-board col[data-col='items'] { width: 204px; }
+#rlc-root .rlc-md-board col[data-col='gold'] { width: 72px; }
+#rlc-root .rlc-md-board col[data-col='damage'] { width: 124px; }
+#rlc-root .rlc-md-side { font-weight: 700; color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-md-side::before { content: ''; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 2px; background: var(--rlc-color-teamBlueLine, #5aa0ff); }
+#rlc-root .rlc-md-board[data-team='200'] .rlc-md-side::before { background: var(--rlc-color-teamRedLine, #e66a6a); }
+#rlc-root .rlc-md-outcome { margin-left: 10px; font-weight: 400; }
+#rlc-root .rlc-md-champcell { position: relative; }
+#rlc-root .rlc-md-champ { display: block; width: 36px; height: 36px; border-radius: 6px; background: var(--rlc-color-bg, #0b1020); }
+#rlc-root .rlc-md-lvl { position: absolute; left: 30px; bottom: 3px; min-width: 18px; padding: 0 3px; border-radius: 4px; background: var(--rlc-color-bg, #0b1020); font-size: 10px; line-height: 15px; text-align: center; }
+#rlc-root .rlc-md-loadout { display: grid; grid-template-columns: repeat(2, 18px); gap: 2px; }
+#rlc-root .rlc-md-spell, #rlc-root .rlc-md-rune { display: block; width: 18px; height: 18px; border-radius: 4px; background: var(--rlc-color-bg, #0b1020); }
+#rlc-root .rlc-md-rune { border-radius: 50%; }
+#rlc-root .rlc-md-name span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-md-name small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-md-items { display: flex; gap: 2px; }
+#rlc-root .rlc-md-item { flex: none; display: block; width: 24px; height: 24px; border-radius: 4px; background: var(--rlc-color-bg, #0b1020); }
+/* O 7º encaixe é o amuleto: separado e redondo, como no client. */
+#rlc-root .rlc-md-item[data-slot='6'] { margin-left: 6px; border-radius: 50%; }
+#rlc-root .rlc-md-dmg .rlc-md-fill { display: block; height: 4px; margin-top: 4px; border-radius: 2px; background: var(--rlc-color-teamBlueLine, #5aa0ff); }
+#rlc-root .rlc-md-board[data-team='200'] .rlc-md-dmg .rlc-md-fill { background: var(--rlc-color-teamRedLine, #e66a6a); }
+
+/* Gráficos: ouro por time (linhas) ao lado do dano por jogador (barras); um embaixo do outro em tela estreita. */
+#rlc-root .rlc-md-charts { display: grid; grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr); gap: 16px; align-items: start; }
+@media (max-width: 1100px) { #rlc-root .rlc-md-charts { grid-template-columns: minmax(0, 1fr); } }
+#rlc-root .rlc-md-chart { margin: 0; padding: 14px 16px; border-radius: var(--rlc-radius-md, 10px); background: var(--rlc-color-surface, rgba(20, 26, 43, 0.7)); }
+#rlc-root .rlc-md-chart figcaption { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 10px; }
+#rlc-root .rlc-md-chart figcaption b { margin-right: auto; font-size: 14px; }
+#rlc-root .rlc-md-legend { font-size: 12px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-md-legend::before { content: ''; display: inline-block; width: 14px; height: 3px; margin-right: 6px; border-radius: 2px; vertical-align: middle; background: var(--rlc-color-teamBlueLine, #5aa0ff); }
+#rlc-root .rlc-md-legend[data-team='200']::before { background: var(--rlc-color-teamRedLine, #e66a6a); }
+#rlc-root .rlc-md-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+#rlc-root .rlc-md-grid line { stroke: var(--rlc-color-border, rgba(255, 255, 255, 0.1)); stroke-width: 1; vector-effect: non-scaling-stroke; }
+#rlc-root .rlc-md-chart text { fill: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); font-size: 11px; font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-md-chart polyline { fill: none; stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; stroke: var(--rlc-color-teamBlueLine, #5aa0ff); }
+#rlc-root .rlc-md-chart polyline[data-team='200'] { stroke: var(--rlc-color-teamRedLine, #e66a6a); }
+#rlc-root .rlc-md-hit { fill: transparent; }
+#rlc-root .rlc-md-hit:hover { fill: var(--rlc-color-hover, rgba(255, 255, 255, 0.06)); }
+#rlc-root .rlc-md-bars { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 12px; font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-md-bars li { display: grid; grid-template-columns: 22px minmax(0, 1fr) minmax(0, 1.6fr) 56px; gap: 8px; align-items: center; }
+#rlc-root .rlc-md-bars li[data-team='100'] + li[data-team='200'] { margin-top: 8px; }
+#rlc-root .rlc-md-bars li[data-me='true'] .rlc-md-barname { font-weight: 700; color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-md-barname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.75)); }
+#rlc-root .rlc-md-track { height: 8px; border-radius: 4px; background: var(--rlc-color-bg, #0b1020); overflow: hidden; }
+#rlc-root .rlc-md-track .rlc-md-fill { display: block; height: 100%; border-radius: 4px; background: var(--rlc-color-teamBlueLine, #5aa0ff); }
+#rlc-root .rlc-md-bars li[data-team='200'] .rlc-md-track .rlc-md-fill { background: var(--rlc-color-teamRedLine, #e66a6a); }
+#rlc-root .rlc-md-barval { text-align: right; }
+
+/*
+ * Histórico: quadro de vidro que sobe sobre o perfil, abaixo da faixa de herói. Vidro claro com blur forte
+ * (a arte de fundo continua aparecendo, só o bastante para ler), não um véu escuro.
+ */
+#rlc-root .rlc-profile.rlc-profile[data-tab='history'] > .rlc-pf-bg::after { background: linear-gradient(90deg, var(--rlc-color-scrim, rgba(6, 8, 15, 0.9)) 0%, transparent 70%), linear-gradient(0deg, var(--rlc-color-scrim, rgba(6, 8, 15, 0.8)) 0%, transparent 50%); }
+#rlc-root .rlc-profile[data-tab] > .rlc-pf-sheet { position: absolute; z-index: 3; top: calc(68px + clamp(72px, 13vh, 104px) + 24px); left: 32px; right: 32px; bottom: 0; display: flex; flex-direction: column; min-height: 0; padding: 20px 24px 0; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.14)); border-bottom: 0; border-radius: 20px 20px 0 0; background: linear-gradient(180deg, var(--rlc-color-sheetTop, rgba(16, 18, 30, 0.28)), var(--rlc-color-sheetBottom, rgba(12, 14, 24, 0.46))); backdrop-filter: blur(36px) saturate(1.35) brightness(0.8); box-shadow: 0 -12px 40px var(--rlc-color-shade, rgba(0, 0, 0, 0.3)); animation: rlc-drawer-up 350ms var(--rlc-pf-ease) both; }
+#rlc-root[data-motion='reduced'] .rlc-profile[data-tab] > .rlc-pf-sheet { animation-name: rlc-fade; }
+#rlc-root[data-motion='off'] .rlc-profile[data-tab] > .rlc-pf-sheet, #rlc-root[data-motion='off'] .rlc-profile[data-tab] > .rlc-pf-showcase, #rlc-root[data-motion='off'] .rlc-pf-name, #rlc-root[data-motion='off'] .rlc-pf-id[data-bare] { animation: none; transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  #rlc-root .rlc-profile[data-tab] > .rlc-pf-sheet { animation-name: rlc-fade; }
+  #rlc-root .rlc-profile[data-tab] > .rlc-pf-showcase, #rlc-root .rlc-pf-name, #rlc-root .rlc-pf-id[data-bare] { transition: none; }
+}
+#rlc-root .rlc-pf-sheet > .rlc-md { padding-bottom: 20px; overflow-x: auto; }
+
+/* Feed no centro, coluna de números à direita. */
+#rlc-root .rlc-pf-feedwrap { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; }
+#rlc-root .rlc-pf-sheet .rlc-mh { min-height: 0; }
+#rlc-root .rlc-pf-sheet .rlc-mh-list { flex: 1; gap: 14px; padding: 0 4px 20px 0; }
+#rlc-root .rlc-pf-sheet .rlc-mh > .rlc-button { align-self: center; margin-bottom: 20px; }
+#rlc-root .rlc-pf-day { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; }
+#rlc-root .rlc-pf-day > h3 { margin: 0; padding-top: 12px; font-size: 13px; font-weight: 600; text-align: right; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); }
+#rlc-root .rlc-pf-day > h3::first-letter { text-transform: uppercase; }
+#rlc-root .rlc-pf-day > div { display: flex; flex-direction: column; gap: 6px; padding-left: 14px; border-left: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.18)); }
+/* Linha da partida: a borda esquerda é o resultado (vitória/derrota), não enfeite. */
+#rlc-root .rlc-pf-sheet .rlc-mh-row { grid-template-columns: 36px 72px minmax(0, 1fr) auto 48px; gap: 12px; padding: 6px 12px 6px 8px; border-left: 3px solid var(--rlc-color-win, #5fd18a); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.05)); transition: background var(--rlc-motion-duration, 200ms) var(--rlc-motion-easing, ease); }
+#rlc-root .rlc-pf-sheet .rlc-mh-row[data-win='false'] { border-left-color: var(--rlc-color-loss, #e66a6a); }
+#rlc-root .rlc-pf-sheet .rlc-mh-row:hover { outline: 0; background: var(--rlc-color-glassCardHover, rgba(255, 255, 255, 0.1)); }
+#rlc-root .rlc-pf-sheet .rlc-mh-row:focus-visible { outline: 2px solid var(--rlc-color-text, #fff); outline-offset: 2px; }
+#rlc-root .rlc-pf-sheet .rlc-mh-row img, #rlc-root .rlc-pf-sheet .rlc-mh-icon { width: 36px; height: 36px; }
+#rlc-root .rlc-mh-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); }
+#rlc-root .rlc-mh-kda, #rlc-root .rlc-pf-sheet .rlc-mh-row small { font-variant-numeric: tabular-nums; text-align: right; }
+
+#rlc-root .rlc-pf-aside { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px; }
+#rlc-root .rlc-pf-panel { padding: 12px 14px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.12)); border-radius: var(--rlc-radius-md, 10px); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.05)); }
+#rlc-root .rlc-pf-panel > h4 { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 10px; font-size: 12px; font-weight: 700; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+#rlc-root .rlc-pf-panel > h4 span + span { font-weight: 400; }
+#rlc-root .rlc-pf-bar { display: block; height: 4px; border-radius: 2px; overflow: hidden; background: var(--rlc-color-track, rgba(255, 255, 255, 0.12)); }
+#rlc-root .rlc-pf-bar > i { display: block; height: 100%; border-radius: 2px; background: var(--rlc-color-accent, #5fd3b0); }
+#rlc-root .rlc-pf-elo { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; grid-template-areas: 'crest tier meta' 'crest bar bar'; gap: 3px 8px; align-items: center; margin-bottom: 10px; font-size: 13px; }
+#rlc-root .rlc-pf-elo:last-child { margin-bottom: 0; }
+#rlc-root .rlc-pf-elo > :first-child { grid-area: crest; width: 24px; height: 24px; }
+#rlc-root .rlc-pf-elo > b { grid-area: tier; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-pf-elo > small { grid-area: meta; font-size: 11px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); }
+#rlc-root .rlc-pf-elo > .rlc-pf-bar { grid-area: bar; }
+#rlc-root .rlc-pf-roles { display: grid; grid-template-columns: 64px minmax(0, 1fr) 40px; gap: 6px 8px; align-items: center; font-size: 13px; font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-pf-roles > small { font-size: 10px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); }
+#rlc-root .rlc-pf-roles > :nth-child(3n) { text-align: right; }
+#rlc-root .rlc-pf-roles .rlc-pf-bar > i { background: var(--rlc-color-text, #fff); opacity: 0.8; }
+#rlc-root .rlc-pf-kda { display: block; width: 100%; height: 48px; }
+#rlc-root .rlc-pf-kda line { stroke: var(--rlc-color-border, rgba(255, 255, 255, 0.2)); stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+#rlc-root .rlc-pf-kda polyline { fill: none; stroke: var(--rlc-color-accent, #5fd3b0); stroke-width: 1.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+@media (max-width: 1100px) { #rlc-root .rlc-pf-feedwrap { grid-template-columns: minmax(0, 1fr) 240px; gap: 18px; } }
+
+/* Seletor de jogo do quadro (LoL | TFT): segmento único acima dos filtros, porque troca o quadro inteiro. */
+#rlc-root .rlc-pf-game { display: inline-flex; align-self: flex-start; padding: 3px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.16)); border-radius: var(--rlc-radius-pill, 99px); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.05)); }
+#rlc-root .rlc-pf-game button { min-width: 64px; padding: 6px 16px; border: 0; border-radius: var(--rlc-radius-pill, 99px); background: transparent; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); font: inherit; font-weight: 700; cursor: pointer; transition: background var(--rlc-motion-duration, 200ms) var(--rlc-motion-easing, ease), color var(--rlc-motion-duration, 200ms) var(--rlc-motion-easing, ease); }
+#rlc-root .rlc-pf-game button[aria-pressed='true'] { background: var(--rlc-color-accent, #5fd3b0); color: var(--rlc-color-onAccent, #0b1020); }
+#rlc-root .rlc-pf-game button:focus-visible { outline: 2px solid var(--rlc-color-text, #fff); outline-offset: 2px; }
+
+/*
+ * TFT: a colocação é o resultado (como vitória/derrota no LoL). 1º em dourado, metade de cima com a cor de vitória,
+ * metade de baixo com a de derrota; a borda esquerda da linha segue a mesma faixa.
+ */
+#rlc-root .rlc-pf-sheet .rlc-mh-row.rlc-tft-row { grid-template-columns: 48px 40px minmax(0, 1fr) 48px; align-items: center; }
+#rlc-root .rlc-pf-sheet .rlc-tft-row[data-band='first'] { border-left-color: var(--rlc-color-highlight, #e7c25a); }
+#rlc-root .rlc-pf-sheet .rlc-tft-row[data-band='bottom'] { border-left-color: var(--rlc-color-loss, #e66a6a); }
+#rlc-root .rlc-tft-place { font-family: var(--rlc-font-display); font-size: 26px; font-weight: 900; line-height: 1; text-align: center; font-variant-numeric: tabular-nums; color: var(--rlc-color-win, #5fd18a); }
+#rlc-root [data-band='first'] > .rlc-tft-place, #rlc-root .rlc-md-result[data-band='first'] { color: var(--rlc-color-highlight, #e7c25a); }
+#rlc-root [data-band='bottom'] > .rlc-tft-place { color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); }
+#rlc-root .rlc-pf-sheet .rlc-tft-row .rlc-tft-legend, #rlc-root .rlc-tft-legend { display: block; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--rlc-color-bg, #0b1020); }
+#rlc-root .rlc-tft-body { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+#rlc-root .rlc-tft-sub { display: flex; align-items: center; gap: 12px; min-width: 0; }
+#rlc-root .rlc-tft-sub .rlc-mh-meta { font-size: 12px; }
+
+/* Unidade: estrelas em cima, retrato com a borda pela cor do custo (a mesma escala do pós-jogo). */
+#rlc-root .rlc-tft-units { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+#rlc-root .rlc-tft-unit { --rlc-tft-u: 30px; display: flex; flex-direction: column; align-items: center; width: var(--rlc-tft-u); }
+#rlc-root .rlc-tft-units[data-size='lg'] .rlc-tft-unit { --rlc-tft-u: 40px; }
+#rlc-root .rlc-pf-sheet .rlc-tft-unit > img, #rlc-root .rlc-tft-unit > img, #rlc-root .rlc-tft-noart { box-sizing: border-box; display: block; width: var(--rlc-tft-u); height: var(--rlc-tft-u); border: 2px solid var(--rlc-color-border, rgba(255, 255, 255, 0.3)); border-radius: var(--rlc-radius-sm, 6px); object-fit: cover; background: var(--rlc-color-bg, #0b1020); }
+#rlc-root .rlc-tft-noart { overflow: hidden; font-size: 9px; line-height: calc(var(--rlc-tft-u) - 4px); text-align: center; }
+#rlc-root .rlc-tft-unit[data-cost='2'] > :nth-child(2) { border-color: var(--rlc-color-win, #5fd18a); }
+#rlc-root .rlc-tft-unit[data-cost='3'] > :nth-child(2) { border-color: var(--rlc-color-teamBlueLine, #5aa0ff); }
+#rlc-root .rlc-tft-unit[data-cost='4'] > :nth-child(2) { border-color: var(--rlc-color-rarityEpic, #c77dff); }
+#rlc-root .rlc-tft-unit[data-cost='5'] > :nth-child(2) { border-color: var(--rlc-color-highlight, #ffd36b); }
+#rlc-root .rlc-tft-stars { height: 10px; font-size: 9px; line-height: 10px; letter-spacing: -1px; white-space: nowrap; color: var(--rlc-color-tierBronze, #c08a5c); }
+#rlc-root .rlc-tft-unit[data-stars='2'] .rlc-tft-stars { color: var(--rlc-color-tierSilver, #c9d3dc); }
+#rlc-root .rlc-tft-unit[data-stars='3'] .rlc-tft-stars, #rlc-root .rlc-tft-unit[data-stars='4'] .rlc-tft-stars { color: var(--rlc-color-highlight, #ffd36b); }
+#rlc-root .rlc-tft-items { display: flex; justify-content: center; gap: 1px; min-height: 13px; margin-top: 2px; }
+#rlc-root .rlc-pf-sheet .rlc-tft-items img, #rlc-root .rlc-tft-items img { display: block; width: 13px; height: 13px; border-radius: 2px; }
+
+/* Traço: hexágono na cor do estágio (bronze, prata, ouro, prismático), como no jogo, com o número de unidades ao lado. */
+#rlc-root .rlc-tft-traits { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; }
+#rlc-root .rlc-tft-trait { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-pf-sheet .rlc-tft-trait > img, #rlc-root .rlc-tft-trait > img { box-sizing: border-box; display: block; width: 22px; height: 22px; padding: 4px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); border-radius: 0; background: var(--rlc-color-tierBronze, #a5704c); }
+#rlc-root .rlc-tft-trait[data-style='2'] > img { background: var(--rlc-color-tierSilver, #a9b6c2); }
+#rlc-root .rlc-tft-trait[data-style='3'] > img { background: var(--rlc-color-tierGold, #e7c25a); }
+#rlc-root .rlc-tft-trait[data-style='4'] > img { background: linear-gradient(135deg, var(--rlc-color-tierDiamond, #7fb4ff), var(--rlc-color-tierMaster, #c77dff), var(--rlc-color-tierEmerald, #4fd1a5)); }
+#rlc-root .rlc-tft-trait > i { font-style: normal; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+#rlc-root .rlc-tft-trait > b { font-weight: 700; }
+
+/* Detalhe: a classificação dos oito em linhas; a sua realçada; no Double Up, um respiro entre as duplas. */
+#rlc-root .rlc-tft-standings { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 0; padding: 0; list-style: none; }
+#rlc-root .rlc-tft-standings > li { display: grid; grid-template-columns: 48px 40px 150px minmax(0, 1fr) minmax(0, 240px); gap: 12px; align-items: center; padding: 8px 12px 8px 8px; border-left: 3px solid var(--rlc-color-win, #5fd18a); border-radius: var(--rlc-radius-sm, 6px); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.05)); }
+#rlc-root .rlc-tft-standings > li[data-band='first'] { border-left-color: var(--rlc-color-highlight, #e7c25a); }
+#rlc-root .rlc-tft-standings > li[data-band='bottom'] { border-left-color: var(--rlc-color-loss, #e66a6a); }
+#rlc-root .rlc-tft-standings > li[data-me='true'] { background: var(--rlc-color-glassCardHover, rgba(255, 255, 255, 0.1)); }
+#rlc-root .rlc-tft-standings > li[data-me='true'] .rlc-tft-who > span { font-weight: 700; }
+#rlc-root .rlc-tft-standings > li[data-pair]:nth-child(2n + 1):not(:first-child) { margin-top: 8px; }
+#rlc-root .rlc-tft-who { min-width: 0; display: flex; flex-direction: column; }
+#rlc-root .rlc-tft-who > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-tft-who > small { font-size: 11px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); }
+@media (max-width: 1100px) { #rlc-root .rlc-tft-standings > li { grid-template-columns: 40px 32px 110px minmax(0, 1fr); } #rlc-root .rlc-tft-standings .rlc-tft-traits { grid-column: 3 / -1; } }
+
+/* Coluna do TFT: três números, as colocações em fila (mais recente à esquerda), traços e unidades mais usados. */
+#rlc-root .rlc-tft-numbers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }
+#rlc-root .rlc-tft-numbers dt { font-size: 11px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); }
+#rlc-root .rlc-tft-numbers dd { margin: 2px 0 0; font-family: var(--rlc-font-display); font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-tft-strip { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; margin: 0; padding: 0; list-style: none; }
+#rlc-root .rlc-tft-strip li { padding: 3px 0; border-radius: 3px; font-size: 11px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; background: var(--rlc-color-track, rgba(255, 255, 255, 0.12)); color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-tft-strip li[data-band='first'] { background: var(--rlc-color-highlight, #e7c25a); color: var(--rlc-color-onAccent, #0b1020); }
+#rlc-root .rlc-tft-strip li[data-band='top'] { box-shadow: inset 0 -2px 0 var(--rlc-color-win, #5fd18a); }
+#rlc-root .rlc-tft-top, #rlc-root .rlc-tft-topunits { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+#rlc-root .rlc-tft-top li { display: grid; grid-template-columns: 22px minmax(0, 1fr) 60px 20px; gap: 8px; align-items: center; }
+#rlc-root .rlc-tft-top li > span:not(.rlc-pf-bar) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-tft-top small, #rlc-root .rlc-tft-topunits small { text-align: right; font-variant-numeric: tabular-nums; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); }
+#rlc-root .rlc-tft-topicon { box-sizing: border-box; display: block; width: 22px; height: 22px; padding: 4px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: var(--rlc-color-track, rgba(255, 255, 255, 0.16)); }
+#rlc-root .rlc-tft-topunits { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#rlc-root .rlc-tft-topunits li { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+#rlc-root .rlc-tft-topunits li > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+#rlc-root .rlc-tft-topunit { display: block; width: 40px; height: 40px; border-radius: var(--rlc-radius-sm, 6px); object-fit: cover; background: var(--rlc-color-bg, #0b1020); }

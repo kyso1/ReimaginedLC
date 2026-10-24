@@ -1,0 +1,88 @@
+/* collection: estilos da tela, carregados por @import em styles.css. Cores só por var(--rlc-*, reserva). */
+/* `.rlc-collection.rlc-cv` vence a regra antiga de .rlc-collection em styles.css (este arquivo carrega antes). */
+#rlc-root .rlc-collection.rlc-cv { flex-direction: row; padding: 0; }
+
+/* Barra lateral · Splash do favorito */
+#rlc-root .rlc-cv-side { position: relative; flex: 0 0 260px; display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.12)); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(10, 12, 20, 0.58)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.76))); backdrop-filter: blur(16px) brightness(0.75); overflow: hidden; }
+#rlc-root .rlc-cv-hero { position: relative; flex: none; height: 180px; background-color: var(--rlc-color-surface, rgba(255, 255, 255, 0.04)); background-size: cover; background-position: center 22%; animation: rlc-fade var(--rlc-motion-duration) var(--rlc-motion-easing) both; }
+#rlc-root .rlc-cv-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, var(--rlc-color-fade, rgba(10, 12, 20, 0.1)), var(--rlc-color-scrim, rgba(10, 12, 20, 0.95))); }
+#rlc-root .rlc-cv-hero-in { position: absolute; z-index: 1; left: 16px; right: 16px; bottom: 12px; display: flex; flex-direction: column; }
+#rlc-root .rlc-cv-hero-in small { color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); font-size: 11px; }
+#rlc-root .rlc-cv-hero-in b { font-family: var(--rlc-font-display); font-size: 24px; line-height: 1.1; }
+#rlc-root .rlc-cv-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 14px; }
+#rlc-root .rlc-cv-stats div { display: flex; flex-direction: column; padding: 7px 10px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.12)); border-radius: var(--rlc-radius-md, 8px); }
+#rlc-root .rlc-cv-stats b { font-size: 16px; }
+#rlc-root .rlc-cv-stats small { font-size: 11px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); }
+#rlc-root .rlc-cv-nav { position: relative; flex: 1 1 auto; display: flex; flex-direction: column; padding: 0 8px; overflow-y: auto; min-height: 0; }
+#rlc-root .rlc-cv-sec { padding: 10px 10px 4px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.5)); }
+#rlc-root .rlc-cv-nav button { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; padding: 7px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); font: inherit; font-size: 13px; text-align: left; cursor: pointer; transition: color var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-cv-nav button:hover, #rlc-root .rlc-cv-nav button[aria-current='page'] { color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-cv-nav button[aria-current='page'] { font-weight: 700; }
+#rlc-root .rlc-cv-nav button small { margin-left: auto; font-size: 11px; opacity: 0.6; }
+#rlc-root .rlc-cv-ic { flex: none; width: 16px; height: 16px; }
+#rlc-root .rlc-cv-ic * { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#rlc-root .rlc-cv-mark { position: absolute; left: 8px; right: 8px; border-radius: 8px; background: var(--rlc-color-glassCardHover, rgba(255, 255, 255, 0.1)); border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.22)); transition: top 350ms cubic-bezier(0.3, 0.9, 0.3, 1), height 350ms cubic-bezier(0.3, 0.9, 0.3, 1); }
+#rlc-root .rlc-cv-wallet { margin-top: auto; padding: 12px 16px; border-top: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.12)); }
+
+/* Área principal */
+#rlc-root .rlc-cv-main { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 24px 28px 0; overflow: hidden; }
+#rlc-root .rlc-cv-main > * { flex: 1; min-height: 0; }
+
+/* Vitrine: busca + chips, grade de retratos, gaveta à direita */
+#rlc-root .rlc-vt { position: relative; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+#rlc-root .rlc-vt-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+#rlc-root .rlc-vt-search { flex: 0 1 260px; padding: 7px 12px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.18)); border-radius: 8px; background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.04)); color: var(--rlc-color-text, #fff); font: inherit; font-size: 13px; }
+#rlc-root .rlc-vt-chip { padding: 5px 12px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.2)); border-radius: var(--rlc-radius-pill, 99px); background: transparent; color: var(--rlc-color-text, #fff); font: inherit; font-size: 12px; white-space: nowrap; cursor: pointer; }
+#rlc-root .rlc-vt-chip[aria-pressed='true'] { background: var(--rlc-color-accent, #fff); color: var(--rlc-color-onAccent, #1b1b2a); border-color: transparent; }
+#rlc-root .rlc-vt-sep { align-self: stretch; width: 1px; margin: 0 4px; background: var(--rlc-color-border, rgba(255, 255, 255, 0.2)); }
+#rlc-root .rlc-vt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); align-content: start; gap: 10px; padding: 4px 4px 24px 0; overflow-y: auto; min-height: 0; }
+#rlc-root .rlc-vt[data-square='true'] .rlc-vt-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+#rlc-root .rlc-vt-group { grid-column: 1 / -1; margin: 10px 0 0; font-size: 13px; font-weight: 700; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+#rlc-root .rlc-vt-tile { position: relative; aspect-ratio: 3 / 4.4; padding: 0; border: 0; border-radius: 8px; overflow: hidden; background: var(--rlc-color-surface, rgba(255, 255, 255, 0.04)); color: var(--rlc-color-text, #fff); font: inherit; cursor: pointer; transition: transform 200ms var(--rlc-motion-easing), box-shadow 200ms var(--rlc-motion-easing); }
+#rlc-root .rlc-vt[data-square='true'] .rlc-vt-tile { aspect-ratio: 1; }
+#rlc-root .rlc-vt-tile:hover, #rlc-root .rlc-vt-tile:focus-visible { transform: translateY(-3px); box-shadow: 0 8px 18px var(--rlc-color-shade, rgba(0, 0, 0, 0.4)); }
+#rlc-root .rlc-vt-tile img { display: block; width: 100%; height: 100%; object-fit: cover; }
+#rlc-root .rlc-vt[data-square='true'] .rlc-vt-tile img { object-fit: contain; padding: 10px 10px 22px; }
+/* Nome centralizado sobre um degradê que escurece o pé do retrato */
+#rlc-root .rlc-vt-tile::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 46%; background: linear-gradient(180deg, transparent 0%, var(--rlc-color-fade, rgba(6, 8, 14, 0.55)) 45%, var(--rlc-color-scrim, rgba(6, 8, 14, 0.92)) 100%); pointer-events: none; }
+#rlc-root .rlc-vt-name { position: absolute; z-index: 1; left: 6px; right: 6px; bottom: 8px; font-size: 12px; font-weight: 700; text-align: center; text-shadow: 0 1px 3px var(--rlc-color-textShadow, #000); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#rlc-root .rlc-vt-pill { position: absolute; z-index: 1; top: 6px; left: 50%; transform: translateX(-50%); padding: 1px 8px; border-radius: var(--rlc-radius-pill, 99px); background: var(--rlc-color-scrim, rgba(6, 8, 14, 0.65)); backdrop-filter: blur(4px); font-size: 10px; font-weight: 700; white-space: nowrap; }
+#rlc-root .rlc-vt-tile[data-owned='false'] img { filter: grayscale(1) brightness(0.4); }
+#rlc-root .rlc-vt-tile[data-owned='false'] .rlc-vt-name { color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.55)); }
+
+/* Gaveta de vidro deslizando da direita */
+#rlc-root .rlc-vt-drawer { position: absolute; z-index: 3; top: -24px; right: -28px; bottom: 0; width: min(420px, 90%); display: flex; flex-direction: column; border-left: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.14)); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(10, 12, 20, 0.58)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.82))); backdrop-filter: blur(24px) brightness(0.6); box-shadow: -12px 0 40px var(--rlc-color-shade, rgba(0, 0, 0, 0.4)); overflow-y: auto; animation: rlc-cv-drawer 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes rlc-cv-drawer { from { transform: translateX(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+#rlc-root .rlc-vt-splash { flex: none; height: 240px; background-size: cover; background-position: center 20%; -webkit-mask-image: linear-gradient(180deg, var(--rlc-color-mask, #000) 60%, transparent); mask-image: linear-gradient(180deg, var(--rlc-color-mask, #000) 60%, transparent); }
+#rlc-root .rlc-vt[data-square='true'] .rlc-vt-splash { height: 180px; background-size: contain; background-repeat: no-repeat; background-position: center; margin-top: 24px; }
+#rlc-root .rlc-vt-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.2)); border-radius: 50%; background: var(--rlc-color-scrim, rgba(6, 8, 14, 0.6)); color: var(--rlc-color-text, #fff); font: inherit; cursor: pointer; }
+#rlc-root .rlc-vt-info { padding: 0 22px 24px; }
+#rlc-root .rlc-vt-kicker { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); }
+#rlc-root .rlc-vt-title { margin: 2px 0 8px; font-family: var(--rlc-font-display); font-size: 30px; line-height: 1.1; }
+#rlc-root .rlc-vt-line { margin: 4px 0; font-size: 13px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.75)); }
+#rlc-root .rlc-vt-sub { margin: 16px 0 8px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); }
+#rlc-root .rlc-vt-skins { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+#rlc-root .rlc-vt-skin { margin: 0; }
+#rlc-root .rlc-vt-skin img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; }
+#rlc-root .rlc-vt-skin figcaption { margin-top: 4px; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#rlc-root .rlc-vt-dots { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+#rlc-root .rlc-vt-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--rlc-color-text, #fff); background: var(--rlc-color-surface, rgba(255, 255, 255, 0.2)); }
+#rlc-root .rlc-vt-dot[data-owned='false'] { opacity: 0.3; }
+#rlc-root .rlc-vt-modes { display: flex; flex-wrap: wrap; gap: 6px; }
+#rlc-root .rlc-vt-modes span { padding: 3px 10px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.2)); border-radius: var(--rlc-radius-pill, 99px); font-size: 12px; }
+/* Com overflow escondido no cartão, o Chromium não usa o aspect-ratio para medir a linha: as linhas ficavam com 10 px
+   e os retratos se sobrepunham. A linha passa a medir o conteúdo pela altura máxima. */
+#rlc-root .rlc-vt-grid { grid-auto-rows: max-content; }
+/* Grade grande: o Chromium pula layout/pintura dos itens fora da tela (o aspect-ratio mantém o tamanho exato). */
+#rlc-root .rlc-vt-tile { content-visibility: auto; contain-intrinsic-size: auto 112px auto 164px; }
+
+/* Barra de filtros: chips com contador e listas suspensas de vidro, numa faixa só que quebra quando falta largura */
+#rlc-root .rlc-vt-tools { gap: 6px 8px; }
+#rlc-root .rlc-vt-chip small { margin-left: 6px; font-size: 11px; opacity: 0.65; }
+#rlc-root .rlc-vt-select { max-width: 200px; padding: 5px 10px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.2)); border-radius: 8px; background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.04)); color: var(--rlc-color-text, #fff); color-scheme: dark; font: inherit; font-size: 12px; cursor: pointer; }
+#rlc-root .rlc-vt-select option { background: var(--rlc-color-menu, #161a26); color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-vt-select:hover { background: var(--rlc-color-glassCardHover, rgba(255, 255, 255, 0.1)); }
+#rlc-root .rlc-vt-chip:focus-visible, #rlc-root .rlc-vt-select:focus-visible, #rlc-root .rlc-vt-search:focus-visible { outline: 2px solid var(--rlc-color-accent, #fff); outline-offset: 1px; }
+/* Splash da gaveta e do favorito trocam com fusão (Crossfade ocupa o bloco inteiro). */
+#rlc-root .rlc-vt-splash { position: relative; }
+#rlc-root .rlc-vt[data-square='true'] .rlc-vt-splash .rlc-xfade-layer { background-size: contain; background-repeat: no-repeat; background-position: center; }

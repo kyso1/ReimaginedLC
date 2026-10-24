@@ -1,0 +1,133 @@
+/* runes: estilos da tela, carregados por @import em styles.css. Cores só por var(--rlc-*, reserva). */
+
+/* Coleção › Runas: cartões das páginas */
+#rlc-root .rlc-rp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; align-content: start; overflow-y: auto; min-height: 0; padding: 4px; }
+#rlc-root .rlc-rp-card { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px 10px 12px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.14)); border-radius: var(--rlc-radius-md, 10px); background: linear-gradient(180deg, var(--rlc-color-surface, rgba(10, 12, 20, 0.55)), var(--rlc-color-shade, rgba(10, 12, 20, 0.8))); backdrop-filter: blur(var(--rlc-blur-surface, 16px)) brightness(0.8); color: var(--rlc-color-text, #fff); font: inherit; cursor: pointer; transition: border-color var(--rlc-motion-duration, 0.2s) var(--rlc-motion-easing, ease); }
+#rlc-root .rlc-rp-card:hover, #rlc-root .rlc-rp-card[aria-pressed='true'] { border-color: var(--rlc-color-highlight, #c8a04a); }
+#rlc-root .rlc-rp-card:disabled { opacity: 0.5; cursor: default; }
+#rlc-root .rlc-rp-icons { position: relative; width: 64px; height: 64px; }
+#rlc-root .rlc-rp-key { width: 64px; height: 64px; }
+#rlc-root .rlc-rp-sub { position: absolute; right: -6px; bottom: -2px; width: 24px; height: 24px; padding: 2px; border-radius: 50%; background: var(--rlc-color-bg, #0b1020); }
+#rlc-root .rlc-rp-plus { display: grid; place-items: center; width: 64px; height: 64px; border: 1px dashed var(--rlc-color-border, rgba(255, 255, 255, 0.3)); border-radius: 50%; font-size: 26px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); }
+#rlc-root .rlc-rp-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+
+/* Editor */
+#rlc-root .rlc-re { --c: var(--rlc-color-highlight, #c8aa6e); position: relative; z-index: 5; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr) auto; gap: 12px 16px; padding: 14px 22px 12px; border-radius: var(--rlc-radius-md, 10px); background: var(--rlc-color-bg, #0b1020); color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-champselect > .rlc-re[data-mode='overlay'] { grid-column: 2 / 4; grid-row: 1 / 3; margin-bottom: 16px; }
+#rlc-root .rlc-re[data-mode='full'] { position: absolute; inset: 0 48px 16px; }
+/* Fundo: splash do campeão desfocada e sem cor, tingida pelas árvores principal e secundária (blend color) e escurecida
+   à esquerda, onde ficam as runas. As cores das árvores são propriedades registradas para a troca animar. */
+@property --re-p { syntax: '<color>'; inherits: false; initial-value: transparent; }
+@property --re-s { syntax: '<color>'; inherits: false; initial-value: transparent; }
+#rlc-root .rlc-re-art { --re-p: var(--rlc-color-highlight, #c8aa6e); --re-s: var(--rlc-color-highlight, #c8aa6e); position: absolute; inset: 0; z-index: 0; overflow: hidden; transition: --re-p 0.35s var(--rlc-motion-easing, ease), --re-s 0.35s var(--rlc-motion-easing, ease); }
+#rlc-root .rlc-re-art[data-primary='8000'] { --re-p: var(--rlc-color-runePrecision, #c8aa6e); }
+#rlc-root .rlc-re-art[data-primary='8100'] { --re-p: var(--rlc-color-runeDomination, #d44242); }
+#rlc-root .rlc-re-art[data-primary='8200'] { --re-p: var(--rlc-color-runeSorcery, #9faafc); }
+#rlc-root .rlc-re-art[data-primary='8300'] { --re-p: var(--rlc-color-runeInspiration, #49aab9); }
+#rlc-root .rlc-re-art[data-primary='8400'] { --re-p: var(--rlc-color-runeResolve, #a1d586); }
+#rlc-root .rlc-re-art[data-sub='8000'] { --re-s: var(--rlc-color-runePrecision, #c8aa6e); }
+#rlc-root .rlc-re-art[data-sub='8100'] { --re-s: var(--rlc-color-runeDomination, #d44242); }
+#rlc-root .rlc-re-art[data-sub='8200'] { --re-s: var(--rlc-color-runeSorcery, #9faafc); }
+#rlc-root .rlc-re-art[data-sub='8300'] { --re-s: var(--rlc-color-runeInspiration, #49aab9); }
+#rlc-root .rlc-re-art[data-sub='8400'] { --re-s: var(--rlc-color-runeResolve, #a1d586); }
+#rlc-root .rlc-re-art-splash { position: absolute; inset: 0; background-size: cover; background-position: center 20%; filter: blur(8px) grayscale(1) brightness(0.8); transform: scale(1.08); animation: rlc-fade var(--rlc-motion-duration) var(--rlc-motion-easing) both; }
+#rlc-root .rlc-re-art::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, var(--re-p), var(--re-s)); mix-blend-mode: color; }
+#rlc-root .rlc-re-art::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, var(--rlc-color-shade, rgba(8, 9, 15, 0.78)), var(--rlc-color-fade, rgba(8, 9, 15, 0.3))); }
+#rlc-root .rlc-re > :not(.rlc-re-art):not(.rlc-re-tip):not(.rlc-veil) { position: relative; z-index: 1; }
+
+#rlc-root .rlc-re-top { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
+#rlc-root .rlc-re-name { position: relative; display: flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.18)); border-radius: var(--rlc-radius-sm, 8px); }
+#rlc-root .rlc-re-name-input { width: 200px; border: 0; background: transparent; color: inherit; font: inherit; font-size: 15px; font-weight: 700; outline: none; }
+#rlc-root .rlc-re-list-toggle, #rlc-root .rlc-re-close { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.3)); border-radius: 50%; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+#rlc-root .rlc-re-list-toggle { border-color: transparent; }
+#rlc-root .rlc-re-close { margin-left: auto; }
+#rlc-root .rlc-re-list { position: absolute; left: 0; top: calc(100% + 6px); z-index: 6; display: flex; flex-direction: column; min-width: 100%; max-height: 320px; overflow-y: auto; padding: 6px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.14)); border-radius: var(--rlc-radius-md, 10px); background: var(--rlc-color-bg, #0b1020); }
+#rlc-root .rlc-re-list-item { padding: 7px 10px; border: 0; border-radius: var(--rlc-radius-sm, 6px); background: transparent; color: inherit; font: inherit; text-align: left; white-space: nowrap; cursor: pointer; }
+#rlc-root .rlc-re-list-item:hover, #rlc-root .rlc-re-list-item[aria-checked='true'] { background: var(--rlc-color-surface, rgba(255, 255, 255, 0.08)); }
+#rlc-root .rlc-re-chip, #rlc-root .rlc-re-vs-all { margin-left: 14px; padding: 4px 11px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.25)); border-radius: var(--rlc-radius-pill, 99px); background: transparent; color: inherit; font: inherit; font-size: 12px; white-space: nowrap; cursor: pointer; }
+#rlc-root .rlc-re-chip[aria-pressed='true'], #rlc-root .rlc-re-vs-all[aria-pressed='true'] { background: var(--rlc-color-text, #fff); color: var(--rlc-color-bg, #1b1b2a); border-color: transparent; font-weight: 700; }
+
+/* Colunas: principal e secundária com a trilha vertical colorida pela árvore */
+#rlc-root .rlc-re-cols { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 360px); gap: 18px; min-height: 0; overflow-y: auto; }
+#rlc-root .rlc-re-col { position: relative; display: flex; flex-direction: column; gap: 10px; }
+#rlc-root .rlc-re-col[data-tree='8000'] { --c: var(--rlc-color-runePrecision, #c8aa6e); }
+#rlc-root .rlc-re-col[data-tree='8100'] { --c: var(--rlc-color-runeDomination, #d44242); }
+#rlc-root .rlc-re-col[data-tree='8200'] { --c: var(--rlc-color-runeSorcery, #9faafc); }
+#rlc-root .rlc-re-col[data-tree='8300'] { --c: var(--rlc-color-runeInspiration, #49aab9); }
+#rlc-root .rlc-re-col[data-tree='8400'] { --c: var(--rlc-color-runeResolve, #a1d586); }
+#rlc-root .rlc-re-trees { display: flex; align-items: center; gap: 8px; }
+#rlc-root .rlc-re-tree-big { display: grid; place-items: center; width: 46px; height: 46px; border: 2px solid var(--c); border-radius: 50%; box-shadow: 0 0 14px var(--c); background: var(--rlc-color-shade, rgba(0, 0, 0, 0.35)); }
+#rlc-root .rlc-re-tree-big img { width: 30px; height: 30px; }
+#rlc-root .rlc-re-col[data-side='sub'] .rlc-re-tree-big { width: 38px; height: 38px; }
+#rlc-root .rlc-re-col[data-side='sub'] .rlc-re-tree-big img { width: 24px; height: 24px; }
+#rlc-root .rlc-re-tree-name { color: var(--c); font-size: 15px; }
+#rlc-root .rlc-re-tree-pick { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: transparent; opacity: 0.5; cursor: pointer; transition: opacity var(--rlc-motion-duration, 0.2s); }
+#rlc-root .rlc-re-tree-pick:hover, #rlc-root .rlc-re-tree-pick:focus-visible { opacity: 0.9; }
+#rlc-root .rlc-re-tree-pick img { width: 22px; height: 22px; }
+#rlc-root .rlc-re-rows { position: relative; display: flex; flex-direction: column; gap: 8px; padding-left: 50px; }
+#rlc-root .rlc-re-rows::before { content: ''; position: absolute; left: 22px; top: 0; bottom: 8px; width: 2px; background: linear-gradient(var(--c), var(--rlc-color-border, rgba(255, 255, 255, 0.08))); }
+#rlc-root .rlc-re-label { margin-bottom: -4px; color: var(--c); font-size: 11px; letter-spacing: 0.02em; }
+#rlc-root .rlc-re-slot { position: relative; display: flex; align-items: center; gap: 12px; min-height: 44px; }
+#rlc-root .rlc-re-slot::before { content: ''; position: absolute; left: -33px; top: 50%; width: 10px; height: 10px; margin-top: -7px; border: 2px solid var(--c); border-radius: 50%; background: var(--rlc-color-bg, #0b1020); }
+#rlc-root .rlc-re-slot[data-done='true']::before { background: var(--c); }
+#rlc-root .rlc-re-shards { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+#rlc-root .rlc-re-slot[data-kind='shard'] { --c: var(--rlc-color-text, #fff); min-height: 28px; }
+#rlc-root .rlc-re-rune { position: relative; flex: none; display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; filter: grayscale(1) brightness(0.55); transition: filter var(--rlc-motion-duration, 0.2s), transform var(--rlc-motion-duration, 0.2s); }
+#rlc-root .rlc-re-rune img { width: 100%; height: 100%; border-radius: 50%; }
+#rlc-root .rlc-re-rune:hover, #rlc-root .rlc-re-rune:focus-visible { filter: grayscale(0.3) brightness(0.9); transform: scale(1.06); }
+#rlc-root .rlc-re-rune[aria-pressed='true'] { filter: none; box-shadow: 0 0 0 2px var(--c), 0 0 12px var(--c); }
+#rlc-root .rlc-re-rune[data-kind='key'] { width: 52px; height: 52px; }
+#rlc-root .rlc-re-rune[data-kind='key'][aria-pressed='true'] { box-shadow: none; filter: drop-shadow(0 0 8px var(--c)); }
+#rlc-root .rlc-re-rune[data-kind='shard'] { width: 24px; height: 24px; filter: grayscale(1) brightness(0.6); }
+#rlc-root .rlc-re-rune[data-kind='shard'][aria-pressed='true'] { filter: none; box-shadow: 0 0 0 2px var(--c); }
+#rlc-root .rlc-re-desc { display: flex; flex-direction: column; gap: 1px; max-width: 220px; margin-left: 6px; font-size: 11px; line-height: 1.35; }
+#rlc-root .rlc-re-col[data-side='sub'] .rlc-re-desc { max-width: 150px; }
+#rlc-root .rlc-re-desc b { color: var(--c); font-size: 12px; }
+#rlc-root .rlc-re-desc span { color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.72)); }
+
+#rlc-root .rlc-re-foot { grid-column: 1 / -1; display: inline-flex; align-items: center; gap: 6px; justify-self: start; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.75)); font-size: 12px; cursor: pointer; }
+#rlc-root .rlc-re-tip { position: absolute; z-index: 7; display: flex; flex-direction: column; gap: 4px; max-width: 280px; padding: 8px 10px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.14)); border-radius: var(--rlc-radius-sm, 8px); background: linear-gradient(180deg, var(--rlc-color-surface, rgba(10, 12, 20, 0.85)), var(--rlc-color-bg, rgba(10, 12, 20, 0.95))); backdrop-filter: blur(var(--rlc-blur-surface, 16px)) brightness(0.75); font-size: 11px; line-height: 1.45; pointer-events: none; }
+#rlc-root .rlc-re-tip span, #rlc-root .rlc-re-muted { color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); font-size: 11px; }
+
+/* Recomendadas (OP.GG) */
+#rlc-root .rlc-re-reco { grid-column: 2; grid-row: 2; width: 270px; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px; overflow-y: auto; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.14)); border-radius: var(--rlc-radius-md, 12px); background: linear-gradient(180deg, var(--rlc-color-surface, rgba(10, 12, 20, 0.55)), var(--rlc-color-shade, rgba(10, 12, 20, 0.8))); backdrop-filter: blur(var(--rlc-blur-surface, 16px)) brightness(0.75); animation: rlc-re-slide var(--rlc-motion-duration, 0.4s) var(--rlc-motion-easing, cubic-bezier(0.2, 0.8, 0.2, 1)); }
+@keyframes rlc-re-slide { from { transform: translateX(40px); opacity: 0; } }
+#rlc-root .rlc-re-reco-hd { display: flex; align-items: center; justify-content: space-between; }
+#rlc-root .rlc-re-reco-sel { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+#rlc-root .rlc-re-champ { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.22)); border-radius: var(--rlc-radius-sm, 6px); font-size: 12px; }
+#rlc-root .rlc-re-champ img { width: 16px; height: 16px; border-radius: 50%; }
+#rlc-root .rlc-re-lane { width: auto; padding: 3px 6px; font-size: 12px; }
+#rlc-root .rlc-re-vs { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+#rlc-root .rlc-re-vs-all { margin-left: 0; padding: 3px 8px; font-size: 11px; }
+#rlc-root .rlc-re-vs-champ { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: transparent; opacity: 0.55; outline: 2px solid transparent; outline-offset: 1px; cursor: pointer; transition: opacity var(--rlc-motion-duration, 0.2s); }
+#rlc-root .rlc-re-vs-champ img { width: 100%; height: 100%; border-radius: 50%; }
+#rlc-root .rlc-re-vs-champ:hover { opacity: 0.9; }
+#rlc-root .rlc-re-vs-champ[aria-pressed='true'] { opacity: 1; outline-color: var(--rlc-color-teamRed, #e4525e); }
+#rlc-root .rlc-re-vs-empty { width: 28px; height: 28px; border: 1px dashed var(--rlc-color-border, rgba(255, 255, 255, 0.3)); border-radius: 50%; }
+#rlc-root .rlc-re-recs { display: flex; flex-direction: column; gap: 7px; }
+#rlc-root .rlc-re-reco-note { margin: 8px 0; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); font-size: 12px; }
+#rlc-root .rlc-re-rec { display: flex; flex-direction: column; gap: 4px; padding: 7px 8px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.14)); border-radius: var(--rlc-radius-sm, 9px); background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+#rlc-root .rlc-re-rec[aria-pressed='true'] { border-color: var(--rlc-color-text, #fff); background: var(--rlc-color-surface, rgba(255, 255, 255, 0.07)); }
+#rlc-root .rlc-re-rec-hd { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+#rlc-root .rlc-re-rec-hd img { width: 24px; height: 24px; }
+#rlc-root .rlc-re-rec-wr { margin-left: auto; font-weight: 700; color: var(--rlc-color-win, #6fe39b); }
+#rlc-root .rlc-re-rec-mini { display: flex; align-items: center; gap: 3px; }
+#rlc-root .rlc-re-rec-mini img { width: 16px; height: 16px; border-radius: 50%; }
+#rlc-root .rlc-re-rec-mini .rlc-re-muted { margin-left: auto; }
+#rlc-root .rlc-re-rec-mini img.rlc-re-spell { border-radius: 3px; }
+#rlc-root .rlc-re-reco > .rlc-button { margin-top: auto; }
+
+/* Barra da seleção: nome da página atual e botão Runas */
+#rlc-root .rlc-cs-runes { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#rlc-root .rlc-cs-page-name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+
+/* Ajustes vistos no client: a descrição desce para baixo das runas quando falta largura, em vez de virar uma coluna estreita. */
+#rlc-root .rlc-re-cols { grid-template-columns: minmax(360px, 1.15fr) minmax(300px, 1fr); }
+#rlc-root .rlc-re-slot { flex-wrap: wrap; row-gap: 4px; }
+#rlc-root .rlc-re-desc { flex: 1 1 150px; min-width: 150px; max-width: 260px; }
+#rlc-root .rlc-re-col[data-side='sub'] .rlc-re-desc { min-width: 130px; max-width: 200px; }
+#rlc-root .rlc-re-top .rlc-button[data-variant='primary'], #rlc-root .rlc-re-reco .rlc-button[data-variant='primary'] { padding: 8px 20px; font-size: 14px; }
+#rlc-root .rlc-re-reco { width: 250px; }
+/* Coluna secundária: a descrição vai sempre para baixo das runas, para não passar por baixo do painel de recomendadas. */
+#rlc-root .rlc-re-col[data-side='sub'] .rlc-re-desc { flex-basis: 100%; min-width: 0; max-width: 300px; margin-left: 0; }
+#rlc-root .rlc-re-cols { grid-template-columns: minmax(360px, 1.2fr) minmax(220px, 0.8fr); }

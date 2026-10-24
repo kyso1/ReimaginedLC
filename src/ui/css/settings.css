@@ -1,0 +1,107 @@
+/* settings: estilos da tela, carregados por @import em styles.css. Cores só por var(--rlc-*, reserva). */
+/* C · Painéis: início com busca e grade de vidro; cada área abre em cartões com linhas (nome, explicação, controle). */
+#rlc-root .rlc-settings.rlc-st-panels { display: flex; flex-direction: column; gap: 18px; padding: 32px 48px 48px; }
+#rlc-root .rlc-st-head { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+#rlc-root .rlc-st-head h2 { display: flex; align-items: center; gap: 10px; margin: 0; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 26px; }
+#rlc-root .rlc-st-head h2 .rlc-st-icon { width: 22px; height: 22px; }
+#rlc-root .rlc-st-search { width: min(360px, 100%); margin-left: auto; border-radius: var(--rlc-radius-pill); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.06)); }
+#rlc-root .rlc-st-back { padding: 6px 14px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-pill); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.06)); color: var(--rlc-color-textMuted); font: inherit; font-size: 13px; cursor: pointer; }
+#rlc-root .rlc-st-back:hover { color: var(--rlc-color-text); }
+
+#rlc-root .rlc-st-icon { width: 16px; height: 16px; flex: none; }
+#rlc-root .rlc-st-icon path { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Vidro escuro comum a painéis e cartões. */
+#rlc-root .rlc-st-tile, #rlc-root .rlc-st-panels .rlc-st-card {
+  border: 1px solid var(--rlc-color-border);
+  border-radius: var(--rlc-radius-md);
+  background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(10, 12, 20, 0.55)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.78)));
+  backdrop-filter: blur(14px) brightness(0.8);
+}
+
+#rlc-root .rlc-st-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; max-width: 1100px; }
+#rlc-root .rlc-st-tile { min-height: 132px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 16px 18px; color: var(--rlc-color-text); font: inherit; text-align: left; cursor: pointer; transition: transform var(--rlc-motion-duration) var(--rlc-motion-easing), border-color var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-st-tile:hover { transform: translateY(-2px); border-color: var(--rlc-color-text); }
+#rlc-root .rlc-st-tile:focus-visible, #rlc-root .rlc-st-hit:focus-visible, #rlc-root .rlc-st-back:focus-visible, #rlc-root .rlc-st-seg button:focus-visible, #rlc-root .rlc-st-switch:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 2px; }
+#rlc-root .rlc-st-tile-name { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+#rlc-root .rlc-st-purpose { font-size: 13px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-st-peek { margin-top: auto; display: flex; flex-wrap: wrap; gap: 6px; }
+#rlc-root .rlc-st-tag { padding: 3px 9px; border-radius: var(--rlc-radius-pill); background: var(--rlc-color-glassCardHover, rgba(255, 255, 255, 0.1)); font-size: 12px; }
+
+#rlc-root .rlc-st-hits { display: flex; flex-wrap: wrap; gap: 8px; max-width: 1100px; }
+#rlc-root .rlc-st-hit { display: flex; align-items: baseline; gap: 8px; padding: 7px 14px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-pill); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.06)); color: var(--rlc-color-text); font: inherit; font-size: 13px; cursor: pointer; }
+#rlc-root .rlc-st-hit span { font-size: 12px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-st-ext { margin: 0; }
+
+/* Detalhe da área. */
+#rlc-root .rlc-st-detail { display: flex; flex-direction: column; gap: 16px; max-width: 880px; }
+#rlc-root .rlc-st-detail .rlc-st-appearance { gap: 16px; }
+#rlc-root .rlc-st-panels .rlc-st-card { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 14px 16px; }
+#rlc-root .rlc-st-panels .rlc-st-card h3 { margin: 0 0 6px; padding: 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-st-panels .rlc-st-card > .rlc-muted { padding: 0 10px 6px; font-size: 13px; }
+#rlc-root .rlc-st-panels .rlc-st-themes { padding: 4px 10px; }
+#rlc-root .rlc-st-panels .rlc-st-picker { padding: 4px 10px 10px; }
+
+#rlc-root .rlc-st-line { display: flex; align-items: center; gap: 16px; padding: 10px; border-radius: var(--rlc-radius-sm); transition: background var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-st-line + .rlc-st-line { border-top: 1px solid var(--rlc-color-glassCard, rgba(255, 255, 255, 0.06)); }
+#rlc-root .rlc-st-line[data-hit='true'], #rlc-root .rlc-st-card[data-hit='true'] { background: var(--rlc-color-glassCardHover, rgba(255, 255, 255, 0.1)); }
+#rlc-root .rlc-st-line-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#rlc-root .rlc-st-line-text b { font-size: 14px; }
+#rlc-root .rlc-st-line-text span { font-size: 12px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-st-line-ctl { flex: none; display: flex; align-items: center; gap: 10px; max-width: 60%; }
+#rlc-root .rlc-st-line-ctl .rlc-chip-row { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+#rlc-root .rlc-st-line-ctl .rlc-queue-chip { padding: 5px 12px; font-size: 13px; }
+
+/* Interruptor: caixa de seleção nativa desenhada como chave. */
+#rlc-root .rlc-st-switch { appearance: none; -webkit-appearance: none; position: relative; width: 38px; height: 22px; margin: 0; flex: none; border-radius: var(--rlc-radius-pill); background: var(--rlc-color-border); cursor: pointer; transition: background var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-st-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--rlc-color-text); transition: transform var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-st-switch:checked { background: var(--rlc-color-accent); }
+#rlc-root .rlc-st-switch:checked::after { transform: translateX(16px); background: var(--rlc-color-onAccent); }
+
+#rlc-root .rlc-st-seg { display: flex; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-pill); overflow: hidden; }
+#rlc-root .rlc-st-seg button { padding: 5px 12px; border: 0; background: transparent; color: var(--rlc-color-textMuted); font: inherit; font-size: 13px; cursor: pointer; }
+#rlc-root .rlc-st-seg button + button { border-left: 1px solid var(--rlc-color-border); }
+#rlc-root .rlc-st-seg button[aria-pressed='true'] { background: var(--rlc-color-accent); color: var(--rlc-color-onAccent); }
+
+#rlc-root .rlc-st-range { display: flex; align-items: center; gap: 10px; }
+#rlc-root .rlc-st-range input { width: 160px; accent-color: var(--rlc-color-accent); }
+#rlc-root .rlc-st-range output { min-width: 42px; text-align: right; font-size: 12px; color: var(--rlc-color-textMuted); font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-st-number { width: 90px; padding: 4px 8px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-sm); background: var(--rlc-color-bg); color: var(--rlc-color-text); font: inherit; }
+#rlc-root .rlc-st-key { padding: 3px 10px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-sm); font-size: 12px; color: var(--rlc-color-textMuted); white-space: nowrap; }
+#rlc-root .rlc-st-panels .rlc-st-update { display: flex; align-items: center; gap: 12px; padding: 10px; }
+
+@media (max-width: 720px) {
+  #rlc-root .rlc-settings.rlc-st-panels { padding: 20px 16px; }
+  #rlc-root .rlc-st-line { flex-wrap: wrap; }
+  #rlc-root .rlc-st-line-ctl { max-width: 100%; }
+}
+
+/* Loja de plugins do Pengu: aviso, abas, busca e lista em linhas (mesmo ritmo das linhas de configuração). */
+#rlc-root .rlc-mk { gap: 10px; }
+#rlc-root .rlc-mk-warn { margin: 0 10px; padding: 10px 12px; border: 1px solid var(--rlc-color-danger, #c8364a); border-radius: var(--rlc-radius-sm); font-size: 13px; line-height: 1.45; }
+#rlc-root .rlc-mk-reload { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 10px; font-size: 13px; }
+#rlc-root .rlc-mk-reload .rlc-button { margin-left: auto; }
+#rlc-root .rlc-mk-tabs { margin: 6px 10px 0; }
+#rlc-root .rlc-mk-search { margin: 0 10px; max-width: 360px; }
+#rlc-root .rlc-mk-list { list-style: none; margin: 0; padding: 0; }
+#rlc-root .rlc-mk-item { display: flex; align-items: flex-start; gap: 16px; padding: 12px 10px; }
+#rlc-root .rlc-mk-item + .rlc-mk-item { border-top: 1px solid var(--rlc-color-glassCard, rgba(255, 255, 255, 0.06)); }
+#rlc-root .rlc-mk-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+#rlc-root .rlc-mk-text b { font-size: 15px; }
+#rlc-root .rlc-mk-text p { margin: 2px 0 0; max-width: 64ch; font-size: 13px; line-height: 1.45; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-mk-meta { display: flex; gap: 12px; font-size: 12px; color: var(--rlc-color-textMuted); font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-mk-ctl { flex: none; display: flex; align-items: center; gap: 10px; }
+#rlc-root .rlc-mk-ctl .rlc-button { min-width: 92px; padding: 6px 14px; font-size: 13px; }
+#rlc-root .rlc-mk-link { padding: 0; border: 0; background: none; color: var(--rlc-color-textMuted); font: inherit; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+#rlc-root .rlc-mk-link:hover { color: var(--rlc-color-text); }
+#rlc-root .rlc-mk-link:focus-visible, #rlc-root .rlc-mk-tabs button:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 2px; }
+#rlc-root .rlc-mk-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin: 0; padding: 14px 10px; font-size: 13px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-mk-empty p { margin: 0; }
+#rlc-root .rlc-mk-folder { display: flex; flex-direction: column; gap: 4px; margin: 6px 10px 0; padding-top: 12px; border-top: 1px solid var(--rlc-color-border); }
+#rlc-root .rlc-mk-folder h4 { margin: 0; font-size: 14px; }
+#rlc-root .rlc-mk-folder ul { margin: 4px 0 0; padding-left: 18px; font-size: 13px; }
+#rlc-root .rlc-mk-note { margin: 4px 10px 0; font-size: 12px; color: var(--rlc-color-textMuted); }
+
+@media (max-width: 720px) {
+  #rlc-root .rlc-mk-item { flex-wrap: wrap; }
+}

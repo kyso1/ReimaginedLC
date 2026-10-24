@@ -5,12 +5,13 @@ import { setLocale } from '../i18n';
 import type { Lcu, StoreState } from '../lcu';
 import type { ResolvedTheme } from '../theme/resolve';
 import type { ThemeEngine } from '../theme/engine';
-import { fakeLcu, fakeThemes, friend as friendFixture, invitation, leader as leaderFixture, lobby as lobbyFixture, queue, readyCheck, session as sessionFixture } from '../test/fixtures';
+import { fakeLcu, fakeThemes, friend as friendFixture, invitation, leader as leaderFixture, lobby as lobbyFixture, queue, readyCheck, search as searchFixture, session as sessionFixture } from '../test/fixtures';
 import { background } from '../theme/background';
 import { DEFAULT_BG } from '../theme/background';
 import { App, RIOT_ROOT_ID } from './App';
 import { enabled, hideRiot, syncLayer } from './layer';
 import { DEFAULT_PREFS, prefs } from './prefs';
+import { liteAuto } from './perf';
 
 const vidro: ResolvedTheme = { name: 'vidro', label: 'Vidro', tokens: { 'color.bg': '#0b1020' }, transition: 'wipe', backgrounds: { default: { theme: 'vidro', path: '/fe/x/a.jpg' } } };
 const editorial: ResolvedTheme = { name: 'editorial', label: 'Editorial', tokens: { 'color.bg': '#0e0e10' }, transition: 'fade', backgrounds: { default: { theme: 'editorial', path: '' } } };
@@ -28,6 +29,8 @@ const flush = async () => {
   // os efeitos do Preact rodam depois do próximo frame (ou 100 ms)
   await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
 };
+// telas sob demanda: espera o chunk (import() dinâmico, lento com a suíte toda rodando) e o render seguinte
+const shows = (sel: string, msg?: string) => vi.waitFor(() => expect(root.querySelector(sel), msg).not.toBeNull(), { timeout: 10_000 });
 const short = () => new Promise((r) => setTimeout(r, 0));
 const dom = signal(0);
 const mount = (extra: Partial<Parameters<typeof App>[0]> = {}) => render(<App root={root} lcu={lcu} themes={themes} base="https://plugins/ReimaginedLC/" focused={focused} dom={dom} {...extra} />, root);
@@ -250,7 +253,7 @@ test('a faixa da janela aparece; fechar pede confirmação antes de encerrar o c
   await flush();
   root.querySelector<HTMLButtonElement>('button[aria-label="Fechar"]')!.click();
   await flush();
-  expect(fetchMock).not.toHaveBeenCalled();
+  expect(fetchMock.mock.calls.filter((c) => String(c[0]).includes('process-control'))).toHaveLength(0);
   const dialog = root.querySelector('[role="dialog"]')!;
   expect(dialog.textContent).toContain('Fechar o League of Legends?');
   dialog.querySelector<HTMLButtonElement>('button[data-variant="primary"]')!.click();
@@ -369,13 +372,13 @@ test('tela de modos aberta na tela inicial fecha quando a rota vai para o lobby 
   expect(root.querySelector('.rlc-modes')).toBeNull();
 });
 
-test('fase desconhecida mostra o nome da fase e o botão Client original', async () => {
+test('fase desconhecida mostra o nome legível da fase e o botão Client original', async () => {
   enabled.value = true;
   phase.value = ready('FaseNova' as never);
   mount();
   await flush();
   const screen = root.querySelector('.rlc-unknown')!;
-  expect(screen.textContent).toContain('FaseNova');
+  expect(screen.textContent).toContain('Fase nova');
   [...screen.querySelectorAll('button')].find((b) => b.textContent === 'Client original')!.click();
   await flush();
   expect(enabled.value).toBe(false);
@@ -426,11 +429,36 @@ test('partida, honra e pós-jogo têm telas nossas e o trilho marca a tela atual
   mount();
   for (const [p, cls, label] of [['InProgress', '.rlc-ingame', 'Partida'], ['PreEndOfGame', '.rlc-honor', 'Honra'], ['EndOfGame', '.rlc-postgame', 'Resultado'], ['ChampSelect', '.rlc-champselect', 'Seleção']] as const) {
     phase.value = ready(p);
-    await flush();
-    expect(root.querySelector(cls), p).not.toBeNull();
+    await shows(cls, p);
     expect(root.querySelector(`.rlc-rail-item[aria-label="${label}"]`)!.getAttribute('aria-current')).toBe('page');
     expect(riot.style.visibility).toBe('hidden');
   }
+});
+
+test('em fila, Início leva à tela inicial com a pílula de fila; Lobby (ou a pílula) volta e a pílula some', async () => {
+  enabled.value = true;
+  phase.value = ready('Matchmaking');
+  lcu.lobby.value = ready(lobbyFixture([leaderFixture({ summonerName: 'Fulano' })]));
+  lcu.search.value = ready(searchFixture({ queueId: 420, isCurrentlyInQueue: true }));
+  mount({ screens: { home: () => <div class="home-stub" />, lobby: LobbyStub } });
+  await flush();
+  expect(root.querySelector('.lobby-stub')).not.toBeNull();
+  expect(root.querySelector('.rlc-qpill')).toBeNull();
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Início"]')!.click();
+  await flush();
+  expect(root.querySelector('.home-stub')).not.toBeNull();
+  expect(root.querySelector('.lobby-stub')).toBeNull();
+  expect(root.querySelector('.rlc-rail-item[aria-label="Início"]')!.getAttribute('aria-current')).toBe('page');
+  expect(root.querySelector('.rlc-qpill')).not.toBeNull();
+  root.querySelector<HTMLButtonElement>('.rlc-qpill-open')!.click();
+  await flush();
+  expect(root.querySelector('.lobby-stub')).not.toBeNull();
+  expect(root.querySelector('.rlc-qpill')).toBeNull();
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Início"]')!.click();
+  await flush();
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Lobby"]')!.click();
+  await flush();
+  expect(root.querySelector('.lobby-stub')).not.toBeNull();
 });
 
 test('trilho navega para Perfil, Coleção e Configurações fora do fluxo de partida; Início volta', async () => {
@@ -470,7 +498,7 @@ test('coluna da direita e chip de moedas aparecem com a camada', async () => {
   expect(root.querySelector('.rlc-rc')).not.toBeNull();
 });
 
-test('clicar num amigo abre a conversa (criando-a se preciso) e mantém a coluna da direita aberta', async () => {
+test('clicar num amigo abre a conversa na doca (criando-a se preciso); o botão de chat minimiza', async () => {
   const fetchMock = vi.fn().mockResolvedValue(new Response('[]', { status: 200 }));
   vi.stubGlobal('fetch', fetchMock);
   enabled.value = true;
@@ -480,11 +508,19 @@ test('clicar num amigo abre a conversa (criando-a se preciso) e mantém a coluna
   root.querySelector<HTMLButtonElement>('.rlc-rc-avatar[aria-label="Zeca"]')!.click();
   await flush();
   expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-chat/v1/conversations' && JSON.parse(c[1].body).id === 'zeca@pvp.net')).toBe(true);
+  expect(root.querySelector('.rlc-chat-dock')!.getAttribute('data-open')).toBe('true');
   expect(root.querySelector('.rlc-chat-window')!.getAttribute('aria-label')).toBe('Zeca');
-  expect(root.querySelector('.rlc-rc')!.getAttribute('data-open')).toBe('true');
   root.querySelector<HTMLButtonElement>('.rlc-chat-window button[aria-label="Fechar conversa"]')!.click();
   await flush();
+  // Fechar a conversa fecha o chat todo; o botão de chat reabre e minimiza.
   expect(root.querySelector('.rlc-chat-window')).toBeNull();
+  expect(root.querySelector('.rlc-chat-dock')!.getAttribute('data-open')).toBeNull();
+  root.querySelector<HTMLButtonElement>('.rlc-rc-chatbtn')!.click();
+  await flush();
+  expect(root.querySelector('.rlc-chat-dock')!.getAttribute('data-open')).toBe('true');
+  root.querySelector<HTMLButtonElement>('.rlc-rc-chatbtn')!.click();
+  await flush();
+  expect(root.querySelector('.rlc-chat-dock')!.getAttribute('data-open')).toBeNull();
   vi.unstubAllGlobals();
 });
 
@@ -526,14 +562,13 @@ test('Configurações abre a tela de configurações', async () => {
   mount();
   await flush();
   root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Configurações"]')!.click();
-  await flush();
-  expect(root.querySelector('.rlc-settings')).not.toBeNull();
+  await shows('.rlc-settings');
 });
 
 test('preferências: transições vão para data-motion e vídeo desligado não toca', async () => {
   enabled.value = true;
   themes.active.value = { ...themes.active.value, backgrounds: { default: { theme: 'vidro', path: '/fe/x/a.webm' } } };
-  prefs.value = { ...DEFAULT_PREFS, motion: 'off', video: false };
+  prefs.value = { ...DEFAULT_PREFS, motion: 'off', video: false, ambient: false };
   mount();
   await flush();
   expect(root.dataset.motion).toBe('off');
@@ -544,4 +579,124 @@ test('preferências: transições vão para data-motion e vídeo desligado não 
   focused.value = true;
   await flush();
   expect(play).not.toHaveBeenCalled();
+});
+
+test('som ambiente: toca na tela inicial com foco e para sem foco', async () => {
+  enabled.value = true;
+  prefs.value = { ...DEFAULT_PREFS, video: false, ambient: true };
+  const play = HTMLMediaElement.prototype.play as unknown as ReturnType<typeof vi.fn>;
+  const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+  focused.value = true;
+  play.mockClear();
+  mount();
+  await flush();
+  expect(play).toHaveBeenCalled();
+  focused.value = false;
+  await flush();
+  expect(pause).toHaveBeenCalled();
+  pause.mockRestore();
+});
+
+test('trilho tem Espólios entre Coleção e Eventos e abre a vista própria; ponto marca item novo', async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => new Response('[]', { status: 200 })));
+  enabled.value = true;
+  mount();
+  await flush();
+  const labels = [...root.querySelectorAll('.rlc-rail-item')].map((b) => b.getAttribute('aria-label'));
+  expect(labels.slice(labels.indexOf('Coleção'), labels.indexOf('Coleção') + 3)).toEqual(['Coleção', 'Espólios', 'Eventos']);
+  const loot = () => root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Espólios"]')!;
+  expect(loot().querySelector('svg')).not.toBeNull();
+  expect(loot().querySelector('.rlc-rail-dot')).toBeNull();
+  loot().click();
+  await shows('.rlc-loot-view .rlc-loot');
+  expect(root.querySelector('.rlc-app')!.getAttribute('data-screen')).toBe('loot');
+  expect(loot().getAttribute('aria-current')).toBe('page');
+  lcu.loot.value = ready([{ lootId: 'CHEST_generic', type: 'CHEST', count: 1, isNew: true }] as never);
+  await flush();
+  expect(loot().querySelector('.rlc-rail-dot')).not.toBeNull();
+  vi.unstubAllGlobals();
+});
+
+test('fundo global vale em todas as telas e vistas fora da partida', async () => {
+  enabled.value = true;
+  lcu.game = { ...lcu.game, splash: async (id) => (id === 7 ? '/s/meu.jpg' : null) };
+  const stub = () => <div class="stub" />;
+  const views = { profile: stub, collection: stub, loot: stub, events: stub, store: stub, settings: stub };
+  mount({ views, screens: { home: stub, lobby: stub, champselect: stub, postgame: stub, honor: stub, ingame: stub } });
+  await flush();
+  background.value = { ...DEFAULT_BG, global: { kind: 'splash', skinId: 7 }, dim: 0.9, blur: 3 };
+  await flush();
+  const bg = () => root.querySelector('img.rlc-bg')!.getAttribute('src');
+  expect(bg()).toBe('/s/meu.jpg');
+  expect(root.querySelector('.rlc-app')!.getAttribute('data-custom-bg')).toBe('true');
+  // Escurecer do usuário (0,9) fica no teto do App.
+  expect(root.querySelector<HTMLElement>('.rlc-app')!.style.getPropertyValue('--rlc-bg-dim')).toBe('0.85');
+  for (const label of ['Perfil', 'Coleção', 'Espólios', 'Eventos', 'Loja', 'Configurações']) {
+    root.querySelector<HTMLButtonElement>(`.rlc-rail-item[aria-label="${label}"]`)!.click();
+    await flush();
+    expect(bg(), label).toBe('/s/meu.jpg');
+  }
+  lcu.lobby.value = ready(lobbyFixture([leaderFixture()]));
+  for (const p of ['Lobby', 'ChampSelect', 'EndOfGame', 'PreEndOfGame'] as const) {
+    if (p === 'ChampSelect') lcu.champSelect.value = ready(sessionFixture());
+    phase.value = ready(p);
+    await flush();
+    expect(bg(), p).toBe('/s/meu.jpg');
+  }
+  phase.value = ready('InProgress');
+  await flush();
+  expect(bg()).toBe('/fe/x/a.jpg');
+  expect(root.querySelector('.rlc-app')!.getAttribute('data-custom-bg')).toBeNull();
+  background.value = DEFAULT_BG;
+});
+
+test('gaveta de amigos fixa: o App marca data-social para as telas encolherem; na seleção de campeões tira a marca', async () => {
+  enabled.value = true;
+  mount({ screens: { champselect: () => <div class="cs-stub" /> } });
+  await flush();
+  const app = () => root.querySelector('.rlc-app')!;
+  expect(app().getAttribute('data-social')).toBeNull();
+  prefs.value = { ...DEFAULT_PREFS, socialPinned: true };
+  await flush();
+  expect(app().getAttribute('data-social')).toBe('pinned');
+  expect(root.querySelector('.rlc-rc')!.getAttribute('data-open')).toBe('true');
+  phase.value = ready('ChampSelect');
+  lcu.champSelect.value = ready({}) as never;
+  await flush();
+  expect(app().getAttribute('data-social')).toBeNull();
+  phase.value = ready('None');
+  await flush();
+  expect(app().getAttribute('data-social')).toBe('pinned');
+});
+
+test('modo leve: atributo data-lite conforme auto/on/off e transições completas viram reduzidas', async () => {
+  enabled.value = true;
+  liteAuto.value = false;
+  prefs.value = { ...DEFAULT_PREFS, lite: 'on', ambient: false };
+  mount();
+  await flush();
+  expect(root.dataset.lite).toBe('');
+  expect(root.dataset.motion).toBe('reduced');
+  prefs.value = { ...DEFAULT_PREFS, lite: 'auto', ambient: false };
+  await flush();
+  expect(root.dataset.lite).toBeUndefined();
+  expect(root.dataset.motion).toBe('full');
+  liteAuto.value = true;
+  await flush();
+  expect(root.dataset.lite).toBe('');
+  prefs.value = { ...DEFAULT_PREFS, lite: 'off', ambient: false };
+  await flush();
+  expect(root.dataset.lite).toBeUndefined();
+  liteAuto.value = false;
+});
+
+test('interface da Riot congelada só com a camada visível', async () => {
+  enabled.value = true;
+  prefs.value = { ...DEFAULT_PREFS, ambient: false };
+  mount();
+  await flush();
+  expect(riot.dataset.rlcFrozen).toBe('');
+  enabled.value = false;
+  await flush();
+  expect(riot.dataset.rlcFrozen).toBeUndefined();
 });

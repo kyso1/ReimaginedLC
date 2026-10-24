@@ -1,0 +1,161 @@
+/* Ícone de rota (src/ui/RoleIcon.tsx): desenho em currentColor, segue o texto de quem o contém. */
+#rlc-root .rlc-role { width: 1.15em; height: 1.15em; flex: none; vertical-align: -0.2em; }
+#rlc-root .rlc-pos-slot .rlc-role { width: 22px; height: 22px; color: var(--rlc-color-text); }
+#rlc-root .rlc-pos-option .rlc-role { width: 26px; height: 26px; color: var(--rlc-color-textMuted); transition: color var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-pos-option:hover .rlc-role { color: var(--rlc-color-text); }
+#rlc-root .rlc-pos-option[aria-pressed='true'] .rlc-role { color: var(--rlc-color-accent); }
+
+/* Seleção de campeões em palco: aliados | palco (fase, nome, grade ou carrossel de skins) | inimigos, e a barra de
+   vidro embaixo do palco. O chat da sala fica no pé da coluna dos aliados (posição em social.css). */
+#rlc-root .rlc-champselect { --cs-side: clamp(200px, 19%, 260px); --cs-foe: clamp(150px, 15%, 210px); position: absolute; inset: 0; display: grid; grid-template-columns: var(--cs-side) minmax(0, 1fr) var(--cs-foe); grid-template-rows: minmax(0, 1fr) auto; column-gap: 24px; padding: 20px 20px 0; overflow: hidden; }
+
+/* Fundo: a splash do campeão em destaque (prévia do mouse na grade, ou a skin escolhida) com vinheta radial. */
+/* O palco é um <Crossfade>: as splashes se fundem; a vinheta fica por cima das camadas. */
+#rlc-root .rlc-cs-splash::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center 40%, transparent 30%, var(--rlc-color-scrim, rgba(8, 9, 15, 0.92)) 75%); }
+#rlc-root .rlc-champselect[data-grid='open'] .rlc-cs-splash::after { background: radial-gradient(ellipse at center 40%, var(--rlc-color-fade, rgba(8, 9, 15, 0.35)) 20%, var(--rlc-color-scrim, rgba(8, 9, 15, 0.92)) 75%); }
+
+/* Tempo: linha fina no topo que encolhe; vermelha na vez de banir. */
+#rlc-root .rlc-cs-timebar { position: absolute; top: 0; left: 0; right: 0; z-index: 2; height: 2px; background: var(--rlc-color-border); }
+#rlc-root .rlc-cs-timebar i { display: block; height: 100%; background: var(--rlc-color-text); transition: width 1s linear; }
+#rlc-root .rlc-champselect[data-phase='ban'] .rlc-cs-timebar i { background: var(--rlc-color-danger, #c8364a); }
+
+/* Times: cartões de vidro com a arte do campeão entrando pelo lado de fora; inimigos espelhados. */
+#rlc-root .rlc-cs-side { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+#rlc-root .rlc-cs-side[data-side='mine'] { grid-column: 1; grid-row: 1; }
+#rlc-root .rlc-cs-side[data-side='theirs'] { grid-column: 3; grid-row: 1 / 3; }
+#rlc-root .rlc-cs-team { display: flex; flex-direction: column; gap: 6px; }
+#rlc-root .rlc-cs-cell { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; min-height: 64px; padding: 8px 10px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(14, 16, 26, 0.55)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.78))); backdrop-filter: blur(14px) brightness(0.8); }
+#rlc-root .rlc-cs-art { position: absolute; inset: 0; border-radius: inherit; background-size: cover; background-position: center 22%; opacity: 0.55; -webkit-mask-image: linear-gradient(90deg, transparent 35%, black 90%); pointer-events: none; animation: rlc-fade var(--rlc-motion-duration) var(--rlc-motion-easing) both; }
+#rlc-root .rlc-cs-art[data-locked='true'] { opacity: 1; }
+#rlc-root .rlc-cs-cell > :not(.rlc-cs-art) { position: relative; }
+#rlc-root .rlc-cs-cell[data-active='true'] { border-color: var(--rlc-color-highlight, #ffd36b); }
+#rlc-root .rlc-cs-cell[data-local='true'] { border-color: var(--rlc-color-text); }
+#rlc-root .rlc-cs-cell[data-local='true'][data-active='true'] { border-color: var(--rlc-color-highlight, #ffd36b); }
+#rlc-root .rlc-cs-cell[data-local='true'] .rlc-cs-name { font-weight: 700; }
+#rlc-root .rlc-cs-pos { display: inline-flex; color: var(--rlc-color-text); }
+#rlc-root .rlc-cs-pos .rlc-role { width: 16px; height: 16px; }
+#rlc-root .rlc-cs-meta { min-width: 0; display: flex; flex-direction: column; gap: 1px; line-height: 1.25; text-shadow: 0 1px 3px var(--rlc-color-textShadow, #000); }
+#rlc-root .rlc-cs-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+#rlc-root .rlc-cs-tag { margin-left: 3px; font-size: 11px; font-weight: 400; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-cs-meta .rlc-rank { font-size: 11px; gap: 4px; }
+#rlc-root .rlc-cs-meta .rlc-rank img { width: 14px; height: 14px; }
+#rlc-root .rlc-cs-status { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-cs-cell[data-active='true'] .rlc-cs-status { color: var(--rlc-color-highlight, #ffd36b); }
+#rlc-root .rlc-cs-stats { display: flex; align-items: center; gap: 8px; overflow: hidden; white-space: nowrap; font-size: 11px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-cs-stats small { font-size: 10px; opacity: 0.8; }
+#rlc-root .rlc-cs-stats > span { display: inline-flex; align-items: center; }
+#rlc-root .rlc-cs-sub { display: flex; flex-direction: column; gap: 3px; }
+#rlc-root .rlc-cs-spell { width: 18px; height: 18px; border-radius: 4px; }
+#rlc-root .rlc-cs-side[data-side='theirs'] .rlc-cs-cell { grid-template-columns: minmax(0, 1fr); min-height: 56px; }
+#rlc-root .rlc-cs-side[data-side='theirs'] .rlc-cs-art { -webkit-mask-image: linear-gradient(270deg, transparent 35%, black 90%); }
+#rlc-root .rlc-cs-side[data-side='theirs'] .rlc-cs-meta { align-items: flex-end; text-align: right; }
+#rlc-root .rlc-cs-side[data-side='theirs'] .rlc-cs-status { font-size: 13px; color: var(--rlc-color-text); }
+#rlc-root .rlc-cs-side[data-side='theirs'] .rlc-cs-cell[data-empty='true'] .rlc-cs-status { font-size: 11px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-cs-cell .rlc-col-menu { position: absolute; top: 50%; right: -28px; width: 22px; height: 22px; margin-top: -11px; font-size: 11px; }
+#rlc-root .rlc-cs-cell .rlc-menu { top: 40px; left: 100%; right: auto; }
+
+/* Banimentos: fileira pequena e apagada sob os cartões. */
+#rlc-root .rlc-cs-bans { display: flex; flex-wrap: wrap; gap: 4px; }
+#rlc-root .rlc-cs-side[data-side='theirs'] .rlc-cs-bans { justify-content: flex-end; }
+#rlc-root .rlc-cs-bans img, #rlc-root .rlc-cs-ban-empty { width: 22px; height: 22px; border-radius: 4px; filter: grayscale(1); opacity: 0.7; background: var(--rlc-color-surface); }
+
+/* Palco: fase e tempo pequenos, nome do campeão grande, skin embaixo. */
+#rlc-root .rlc-cs-center { position: relative; z-index: 1; grid-column: 2; grid-row: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; padding-bottom: 14px; }
+#rlc-root .rlc-cs-head { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; text-shadow: 0 2px 10px var(--rlc-color-textShadow, #000); }
+#rlc-root .rlc-cs-clock { display: flex; gap: 8px; margin: 0; font-size: 12px; letter-spacing: 0.04em; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-cs-clock > span + span::before { content: '·'; margin-right: 8px; }
+#rlc-root .rlc-cs-timer { font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-cs-champ-name { margin: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: clamp(30px, 4vw, 48px); line-height: 1.1; }
+#rlc-root .rlc-cs-skin-name { margin: 0; font-size: 14px; color: var(--rlc-color-textMuted); }
+
+/* Grade de campeões: cobre o palco enquanto se escolhe. */
+#rlc-root .rlc-cs-drawer { align-self: stretch; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(14, 16, 26, 0.6)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.82))); backdrop-filter: blur(18px) brightness(0.7); animation: rlc-fade var(--rlc-motion-duration) var(--rlc-motion-easing) both; }
+#rlc-root .rlc-cs-drawer-head { display: flex; align-items: center; justify-content: space-between; }
+#rlc-root .rlc-cs-drawer-head h2 { margin: 0; font-size: 15px; font-weight: 700; }
+#rlc-root .rlc-cs-drawer-close { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 1px solid var(--rlc-color-border); border-radius: 50%; background: transparent; color: var(--rlc-color-textMuted); font: inherit; font-size: 12px; cursor: pointer; transition: color var(--rlc-motion-duration) var(--rlc-motion-easing), border-color var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-cs-drawer-close:hover { color: var(--rlc-color-text); border-color: var(--rlc-color-accent); }
+#rlc-root .rlc-cs-drawer-close:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 2px; }
+#rlc-root .rlc-cs-grid-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+#rlc-root .rlc-cs-filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+#rlc-root .rlc-cs-filters .rlc-input { flex: 1 1 160px; max-width: 240px; }
+#rlc-root .rlc-cs-filters .rlc-queue-chip { padding: 6px 12px; font-size: 13px; }
+#rlc-root .rlc-cs-lane { display: inline-flex; align-items: center; gap: 6px; }
+#rlc-root .rlc-cs-grid { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: 10px 8px; align-content: start; padding: 2px 4px 2px 2px; }
+#rlc-root .rlc-cs-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+#rlc-root .rlc-cs-champ { width: 100%; max-width: 72px; aspect-ratio: 1; padding: 0; border: 2px solid transparent; border-radius: var(--rlc-radius-sm); background: var(--rlc-color-surface); color: var(--rlc-color-text); font: inherit; font-size: 10px; overflow: hidden; cursor: pointer; }
+#rlc-root .rlc-cs-champ img { width: 100%; height: 100%; object-fit: cover; }
+#rlc-root .rlc-cs-champ:hover { border-color: var(--rlc-color-border); }
+#rlc-root .rlc-cs-champ[aria-pressed='true'] { border-color: var(--rlc-color-accent); }
+#rlc-root .rlc-cs-champ:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 2px; }
+#rlc-root .rlc-cs-tile-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-cs-champ[aria-pressed='true'] + .rlc-cs-tile-name { color: var(--rlc-color-text); }
+#rlc-root .rlc-cs-fav { position: absolute; top: 2px; right: 4px; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: var(--rlc-color-scrim, rgba(4, 6, 12, 0.72)); color: var(--rlc-color-textMuted); font-size: 11px; line-height: 20px; cursor: pointer; opacity: 0; transition: opacity var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-cs-tile:hover .rlc-cs-fav, #rlc-root .rlc-cs-fav:focus-visible { opacity: 1; }
+#rlc-root .rlc-cs-fav[aria-pressed='true'] { opacity: 1; color: var(--rlc-color-highlight, #ffd36b); }
+#rlc-root .rlc-cs-fav-mark { position: absolute; top: 2px; right: 4px; width: 18px; height: 18px; border-radius: 50%; background: var(--rlc-color-scrim, rgba(4, 6, 12, 0.72)); color: var(--rlc-color-highlight, #ffd36b); font-size: 10px; line-height: 18px; text-align: center; pointer-events: none; }
+/* Menu do clique direito num campeão: vidro escuro, rotas com ícone e a estrela acesa onde já é favorito. */
+#rlc-root .rlc-cs-ctx-backdrop { position: fixed; inset: 0; z-index: 40; }
+#rlc-root .rlc-cs-ctx { position: fixed; z-index: 41; display: flex; flex-direction: column; min-width: 200px; padding: 6px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(14, 16, 26, 0.86)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.94))); backdrop-filter: blur(18px) brightness(0.7); box-shadow: 0 12px 32px var(--rlc-color-shade, rgba(0, 0, 0, 0.5)); animation: rlc-fade 0.12s var(--rlc-motion-easing) both; }
+#rlc-root .rlc-cs-ctx-title { margin: 2px 8px 6px; padding-bottom: 6px; border-bottom: 1px solid var(--rlc-color-border); font-size: 12px; font-weight: 700; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-cs-ctx button { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 7px 8px; border: 0; border-radius: var(--rlc-radius-sm); background: transparent; color: var(--rlc-color-text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+#rlc-root .rlc-cs-ctx button svg { width: 18px; height: 18px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-cs-ctx button:hover, #rlc-root .rlc-cs-ctx button:focus-visible { background: var(--rlc-color-surface); outline: none; }
+#rlc-root .rlc-cs-ctx button:focus-visible { box-shadow: inset 0 0 0 1px var(--rlc-color-accent); }
+#rlc-root .rlc-cs-ctx-check { color: var(--rlc-color-textMuted); opacity: 0.25; font-size: 12px; }
+#rlc-root .rlc-cs-ctx button[aria-checked='true'] svg, #rlc-root .rlc-cs-ctx button[aria-checked='true'] .rlc-cs-ctx-check { color: var(--rlc-color-highlight, #ffd36b); opacity: 1; }
+
+/* Grade fechada: o palco fica livre; reabrir e o carrossel de skins descem para o pé, logo acima da barra. */
+#rlc-root .rlc-cs-reopen { margin-top: auto; }
+#rlc-root .rlc-cs-carousel { display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 100%; }
+#rlc-root .rlc-cs-skins { display: flex; gap: 6px; max-width: 100%; overflow-x: auto; padding: 3px; }
+#rlc-root .rlc-cs-skin { flex: none; width: 84px; height: 48px; padding: 0; border: 0; border-radius: var(--rlc-radius-sm); background: var(--rlc-color-surface); overflow: hidden; opacity: 0.7; cursor: pointer; transition: opacity var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-cs-skin img { width: 100%; height: 100%; object-fit: cover; object-position: center 25%; }
+#rlc-root .rlc-cs-skin:hover { opacity: 1; }
+#rlc-root .rlc-cs-skin[aria-pressed='true'] { opacity: 1; outline: 2px solid var(--rlc-color-text); outline-offset: 1px; }
+#rlc-root .rlc-cs-skin:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 1px; }
+#rlc-root .rlc-cs-chromas { display: flex; gap: 8px; }
+#rlc-root .rlc-cs-chroma { width: 20px; height: 20px; padding: 0; border: 2px solid var(--rlc-color-border); border-radius: 50%; background: var(--rlc-color-surface); cursor: pointer; }
+#rlc-root .rlc-cs-chroma[aria-pressed='true'] { border-color: var(--rlc-color-text); }
+/* ROSE: skins, cromas e mods que só o ROSE põe no jogo. Selo pequeno no canto, para não competir com a arte. */
+#rlc-root .rlc-cs-skin { position: relative; }
+#rlc-root .rlc-cs-rose-badge { position: absolute; left: 4px; bottom: 4px; padding: 1px 5px; border-radius: var(--rlc-radius-sm); background: var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.82)); color: var(--rlc-color-text); font-size: 9px; font-weight: 700; line-height: 1.4; pointer-events: none; }
+#rlc-root .rlc-cs-mod { display: grid; place-items: center; }
+#rlc-root .rlc-cs-mod-name { padding: 0 6px 12px; color: var(--rlc-color-text); font-size: 11px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+#rlc-root .rlc-cs-chroma[data-rose] { border-style: dashed; }
+/* Nome para o ROSE-SkinMonitor ler: fora da vista, mas com caixa (ele ignora o que não tem offsetParent). */
+#rlc-root .rlc-rose-mirror { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; pointer-events: none; }
+/* Linha do ROSE em Configurações > Plugins. */
+#rlc-root .rlc-st-rose { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 13px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-st-rose[data-status='connected'] [role='status'] { color: var(--rlc-color-text); }
+#rlc-root .rlc-st-rose + .rlc-st-switch:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Banco do ARAM, logo sob o nome. */
+#rlc-root .rlc-cs-bench { display: flex; gap: 6px; align-items: center; }
+#rlc-root .rlc-cs-bench .rlc-cs-champ { width: 48px; }
+
+/* Barra de vidro: feitiços, runas, sentinela, skin e, à direita, Sair e Travar. */
+#rlc-root .rlc-cs-bar { position: relative; z-index: 2; grid-column: 2; grid-row: 2; display: flex; align-items: center; gap: 14px; margin-bottom: 16px; padding: 8px 10px 8px 12px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(14, 16, 26, 0.55)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.78))); backdrop-filter: blur(14px) brightness(0.8); }
+#rlc-root .rlc-cs-loadout { display: flex; align-items: center; gap: 12px; min-width: 0; }
+#rlc-root .rlc-cs-runes { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#rlc-root .rlc-cs-page-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; font-size: 13px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-cs-spell-slots, #rlc-root .rlc-cs-ward { position: relative; display: flex; gap: 6px; }
+#rlc-root .rlc-cs-spell-list { position: absolute; left: 0; bottom: calc(100% + 12px); z-index: 4; display: grid; grid-template-columns: repeat(6, 44px); gap: 6px; padding: 8px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-bg); }
+#rlc-root .rlc-cs-ward-list { grid-template-columns: repeat(7, 44px); max-height: 260px; overflow-y: auto; }
+#rlc-root .rlc-cs-spell-slot, #rlc-root .rlc-cs-spell-option { width: 40px; height: 40px; padding: 0; border: 2px solid var(--rlc-color-border); border-radius: var(--rlc-radius-sm); background: var(--rlc-color-surface); color: var(--rlc-color-text); font: inherit; font-size: 10px; overflow: hidden; cursor: pointer; }
+#rlc-root .rlc-cs-spell-option { width: 44px; height: 44px; }
+#rlc-root .rlc-cs-spell-slot[aria-expanded='true'], #rlc-root .rlc-cs-spell-option[aria-current='true'] { border-color: var(--rlc-color-accent); }
+#rlc-root .rlc-cs-spell-slot img, #rlc-root .rlc-cs-spell-option img { width: 100%; height: 100%; object-fit: cover; }
+#rlc-root .rlc-cs-ward .rlc-cs-spell-slot img, #rlc-root .rlc-cs-ward-list img { object-fit: contain; }
+#rlc-root .rlc-cs-skin-chip { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; max-width: 220px; overflow: hidden; white-space: nowrap; }
+#rlc-root .rlc-cs-skin-chip small { overflow: hidden; text-overflow: ellipsis; color: var(--rlc-color-textMuted); font-size: 12px; }
+#rlc-root .rlc-cs-action { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+#rlc-root .rlc-cs-lock { min-width: 150px; padding: 10px 32px; font-size: 15px; }
+#rlc-root .rlc-cs-lock[data-kind='ban'] { background: var(--rlc-color-danger, #c8364a); color: var(--rlc-color-onDanger, #fff); }
+
+/* Trocas recebidas e enviadas, ao lado dos inimigos. */
+#rlc-root .rlc-cs-swaps { position: absolute; top: 96px; right: calc(var(--cs-foe) + 44px); z-index: 3; display: flex; flex-direction: column; gap: 8px; width: 280px; }
+
+@media (prefers-reduced-motion: reduce) {
+  #rlc-root .rlc-cs-art, #rlc-root .rlc-cs-drawer, #rlc-root .rlc-cs-ctx { animation: none; }
+  #rlc-root .rlc-cs-timebar i { transition: none; }
+}

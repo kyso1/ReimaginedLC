@@ -3,8 +3,9 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../../i18n';
 import type { Lcu } from '../../lcu';
+import { DEFAULT_PREFS, prefs } from '../../shell/prefs';
 import { fakeLcu, friend, ready } from '../../test/fixtures';
-import { ChatTabs, ChatWindow, messageTime } from './Chat';
+import { ChatDock, ChatWindow, messageTime } from './Chat';
 import { ContextChat } from './ContextChat';
 import { AddFriend, FriendRequests, StatusEditor } from './FriendTools';
 
@@ -59,34 +60,110 @@ test('janela de chat: carrega o histórico, recebe mensagem nova por evento e en
   expect(JSON.parse(calls('/lol-chat/v1/conversations/zeca%40pvp.net/messages').find((c) => c[1]?.method === 'POST')![1].body)).toEqual({ body: 'fechou', type: 'chat' });
 });
 
-test('abas: uma por conversa aberta, ponto de não lida, clicar ativa e ✕ fecha', () => {
-  const lcu = withValues({ conversations: ready([{ id: 'a', gameName: 'Zeca', unreadMessageCount: 0, type: 'chat' }, { id: 'b', gameName: 'Fulana', unreadMessageCount: 2, type: 'chat' }]) });
+test('doca: conversas recentes primeiro, ponto de não lida, clicar ativa e — minimiza', () => {
+  const lcu = withValues({
+    conversations: ready([
+      { id: 'a', gameName: 'Zeca', unreadMessageCount: 0, type: 'chat', lastMessage: { timestamp: '2026-10-01T10:00:00Z', body: 'velha' } },
+      { id: 'b', gameName: 'Fulana', unreadMessageCount: 2, type: 'chat', lastMessage: { timestamp: '2026-10-05T10:00:00Z', body: 'bora?' } },
+      { id: 'sala@lol-pre-game', unreadMessageCount: 0, type: 'customGame' },
+    ]),
+  });
   const onActivate = vi.fn();
   const onClose = vi.fn();
-  act(() => render(<ChatTabs lcu={lcu} open={['a', 'b']} active="a" onActivate={onActivate} onClose={onClose} />, root));
-  const tabs = [...root.querySelectorAll('.rlc-chat-tab')];
-  expect(tabs.map((t) => t.querySelector('.rlc-chat-tab-name')!.textContent)).toEqual(['Zeca', 'Fulana']);
-  expect(tabs[1]!.getAttribute('data-unread')).toBe('true');
-  expect(tabs[0]!.getAttribute('aria-selected')).toBe('true');
-  act(() => (tabs[1]!.querySelector('.rlc-chat-tab-name') as HTMLButtonElement).click());
+  act(() => render(<ChatDock lcu={lcu} open active="a" onActivate={onActivate} onClose={onClose} />, root));
+  const items = [...root.querySelectorAll('.rlc-chat-item')];
+  expect(items.map((t) => t.querySelector('b')!.textContent)).toEqual(['Fulana', 'Zeca']);
+  expect(items[0]!.textContent).toContain('bora?');
+  expect(items[0]!.getAttribute('data-unread')).toBe('true');
+  expect(items[1]!.getAttribute('aria-pressed')).toBe('true');
+  expect(root.querySelector('.rlc-chat-window')!.getAttribute('aria-label')).toBe('Zeca');
+  act(() => (items[0] as HTMLButtonElement).click());
   expect(onActivate).toHaveBeenCalledWith('b');
-  act(() => btn('Fechar conversa', tabs[0]!)!.click());
-  expect(onClose).toHaveBeenCalledWith('a');
+  act(() => btn('Minimizar')!.click());
+  expect(onClose).toHaveBeenCalledOnce();
 });
 
-test('chat de contexto: acha a conversa pelo id da sala, recolhido mostra não lidas, aberto mostra mensagens', async () => {
+test('doca: fechar a conversa aberta fecha o chat todo', () => {
+  const lcu = withValues({ conversations: ready([{ id: 'a', gameName: 'Zeca', unreadMessageCount: 0, type: 'chat' }]) });
+  const onActivate = vi.fn();
+  const onClose = vi.fn();
+  act(() => render(<ChatDock lcu={lcu} open active="a" onActivate={onActivate} onClose={onClose} />, root));
+  act(() => btn('Fechar conversa', root.querySelector('.rlc-chat-window')!)!.click());
+  expect(onClose).toHaveBeenCalledOnce();
+  expect(onActivate).not.toHaveBeenCalled();
+});
+
+test('chat de contexto: acha a conversa pelo id da sala e começa aberto; recolhido à mão fica recolhido na sala, sala nova abre', async () => {
   fetchMock.mockImplementation(async (url: string) => (url.endsWith('/messages') ? new Response(JSON.stringify([msg('m1', 'mid?')]), { status: 200 }) : new Response(null, { status: 204 })));
-  const lcu = withValues({ conversations: ready([{ id: 'abc-123@champ-select.pvp.net', unreadMessageCount: 3, type: 'championSelect' }, { id: 'zeca@pvp.net', unreadMessageCount: 1, type: 'chat' }]) });
-  act(() => render(<ContextChat lcu={lcu} roomId="abc-123" defaultOpen={false} />, root));
-  expect(root.querySelector('.rlc-ctx-count')!.textContent).toBe('3');
-  act(() => root.querySelector<HTMLButtonElement>('.rlc-ctx-toggle')!.click());
+  const lcu = withValues({ conversations: ready([{ id: 'abc-123@champ-select.pvp.net', unreadMessageCount: 3, type: 'championSelect' }, { id: 'nova-9@champ-select.pvp.net', unreadMessageCount: 0, type: 'championSelect' }, { id: 'zeca@pvp.net', unreadMessageCount: 1, type: 'chat' }]) });
+  act(() => render(<ContextChat key="abc-123" lcu={lcu} roomId="abc-123" />, root));
   await settle();
+  expect(root.querySelector('.rlc-ctx')!.getAttribute('data-open')).toBe('true');
   expect(root.querySelector('.rlc-chat-msgs')!.textContent).toContain('mid?');
+  act(() => root.querySelector<HTMLButtonElement>('.rlc-ctx-toggle')!.click());
+  expect(root.querySelector('.rlc-ctx-count')!.textContent).toBe('3');
+  // Sai da tela e volta (o App desmonta o chat): a mesma sala continua recolhida.
+  act(() => render(null, root));
+  act(() => render(<ContextChat key="abc-123" lcu={lcu} roomId="abc-123" />, root));
+  expect(root.querySelector('.rlc-ctx')!.getAttribute('data-open')).toBeNull();
+  act(() => render(<ContextChat key="nova-9" lcu={lcu} roomId="nova-9" />, root));
+  expect(root.querySelector('.rlc-ctx')!.getAttribute('data-open')).toBe('true');
+});
+
+test('som de mensagem: só mensagem nova de outra pessoa; nem minha, nem de sistema, nem histórico, nem da conversa à vista com foco', () => {
+  const play = vi.fn().mockResolvedValue(undefined);
+  const srcs: string[] = [];
+  vi.stubGlobal('Audio', vi.fn(function (this: { play: typeof play; volume: number }, src: string) { srcs.push(src); this.play = play; this.volume = 1; }));
+  const focus = vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+  const lcu = withValues({ chatMe: ready({ puuid: 'me', id: 'me-id', pid: 'me-pid' }) });
+  act(() => render(<ChatDock lcu={lcu} open active="zeca@pvp.net" onActivate={() => {}} onClose={() => {}} />, root));
+  const room = '/lol-chat/v1/conversations/sala@champ-select.pvp.net/messages/';
+  act(() => emit(`${room}a`, 'Create', { ...msg('a', 'eu', ''), fromPid: 'me-pid' }));
+  act(() => emit(`${room}b`, 'Create', { ...msg('b', 'joined_room', 'x'), type: 'system' }));
+  act(() => emit(`${room}c`, 'Create', { ...msg('c', 'velha', 'x'), isHistorical: true }));
+  act(() => emit(`${room}d`, 'Update', msg('d', 'editada', 'x')));
+  act(() => emit('/lol-chat/v1/conversations/zeca@pvp.net/messages/e', 'Create', msg('e', 'à vista')));
+  expect(play).not.toHaveBeenCalled();
+  act(() => emit(`${room}f`, 'Create', { ...msg('f', 'mid?', 'x'), type: 'groupchat' }));
+  // O mesmo evento com o id codificado não toca de novo.
+  act(() => emit('/lol-chat/v1/conversations/sala%40champ-select.pvp.net/messages/f', 'Create', { ...msg('f', 'mid?', 'x'), type: 'groupchat' }));
+  expect(play).toHaveBeenCalledTimes(1);
+  expect(srcs).toEqual(['/fe/lol-social/sounds/sfx-soc-notif-chat-rcvd.ogg']);
+  // Sem foco na janela, a conversa à vista também avisa; com a pref desligada, nada.
+  focus.mockReturnValue(false);
+  act(() => emit('/lol-chat/v1/conversations/zeca@pvp.net/messages/g', 'Create', msg('g', 'oi?')));
+  expect(play).toHaveBeenCalledTimes(2);
+  prefs.value = { ...DEFAULT_PREFS, chatSound: false };
+  act(() => emit('/lol-chat/v1/conversations/zeca@pvp.net/messages/h', 'Create', msg('h', 'oi??')));
+  expect(play).toHaveBeenCalledTimes(2);
+  prefs.value = DEFAULT_PREFS;
+  focus.mockRestore();
+});
+
+test('som de mensagem: a minha que volta só com o puuid ofuscado (seleção) não toca', () => {
+  const play = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal('Audio', vi.fn(function (this: { play: typeof play }) { this.play = play; }));
+  fetchMock.mockImplementation(async () => new Response(JSON.stringify([]), { status: 200 }));
+  const lcu = withValues({ chatMe: ready({ puuid: 'me' }), conversations: ready([{ id: 'sala@champ-select.pvp.net', unreadMessageCount: 0, type: 'championSelect' }]) });
+  act(() => render(<><ContextChat lcu={lcu} roomId="sala" /><ChatDock lcu={lcu} open={false} active={null} onActivate={() => {}} onClose={() => {}} /></>, root));
+  const input = root.querySelector<HTMLInputElement>('.rlc-ctx .rlc-chat-input')!;
+  type(input, 'mid');
+  key(input, 'Enter');
+  act(() => emit('/lol-chat/v1/conversations/sala@champ-select.pvp.net/messages/z', 'Create', { ...msg('z', 'mid', ''), fromObfuscatedPuuid: 'ofusc' }));
+  expect(play).not.toHaveBeenCalled();
 });
 
 test('chat de contexto sem sala correspondente não aparece', () => {
-  act(() => render(<ContextChat lcu={withValues({ conversations: ready([]) })} roomId="nada" defaultOpen />, root));
+  act(() => render(<ContextChat lcu={withValues({ conversations: ready([]) })} roomId="nada" />, root));
   expect(root.querySelector('.rlc-ctx')).toBeNull();
+});
+
+test('chat de contexto: sala sem conversa e com credenciais entra na sala uma vez', () => {
+  const join = { type: 'customGame' as const, password: 'pw', mucJwtDto: { jwt: 'j', targetRegion: 'br1' } };
+  act(() => render(<ContextChat lcu={withValues({ conversations: ready([]) })} roomId="sala-1" join={join} />, root));
+  const posts = calls('/lol-chat/v1/conversations');
+  expect(posts).toHaveLength(1);
+  expect(JSON.parse(posts[0]![1].body)).toMatchObject({ id: 'sala-1', type: 'customGame', password: 'pw', targetRegion: 'br1' });
 });
 
 test('pedidos: recebido aceita e recusa, enviado cancela', async () => {
@@ -166,4 +243,35 @@ test('histórico de conversa que não existe mais não mostra erro', async () =>
   await settle();
   expect(window.Toast.error).not.toHaveBeenCalled();
   delete window.Toast;
+});
+
+test('cada sequência de mensagens mostra quem mandou: amigo, participante da sala, Riot ID pelo puuid; as minhas como Você', async () => {
+  const room = 'sala@lol-pre-game.pvp.net';
+  const list = [msg('m1', 'oi', 'zeca'), msg('m2', 'bora', 'zeca'), msg('m3', 'vamo', 'me'), msg('m4', 'top?', 'bia'), msg('m5', 'eu', 'estranho'), { ...msg('s1', 'aviso'), type: 'system' }, msg('m6', 'de novo', 'estranho')].map((m) => ({ ...m, type: m.type === 'chat' ? 'groupchat' : m.type }));
+  fetchMock.mockImplementation(async (url: string) =>
+    url.endsWith('/messages')
+      ? new Response(JSON.stringify(list), { status: 200 })
+      : url.endsWith('/participants')
+        ? new Response(JSON.stringify([{ puuid: 'bia', id: 'bia@pvp.net', gameName: 'Bia' }]), { status: 200 })
+        : new Response(null, { status: 204 }),
+  );
+  const lcu = withValues({ chatMe: ready({ puuid: 'me' }), friends: ready([friend({ gameName: 'Zeca', puuid: 'zeca' })]) });
+  const name = vi.fn(async (p: string) => (p === 'estranho' ? 'Estranho' : null));
+  lcu.name = name;
+  act(() => render(<ChatWindow lcu={lcu} conversationId={room} title="Sala" onClose={() => {}} />, root));
+  await settle();
+  await settle();
+  const authors = [...root.querySelectorAll('.rlc-chat-msg')].map((m) => m.querySelector('.rlc-chat-author')?.textContent ?? null);
+  expect(authors).toEqual(['Zeca', null, 'Você', 'Bia', 'Estranho', null, 'Estranho']);
+  expect(root.querySelectorAll('.rlc-chat-msg[data-mine="true"]').length).toBe(1);
+  expect(name).toHaveBeenCalledWith('estranho');
+  expect(name).not.toHaveBeenCalledWith('zeca');
+});
+
+test('autor sem nome conhecido (seleção com nomes ocultos) aparece como Jogador', async () => {
+  fetchMock.mockImplementation(async (url: string) => (url.endsWith('/messages') ? new Response(JSON.stringify([{ ...msg('m1', 'oi', ''), fromObfuscatedPuuid: 'x1', type: 'groupchat' }]), { status: 200 }) : new Response(null, { status: 204 })));
+  act(() => render(<ChatWindow lcu={withValues({ chatMe: ready({ puuid: 'me' }) })} conversationId="cs@champ-select.pvp.net" title="Sala" onClose={() => {}} />, root));
+  await settle();
+  expect(root.querySelector('.rlc-chat-author')!.textContent).toBe('Jogador');
+  expect(root.querySelector('.rlc-chat-msg[data-mine]')).toBeNull();
 });

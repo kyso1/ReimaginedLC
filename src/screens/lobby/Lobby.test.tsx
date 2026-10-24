@@ -25,7 +25,6 @@ afterEach(() => {
 const settle = () => act(async () => void (await new Promise((r) => setTimeout(r, 0))));
 const buttons = () => [...root.querySelectorAll('button')];
 const btn = (text: string) => buttons().find((b) => b.textContent?.includes(text) || b.getAttribute('aria-label') === text);
-const inDialog = (text: string) => [...root.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find((b) => b.textContent?.endsWith(text))!;
 const call = (url: string) => fetchMock.mock.calls.find((c) => c[0] === url);
 const mount = (lcu: Lcu, onModes = vi.fn()) => {
   act(() => render(<Lobby lcu={lcu} onModes={onModes} />, root));
@@ -57,14 +56,14 @@ test('uma coluna por vaga: membros com nome e posições, vagas vazias com convi
   const cols = root.querySelectorAll('.rlc-col');
   expect(cols).toHaveLength(5);
   expect(cols[0]!.textContent).toContain('Fulano');
-  expect(cols[0]!.textContent).toContain('Meio');
+  expect([...cols[0]!.querySelectorAll('.rlc-pos svg')].map((i) => i.getAttribute('data-role'))).toEqual(['MIDDLE', 'TOP']);
   expect(cols[1]!.textContent).toContain('Zeca');
   expect([...cols].slice(2).every((c) => c.textContent?.includes('Convidar'))).toBe(true);
 });
 
 test('nome com markup aparece como texto', () => {
   mount(withSignals({ lobby: ready(lobby([leader({ summonerName: '<img src=x>' })])) }));
-  expect(root.querySelector('img')).toBeNull();
+  expect(root.querySelector('img:not(.rlc-pos img)')).toBeNull();
   expect(root.textContent).toContain('<img src=x>');
 });
 
@@ -137,29 +136,65 @@ test('erro de busca mostra a mensagem e o tempo de penalidade', () => {
   expect(band.textContent).toContain('5:00');
 });
 
-test('posições: clicar na própria coluna abre a escolha e confirma com PUT', () => {
-  mount(withSignals({}));
-  act(() => root.querySelector<HTMLButtonElement>('.rlc-col[data-local="true"] .rlc-col-main')!.click());
-  act(() => inDialog('Meio').click());
-  act(() => inDialog('Topo').click());
-  act(() => inDialog('Confirmar').click());
-  expect(call('/lol-lobby/v2/lobby/members/localMember/position-preferences')![1]).toEqual({
-    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{"firstPreference":"MIDDLE","secondPreference":"TOP"}',
-  });
-});
 
-test('posições: Preencher como primeira dispensa a segunda', () => {
-  mount(withSignals({}));
-  act(() => root.querySelector<HTMLButtonElement>('.rlc-col[data-local="true"] .rlc-col-main')!.click());
-  act(() => inDialog('Preencher').click());
-  act(() => inDialog('Confirmar').click());
-  expect(JSON.parse(call('/lol-lobby/v2/lobby/members/localMember/position-preferences')![1].body)).toEqual({ firstPreference: 'FILL', secondPreference: 'UNSELECTED' });
-});
 
-test('sem seletor de posições, clicar na própria coluna não abre nada', () => {
+test('sem seletor de posições, a coluna não mostra posições', () => {
   mount(withSignals({ lobby: ready(lobby([me], me, { showPositionSelector: false })) }));
-  expect(root.querySelector('.rlc-col[data-local="true"] .rlc-col-main')).toBeNull();
-  expect(root.textContent).not.toContain('Meio');
+  expect(root.querySelector('.rlc-pos')).toBeNull();
+});
+
+const put = () => call('/lol-lobby/v2/lobby/members/localMember/position-preferences');
+const slot = (i: number) => root.querySelectorAll<HTMLButtonElement>('.rlc-col[data-local="true"] button.rlc-pos-slot')[i]!;
+const option = (label: string) => root.querySelector<HTMLButtonElement>(`.rlc-pos-picker button[aria-label="${label}"]`)!;
+
+test('posições: ícone da principal abre o seletor com 5 rotas e Preencher, e escolher salva com PUT', () => {
+  mount(withSignals({}));
+  // Só a própria coluna tem ícones clicáveis.
+  expect(root.querySelectorAll('button.rlc-pos-slot')).toHaveLength(2);
+  act(() => slot(0).click());
+  expect([...root.querySelectorAll('.rlc-pos-picker button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Topo', 'Selva', 'Meio', 'Atirador', 'Suporte', 'Preencher']);
+  act(() => option('Selva').click());
+  expect(put()![1]).toEqual({ method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{"firstPreference":"JUNGLE","secondPreference":"TOP"}' });
+  expect(root.querySelector('.rlc-pos-picker')).toBeNull();
+  expect(slot(0).querySelector('svg')!.getAttribute('data-role')).toBe('JUNGLE');
+});
+
+test('posições: escolher a da outra vaga troca as duas; Preencher na principal dispensa a secundária', async () => {
+  mount(withSignals({}));
+  act(() => slot(1).click());
+  act(() => option('Meio').click());
+  expect(JSON.parse(put()![1].body)).toEqual({ firstPreference: 'TOP', secondPreference: 'MIDDLE' });
+  await settle();
+  act(() => slot(0).click());
+  act(() => option('Preencher').click());
+  expect(JSON.parse(fetchMock.mock.calls.filter((c) => c[0] === put()![0]).at(-1)![1].body)).toEqual({ firstPreference: 'FILL', secondPreference: 'UNSELECTED' });
+  expect(root.querySelectorAll('.rlc-col[data-local="true"] .rlc-pos-slot')).toHaveLength(1);
+});
+
+test('posições: Escape fecha o seletor sem salvar', () => {
+  mount(withSignals({}));
+  act(() => slot(0).click());
+  act(() => void document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+  expect(root.querySelector('.rlc-pos-picker')).toBeNull();
+  expect(put()).toBeUndefined();
+});
+
+test('elo: em fila ranqueada cada membro mostra ícone • elo PdL; fora dela, nada', async () => {
+  const solo = leader({ summonerName: 'Fulano', puuid: 'p-ranked' });
+  fetchMock.mockImplementation(async (url: string) =>
+    url === '/lol-ranked/v1/ranked-stats/p-ranked'
+      ? new Response(JSON.stringify({ queueMap: { RANKED_SOLO_5x5: { tier: 'GOLD', division: 'II', leaguePoints: 45 } } }), { status: 200 })
+      : new Response(null, { status: 204 }));
+  mount(withSignals({ lobby: ready(lobby([solo], solo, { queueId: 420 })) }));
+  await settle();
+  await settle();
+  const rank = root.querySelector('.rlc-col .rlc-rank')!;
+  expect(rank.querySelector('img')!.getAttribute('src')).toContain('ranked-mini-crests/gold.svg');
+  expect(rank.textContent).toBe('• Ouro II 45 PdL');
+  render(null, root);
+  mount(withSignals({ lobby: ready(lobby([solo], solo, { queueId: 400 })) }));
+  await settle();
+  expect(root.querySelector('.rlc-rank')).toBeNull();
 });
 
 test('convidar lista amigos online fora do lobby e envia o convite', () => {
@@ -199,16 +234,6 @@ test('sem summonerName (Riot ID), a coluna mostra o nome buscado pelo puuid', as
   expect(root.querySelector('.rlc-col')!.textContent).toContain('Fulano');
 });
 
-test('posições: dois cliques seguidos antes de redesenhar contam os dois', () => {
-  mount(withSignals({}));
-  act(() => root.querySelector<HTMLButtonElement>('.rlc-col[data-local="true"] .rlc-col-main')!.click());
-  act(() => {
-    inDialog('Meio').click();
-    inDialog('Topo').click();
-  });
-  act(() => inDialog('Confirmar').click());
-  expect(JSON.parse(call('/lol-lobby/v2/lobby/members/localMember/position-preferences')![1].body)).toEqual({ firstPreference: 'MIDDLE', secondPreference: 'TOP' });
-});
 
 test('em fila com a fase ainda em Lobby (como a LCU faz na fila normal), a barra mostra o cronômetro', () => {
   mount(withSignals({ gameflowPhase: ready('Lobby'), search: ready(search({ timeInQueue: 5 })) }));
@@ -229,4 +254,46 @@ test('TFT: a coluna mostra a Pequena Lenda equipada no lugar da splash, e Person
   expect(col.querySelector('.rlc-col-splash')).toBeNull();
   act(() => btn('Personalizar')!.click());
   expect(root.querySelector('.rlc-tft-drawer')).not.toBeNull();
+});
+
+test('TFT: clicar na Pequena Lenda do jogador local abre Personalizar; a dos outros não é botão', async () => {
+  const tft = leader({ summonerName: 'Fulano', memberData: { 'TFT.Tactician': 'abc' } } as never);
+  const outro = member({ summonerName: 'Zeca', memberData: { 'TFT.Tactician': 'abc' } } as never);
+  const lcu = withSignals({ lobby: ready(lobby([tft, outro], tft, { gameMode: 'TFT', queueId: 1090 })) });
+  lcu.game = { ...lcu.game, companions: async () => new Map([['abc', { itemId: 91003, name: 'Chibi Orianna', icon: '/o.png' }]]) };
+  mount(lcu);
+  await settle();
+  await settle();
+  const cards = [...root.querySelectorAll('.rlc-col-legend-card')];
+  expect(cards.map((c) => c.tagName)).toEqual(['BUTTON', 'SPAN']);
+  expect(root.querySelector('.rlc-col[data-tft="true"]')).not.toBeNull();
+  act(() => (cards[0] as HTMLButtonElement).click());
+  expect(root.querySelector('.rlc-tft-drawer')).not.toBeNull();
+});
+
+test('TFT ranqueado: cada coluna mostra o elo do jogador', async () => {
+  const tft = leader({ summonerName: 'Fulano', puuid: 'tft-elo-1' });
+  fetchMock.mockImplementation(async (url: string) =>
+    url === '/lol-ranked/v1/ranked-stats/tft-elo-1'
+      ? new Response(JSON.stringify({ queueMap: { RANKED_TFT: { tier: 'DIAMOND', division: 'II', leaguePoints: 39 }, RANKED_SOLO_5x5: { tier: 'GOLD', division: 'I', leaguePoints: 5 } } }), { status: 200 })
+      : new Response(null, { status: 204 }),
+  );
+  mount(withSignals({ lobby: ready(lobby([tft], tft, { gameMode: 'TFT', queueId: 1100 })) }));
+  await settle();
+  await settle();
+  const rank = root.querySelector('.rlc-col .rlc-rank')!;
+  expect(rank.textContent).toBe('• Diamante II 39 PdL');
+  expect(rank.querySelector('img')!.getAttribute('src')).toContain('diamond');
+});
+
+test('membro que não está pronto fica apagado com reticências no centro, no LoL e no TFT', () => {
+  const busy = member({ summonerName: 'Zeca', ready: false });
+  for (const config of [{}, { gameMode: 'TFT' }]) {
+    mount(withSignals({ lobby: ready(lobby([me, busy], me, config)) }));
+    const cols = [...root.querySelectorAll('.rlc-col:not([data-empty])')];
+    expect(cols.map((c) => c.getAttribute('data-unready'))).toEqual([null, 'true']);
+    expect(cols[1]!.querySelector('.rlc-col-wait')!.getAttribute('aria-label')).toBe('Ainda não está pronto');
+    expect(cols[0]!.querySelector('.rlc-col-wait')).toBeNull();
+    act(() => render(null, root));
+  }
 });

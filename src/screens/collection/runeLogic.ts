@@ -8,6 +8,26 @@ export interface Style {
   defaultSubStyle: number;
   defaultPerks: number[];
   slots: Array<{ type: string; perks: number[] }>;
+  /** Artes de fundo: `p{principal}_s{secundária|0}_k{pedra|0}`. */
+  assetMap?: Record<string, string>;
+}
+
+export interface Perk {
+  id: number;
+  name: string;
+  longDesc?: string;
+  shortDesc?: string;
+  iconPath?: string;
+}
+
+/** Texto sem as marcações que a Riot põe nas descrições (`<b>`, `<lol-uikit-…>`). */
+export const plain = (html: string | undefined) => (html ?? '').replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+
+/** Arte da árvore para a combinação atual, do mais específico ao genérico. */
+export function artOf(style: Style | undefined, d: Draft): string | null {
+  const m = style?.assetMap ?? {};
+  const p = `p${d.primary}`;
+  return m[`${p}_s${d.sub}_k${d.keystone}`] ?? m[`${p}_s0_k${d.keystone}`] ?? m[`${p}_s${d.sub}_k0`] ?? m[`${p}_s0_k0`] ?? null;
 }
 
 /** Rascunho da página em edição. A ordem final dos 9 ids é a da LCU. */
@@ -45,6 +65,16 @@ export function fromPage(page: LolPerksPerkPageResource, styles: Style[]): Draft
     shards: [pick(6), pick(7), pick(8)],
   };
 }
+
+/** Rascunho a partir de uma página recomendada (9 ids já na ordem da LCU). */
+export const fromIds = (primary: number, sub: number, ids: number[]): Draft => ({
+  primary,
+  sub,
+  keystone: ids[0] ?? 0,
+  primaryPerks: [ids[1] ?? 0, ids[2] ?? 0, ids[3] ?? 0],
+  secondary: [ids[4], ids[5]].filter((x): x is number => !!x),
+  shards: [ids[6] ?? 0, ids[7] ?? 0, ids[8] ?? 0],
+});
 
 export const selectedIds = (d: Draft) => [d.keystone, ...d.primaryPerks, ...d.secondary, ...d.shards];
 export const isComplete = (d: Draft) => d.keystone > 0 && d.primaryPerks.every((p) => p > 0) && d.secondary.length === 2 && d.shards.every((p) => p > 0);

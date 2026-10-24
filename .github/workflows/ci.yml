@@ -20,3 +20,5 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - run: npm run build:loader
+      - run: npm run build:cdn

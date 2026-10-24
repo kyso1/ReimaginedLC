@@ -5,6 +5,8 @@ import { readSetting, writeSetting } from '../shell/storage';
 export type BgSource = { kind: 'none' } | { kind: 'splash'; skinId: number } | { kind: 'file'; key: string; mime: string };
 export const BG_SCREENS = ['home', 'lobby', 'profile', 'collection', 'postgame'] as const;
 export type BgScreen = (typeof BG_SCREENS)[number];
+/** Telas fora da partida: todas recebem o fundo global. Na seleção, a splash do campeão (quando há) fica por cima dele. */
+export const GLOBAL_SCREENS: readonly string[] = [...BG_SCREENS, 'loot', 'events', 'store', 'settings', 'champselect', 'honor'];
 
 export interface BgSettings {
   scope: 'global' | 'screens';
@@ -65,9 +67,9 @@ export function setBackground(b: BgSettings): void {
 /** Semente da escolha aleatória: uma por abertura do client. */
 export const SESSION_SEED = Math.random();
 
-/** Fonte da tela, ou null quando a tela fica com o fundo do tema (seleção, partida e telas sem configuração). */
+/** Fonte da tela, ou null quando a tela fica com o fundo do tema (partida e telas sem configuração). */
 export function sourceFor(b: BgSettings, screen: string): BgSource | null {
-  if (!(BG_SCREENS as readonly string[]).includes(screen)) return null;
+  if (!GLOBAL_SCREENS.includes(screen)) return null;
   const own = b.scope === 'screens' ? b.screens[screen as BgScreen] : undefined;
   const src = own && own.kind !== 'none' ? own : b.global;
   return src.kind === 'none' ? null : src;
@@ -75,7 +77,7 @@ export function sourceFor(b: BgSettings, screen: string): BgSource | null {
 
 /** Skin aleatória vale nas telas com fundo personalizado que não têm fonte própria. */
 export function wantsRandom(b: BgSettings, screen: string): boolean {
-  if (!b.random || !(BG_SCREENS as readonly string[]).includes(screen)) return false;
+  if (!b.random || !GLOBAL_SCREENS.includes(screen)) return false;
   const own = b.scope === 'screens' ? b.screens[screen as BgScreen] : undefined;
   return !own || own.kind === 'none';
 }

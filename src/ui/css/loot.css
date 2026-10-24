@@ -1,0 +1,168 @@
+/* loot: estilos da tela, carregados por @import em styles.css. Cores só por var(--rlc-*, reserva). */
+/* Este arquivo carrega antes das regras antigas de styles.css (.rlc-loot, .rlc-lt-empty): onde há conflito, o seletor leva `.rlc-loot` a mais. */
+
+#rlc-root .rlc-loot { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+#rlc-root .rlc-loot .rlc-lt-empty { position: static; padding: 32px 0; text-align: center; }
+
+/* Abas Criação · Santuário · Loja Mítica e sub-abas da Loja Mítica */
+#rlc-root .rlc-lt-tabs, #rlc-root .rlc-lt-subtabs { flex: none; display: flex; gap: 6px; }
+#rlc-root .rlc-lt-tabs button, #rlc-root .rlc-lt-subtabs button { padding: 6px 16px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.2)); border-radius: var(--rlc-radius-pill, 99px); background: transparent; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background var(--rlc-motion-duration) var(--rlc-motion-easing), color var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-lt-tabs button:hover, #rlc-root .rlc-lt-subtabs button:hover { color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-lt-tabs button[aria-pressed='true'], #rlc-root .rlc-lt-subtabs button[aria-pressed='true'] { border-color: transparent; background: var(--rlc-color-text, #fff); color: var(--rlc-color-bg, #1b1b2a); }
+#rlc-root .rlc-lt-subtabs small { margin-left: 4px; opacity: 0.6; }
+
+/* Painel de vidro comum */
+#rlc-root .rlc-lt-rail, #rlc-root .rlc-lt-stage, #rlc-root .rlc-lt-tray, #rlc-root .rlc-lt-note, #rlc-root .rlc-lt-wallet { border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.14)); border-radius: var(--rlc-radius-md, 10px); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(10, 12, 20, 0.58)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.76))); backdrop-filter: blur(16px) brightness(0.75); }
+
+/* Criação: trilho | grade | palco, bandeja embaixo */
+#rlc-root .rlc-lt-craft { flex: 1; min-height: 0; display: grid; grid-template-columns: 170px minmax(0, 1fr) 280px; grid-template-rows: minmax(0, 1fr) auto; gap: 12px; padding-bottom: 12px; }
+#rlc-root .rlc-lt-rail { display: flex; flex-direction: column; gap: 2px; padding: 8px; overflow-y: auto; }
+#rlc-root .rlc-lt-rail button { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 0; border-radius: var(--rlc-radius-pill, 99px); background: transparent; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); font: inherit; font-size: 13px; text-align: left; cursor: pointer; transition: background var(--rlc-motion-duration) var(--rlc-motion-easing), color var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-lt-rail button:hover { background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.06)); color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-lt-rail button[aria-pressed='true'] { background: var(--rlc-color-text, #fff); color: var(--rlc-color-bg, #1b1b2a); font-weight: 700; }
+#rlc-root .rlc-lt-rail small { margin-left: auto; font-size: 11px; opacity: 0.7; }
+
+#rlc-root .rlc-lt-main { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+#rlc-root .rlc-lt-tools { flex: none; display: flex; align-items: center; gap: 10px; }
+#rlc-root .rlc-lt-search { flex: 0 1 320px; padding: 7px 12px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.18)); border-radius: var(--rlc-radius-sm, 7px); background: var(--rlc-color-surface, rgba(255, 255, 255, 0.04)); color: var(--rlc-color-text, #fff); font: inherit; font-size: 13px; }
+#rlc-root .rlc-lt-sort { display: flex; align-items: center; gap: 6px; margin-left: auto; font-size: 12px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); }
+#rlc-root .rlc-lt-sort select { padding: 6px 10px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.18)); border-radius: var(--rlc-radius-sm, 7px); background: var(--rlc-color-scrim, rgba(10, 12, 20, 0.85)); color: var(--rlc-color-text, #fff); font: inherit; font-size: 13px; }
+#rlc-root .rlc-lt-sections { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-right: 4px; }
+#rlc-root .rlc-lt-section h3 { margin: 0 0 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); }
+#rlc-root .rlc-lt-section h3 small { margin-left: 4px; font-weight: 400; }
+#rlc-root .rlc-lt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+
+/* Peça da grade: arte quadrada, nome centralizado sobre degradê no pé, quantidade no canto, borda pela raridade */
+#rlc-root .rlc-lt-tile { position: relative; aspect-ratio: 1; padding: 0; overflow: hidden; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.12)); border-radius: var(--rlc-radius-sm, 7px); background: var(--rlc-color-surface, rgba(255, 255, 255, 0.04)); color: var(--rlc-color-text, #fff); font: inherit; cursor: pointer; transition: transform var(--rlc-motion-duration) var(--rlc-motion-easing), box-shadow var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-lt-tile:hover { transform: translateY(-3px); box-shadow: 0 8px 18px var(--rlc-color-shade, rgba(0, 0, 0, 0.4)); }
+#rlc-root .rlc-lt-tile[aria-pressed='true'] { border-color: var(--rlc-color-highlight, #c8a04a); box-shadow: 0 0 0 1px var(--rlc-color-highlight, #c8a04a), 0 0 18px var(--rlc-color-highlight, rgba(200, 160, 74, 0.5)); }
+#rlc-root .rlc-lt-tile img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#rlc-root .rlc-lt-tile::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 50%; background: linear-gradient(180deg, transparent, var(--rlc-color-scrim, rgba(6, 8, 14, 0.92))); }
+#rlc-root .rlc-lt-tile span { position: absolute; z-index: 1; left: 4px; right: 4px; bottom: 6px; font-size: 11px; font-weight: 700; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 3px var(--rlc-color-textShadow, #000); }
+#rlc-root .rlc-lt-count { position: absolute; z-index: 1; top: 4px; right: 4px; padding: 1px 6px; border-radius: var(--rlc-radius-pill, 99px); background: var(--rlc-color-scrim, rgba(6, 8, 14, 0.7)); font-size: 11px; }
+#rlc-root .rlc-lt-tile[data-rarity='epic'] { border-color: var(--rlc-color-rarityEpic, #4fc3f7); }
+#rlc-root .rlc-lt-tile[data-rarity='legendary'] { border-color: var(--rlc-color-rarityLegendary, #e05050); }
+#rlc-root .rlc-lt-tile[data-rarity='mythic'], #rlc-root .rlc-lt-tile[data-rarity='transcendent'], #rlc-root .rlc-lt-tile[data-rarity='exalted'] { border-color: var(--rlc-color-rarityMythic, #b678ff); }
+#rlc-root .rlc-lt-tile[data-rarity='ultimate'] { border-color: var(--rlc-color-rarityUltimate, #f0b63c); }
+
+/* Palco do item escolhido */
+#rlc-root .rlc-lt-stage { display: flex; flex-direction: column; gap: 8px; padding: 14px; overflow-y: auto; }
+#rlc-root .rlc-lt-art { flex: none; aspect-ratio: 16 / 10; border-radius: var(--rlc-radius-sm, 7px); background: var(--rlc-color-surface, rgba(255, 255, 255, 0.04)) center / cover no-repeat; animation: rlc-fade var(--rlc-motion-duration) var(--rlc-motion-easing) both; }
+#rlc-root .rlc-lt-stage h2 { margin: 0; font-family: var(--rlc-font-display); font-size: 20px; line-height: 1.15; }
+#rlc-root .rlc-lt-rarity { align-self: flex-start; padding: 2px 8px; border-radius: var(--rlc-radius-pill, 99px); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.1)); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+#rlc-root .rlc-lt-rarity[data-rarity='epic'] { color: var(--rlc-color-rarityEpic, #4fc3f7); }
+#rlc-root .rlc-lt-rarity[data-rarity='legendary'] { color: var(--rlc-color-rarityLegendary, #e05050); }
+#rlc-root .rlc-lt-rarity[data-rarity='mythic'], #rlc-root .rlc-lt-rarity[data-rarity='transcendent'], #rlc-root .rlc-lt-rarity[data-rarity='exalted'] { color: var(--rlc-color-rarityMythic, #b678ff); }
+#rlc-root .rlc-lt-rarity[data-rarity='ultimate'] { color: var(--rlc-color-rarityUltimate, #f0b63c); }
+#rlc-root .rlc-loot .rlc-lt-actions { flex-direction: column; margin-top: 8px; }
+
+/* Bandeja: moedas, chaves e baús */
+#rlc-root .rlc-lt-tray { grid-column: 1 / -1; display: flex; align-items: center; gap: 24px; padding: 8px 16px; }
+#rlc-root .rlc-lt-balance { display: flex; align-items: center; gap: 8px; }
+#rlc-root .rlc-lt-balance img { width: 28px; height: 28px; object-fit: contain; }
+#rlc-root .rlc-lt-balance span { display: flex; flex-direction: column; line-height: 1.15; }
+#rlc-root .rlc-lt-balance b { font-size: 15px; }
+#rlc-root .rlc-lt-balance small { font-size: 11px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); }
+
+/* Saldos do Santuário e da Loja Mítica */
+#rlc-root .rlc-lt-wallet { display: flex; gap: 16px; padding: 8px 14px; }
+#rlc-root .rlc-lt-wallet span { display: flex; align-items: center; gap: 6px; }
+#rlc-root .rlc-lt-wallet img { width: 22px; height: 22px; object-fit: contain; }
+#rlc-root .rlc-lt-wallet small { font-size: 11px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); }
+
+/* Aviso de compra no client original */
+#rlc-root .rlc-lt-note { flex: none; display: flex; align-items: center; gap: 16px; padding: 10px 16px; font-size: 13px; }
+#rlc-root .rlc-lt-note p { flex: 1; margin: 0; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+
+/* Santuário: faixa grande com a arte, nome, prazo e garantia; miniaturas das outras faixas */
+#rlc-root .rlc-lt-sanctum { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding-bottom: 12px; }
+#rlc-root .rlc-lt-hero { position: relative; flex: 1; min-height: 260px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 24px; overflow: hidden; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.14)); border-radius: var(--rlc-radius-lg, 16px); background: var(--rlc-color-surface, rgba(255, 255, 255, 0.04)) center 20% / cover no-repeat; animation: rlc-fade var(--rlc-motion-duration) var(--rlc-motion-easing) both; }
+#rlc-root .rlc-lt-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, var(--rlc-color-scrim, rgba(10, 12, 20, 0.85)), transparent 60%), linear-gradient(0deg, var(--rlc-color-scrim, rgba(10, 12, 20, 0.7)), transparent 50%); pointer-events: none; }
+#rlc-root .rlc-lt-hero > * { position: relative; z-index: 1; }
+#rlc-root .rlc-lt-hero-in { display: flex; flex-direction: column; gap: 6px; max-width: 60%; }
+#rlc-root .rlc-lt-hero h2 { margin: 0; font-family: var(--rlc-font-display); font-size: 36px; line-height: 1.05; text-shadow: 0 2px 8px var(--rlc-color-textShadow, #000); }
+#rlc-root .rlc-lt-timer { margin: 0; font-size: 13px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.75)); }
+#rlc-root .rlc-lt-pity { align-self: flex-start; margin: 4px 0 0; padding: 6px 12px; border: 1px solid var(--rlc-color-rarityMythic, #b678ff); border-radius: var(--rlc-radius-pill, 99px); background: var(--rlc-color-scrim, rgba(10, 12, 20, 0.6)); font-size: 13px; font-weight: 700; }
+#rlc-root .rlc-lt-banners { flex: none; display: flex; gap: 10px; }
+#rlc-root .rlc-lt-banners button { position: relative; width: 200px; height: 84px; padding: 0; overflow: hidden; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.14)); border-radius: var(--rlc-radius-md, 10px); background: var(--rlc-color-surface, rgba(255, 255, 255, 0.04)) center 20% / cover no-repeat; color: var(--rlc-color-text, #fff); font: inherit; cursor: pointer; }
+#rlc-root .rlc-lt-banners button[aria-pressed='true'] { border-color: var(--rlc-color-highlight, #c8a04a); box-shadow: 0 0 14px var(--rlc-color-highlight, rgba(200, 160, 74, 0.5)); }
+#rlc-root .rlc-lt-banners button::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 30%, var(--rlc-color-scrim, rgba(6, 8, 14, 0.9))); }
+#rlc-root .rlc-lt-banners span { position: absolute; z-index: 1; left: 8px; right: 8px; bottom: 6px; font-size: 12px; font-weight: 700; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Loja Mítica: cabeçalho (rotações + saldo), filtro por tipo e vitrine.
+   Cartão em fluxo normal (arte em cima, texto embaixo): nada fica sobreposto à arte, e o nome longo quebra em até 2 linhas. */
+#rlc-root .rlc-lt-mythic { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding-bottom: 12px; }
+#rlc-root .rlc-lt-mythic-top { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+#rlc-root .rlc-lt-subtabs { flex-wrap: wrap; }
+#rlc-root .rlc-lt-kinds { flex: none; display: flex; flex-wrap: wrap; gap: 6px; }
+#rlc-root .rlc-lt-kinds button { padding: 4px 12px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.16)); border-radius: var(--rlc-radius-sm, 7px); background: transparent; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+#rlc-root .rlc-lt-kinds button:hover { color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-lt-kinds button[aria-pressed='true'] { border-color: var(--rlc-color-rarityMythic, #b678ff); color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-lt-kinds small { margin-left: 4px; opacity: 0.6; }
+#rlc-root .rlc-lt-shop { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); grid-auto-rows: max-content; gap: 10px; align-content: start; padding: 2px 4px 2px 0; }
+#rlc-root .rlc-lt-offer { min-width: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.14)); border-radius: var(--rlc-radius-md, 10px); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.05)); transition: transform var(--rlc-motion-duration) var(--rlc-motion-easing), border-color var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-lt-offer:hover { transform: translateY(-2px); border-color: var(--rlc-color-rarityMythic, #b678ff); }
+#rlc-root .rlc-lt-offer-art { flex: none; aspect-ratio: 1; background: var(--rlc-color-surface, rgba(255, 255, 255, 0.04)) center / cover no-repeat; }
+/* Emote e ícone são arte quadrada pequena com fundo transparente: inteira, sem corte. */
+#rlc-root .rlc-lt-offer:not([data-kind='skin']) .rlc-lt-offer-art { background-size: 62%; }
+#rlc-root .rlc-lt-offer-in { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 8px 10px 10px; }
+#rlc-root .rlc-lt-offer-in b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-height: 2.4em; font-size: 13px; line-height: 1.2; overflow-wrap: anywhere; }
+#rlc-root .rlc-lt-offer-in small { font-size: 11px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); }
+#rlc-root .rlc-lt-price { margin-bottom: 4px; font-size: 13px; font-weight: 700; color: var(--rlc-color-rarityMythic, #c9a0ff); }
+#rlc-root .rlc-lt-offer-in .rlc-lt-offer-error { color: var(--rlc-color-dangerText, #f08a94); }
+#rlc-root .rlc-lt-offer[data-owned='true'] .rlc-lt-offer-art { filter: grayscale(0.7) brightness(0.6); }
+#rlc-root .rlc-lt-offer[data-owned='true'] .rlc-lt-price { color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); }
+
+/* Cartões com aspect-ratio e overflow escondido: a linha do grid mede pela altura máxima (senão achata no Chromium do client). */
+#rlc-root .rlc-lt-grid { grid-auto-rows: max-content; }
+/* Grade grande: o Chromium pula layout/pintura dos itens fora da tela (o aspect-ratio mantém o tamanho exato). */
+#rlc-root .rlc-lt-tile { content-visibility: auto; contain-intrinsic-size: auto 104px auto 104px; }
+
+/* Santuário: invocar x1/x10. O botão leva o custo embaixo do verbo para o preço estar à vista antes do clique. */
+#rlc-root .rlc-lt-rolls { display: flex; gap: 10px; margin-top: 12px; }
+#rlc-root .rlc-lt-roll { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 150px; min-height: 52px; padding: 8px 18px; }
+#rlc-root .rlc-lt-roll span { font-size: 15px; font-weight: 700; }
+#rlc-root .rlc-lt-roll small { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; opacity: 0.85; }
+#rlc-root .rlc-lt-roll small img { width: 14px; height: 14px; }
+
+/* Retorno de compra: erro em vermelho, sucesso no realce */
+#rlc-root .rlc-lt-error, #rlc-root .rlc-lt-done { flex: none; margin: 0; padding: 8px 12px; border: 1px solid var(--rlc-color-danger, #c8364a); border-radius: var(--rlc-radius-sm, 7px); background: var(--rlc-color-scrim, rgba(10, 12, 20, 0.7)); color: var(--rlc-color-dangerText, #f08a94); font-size: 13px; }
+#rlc-root .rlc-lt-done { border-color: var(--rlc-color-highlight, #c8a04a); color: var(--rlc-color-text, #fff); }
+
+/* Loja Mítica: comprar no pé do cartão (margin-top auto alinha os botões da mesma linha) */
+#rlc-root .rlc-lt-buy { align-self: stretch; margin-top: auto; min-height: 34px; padding: 6px 10px; font-size: 13px; }
+
+/* Reformular: 3 vagas em cima, peças aceitas embaixo */
+#rlc-root .rlc-lt-reroll { width: min(720px, calc(100vw - 32px)); max-height: 86vh; }
+#rlc-root .rlc-lt-reroll h2 { margin: 0; font-family: var(--rlc-font-display); font-size: 22px; }
+#rlc-root .rlc-lt-reroll > p { font-size: 14px; }
+#rlc-root .rlc-lt-slots { display: grid; grid-template-columns: repeat(3, 120px); justify-content: center; gap: 12px; }
+#rlc-root .rlc-lt-slot { aspect-ratio: 1; border: 1px dashed var(--rlc-color-border, rgba(255, 255, 255, 0.3)); border-radius: var(--rlc-radius-sm, 7px); }
+#rlc-root .rlc-lt-reroll-pool { max-height: 260px; overflow-y: auto; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
+#rlc-root .rlc-lt-reroll-pool .rlc-lt-tile:disabled { opacity: 0.35; transform: none; box-shadow: none; }
+#rlc-root .rlc-lt-reroll .rlc-dialog-actions { align-items: center; flex-wrap: wrap; }
+#rlc-root .rlc-lt-slot-count { margin-right: auto; font-size: 13px; }
+#rlc-root .rlc-lt-tile:focus-visible { outline: 2px solid var(--rlc-color-accent, #fff); outline-offset: 2px; }
+
+/* Revelação com até 10 cartões (invocação x10): quebra em linhas */
+#rlc-root .rlc-loot .rlc-lt-reveal-cards { flex-wrap: wrap; justify-content: center; max-width: min(900px, calc(100vw - 32px)); }
+#rlc-root .rlc-loot .rlc-lt-reveal-card[data-chase='true'] { border-color: var(--rlc-color-rarityMythic, #b678ff); box-shadow: 0 0 30px var(--rlc-color-rarityMythic, #b678ff); }
+
+/* Santuário: saldos e o atalho de comprar Centelhas, à direita da faixa */
+#rlc-root .rlc-lt-hero-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+#rlc-root .rlc-lt-sparkbuy { display: flex; align-items: center; gap: 6px; min-height: 36px; }
+#rlc-root .rlc-lt-sparkbuy img { width: 16px; height: 16px; }
+
+/* Pacotes de Centelhas: lista com quantidade à esquerda e preço em RP à direita */
+#rlc-root .rlc-lt-packs { width: min(420px, calc(100vw - 32px)); }
+#rlc-root .rlc-lt-packs h2 { margin: 0; font-family: var(--rlc-font-display); font-size: 22px; }
+#rlc-root .rlc-dialog .rlc-lt-packs-info { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; }
+#rlc-root .rlc-lt-packs-info span { display: flex; align-items: center; gap: 6px; font-weight: 700; }
+#rlc-root .rlc-lt-packs-info small { color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); }
+#rlc-root .rlc-lt-packs img { width: 18px; height: 18px; object-fit: contain; }
+#rlc-root .rlc-lt-pack-list { display: flex; flex-direction: column; gap: 6px; }
+#rlc-root .rlc-lt-pack { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 8px 14px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.16)); border-radius: var(--rlc-radius-sm, 7px); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.05)); color: var(--rlc-color-text, #fff); font: inherit; font-size: 14px; cursor: pointer; }
+#rlc-root .rlc-lt-pack:hover:not(:disabled) { border-color: var(--rlc-color-rarityMythic, #b678ff); }
+#rlc-root .rlc-lt-pack:disabled { opacity: 0.45; cursor: not-allowed; }
+#rlc-root .rlc-lt-pack:focus-visible { outline: 2px solid var(--rlc-color-accent, #fff); outline-offset: 2px; }
+#rlc-root .rlc-lt-pack span, #rlc-root .rlc-lt-pack b { display: flex; align-items: center; gap: 6px; }

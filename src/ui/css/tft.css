@@ -1,0 +1,80 @@
+/* Lobby de TFT: coluna de vidro com o cartão da Pequena Lenda e a gaveta Personalizar. */
+
+/* Coluna: vidro simples no lugar do fundo borrado; quem destaca é a sombra do cartão. */
+#rlc-root .rlc-col[data-tft='true'] { background-image: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(10, 12, 20, 0.5)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.72))); backdrop-filter: blur(24px) brightness(0.7); }
+#rlc-root .rlc-col[data-tft='true']::after { display: none; }
+#rlc-root .rlc-col-legend { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding-bottom: 20%; pointer-events: none; }
+#rlc-root .rlc-col-legend-card { position: relative; display: block; width: 86%; padding: 0; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-shade, rgba(0, 0, 0, 0.35)); overflow: hidden; box-shadow: 0 28px 48px -16px var(--rlc-color-scrim, rgba(0, 0, 0, 0.7)), 0 6px 14px var(--rlc-color-shade, rgba(0, 0, 0, 0.35)); animation: rlc-fade var(--rlc-motion-duration) var(--rlc-motion-easing) both; }
+#rlc-root .rlc-col-legend-card img { display: block; width: 100%; }
+#rlc-root button.rlc-col-legend-card { pointer-events: auto; cursor: pointer; transition: transform var(--rlc-motion-duration) var(--rlc-motion-easing), box-shadow var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root button.rlc-col-legend-card:hover { transform: translateY(-4px); box-shadow: 0 36px 56px -16px var(--rlc-color-scrim, rgba(0, 0, 0, 0.75)), 0 8px 18px var(--rlc-color-shade, rgba(0, 0, 0, 0.35)); }
+#rlc-root button.rlc-col-legend-card:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 3px; }
+
+/* Gaveta: cabeçalho com abas; prévia à esquerda; busca, filtro e grade à direita. */
+#rlc-root .rlc-tft-drawer { position: absolute; top: 24px; left: 24px; right: 24px; bottom: 112px; z-index: 6; display: grid; grid-template-columns: minmax(240px, 300px) 1fr; grid-template-rows: auto 1fr; column-gap: 24px; row-gap: 16px; padding: 16px 20px 20px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-lg, 16px); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(8, 10, 18, 0.6)), var(--rlc-color-glassBottom, rgba(8, 10, 18, 0.8))); backdrop-filter: blur(28px) brightness(0.6) saturate(1.1); box-shadow: 0 24px 60px var(--rlc-color-shade, rgba(0, 0, 0, 0.35)); animation: rlc-drawer-up 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+#rlc-root .rlc-tft-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--rlc-color-border); }
+#rlc-root .rlc-tft-tabs { display: flex; gap: 4px; margin-right: auto; overflow-x: auto; }
+#rlc-root .rlc-tft-tabs button { padding: 10px 14px 12px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--rlc-color-textMuted); font: inherit; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 16px; white-space: nowrap; cursor: pointer; }
+#rlc-root .rlc-tft-tabs button:hover { color: var(--rlc-color-text); }
+#rlc-root .rlc-tft-tabs button[aria-selected='true'] { color: var(--rlc-color-text); border-bottom-color: var(--rlc-color-accent); }
+#rlc-root .rlc-tft-head .rlc-button { margin-bottom: 6px; }
+
+/* Prévia do item em foco (ou do equipado). */
+#rlc-root .rlc-tft-preview { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow-y: auto; }
+#rlc-root .rlc-tft-art { aspect-ratio: 1; border-radius: var(--rlc-radius-md); background: var(--rlc-color-shade, rgba(0, 0, 0, 0.35)); overflow: hidden; flex: none; }
+#rlc-root .rlc-tft-art[data-wide='true'] { aspect-ratio: 3 / 2; }
+#rlc-root .rlc-tft-art img { width: 100%; height: 100%; object-fit: cover; animation: rlc-fade var(--rlc-motion-duration) var(--rlc-motion-easing) both; }
+#rlc-root .rlc-tft-preview h3 { margin: 4px 0 0; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 24px; line-height: 1.2; }
+#rlc-root .rlc-tft-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; font-size: 13px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-tft-meta [data-rarity] { font-weight: 700; }
+#rlc-root .rlc-tft-desc { margin: 0; font-size: 13px; line-height: 1.5; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-tft-state { margin: auto 0 0; padding-top: 8px; font-size: 13px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-tft-state[data-state='on'] { color: var(--rlc-color-accent); font-weight: 700; }
+
+/* Ferramentas e grade. */
+#rlc-root .rlc-tft-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; min-height: 0; }
+#rlc-root .rlc-tft-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+#rlc-root .rlc-tft-tools .rlc-input { flex: 1; max-width: 320px; }
+#rlc-root .rlc-tft-filter { display: inline-flex; padding: 3px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-pill); }
+#rlc-root .rlc-tft-filter button { padding: 5px 14px; border: 0; border-radius: var(--rlc-radius-pill); background: transparent; color: var(--rlc-color-textMuted); font: inherit; font-size: 13px; cursor: pointer; }
+#rlc-root .rlc-tft-filter button:hover { color: var(--rlc-color-text); }
+#rlc-root .rlc-tft-filter button[aria-checked='true'] { background: var(--rlc-color-glassCardHover, rgba(255, 255, 255, 0.14)); color: var(--rlc-color-text); }
+#rlc-root .rlc-tft-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; padding-right: 6px; }
+#rlc-root .rlc-tft-section { content-visibility: auto; contain-intrinsic-size: auto 260px; }
+#rlc-root .rlc-tft-section h4 { margin: 0 0 8px; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 15px; color: var(--rlc-color-text); }
+#rlc-root .rlc-tft-section h4 small { margin-left: 4px; font-family: var(--rlc-font-body); font-size: 12px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-tft-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
+#rlc-root .rlc-tft-grid[data-wide='true'] { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+#rlc-root .rlc-tft-item { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 0 0 8px; border: 1px solid transparent; border-radius: var(--rlc-radius-md); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.06)); color: var(--rlc-color-text); font: inherit; overflow: hidden; cursor: pointer; }
+#rlc-root .rlc-tft-item:hover { background: var(--rlc-color-glassCardHover, rgba(255, 255, 255, 0.12)); }
+#rlc-root .rlc-tft-item:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 2px; }
+#rlc-root .rlc-tft-item:disabled { cursor: progress; }
+#rlc-root .rlc-tft-item[data-focus='true'] { border-color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-tft-item[aria-pressed='true'] { border-color: var(--rlc-color-accent); box-shadow: inset 0 0 0 1px var(--rlc-color-accent); }
+#rlc-root .rlc-tft-thumb { display: block; aspect-ratio: 1; border-bottom: 2px solid transparent; background: var(--rlc-color-shade, rgba(0, 0, 0, 0.35)); }
+#rlc-root .rlc-tft-grid[data-wide='true'] .rlc-tft-thumb { aspect-ratio: 3 / 2; }
+#rlc-root .rlc-tft-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+#rlc-root .rlc-tft-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; min-height: 2.6em; padding: 0 8px; overflow: hidden; font-size: 12px; line-height: 1.3; text-align: center; }
+#rlc-root .rlc-tft-item[data-locked='true'] img { filter: grayscale(0.85) brightness(0.55); }
+#rlc-root .rlc-tft-item[data-locked='true'] .rlc-tft-name { color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-tft-fav { position: absolute; top: 6px; right: 8px; font-size: 13px; color: var(--rlc-color-text); text-shadow: 0 1px 3px var(--rlc-color-textShadow, #000); }
+
+/* Raridade: borda de baixo da miniatura e o texto da prévia (mesmas cores da Loja e do Espólio). */
+#rlc-root .rlc-tft-item[data-rarity='epic'] .rlc-tft-thumb { border-bottom-color: var(--rlc-color-rarityEpic, #4fc3f7); }
+#rlc-root .rlc-tft-item[data-rarity='legendary'] .rlc-tft-thumb { border-bottom-color: var(--rlc-color-rarityLegendary, #e05050); }
+#rlc-root .rlc-tft-item[data-rarity='mythic'] .rlc-tft-thumb { border-bottom-color: var(--rlc-color-rarityMythic, #b678ff); }
+#rlc-root .rlc-tft-item[data-rarity='prestige'] .rlc-tft-thumb { border-bottom-color: var(--rlc-color-rarityUltimate, #f0b63c); }
+#rlc-root .rlc-tft-meta [data-rarity='epic'] { color: var(--rlc-color-rarityEpic, #4fc3f7); }
+#rlc-root .rlc-tft-meta [data-rarity='legendary'] { color: var(--rlc-color-rarityLegendary, #e05050); }
+#rlc-root .rlc-tft-meta [data-rarity='mythic'] { color: var(--rlc-color-rarityMythic, #b678ff); }
+#rlc-root .rlc-tft-meta [data-rarity='prestige'] { color: var(--rlc-color-rarityUltimate, #f0b63c); }
+
+@media (max-width: 900px) {
+  #rlc-root .rlc-tft-drawer { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; }
+  #rlc-root .rlc-tft-preview { flex-direction: row; align-items: center; }
+  #rlc-root .rlc-tft-art { width: 120px; }
+  #rlc-root .rlc-tft-desc, #rlc-root .rlc-tft-state { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #rlc-root .rlc-tft-drawer, #rlc-root .rlc-col-legend-card { animation: none; transition: none; }
+}

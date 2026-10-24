@@ -68,11 +68,24 @@ export function createGameData(fetcher: Fetcher = (u) => fetch(u)) {
     let skins = skinsByChampion.get(champion);
     if (!skins) {
       skins = getJson(fetcher, `/lol-game-data/assets/v1/champions/${champion}.json`)
-        .then((c) => new Map(((c as { skins?: Array<{ id: number; splashPath?: string }> } | null)?.skins ?? []).filter((s) => s.splashPath).map((s) => [s.id, s.splashPath!])))
+        .then((c) => {
+          // Croma e estágio de skin evolutiva não estão na lista de cima: usam a splash da skin-mãe (ou a do estágio).
+          type Skin = { id: number; splashPath?: string; chromas?: Array<{ id: number }>; questSkinInfo?: { tiers?: Array<{ id: number; splashPath?: string }> } };
+          const out = new Map<number, string>();
+          for (const s of (c as { skins?: Skin[] } | null)?.skins ?? []) {
+            if (!s.splashPath) continue;
+            out.set(s.id, s.splashPath);
+            for (const x of s.chromas ?? []) out.set(x.id, s.splashPath);
+            for (const x of s.questSkinInfo?.tiers ?? []) out.set(x.id, x.splashPath || s.splashPath);
+          }
+          return out;
+        })
         .catch(() => new Map<number, string>());
       skinsByChampion.set(champion, skins);
     }
-    return (await skins).get(skinId) ?? null;
+    // Skin desconhecida (nova, de outro patch): a base do campeão, para a vaga não ficar vazia.
+    const map = await skins;
+    return map.get(skinId) ?? map.get(champion * 1000) ?? null;
   };
 
   return { champions, spells, splash, items, companions };

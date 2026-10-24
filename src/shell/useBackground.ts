@@ -11,6 +11,7 @@ export function useBackground(lcu: Lcu, screen: string): { src: string; video: b
   const [result, setResult] = useState<{ src: string; video: boolean } | null>(null);
   const random = wantsRandom(b, screen);
   const key = JSON.stringify([source, random, sid]);
+  // Só a fonte manda: trocar de tela com o mesmo fundo global não relê o arquivo nem pisca o fundo do tema.
   useEffect(() => {
     setResult(null);
     let live = true;
@@ -34,6 +35,6 @@ export function useBackground(lcu: Lcu, screen: string): { src: string; video: b
       live = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [key, screen]);
+  }, [key]);
   return result;
 }

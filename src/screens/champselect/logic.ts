@@ -18,14 +18,22 @@ export interface Action {
 export type SelectPhase = 'ban' | 'pick' | 'waiting' | 'finalization' | 'planning' | 'none';
 export interface MyTurn {
   action: Action;
-  kind: 'ban' | 'pick';
+  /** `intent`: planejamento, quando se declara o campeão pretendido na ação de escolha (sem confirmar). */
+  kind: 'ban' | 'pick' | 'intent';
 }
 
 /** `actions` vem agrupado por turno (lista de listas). */
 export const flatActions = (session: Session): Action[] => ((session.actions ?? []) as Action[][]).flat();
 
-/** Ação minha em andamento e ainda não concluída. Só ela habilita Banir ou Confirmar. */
+/**
+ * Ação minha em andamento e ainda não concluída. Só ela habilita Banir ou Confirmar.
+ * No planejamento a LCU já marca o banimento como em andamento, mas o que vale é declarar a intenção na escolha.
+ */
 export function myTurn(session: Session): MyTurn | null {
+  if (session.timer?.phase === 'PLANNING') {
+    const pick = flatActions(session).find((a) => a.actorCellId === session.localPlayerCellId && !a.completed && a.type === 'pick');
+    return pick ? { action: pick, kind: 'intent' } : null;
+  }
   const action = flatActions(session).find((a) => a.actorCellId === session.localPlayerCellId && a.isInProgress && !a.completed && (a.type === 'ban' || a.type === 'pick'));
   return action ? { action, kind: action.type as 'ban' | 'pick' } : null;
 }
@@ -36,8 +44,10 @@ export function selectPhase(session: Session): SelectPhase {
       return 'finalization';
     case 'PLANNING':
       return 'planning';
-    case 'BAN_PICK':
-      return myTurn(session)?.kind ?? 'waiting';
+    case 'BAN_PICK': {
+      const kind = myTurn(session)?.kind;
+      return kind === 'ban' || kind === 'pick' ? kind : 'waiting';
+    }
     default:
       return 'none';
   }
@@ -67,4 +77,26 @@ export function displayedChampion(cell: Cell): { championId: number; locked: boo
   if (cell.championId > 0) return { championId: cell.championId, locked: true };
   if (cell.championPickIntent > 0) return { championId: cell.championPickIntent, locked: false };
   return null;
+}
+
+/** Ação em andamento por vaga: quem está banindo ou escolhendo agora. */
+export function actingCells(session: Session): Map<number, 'ban' | 'pick'> {
+  const acting = new Map<number, 'ban' | 'pick'>();
+  if (session.timer?.phase === 'PLANNING') return acting;
+  for (const a of flatActions(session)) if (a.isInProgress && !a.completed && (a.type === 'ban' || a.type === 'pick')) acting.set(a.actorCellId, a.type);
+  return acting;
+}
+
+/**
+ * Campeão do adversário de rota (0 enquanto não se sabe). A LCU só manda a posição do inimigo em alguns modos;
+ * na ranqueada ela vem vazia, então vale o único inimigo já confirmado cuja rota principal recomendada é a minha.
+ * ponytail: palpite pela rota recomendada; com dois candidatos (ou nenhum) o jogador escolhe em "Contra".
+ */
+export function laneOpponent(enemies: Cell[], position: string, lanes: Record<string, { recommendedPositions?: string[] }>): number {
+  const pos = position.toUpperCase();
+  if (!pos) return 0;
+  const placed = enemies.find((c) => (c.assignedPosition ?? '').toUpperCase() === pos);
+  if (placed) return placed.championId > 0 ? placed.championId : 0;
+  const guess = enemies.filter((c) => c.championId > 0 && !c.assignedPosition && lanes[String(c.championId)]?.recommendedPositions?.[0] === pos);
+  return guess.length === 1 ? guess[0]!.championId : 0;
 }

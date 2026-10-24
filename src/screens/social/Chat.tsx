@@ -3,10 +3,12 @@ import { locale, t } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
 import type { LolChatConversationMessageResource } from '../../lcu/types';
+import { playChatSound } from '../../shell/sound';
 import { useAction } from '../../ui/useAction';
 import { getJson } from '../profile/data';
+import { profileIcon } from './FriendCard';
 
-type Message = Pick<LolChatConversationMessageResource, 'id' | 'body' | 'fromPuuid' | 'timestamp' | 'type'>;
+type Message = Pick<LolChatConversationMessageResource, 'id' | 'body' | 'fromPuuid' | 'timestamp' | 'type'> & Partial<Pick<LolChatConversationMessageResource, 'fromId' | 'fromObfuscatedPuuid'>>;
 const base = (id: string) => `/lol-chat/v1/conversations/${encodeURIComponent(id)}/messages`;
 
 /** Histórico da conversa e mensagens novas por evento (a URI do evento traz o id da mensagem). */
@@ -42,6 +44,75 @@ export function messageTime(iso: string, now = new Date()): string {
   return d.toDateString() === now.toDateString() ? hour : `${d.toLocaleDateString(locale(), { day: '2-digit', month: '2-digit' })} ${hour}`;
 }
 
+/** Quem mandou: o puuid quando vem; na seleção ele pode vir vazio e só o ofuscado ou o id do chat identifica. */
+export const authorKey = (m: Message) => m.fromPuuid || m.fromObfuscatedPuuid || m.fromId || '';
+
+/**
+ * Nome de quem mandou cada mensagem: amigos, participantes da sala (`/participants`, por puuid e id do chat)
+ * e, para quem faltar, o Riot ID pelo puuid. Sem nome (seleção com nomes ocultos), "Jogador".
+ */
+export function useAuthors(lcu: Lcu, conversationId: string, messages: Message[]): (m: Message) => string {
+  const [names, setNames] = useState<Record<string, string>>({});
+  const asked = useRef(new Set<string>());
+  const put = (k: string | undefined, n: string | null | undefined) => k && n && setNames((prev) => (prev[k] ? prev : { ...prev, [k]: n }));
+  useEffect(() => {
+    let live = true;
+    void getJson<Array<{ id?: string; puuid?: string; gameName?: string }>>(`/lol-chat/v1/conversations/${encodeURIComponent(conversationId)}/participants`).then((list) => {
+      if (!live) return;
+      for (const p of list ?? []) {
+        put(p.puuid, p.gameName);
+        put(p.id, p.gameName);
+      }
+    });
+    return () => void (live = false);
+  }, [conversationId]);
+  const friends = lcu.friends.value.data ?? [];
+  const known = (m: Message) => friends.find((f) => (m.fromPuuid && f.puuid === m.fromPuuid) || (m.fromId && f.id === m.fromId))?.gameName || names[authorKey(m)] || (m.fromId ? names[m.fromId] : '') || '';
+  useEffect(() => {
+    for (const m of messages) {
+      const puuid = m.fromPuuid;
+      if (!puuid || m.type === 'system' || asked.current.has(puuid) || known(m)) continue;
+      asked.current.add(puuid);
+      void lcu.name(puuid).then((n) => put(puuid, n));
+    }
+  }, [messages, names]);
+  return (m) => known(m) || t('socPlayer');
+}
+
+/** O que mandei por último em cada conversa: na seleção a minha mensagem pode voltar só com o puuid ofuscado. */
+const sent = new Map<string, { body: string; at: number }>();
+const SENT_ECHO_MS = 5000;
+
+/**
+ * Som de mensagem nova de outra pessoa em qualquer conversa (1:1 e salas), pelo evento de criação da LCU:
+ * o histórico carregado ao abrir não vem como evento e as mensagens antigas trazem `isHistorical`.
+ * Sem som na conversa que está à vista (`visibleId`) com a janela em foco.
+ */
+export function useChatSound(lcu: Lcu, visibleId: string | null): void {
+  const visible = useRef(visibleId);
+  visible.current = visibleId;
+  useEffect(() => {
+    const prefix = '/lol-chat/v1/conversations/';
+    const heard = new Set<string>();
+    return lcu.events.onPrefix(prefix, (uri, eventType, data) => {
+      const [rawId, msgId] = uri.slice(prefix.length).split('/messages/');
+      if (eventType !== 'Create' || !rawId || !msgId || !data || typeof data !== 'object') return;
+      const m = data as Partial<LolChatConversationMessageResource>;
+      const id = decodeURIComponent(rawId);
+      // A LCU pode mandar o mesmo evento com o id cru e codificado.
+      if (heard.has(`${id}/${m.id ?? msgId}`)) return;
+      heard.add(`${id}/${m.id ?? msgId}`);
+      if ((m.type !== 'chat' && m.type !== 'groupchat') || m.isHistorical) return;
+      const me = lcu.chatMe.peek().data;
+      if (me && ((m.fromPuuid && m.fromPuuid === me.puuid) || (m.fromId && m.fromId === me.id) || (m.fromPid && m.fromPid === me.pid))) return;
+      const echo = sent.get(id);
+      if (echo && echo.body === m.body && Date.now() - echo.at < SENT_ECHO_MS) return;
+      if (id === visible.current && document.hasFocus()) return;
+      playChatSound();
+    });
+  }, [lcu]);
+}
+
 /** Avisos de entrada e saída da sala que a LCU grava como mensagem de sistema. */
 const ROOM_NOISE = new Set(['joined_room', 'left_room']);
 
@@ -49,9 +120,13 @@ const ROOM_NOISE = new Set(['joined_room', 'left_room']);
 export function ChatBody({ lcu, conversationId }: { lcu: Lcu; conversationId: string }) {
   const messages = useConversation(lcu, conversationId);
   const me = lcu.chatMe.value.data?.puuid;
+  const author = useAuthors(lcu, conversationId, messages);
+  const shown = messages.filter((m) => !(m.type === 'system' && ROOM_NOISE.has(m.body)));
+  const isChat = (m: Message | undefined) => m?.type === 'chat' || m?.type === 'groupchat';
   const [draft, setDraft] = useState('');
   const list = useRef<HTMLDivElement>(null);
   const send = useAction(async (body: string) => {
+    sent.set(conversationId, { body, at: Date.now() });
     await request('POST', base(conversationId), { body, type: 'chat' });
     setDraft('');
   });
@@ -62,12 +137,18 @@ export function ChatBody({ lcu, conversationId }: { lcu: Lcu; conversationId: st
   return (
     <div class="rlc-chat-body">
       <div class="rlc-chat-msgs" ref={list}>
-        {messages.filter((m) => !(m.type === 'system' && ROOM_NOISE.has(m.body))).map((m) => (
-          <div key={m.id} class="rlc-chat-msg" data-mine={m.fromPuuid === me ? 'true' : undefined} data-system={m.type !== 'chat' && m.type !== 'groupchat' ? 'true' : undefined}>
-            <span class="rlc-chat-text">{m.body}</span>
-            <small>{messageTime(m.timestamp)}</small>
-          </div>
-        ))}
+        {shown.map((m, i) => {
+          const mine = !!me && m.fromPuuid === me;
+          // Mensagens seguidas da mesma pessoa ficam num grupo: o nome só na primeira.
+          const first = isChat(m) && !(isChat(shown[i - 1]) && authorKey(shown[i - 1]!) === authorKey(m));
+          return (
+            <div key={m.id} class="rlc-chat-msg" data-mine={mine ? 'true' : undefined} data-system={isChat(m) ? undefined : 'true'} data-first={first ? 'true' : undefined}>
+              {first ? <span class="rlc-chat-author">{mine ? t('socYou') : author(m)}</span> : null}
+              <span class="rlc-chat-text">{m.body}</span>
+              <small>{messageTime(m.timestamp)}</small>
+            </div>
+          );
+        })}
       </div>
       <input
         class="rlc-input rlc-chat-input"
@@ -106,22 +187,52 @@ export const conversationTitle = (lcu: Lcu, id: string) => {
   return c?.gameName || f?.gameName || c?.name || id.split('@')[0] || '';
 };
 
-/** Abas das conversas abertas na base da tela; uma janela à vista por vez. */
-export function ChatTabs({ lcu, open, active, onActivate, onClose }: { lcu: Lcu; open: string[]; active: string | null; onActivate: (id: string) => void; onClose: (id: string) => void }) {
-  if (!open.length) return null;
-  const unread = (id: string) => (lcu.conversations.value.data?.find((c) => c.id === id)?.unreadMessageCount ?? 0) > 0;
+/** Conversas 1:1 mais recentes primeiro (pela última mensagem); salas de lobby e seleção ficam de fora. */
+export function recentConversations(lcu: Lcu): Array<{ id: string; title: string; preview: string; unread: number; icon?: number }> {
+  const friends = lcu.friends.value.data ?? [];
+  return (lcu.conversations.value.data ?? [])
+    .filter((c) => c.type === 'chat')
+    .sort((a, b) => (b.lastMessage?.timestamp ?? '').localeCompare(a.lastMessage?.timestamp ?? ''))
+    .map((c) => ({ id: c.id, title: conversationTitle(lcu, c.id), preview: c.lastMessage?.body ?? '', unread: c.unreadMessageCount ?? 0, icon: friends.find((f) => f.id === c.id)?.icon }));
+}
+
+/**
+ * Chat como no client: sobe do canto inferior direito com as conversas recentes à esquerda e a conversa aberta à direita.
+ * Abre pelo botão de chat no pé da faixa de amigos ou ao clicar num amigo. Fechar a conversa fecha o chat todo.
+ */
+export function ChatDock({ lcu, open, active, onActivate, onClose }: { lcu: Lcu; open: boolean; active: string | null; onActivate: (id: string | null) => void; onClose: () => void }) {
+  const list = recentConversations(lcu);
+  useChatSound(lcu, open ? active : null);
+  // Conversa recém-criada ainda pode não ter chegado na lista da LCU: entra no topo para aparecer selecionada.
+  if (active && !list.some((c) => c.id === active)) list.unshift({ id: active, title: conversationTitle(lcu, active), preview: '', unread: 0 });
   return (
-    <div class="rlc-chat-tabs" role="tablist">
-      {open.map((id) => (
-        <div key={id} class="rlc-chat-tab" role="tab" aria-selected={id === active} data-unread={id !== active && unread(id) ? 'true' : undefined}>
-          <button type="button" class="rlc-chat-tab-name" onClick={() => onActivate(id)}>
-            {conversationTitle(lcu, id)}
+    <section class="rlc-chat-dock" data-open={open ? 'true' : undefined} aria-hidden={open ? undefined : 'true'} aria-label={t('chatRecent')}>
+      <div class="rlc-chat-list">
+        <header>
+          <strong>{t('chatRecent')}</strong>
+          <button type="button" class="rlc-winbtn" aria-label={t('chatMinimize')} title={t('chatMinimize')} onClick={onClose}>
+            —
           </button>
-          <button type="button" class="rlc-chat-tab-close" aria-label={t('closeChat')} title={t('closeChat')} onClick={() => onClose(id)}>
-            ✕
-          </button>
-        </div>
-      ))}
-    </div>
+        </header>
+        {list.length ? (
+          list.map((c) => (
+            <button type="button" key={c.id} class="rlc-chat-item" aria-pressed={c.id === active} data-unread={c.unread > 0 && c.id !== active ? 'true' : undefined} onClick={() => onActivate(c.id)}>
+              <span class="rlc-rc-avatar" data-group="none">{c.icon ? <img src={profileIcon(c.icon)} alt="" /> : null}</span>
+              <span class="rlc-chat-item-text">
+                <b>{c.title}</b>
+                <small>{c.preview}</small>
+              </span>
+            </button>
+          ))
+        ) : (
+          <p class="rlc-muted rlc-chat-empty">{t('chatNoConversations')}</p>
+        )}
+      </div>
+      {open && active ? (
+        <ChatWindow key={active} lcu={lcu} conversationId={active} title={conversationTitle(lcu, active)} onClose={onClose} />
+      ) : (
+        <p class="rlc-muted rlc-chat-pick">{t('chatPick')}</p>
+      )}
+    </section>
   );
 }

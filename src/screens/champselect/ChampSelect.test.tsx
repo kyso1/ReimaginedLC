@@ -13,7 +13,18 @@ beforeEach(() => {
   root = document.body.appendChild(document.createElement('div'));
   fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
   vi.stubGlobal('fetch', fetchMock);
+  vi.stubGlobal('Image', LoadedImage);
 });
+
+// O jsdom não carrega imagens: esta "carrega" logo, para o Crossfade trocar a camada.
+class LoadedImage {
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  decode = () => Promise.resolve();
+  set src(_: string) {
+    queueMicrotask(() => this.onload?.());
+  }
+}
 afterEach(() => {
   render(null, root);
   root.remove();
@@ -28,6 +39,8 @@ const CHAMPS = new Map([
 ]);
 const settle = () => act(async () => void (await new Promise((r) => setTimeout(r, 0))));
 const btn = (text: string, scope: ParentNode = root) => [...scope.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.trim() === text || b.getAttribute('aria-label') === text);
+/** Fundo do palco: a camada de cima do Crossfade. */
+const stage = () => root.querySelector<HTMLElement>('.rlc-cs-splash .rlc-xfade-layer:last-child')?.style.backgroundImage ?? '';
 const call = (url: string) => fetchMock.mock.calls.filter((c) => c[0] === url);
 
 function setup(s: ReturnType<typeof session> | null, over: Partial<Record<keyof Lcu, unknown>> = {}) {
@@ -45,16 +58,50 @@ const enemy = cell({ cellId: 5, gameName: 'Zeca', team: 2 });
 const banTurn = () => session({ myTeam: [me, ally], theirTeam: [enemy], actions: [[action({ id: 0, type: 'ban', isInProgress: true })]] });
 const pickTurn = (championId = 0) => session({ myTeam: [me, ally], theirTeam: [enemy], actions: [[action({ id: 6, type: 'pick', isInProgress: true, championId })]] });
 
-test('faixas dos dois times com nomes, nome vazio resolvido pelo puuid, posição', async () => {
-  const lcu = fakeLcu();
-  setup(banTurn());
-  void lcu;
+test('cartões dos aliados com nome e ícone da rota; inimigos sem nome, só o campeão ou "escolhendo"', async () => {
+  setup(session({ myTeam: [me, ally], theirTeam: [enemy, cell({ cellId: 6, team: 2, championId: 157 })] }));
   await settle();
   const [mine, theirs] = root.querySelectorAll('.rlc-cs-team');
   expect(mine!.querySelectorAll('.rlc-cs-cell')).toHaveLength(2);
   expect(mine!.textContent).toContain('Fulano');
-  expect(mine!.textContent).toContain('Meio');
-  expect(theirs!.textContent).toContain('Zeca');
+  expect(mine!.querySelector('.rlc-cs-pos')!.getAttribute('aria-label')).toBe('Meio');
+  expect(mine!.querySelector('.rlc-cs-pos svg')!.getAttribute('data-role')).toBe('MIDDLE');
+  const foes = [...theirs!.querySelectorAll('.rlc-cs-cell')].map((c) => c.textContent);
+  expect(foes).toEqual(['Escolhendo…', 'Yasuo']);
+  expect(theirs!.textContent).not.toContain('Zeca');
+});
+
+test('palco: splash ao fundo, fase e tempo, nome grande, aliados à esquerda, inimigos à direita e barra com Travar', async () => {
+  setup(session({ myTeam: [{ ...me, championPickIntent: 103 }, cell({ cellId: 1, championId: 266 })], theirTeam: [enemy], actions: [[action({ id: 6, type: 'pick', isInProgress: true, championId: 103 })]] }));
+  await settle();
+  await settle();
+  await settle();
+  expect(stage()).toContain('/splash/103000.jpg');
+  expect(root.querySelector('.rlc-cs-side[data-side="mine"] .rlc-cs-team')).not.toBeNull();
+  expect(root.querySelector('.rlc-cs-side[data-side="theirs"] .rlc-cs-team')).not.toBeNull();
+  expect(root.querySelector('.rlc-cs-clock')!.textContent).toBe('Sua vez de escolher30 s');
+  expect(root.querySelector('.rlc-cs-champ-name')!.textContent).toBe('Ahri');
+  expect(root.querySelector('.rlc-cs-bar .rlc-cs-action')!.textContent).toBe('Travar');
+  // a arte do campeão do aliado entra no cartão
+  const arts = [...root.querySelectorAll<HTMLElement>('.rlc-cs-side[data-side="mine"] .rlc-cs-art')];
+  expect(arts.map((a) => [a.style.backgroundImage, a.dataset.locked])).toEqual([['url("/splash/103000.jpg")', undefined], ['url("/splash/266000.jpg")', 'true']]);
+});
+
+test('mouse na grade troca a prévia do palco; sair da grade volta ao campeão em destaque', async () => {
+  setup(session({ myTeam: [{ ...me, championPickIntent: 103 }], actions: [[action({ id: 6, type: 'pick', isInProgress: true, championId: 103 })]] }));
+  await settle();
+  act(() => void btn('Yasuo')!.dispatchEvent(new MouseEvent('mouseenter')));
+  await settle();
+  await settle();
+  await settle();
+  expect(root.querySelector('.rlc-cs-champ-name')!.textContent).toBe('Yasuo');
+  expect(stage()).toContain('/splash/157000.jpg');
+  act(() => void root.querySelector('.rlc-cs-grid')!.dispatchEvent(new MouseEvent('mouseleave')));
+  await settle();
+  await settle();
+  expect(root.querySelector('.rlc-cs-champ-name')!.textContent).toBe('Ahri');
+  // só prévia: nada é enviado
+  expect(fetchMock.mock.calls.filter((c) => c[1]?.method)).toEqual([]);
 });
 
 test('nome vazio na faixa vem do lcu.name', async () => {
@@ -72,7 +119,7 @@ test('na minha vez de banir: grade só com baníveis, botão Banir, clique desta
   await settle();
   const names = [...root.querySelectorAll('.rlc-cs-champ')].map((c) => c.getAttribute('aria-label'));
   expect(names).toEqual(['Ahri', 'Yasuo']);
-  expect(root.querySelector('.rlc-cs-phase')!.textContent).toBe('Banir');
+  expect(root.querySelector('.rlc-cs-phase')!.textContent).toBe('Bana um campeão');
   act(() => btn('Yasuo')!.click());
   expect(JSON.parse(call('/lol-champ-select/v1/session/actions/0')[0]![1].body)).toEqual({ championId: 157 });
 });
@@ -81,7 +128,7 @@ test('Banir/Confirmar só habilita com campeão destacado permitido e envia comp
   setup(pickTurn(103));
   await settle();
   expect(root.querySelector('.rlc-cs-phase')!.textContent).toBe('Sua vez de escolher');
-  const confirm = btn('Confirmar')!;
+  const confirm = btn('Travar')!;
   expect(confirm.disabled).toBe(false);
   act(() => confirm.click());
   expect(JSON.parse(call('/lol-champ-select/v1/session/actions/6')[0]![1].body)).toEqual({ championId: 103, completed: true });
@@ -91,17 +138,18 @@ test('campeão destacado que deixou de ser permitido some da grade e desabilita 
   setup(pickTurn(103), { pickable: ready([157, 266]) });
   await settle();
   expect([...root.querySelectorAll('.rlc-cs-champ')].map((c) => c.getAttribute('aria-label'))).toEqual(['Aatrox', 'Yasuo']);
-  expect(btn('Confirmar')!.disabled).toBe(true);
+  expect(btn('Travar')!.disabled).toBe(true);
 });
 
 test('fora da vez: sem botão de confirmar nem banir, e clique na grade não envia nada', async () => {
   setup(session({ myTeam: [me], actions: [[action({ actorCellId: 3, type: 'pick', isInProgress: true })]] }));
   await settle();
   expect(root.querySelector('.rlc-cs-phase')!.textContent).toBe('Aguardando');
-  expect(btn('Confirmar')).toBeUndefined();
+  expect(btn('Travar')).toBeUndefined();
   expect(btn('Banir')).toBeUndefined();
   act(() => root.querySelector<HTMLButtonElement>('.rlc-cs-champ')!.click());
-  expect(fetchMock).not.toHaveBeenCalled();
+  // só leituras (nomes da sala); nenhuma escrita
+  expect(fetchMock.mock.calls.filter((c) => c[1]?.method)).toEqual([]);
 });
 
 test('busca por nome', async () => {
@@ -140,10 +188,65 @@ test('favoritos da rota vêm primeiro com estrela; a estrela alterna pela LCU', 
   expect(call('/lol-champ-select/v1/toggle-favorite/103/middle')[0]![1]).toEqual({ method: 'POST' });
 });
 
+test('palco: as splashes se fundem pelo Crossfade', async () => {
+  setup(session({ myTeam: [{ ...me, championPickIntent: 103 }], actions: [[action({ id: 6, type: 'pick', isInProgress: true, championId: 103 })]] }));
+  await settle();
+  await settle();
+  expect(root.querySelector('.rlc-cs-splash')!.classList.contains('rlc-xfade')).toBe(true);
+  act(() => void btn('Yasuo')!.dispatchEvent(new MouseEvent('mouseenter')));
+  await settle();
+  await settle();
+  await settle();
+  // a anterior fica por baixo enquanto a nova entra
+  expect([...root.querySelectorAll<HTMLElement>('.rlc-cs-splash .rlc-xfade-layer')].map((l) => l.style.backgroundImage)).toEqual(['url("/splash/103000.jpg")', 'url("/splash/157000.jpg")']);
+});
+
+const menu = () => document.body.querySelector<HTMLElement>('.rlc-cs-ctx');
+const menuItems = () => [...menu()!.querySelectorAll<HTMLButtonElement>('[role="menuitemcheckbox"]')];
+
+test('clique direito num campeão abre o menu de favoritar por rota, marcado onde já é favorito', async () => {
+  setup(session({ myTeam: [cell({ cellId: 0 })], actions: [[action({ id: 6, type: 'pick', isInProgress: true })]] }), { lanes: ready(LANES), gridChampions: ready(grid({ 103: ['middle', 'utility'] })) });
+  await settle();
+  const ahri = btn('Ahri')!;
+  const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 120, clientY: 80 });
+  act(() => void ahri.dispatchEvent(ev));
+  expect(ev.defaultPrevented).toBe(true);
+  expect(menu()!.getAttribute('aria-label')).toBe('Ahri');
+  expect(menuItems().map((b) => [b.textContent, b.getAttribute('aria-checked')])).toEqual([
+    ['Favoritar para Topo★', 'false'],
+    ['Favoritar para Selva★', 'false'],
+    ['Favoritar para Meio★', 'true'],
+    ['Favoritar para Atirador★', 'false'],
+    ['Favoritar para Suporte★', 'true'],
+  ]);
+  expect(document.activeElement).toBe(menuItems()[0]);
+  act(() => menuItems()[0]!.click());
+  expect(call('/lol-champ-select/v1/toggle-favorite/103/top')[0]![1]).toEqual({ method: 'POST' });
+  expect(menu()).toBeNull();
+  expect(document.activeElement).toBe(ahri);
+});
+
+test('menu do campeão: Shift+F10 abre, Esc fecha só o menu, clique fora fecha', async () => {
+  setup(session({ myTeam: [cell({ cellId: 0 })], actions: [[action({ id: 6, type: 'pick', isInProgress: true })]] }), { lanes: ready(LANES), gridChampions: ready(grid({})) });
+  await settle();
+  act(() => void btn('Yasuo')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'F10', shiftKey: true, bubbles: true, cancelable: true })));
+  expect(menu()!.getAttribute('aria-label')).toBe('Yasuo');
+  act(() => void document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+  expect(menu()).toBeNull();
+  // a grade continua aberta: o Esc foi do menu
+  expect(root.querySelector('.rlc-cs-drawer')).not.toBeNull();
+  act(() => void btn('Yasuo')!.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })));
+  act(() => document.body.querySelector<HTMLElement>('.rlc-cs-ctx-backdrop')!.click());
+  expect(menu()).toBeNull();
+  expect(fetchMock.mock.calls.filter((c) => c[1]?.method)).toEqual([]);
+});
+
 test('sem rota marcada a estrela fica escondida e não há favoritos na frente', async () => {
   setup(session({ myTeam: [cell({ cellId: 0 })], actions: [[action({ id: 6, type: 'pick', isInProgress: true })]] }), { lanes: ready(LANES), gridChampions: ready(grid({ 266: ['top'] })) });
   await settle();
   expect(root.querySelector('.rlc-cs-fav')).toBeNull();
+  // favorito em alguma rota fica marcado mesmo sem rota no filtro
+  expect([...root.querySelectorAll('.rlc-cs-tile')].map((t) => !!t.querySelector('.rlc-cs-fav-mark'))).toEqual([true, false, false]);
   expect([...root.querySelectorAll('.rlc-cs-champ')].map((c) => c.getAttribute('aria-label'))).toEqual(['Aatrox', 'Ahri', 'Yasuo']);
 });
 
@@ -170,17 +273,19 @@ test('fundo com a splash do campeão destacado; sem campeão, sem splash', async
   setup(session({ myTeam: [cell({ cellId: 0, championPickIntent: 103 })] }));
   await settle();
   await settle();
-  expect(root.querySelector<HTMLElement>('.rlc-cs-splash')!.style.backgroundImage).toContain('/splash/103000.jpg');
+  await settle();
+  expect(stage()).toContain('/splash/103000.jpg');
   render(null, root);
   setup(session({ myTeam: [cell({ cellId: 0, championId: 103, selectedSkinId: 103005 })] }));
   await settle();
   await settle();
-  expect(root.querySelector<HTMLElement>('.rlc-cs-splash')!.style.backgroundImage).toContain('/splash/103005.jpg');
+  await settle();
+  expect(stage()).toContain('/splash/103005.jpg');
   render(null, root);
   setup(session({ myTeam: [cell({ cellId: 0 })] }));
   await settle();
   await settle();
-  expect(root.querySelector<HTMLElement>('.rlc-cs-splash')!.style.backgroundImage).toBe('');
+  expect(root.querySelector('.rlc-cs-splash')).toBeNull();
 });
 
 test('tempo: conta localmente e reancora a cada valor novo, mesmo repetido numa fase nova', async () => {
@@ -202,16 +307,21 @@ test('sessão nula não quebra', () => {
   expect(root.querySelector('.rlc-champselect')).not.toBeNull();
 });
 
-test('a aba muda para Skins quando meu campeão é confirmado, e volta à mão', async () => {
-  const lcu = setup(pickTurn(103));
+test('travar fecha a grade e mostra o carrossel de skins; dá para reabrir a grade à mão', async () => {
+  const lcu = setup(pickTurn(103), { skins: ready([skin(103000, { isBase: true }), skin(103001)]) });
   await settle();
-  expect(btn('Campeões')!.getAttribute('aria-selected')).toBe('true');
+  expect(root.querySelector('.rlc-cs-grid')).not.toBeNull();
+  expect(root.querySelector('.rlc-cs-carousel')).toBeNull();
   act(() => {
-    lcu.champSelect.value = ready(session({ myTeam: [cell({ cellId: 0, championId: 103 })], actions: [[action({ id: 6, type: 'pick', completed: true, championId: 103 })]] }));
+    lcu.champSelect.value = ready(session({ myTeam: [cell({ cellId: 0, championId: 103, selectedSkinId: 103001 })], actions: [[action({ id: 6, type: 'pick', completed: true, championId: 103 })]] }));
   });
-  expect(btn('Skins')!.getAttribute('aria-selected')).toBe('true');
-  act(() => btn('Campeões')!.click());
-  expect(btn('Campeões')!.getAttribute('aria-selected')).toBe('true');
+  expect(root.querySelector('.rlc-cs-grid')).toBeNull();
+  expect(btn('Travar')).toBeUndefined();
+  expect([...root.querySelectorAll('.rlc-cs-carousel .rlc-cs-skin')].map((s) => s.getAttribute('aria-label'))).toEqual(['Skin 103000', 'Skin 103001']);
+  expect(root.querySelector('.rlc-cs-skin-name')!.textContent).toBe('Skin 103001');
+  act(() => btn('Mostrar campeões')!.click());
+  expect(root.querySelector('.rlc-cs-grid')).not.toBeNull();
+  expect(root.querySelector('.rlc-cs-carousel')).toBeNull();
 });
 
 const skin = (id: number, over: Record<string, unknown> = {}) => ({ id, name: `Skin ${id}`, unlocked: true, disabled: false, isBase: false, tilePath: `/t/${id}.jpg`, childSkins: [], ...over });
@@ -247,11 +357,11 @@ const SPELLS = new Map([
 ]);
 function setupLoadout(over: Partial<Record<keyof Lcu, unknown>> = {}) {
   const lcu = fakeLcu();
-  lcu.game = { ...lcu.game, champions: async () => CHAMPS, spells: async () => SPELLS };
+  lcu.game = { ...lcu.game, champions: async () => CHAMPS, spells: async () => SPELLS, splash: async (id) => (id ? `/splash/${id}.jpg` : null) };
   const values: Partial<Record<keyof Lcu, unknown>> = {
     champSelect: ready(lockedMe()),
     gameflowSession: ready({ gameData: { queue: { gameMode: 'CLASSIC' } } }),
-    perkPages: ready([{ id: 1, name: 'Meio', isValid: true }, { id: 2, name: 'Topo', isValid: true }, { id: 3, name: 'Quebrada', isValid: false }]),
+    perkPages: ready([{ id: 1, name: 'Meio', isValid: true, current: true }, { id: 2, name: 'Topo', isValid: true }, { id: 3, name: 'Quebrada', isValid: false }]),
     currentPerkPage: ready({ id: 1, name: 'Meio' }),
     ...over,
   };
@@ -262,7 +372,6 @@ function setupLoadout(over: Partial<Record<keyof Lcu, unknown>> = {}) {
 test('feitiços: slot lista os do modo atual e aplica; escolher o do outro slot troca os dois', async () => {
   setupLoadout();
   await settle();
-  act(() => btn('Runas e feitiços')!.click());
   act(() => btn('Feitiço 1: Flash')!.click());
   expect([...root.querySelectorAll('.rlc-cs-spell-option')].map((b) => b.getAttribute('aria-label'))).toEqual(['Flash', 'Golpear', 'Incendiar']);
   act(() => btn('Golpear')!.click());
@@ -273,16 +382,22 @@ test('feitiços: slot lista os do modo atual e aplica; escolher o do outro slot 
   expect(JSON.parse(call('/lol-champ-select/v1/session/my-selection')[1]![1].body)).toEqual({ spell1Id: 14, spell2Id: 4 });
 });
 
-test('runas: páginas válidas com a atual marcada; clique troca a página', async () => {
+test('runas: a barra mostra a página atual e o botão Runas abre o editor por cima, com a lista ▾ das páginas', async () => {
   setupLoadout();
   await settle();
-  act(() => btn('Runas e feitiços')!.click());
-  const pages = [...root.querySelectorAll('.rlc-cs-page')];
-  expect(pages.map((p) => p.textContent)).toEqual(['Meio', 'Topo']);
-  expect(pages[0]!.getAttribute('aria-pressed')).toBe('true');
-  act(() => btn('Topo')!.click());
+  expect(root.querySelector('.rlc-cs-page-name')!.textContent).toBe('Meio');
+  expect(root.querySelector('select[aria-label="Páginas de runas"]')).toBeNull();
+  act(() => btn('Runas')!.click());
+  await settle();
+  expect(root.querySelector('.rlc-champselect > .rlc-re[data-mode="overlay"]')).not.toBeNull();
+  act(() => btn('Páginas de runas')!.click());
+  const items = [...root.querySelectorAll<HTMLButtonElement>('.rlc-re-list-item')];
+  expect(items.map((i) => i.textContent)).toEqual(['Meio', 'Topo', 'Quebrada']);
+  act(() => items[1]!.click());
   const [, init] = call('/lol-perks/v1/currentpage')[0]!;
   expect(init).toEqual({ method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '2' });
+  act(() => btn('Fechar')!.click());
+  expect(root.querySelector('.rlc-re')).toBeNull();
 });
 
 test('troca recebida: cartão com Aceitar e Recusar', async () => {
@@ -349,7 +464,7 @@ test('Confirmar fica desabilitado enquanto o destaque do clique ainda não volto
   setup(pickTurn(103));
   await settle();
   act(() => btn('Yasuo')!.click());
-  expect(btn('Confirmar')!.disabled).toBe(true);
+  expect(btn('Travar')!.disabled).toBe(true);
 });
 
 test('id -1 (nenhum campeão) da lista de disponíveis não vira ladrilho', async () => {
@@ -369,4 +484,104 @@ test('depois de alternar o favorito, a estrela segue o grid-champions do campeã
   await settle();
   expect(ahri().querySelector('.rlc-cs-fav')!.getAttribute('aria-pressed')).toBe('true');
   expect(root.querySelectorAll('.rlc-cs-champ')[0]!.getAttribute('aria-label')).toBe('Ahri');
+});
+
+test('planejamento: clique declara a intenção na ação de escolha, sem botão de confirmar', async () => {
+  const planning = { phase: 'PLANNING', adjustedTimeLeftInPhase: 20000, totalTimeInPhase: 20000, internalNowInEpochMs: Date.now(), isInfinite: false } as never;
+  setup(session({ myTeam: [me], timer: planning, actions: [[action({ id: 0, type: 'ban', isInProgress: true })], [action({ id: 6, type: 'pick' })]] }));
+  await settle();
+  expect(btn('Banir')).toBeUndefined();
+  expect(btn('Travar')).toBeUndefined();
+  act(() => btn('Ahri')!.click());
+  expect(JSON.parse(call('/lol-champ-select/v1/session/actions/6')[0]![1].body)).toEqual({ championId: 103 });
+});
+
+test('campeão banido sai da grade mesmo se a LCU ainda o lista como disponível', async () => {
+  setup(session({ myTeam: [me], actions: [[action({ type: 'ban', completed: true, championId: 157 })], [action({ id: 6, type: 'pick', isInProgress: true })]] }));
+  await settle();
+  expect([...root.querySelectorAll('.rlc-cs-champ')].map((c) => c.getAttribute('aria-label'))).toEqual(['Aatrox', 'Ahri']);
+});
+
+test('gaveta de campeões: ✕ e Esc fecham, o botão reabre e a minha vez reabre sozinha', async () => {
+  const lcu = setup(session({ myTeam: [me], actions: [[action({ id: 6, type: 'pick', isInProgress: false })]] }));
+  await settle();
+  act(() => btn('Fechar seleção de campeões')!.click());
+  expect(root.querySelector('.rlc-cs-drawer')).toBeNull();
+  act(() => btn('Mostrar campeões')!.click());
+  expect(root.querySelector('.rlc-cs-drawer')).not.toBeNull();
+  act(() => void document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+  expect(root.querySelector('.rlc-cs-drawer')).toBeNull();
+  act(() => void (lcu.champSelect.value = ready(pickTurn())));
+  await settle();
+  expect(root.querySelector('.rlc-cs-grid')).not.toBeNull();
+});
+
+test('aliados com o nome real da sala de chat, tag menor, elo de Solo/Duo fora da ranqueada e vitórias, KDA e rota', async () => {
+  const hidden = cell({ cellId: 1, gameName: 'Poro Ágil', puuid: '', obfuscatedPuuid: 'ob1', nameVisibilityType: 'HIDDEN' });
+  fetchMock.mockImplementation(async (url: string) => {
+    const json = (b: unknown) => new Response(JSON.stringify(b), { status: 200 });
+    if (url === '//riotclient/chat/v5/participants')
+      return json({ participants: [{ cid: 'r@champ-select.br1.pvp.net', game_name: 'Fulano', game_tag: 'BR1', puuid: me.puuid }, { cid: 'r@champ-select.br1.pvp.net', game_name: 'Real Name', game_tag: 'XYZ', puuid: 'real-1' }] });
+    if (url === '/lol-chat/v1/player-mutes') return json({});
+    if (url === '/lol-ranked/v1/ranked-stats/real-1') return json({ queueMap: { RANKED_SOLO_5x5: { tier: 'GOLD', division: 'II', leaguePoints: 40, wins: 30, losses: 20 } } });
+    if (url.startsWith('/lol-match-history/v1/products/lol/real-1/'))
+      return json({ games: { games: [{ participants: [{ stats: { kills: 4, deaths: 2, assists: 6 }, timeline: { lane: 'JUNGLE', role: 'NONE' } }] }] } });
+    return new Response(null, { status: 204 });
+  });
+  setup(session({ myTeam: [me, hidden], theirTeam: [enemy] }));
+  await settle();
+  await settle();
+  await settle();
+  const row = root.querySelectorAll('.rlc-cs-team')[0]!.querySelectorAll('.rlc-cs-cell')[1]!;
+  expect(row.querySelector('.rlc-cs-name')!.textContent).toBe('Real Name#XYZ');
+  expect(row.querySelector('.rlc-cs-tag')!.textContent).toBe('#XYZ');
+  expect(row.textContent).not.toContain('Poro Ágil');
+  expect(row.querySelector('.rlc-rank')!.textContent).toContain('40');
+  const stats = row.querySelector('.rlc-cs-stats')!;
+  expect(stats.textContent).toContain('60%');
+  expect(stats.textContent).toContain('30V 20D');
+  expect(stats.textContent).toContain('5 KDA');
+  expect(stats.querySelector('svg')!.getAttribute('data-role')).toBe('JUNGLE');
+  // nada técnico na tela
+  expect(row.textContent).not.toMatch(/real-1|RANKED|ob1/);
+});
+
+test('sentinela: lista as possuídas, marca a equipada e troca pelo loadout da conta', async () => {
+  fetchMock.mockImplementation(async (url: string) => {
+    const json = (b: unknown) => new Response(JSON.stringify(b), { status: 200 });
+    if (url === '/lol-collections/v1/inventories/42/ward-skins')
+      return json([
+        { id: 0, name: 'Sentinela Padrão', wardImagePath: '/w/0.png', ownership: { owned: true } },
+        { id: 201, name: 'Sentinela Poro', wardImagePath: '/w/201.png', ownership: { owned: true } },
+        { id: 300, name: 'Sentinela Bloqueada', wardImagePath: '/w/300.png', ownership: { owned: false } },
+      ]);
+    if (url === '/lol-loadouts/v4/loadouts/scope/account') return json([{ id: 'acc-1', loadout: { WARD_SKIN_SLOT: { inventoryType: 'WARD_SKIN', itemId: 201 } } }]);
+    return new Response(null, { status: 204 });
+  });
+  setupLoadout({ chatMe: ready({ summonerId: 42 }) });
+  await settle();
+  await settle();
+  act(() => btn('Sentinela: Sentinela Poro')!.click());
+  const items = [...root.querySelectorAll('.rlc-cs-ward-list [role="menuitem"]')];
+  expect(items.map((b) => [b.getAttribute('aria-label'), b.getAttribute('aria-current')])).toEqual([
+    ['Sentinela Padrão', null],
+    ['Sentinela Poro', 'true'],
+  ]);
+  act(() => btn('Sentinela Padrão')!.click());
+  const [, init] = call('/lol-loadouts/v4/loadouts/acc-1')[0]!;
+  expect(init.method).toBe('PATCH');
+  expect(JSON.parse(init.body)).toEqual({ id: 'acc-1', loadout: { WARD_SKIN_SLOT: { inventoryType: 'WARD_SKIN', itemId: 0 } } });
+  await settle();
+  expect(btn('Sentinela: Sentinela Padrão')).not.toBeUndefined();
+});
+
+test('editor de runas na seleção: fundo com a skin escolhida', async () => {
+  setupLoadout({ champSelect: ready(lockedMe({ selectedSkinId: 103005 })) });
+  await settle();
+  act(() => btn('Runas')!.click());
+  // O fundo chega depois de várias leituras assíncronas: espera o resultado em vez de contar voltas (instável com a suíte cheia).
+  await vi.waitFor(async () => {
+    await settle();
+    expect(root.querySelector<HTMLElement>('.rlc-re-art-splash .rlc-xfade-layer:last-child')?.style.backgroundImage).toBe('url("/splash/103005.jpg")');
+  });
 });

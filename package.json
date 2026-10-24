@@ -8,7 +8,11 @@
     "node": ">=24.2"
   },
   "scripts": {
-    "test": "node --test \"tools/**/*.test.mjs\" && vitest run",
+    "test": "node --test \"tools/**/*.test.mjs\" && vitest run && npm run test:loader",
+    "test:loader": "vitest run --config loader/vite.loader.config.ts",
+    "build:loader": "vite build -c loader/vite.loader.config.ts",
+    "build:cdn": "vite build -c loader/vite.cdn.config.ts",
+    "manifest": "node scripts/manifest.ts",
     "test:tools": "node --test \"tools/**/*.test.mjs\"",
     "test:src": "vitest run",
     "typecheck": "tsc --noEmit",

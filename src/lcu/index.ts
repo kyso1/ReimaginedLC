@@ -5,6 +5,7 @@ import { connect } from './socket';
 import { createStore, type StoreState } from './store';
 import type {
   LolChatFriendResource,
+  LolChatGroupResource,
   LolChatConversationResource,
   LolChatFriendRequestResource,
   LolChatUserResource,
@@ -12,6 +13,7 @@ import type {
   LolEndOfGameEndOfGameStats,
   LolGameflowGameflowSession,
   LolHonorV2Ballot,
+  LolHonorV2Honor,
   LolPerksPerkPageResource,
   LolPerksRecommendedPositionsMapResource,
   TeamBuilderDirect_ChampGridChampion,
@@ -43,6 +45,8 @@ export interface Lcu {
   invitations: Signal<StoreState<LolLobbyReceivedInvitationDto[]>>;
   queues: Signal<StoreState<LolGameQueuesQueue[]>>;
   friends: Signal<StoreState<LolChatFriendResource[]>>;
+  /** Pastas de amigos (a padrão vem como `**Default`). */
+  friendGroups: Signal<StoreState<LolChatGroupResource[]>>;
   /** Lista de salas personalizadas. Não tem eventos: muda só por `refresh`. */
   customGames: { state: Signal<StoreState<LolLobbyLobbyCustomGame[]>>; refresh: () => Promise<void> };
   /** Perfil público de um jogador, com cache por puuid durante a sessão. null se não houver. */
@@ -59,6 +63,8 @@ export interface Lcu {
   currentPerkPage: Signal<StoreState<LolPerksPerkPageResource>>;
   gameflowSession: Signal<StoreState<LolGameflowGameflowSession>>;
   honorBallot: Signal<StoreState<LolHonorV2Ballot>>;
+  /** Honras que você recebeu na última partida (quem mandou e se era aliado ou inimigo). */
+  honorRecognition: Signal<StoreState<LolHonorV2Honor[]>>;
   endOfGame: Signal<StoreState<LolEndOfGameEndOfGameStats>>;
   /** Rotas recomendadas por campeão (id em texto → posições em maiúsculas). */
   lanes: Signal<StoreState<Record<string, LolPerksRecommendedPositionsMapResource>>>;
@@ -70,7 +76,7 @@ export interface Lcu {
   /** Essência Laranja (espólio `CURRENCY_cosmetic`). */
   orangeEssence: Signal<StoreState<LolLootPlayerLoot>> & { refresh: () => Promise<void> };
   friendRequests: Signal<StoreState<LolChatFriendRequestResource[]>>;
-  conversations: Signal<StoreState<LolChatConversationResource[]>>;
+  conversations: Signal<StoreState<LolChatConversationResource[]>> & { refresh: () => Promise<void> };
   loot: Signal<StoreState<LolLootPlayerLoot[]>>;
   /** Eventos por prefixo de URI (mensagens de chat têm o id da mensagem na URI). */
   events: { onPrefix: (prefix: string, fn: (uri: string, eventType: string, data: unknown) => void) => () => void };
@@ -120,6 +126,7 @@ export function createLcu(doc: Document = document): Lcu {
     invitations: createStore('/lol-lobby/v2/received-invitations', socket),
     queues: createStore('/lol-game-queues/v1/queues', socket),
     friends: createStore('/lol-chat/v1/friends', socket),
+    friendGroups: createStore('/lol-chat/v1/friend-groups', socket),
     customGames: {
       state: games,
       refresh: async () => {
@@ -138,6 +145,7 @@ export function createLcu(doc: Document = document): Lcu {
     currentPerkPage: createStore('/lol-perks/v1/currentpage', socket),
     gameflowSession: createStore('/lol-gameflow/v1/session', socket),
     honorBallot: createStore('/lol-honor-v2/v1/ballot', socket),
+    honorRecognition: createStore('/lol-honor-v2/v1/recognition', socket),
     endOfGame: createStore('/lol-end-of-game/v1/eog-stats-block', socket),
     lanes: createStore('/lol-perks/v1/recommended-champion-positions', socket),
     gridChampions: createStore('/lol-champ-select/v1/all-grid-champions', socket),

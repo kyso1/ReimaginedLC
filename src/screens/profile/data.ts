@@ -14,7 +14,11 @@ export interface Participant {
   participantId: number;
   teamId: number;
   championId: number;
+  spell1Id?: number;
+  spell2Id?: number;
   stats: Record<string, number | boolean | undefined>;
+  /** Rota que a Riot atribuiu: lane TOP/JUNGLE/MIDDLE/BOTTOM; no BOTTOM o role diz se foi suporte. */
+  timeline?: { lane?: string; role?: string };
 }
 export interface Identity {
   participantId: number;
@@ -25,6 +29,7 @@ export interface Game {
   queueId: number;
   gameDuration: number;
   gameCreation: number;
+  mapId?: number;
   participants: Participant[];
   participantIdentities: Identity[];
 }
@@ -47,6 +52,33 @@ export const mine = (g: Game, puuid: string) => {
 export type QueueFilter = 'all' | 'ranked' | 'normal' | 'aram';
 const GROUPS: Record<Exclude<QueueFilter, 'all'>, number[]> = { ranked: [420, 440], normal: [400, 430, 480, 490], aram: [450, 2400] };
 export const inFilter = (queueId: number, f: QueueFilter) => f === 'all' || GROUPS[f].includes(queueId);
+
+const LANES: Record<string, TextKey> = { TOP: 'posTOP', JUNGLE: 'posJUNGLE', MIDDLE: 'posMIDDLE', MID: 'posMIDDLE', BOTTOM: 'posBOTTOM' };
+/** Rota da partida (chave de texto), só em Summoner's Rift; fora dele (ARAM etc.) a lane da Riot não diz nada. */
+export function laneOf(g: Game, p: Participant | undefined): TextKey | null {
+  if (g.mapId !== 11) return null;
+  const lane = LANES[p?.timeline?.lane ?? ''];
+  if (lane === 'posBOTTOM' && p?.timeline?.role?.includes('SUPPORT')) return 'posUTILITY';
+  return lane ?? null;
+}
+
+/** (abates + assistências) / mortes, com morte zero contando como 1. */
+export const kdaRatio = (p: Participant | undefined) => (num(p, 'kills') + num(p, 'assists')) / Math.max(1, num(p, 'deaths'));
+
+/** Partidas agrupadas por dia (na ordem em que vieram, a mais recente primeiro), com o rótulo de `relativeDay`. */
+export function byDay<G extends { gameCreation: number }>(games: G[], now = Date.now()): Array<{ label: string; games: G[] }> {
+  const out = new Map<string, { label: string; games: G[] }>();
+  for (const g of games) {
+    const key = new Date(g.gameCreation).toDateString();
+    let d = out.get(key);
+    if (!d) out.set(key, (d = { label: relativeDay(g.gameCreation, now), games: [] }));
+    d.games.push(g);
+  }
+  return [...out.values()];
+}
+
+/** Colocação curta: "4º" em português, "#4" nos outros. */
+export const ordinal = (n: number) => (locale() === 'pt-BR' ? `${n}º` : `#${n}`);
 
 /** "hoje", "ontem" ou a data curta. */
 export function relativeDay(ts: number, now = Date.now()): string {
@@ -72,6 +104,30 @@ export function teamGold(tl: Timeline, teamOf: Record<number, number>) {
   }
   return { blue, red, minutes: tl.frames.map((f) => Math.round(f.timestamp / 60000)) };
 }
+
+/** Passo "redondo" do eixo (1, 2 ou 5 × 10ⁿ) para caber em até `count` marcas até `max`. */
+export function niceStep(max: number, count = 4): number {
+  const raw = Math.max(1, max) / count;
+  const pow = 10 ** Math.floor(Math.log10(raw));
+  return ([1, 2, 5, 10].find((m) => m * pow >= raw) ?? 10) * pow;
+}
+
+export interface Perk {
+  name: string;
+  icon: string;
+}
+// ponytail: cache por sessão sem expirar; runas só mudam com patch (e o client reinicia).
+let perkMap: Promise<Map<number, Perk>> | null = null;
+/** Runas e árvores (perks.json + perkstyles.json) por id, com nome e ícone. */
+export const perks = () =>
+  (perkMap ??= Promise.all([
+    getJson<Array<{ id: number; name?: string; iconPath?: string }>>('/lol-game-data/assets/v1/perks.json'),
+    getJson<{ styles?: Array<{ id: number; name?: string; iconPath?: string }> }>('/lol-game-data/assets/v1/perkstyles.json'),
+  ]).then(([list, styles]) => {
+    const map = new Map<number, Perk>();
+    for (const p of [...(Array.isArray(list) ? list : []), ...(styles?.styles ?? [])]) if (p.iconPath) map.set(p.id, { name: p.name ?? '', icon: p.iconPath });
+    return map;
+  }));
 
 const TIERS: Record<string, TextKey> = {
   IRON: 'tierIron', BRONZE: 'tierBronze', SILVER: 'tierSilver', GOLD: 'tierGold', PLATINUM: 'tierPlatinum', EMERALD: 'tierEmerald',

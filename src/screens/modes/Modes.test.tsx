@@ -39,7 +39,7 @@ const mount = (props: Partial<Parameters<typeof Modes>[0]> = {}) => {
 
 test('um cartão por grupo mais Personalizada; grupo e fila atuais vêm selecionados', () => {
   mount();
-  const cards = [...root.querySelectorAll('.rlc-mode-card')].map((c) => c.textContent);
+  const cards = [...root.querySelectorAll('.rlc-mode-card')].map((c) => c.querySelector('.rlc-mode-name')!.textContent);
   expect(cards).toEqual(["Summoner's Rift", 'ARAM', 'Personalizada']);
   expect(btn("Summoner's Rift").getAttribute('aria-pressed')).toBe('true');
   expect(btn('Ranqueada Solo/Duo').getAttribute('aria-pressed')).toBe('true');
@@ -101,4 +101,15 @@ test('fila personalizada (Ferramenta de Treino) cria o lobby com o corpo de sala
     queueId: 3140, isCustom: true,
     customGameLobby: { lobbyName: 'Treino', lobbyPassword: '', configuration: { gameMode: 'PRACTICETOOL', mapId: 11, mutators: { id: 19 }, spectatorPolicy: 'NotAllowed', teamSize: 5 } },
   });
+});
+
+test('trocar de modo escolhe a primeira fila JxJ dele e mostra no resumo; categorias aparecem quando há mais de uma', () => {
+  mount({
+    queues: [queue({ id: 870, name: 'Introdução', gameSelectCategory: 'kVersusAI', gameSelectPriority: 9 }), queue({ id: 400, name: 'Normal' }), queue({ id: 450, name: 'ARAM', gameSelectModeGroup: 'kARAM' })],
+    current: 450,
+  });
+  act(() => btn("Summoner's Rift").click());
+  expect(btn('Normal').getAttribute('aria-pressed')).toBe('true');
+  expect(root.querySelector('.rlc-modes-summary')!.textContent).toBe("Summoner's Rift · Normal");
+  expect([...root.querySelectorAll('.rlc-queue-cat')].map((c) => c.textContent)).toEqual(['JxJ', 'Cooperativo vs. IA']);
 });

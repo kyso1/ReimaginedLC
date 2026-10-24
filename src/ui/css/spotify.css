@@ -1,0 +1,23 @@
+/* Spotify: widget "tocando agora" (no alto, ao centro) e a configuração na aba de plugins. */
+#rlc-root .rlc-sp { position: absolute; top: 20px; left: 50%; z-index: 6; transform: translateX(-50%); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; width: 340px; padding: 6px 8px 6px 6px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-bar, rgba(10, 12, 20, 0.62)); backdrop-filter: blur(var(--rlc-blur-surface)); box-shadow: 0 8px 24px var(--rlc-color-shade, rgba(0, 0, 0, 0.35)); }
+#rlc-root .rlc-sp-art { width: 40px; height: 40px; padding: 0; overflow: hidden; border: 0; border-radius: var(--rlc-radius-sm); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.05)); cursor: pointer; }
+#rlc-root .rlc-sp-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+#rlc-root .rlc-sp-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+#rlc-root .rlc-sp-text b, #rlc-root .rlc-sp-text span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#rlc-root .rlc-sp-text b { font-size: 13px; }
+#rlc-root .rlc-sp-text span { font-size: 12px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-sp-ctl { display: flex; gap: 2px; }
+#rlc-root .rlc-sp-btn { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--rlc-color-text); cursor: pointer; }
+#rlc-root .rlc-sp-btn:hover:not(:disabled) { background: var(--rlc-color-glassCardHover, rgba(255, 255, 255, 0.1)); }
+#rlc-root .rlc-sp-btn:disabled { opacity: 0.4; cursor: default; }
+#rlc-root .rlc-sp-btn:focus-visible, #rlc-root .rlc-sp-art:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 2px; }
+#rlc-root .rlc-sp-more { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px; padding: 4px 2px 2px; }
+#rlc-root .rlc-sp-range { display: grid; grid-template-columns: 52px minmax(0, 1fr) 40px; align-items: center; gap: 8px; font-size: 11px; color: var(--rlc-color-textMuted); font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-sp-range input { width: 100%; accent-color: var(--rlc-color-accent); }
+#rlc-root .rlc-sp-hint { margin: 0; font-size: 12px; color: var(--rlc-color-textMuted); }
+
+#rlc-root .rlc-sp-setup { display: flex; flex-direction: column; gap: 10px; padding: 4px 0 12px; }
+#rlc-root .rlc-sp-setup-line { display: flex; align-items: center; gap: 10px; }
+#rlc-root .rlc-sp-steps { margin: 0; padding-left: 20px; color: var(--rlc-color-textMuted); font-size: 13px; }
+#rlc-root .rlc-sp-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+#rlc-root .rlc-sp-field .rlc-input { flex: 1; min-width: 0; }

@@ -1,0 +1,175 @@
+/* postgame: fim de jogo, carregado por @import em styles.css. Cores só por var(--rlc-*, reserva). */
+
+/*
+ * Ideia: o resultado é a manchete. A palavra (ou a colocação no TFT) ocupa o alto da tela sobre a splash,
+ * com uma fita vertical no tom do resultado na borda esquerda; números, progresso e placar ficam quietos abaixo.
+ */
+#rlc-root .rlc-postgame { --rlc-pg-tone: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); position: absolute; inset: 0; overflow: hidden; }
+#rlc-root .rlc-postgame[data-result='win'] { --rlc-pg-tone: var(--rlc-color-highlight, #ffd36b); }
+#rlc-root .rlc-postgame[data-result='loss'] { --rlc-pg-tone: var(--rlc-color-loss, #e66a6a); }
+#rlc-root .rlc-postgame::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; z-index: 2; width: 5px; background: var(--rlc-pg-tone); }
+
+#rlc-root .rlc-pg-bg { position: absolute; inset: 0; background-size: cover; background-position: center 20%; }
+#rlc-root .rlc-pg-bg::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, var(--rlc-color-scrim, rgba(4, 6, 12, 0.88)) 0%, var(--rlc-color-fade, rgba(4, 6, 12, 0.35)) 55%, transparent 80%), linear-gradient(0deg, var(--rlc-color-scrim, rgba(4, 6, 12, 0.88)) 0%, transparent 45%); }
+
+/* Rola por inteiro; os botões ficam presos no pé. */
+#rlc-root .rlc-pg-scroll { position: absolute; inset: 0 0 88px; z-index: 1; overflow-y: auto; padding: 8vh 32px 24px 56px; }
+#rlc-root .rlc-pg-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px 48px; min-height: 52vh; padding-bottom: 28px; }
+#rlc-root .rlc-pg-hero { flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 18px; }
+
+@keyframes rlc-pg-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+#rlc-root .rlc-pg-result { margin: 0 0 -6px -4px; font-family: var(--rlc-font-display); font-weight: 900; font-size: clamp(72px, 11vw, 168px); line-height: 0.86; letter-spacing: -0.02em; text-transform: uppercase; color: var(--rlc-color-text, #fff); text-shadow: 0 6px 40px var(--rlc-color-textShadow, #000); animation: rlc-pg-wipe 700ms var(--rlc-motion-easing, ease) both; }
+/* O traço no tom do resultado sublinha a manchete. */
+#rlc-root .rlc-pg-result::after { content: ''; display: block; width: 1.2em; height: 6px; margin-top: 14px; border-radius: 3px; background: var(--rlc-pg-tone); }
+@media (prefers-reduced-motion: reduce) { #rlc-root .rlc-pg-result { animation: none; } }
+
+#rlc-root .rlc-pg-who { display: flex; align-items: center; gap: 14px; }
+#rlc-root .rlc-pg-portrait { flex: none; display: block; width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--rlc-pg-tone); background: var(--rlc-color-bg, #0b1020); object-fit: cover; }
+#rlc-root .rlc-pg-who div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; }
+#rlc-root .rlc-pg-who b { flex-basis: 100%; font-size: 22px; font-weight: 700; }
+#rlc-root .rlc-pg-who span { font-size: 14px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); font-variant-numeric: tabular-nums; }
+
+/* Seus números: valor grande, rótulo em cima, e a posição na partida só quando for pódio. */
+#rlc-root .rlc-pg-numbers { display: flex; flex-wrap: wrap; gap: 12px 0; margin: 0; }
+#rlc-root .rlc-pg-numbers div { display: flex; flex-direction: column; gap: 2px; min-width: 112px; padding: 0 28px 0 0; margin-right: 28px; border-right: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.14)); }
+#rlc-root .rlc-pg-numbers div:last-child { border-right: 0; margin-right: 0; }
+#rlc-root .rlc-pg-numbers dt { font-size: 13px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+#rlc-root .rlc-pg-numbers dd { margin: 0; font-size: 30px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-pg-numbers small { font-size: 12px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+#rlc-root .rlc-pg-numbers small[data-place='1'] { color: var(--rlc-pg-tone); }
+
+/* Destaques da partida: linha discreta de nomes, o seu em negrito. */
+#rlc-root .rlc-pg-marks { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 4px 0 0; padding: 0; list-style: none; }
+#rlc-root .rlc-pg-marks li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.75)); }
+#rlc-root .rlc-pg-marks li span { display: flex; flex-direction: column; line-height: 1.2; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-pg-marks small { font-size: 11px; opacity: 0.8; }
+#rlc-root .rlc-pg-marks li[data-me='true'] { color: var(--rlc-color-text, #fff); font-weight: 700; }
+#rlc-root .rlc-pg-marks .rlc-md-mini { border-radius: 50%; box-shadow: 0 0 0 2px var(--rlc-color-teamBlueLine, #5aa0ff); }
+#rlc-root .rlc-pg-marks li[data-team='200'] .rlc-md-mini { box-shadow: 0 0 0 2px var(--rlc-color-teamRedLine, #e66a6a); }
+
+/* Progresso: uma coluna de vidro com três medidores finos. */
+#rlc-root .rlc-pg-progress { flex: 0 1 320px; display: flex; flex-direction: column; gap: 18px; margin: 0; padding: 18px 20px; list-style: none; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.12)); border-radius: var(--rlc-radius-lg, 16px); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(10, 12, 20, 0.55)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.75))); backdrop-filter: blur(16px) brightness(0.8); }
+#rlc-root .rlc-pg-progress li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 4px 12px; }
+#rlc-root .rlc-pg-progress small { grid-column: 1 / -1; font-size: 12px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); }
+#rlc-root .rlc-pg-progress b { font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-pg-progress .rlc-rank { display: inline-flex; align-items: center; gap: 6px; opacity: 1; font-size: 15px; }
+#rlc-root .rlc-pg-progress .rlc-rank img { width: 20px; height: 20px; }
+#rlc-root .rlc-pg-progress em { grid-column: 1 / -1; font-style: normal; font-size: 12px; color: var(--rlc-pg-tone); }
+#rlc-root .rlc-pg-delta { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--rlc-color-win, #5fd18a); }
+#rlc-root .rlc-pg-delta[data-sign='down'] { color: var(--rlc-color-loss, #e66a6a); }
+#rlc-root .rlc-pg-meter { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--rlc-color-surface, rgba(255, 255, 255, 0.1)); overflow: hidden; }
+#rlc-root .rlc-pg-meter i { display: block; height: 100%; border-radius: 2px; background: var(--rlc-pg-tone); }
+
+/* Placar e gráficos do perfil, num painel de vidro. */
+#rlc-root .rlc-pg-detail { padding: 16px 18px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.12)); border-radius: var(--rlc-radius-lg, 16px); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(10, 12, 20, 0.6)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.8))); backdrop-filter: blur(16px) brightness(0.75); }
+#rlc-root .rlc-pg-board { display: flex; flex-direction: column; gap: 12px; overflow-x: auto; }
+#rlc-root .rlc-pg-board .rlc-md-board tr[data-me='true'] td:first-child { box-shadow: inset 3px 0 0 var(--rlc-pg-tone); }
+
+/* TFT: fundo de TFT do mapa sob o mesmo véu; a manchete encolhe porque a classificação dos oito é o corpo da tela. */
+#rlc-root .rlc-postgame[data-mode='tft'] .rlc-pg-bg { background-position: center; }
+#rlc-root .rlc-postgame[data-mode='tft'] .rlc-pg-head { min-height: 36vh; }
+/* A arte da Pequena Lenda é paisagem: vai inteira num cartão, com a borda no tom da colocação. */
+#rlc-root .rlc-pg-legend { flex: none; display: block; width: 108px; height: 72px; border-radius: var(--rlc-radius-md, 10px); border: 2px solid var(--rlc-pg-tone); background: var(--rlc-color-bg, #0b1020); object-fit: cover; }
+
+/* Sua composição em cima (unidades grandes, traços em emblemas com nome), classificação dos oito embaixo. */
+#rlc-root .rlc-pg-tft { display: flex; flex-direction: column; gap: 28px; padding: 18px 20px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.12)); border-radius: var(--rlc-radius-lg, 16px); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(10, 12, 20, 0.6)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.8))); backdrop-filter: blur(16px) brightness(0.75); }
+#rlc-root .rlc-pg-tft > section { min-width: 0; }
+#rlc-root .rlc-pg-tft h2 { margin: 0 0 12px; font-size: 16px; font-weight: 700; }
+#rlc-root .rlc-pg-units { display: flex; flex-wrap: wrap; gap: 12px; margin: 0; padding: 0; list-style: none; }
+#rlc-root .rlc-pg-units li { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 64px; }
+#rlc-root .rlc-pg-unit { display: block; width: 64px; height: 64px; border-radius: var(--rlc-radius-sm, 6px); border: 2px solid var(--rlc-color-border, rgba(255, 255, 255, 0.3)); background: var(--rlc-color-bg, #0b1020); object-fit: cover; }
+#rlc-root .rlc-pg-units li[data-cost='2'] .rlc-pg-unit { border-color: var(--rlc-color-win, #5fd18a); }
+#rlc-root .rlc-pg-units li[data-cost='3'] .rlc-pg-unit { border-color: var(--rlc-color-teamBlueLine, #5aa0ff); }
+#rlc-root .rlc-pg-units li[data-cost='4'] .rlc-pg-unit { border-color: var(--rlc-color-rarityEpic, #c77dff); }
+#rlc-root .rlc-pg-units li[data-cost='5'] .rlc-pg-unit { border-color: var(--rlc-color-highlight, #ffd36b); }
+#rlc-root .rlc-pg-stars { font-size: 12px; line-height: 1; letter-spacing: 1px; color: var(--rlc-color-highlight, #ffd36b); }
+#rlc-root .rlc-pg-unititems { display: flex; gap: 2px; min-height: 18px; }
+#rlc-root .rlc-pg-unititems img { width: 18px; height: 18px; border-radius: 3px; }
+/* Emblemas do perfil (hexágono na cor do estágio) em tamanho maior, com o nome do traço ao lado do número. */
+#rlc-root .rlc-pg-traits { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 18px; }
+#rlc-root .rlc-pg-tft .rlc-pg-traits .rlc-tft-trait { gap: 6px; font-size: 13px; }
+#rlc-root .rlc-pg-tft .rlc-pg-traits .rlc-tft-trait > img { width: 32px; height: 32px; padding: 6px; }
+#rlc-root .rlc-pg-tft .rlc-pg-traits .rlc-tft-trait > span { color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.75)); }
+#rlc-root .rlc-pg-augs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin-top: 14px; font-size: 13px; }
+#rlc-root .rlc-pg-augs small { flex-basis: 100%; font-size: 12px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); }
+#rlc-root .rlc-pg-augs span { display: inline-flex; align-items: center; gap: 6px; }
+#rlc-root .rlc-pg-augs img, #rlc-root .rlc-tft-aug { display: block; width: 24px; height: 24px; border-radius: var(--rlc-radius-sm, 4px); }
+#rlc-root .rlc-tft-aug { width: 20px; height: 20px; }
+/* Na classificação, sua Pequena Lenda ganha o anel no tom da colocação. */
+#rlc-root .rlc-pg-tft .rlc-tft-standings > li[data-me='true'] .rlc-tft-legend { box-shadow: 0 0 0 2px var(--rlc-pg-tone); }
+
+/* Abas sob a composição: Classificação (com os fatos do lobby), Partida e Você vs seu histórico. */
+#rlc-root .rlc-pg-standings > .rlc-tabs-text { margin-bottom: 14px; }
+#rlc-root .rlc-pg-tft h3 { margin: 0 0 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); }
+#rlc-root .rlc-pg-wait { margin: 4px 0; font-size: 13px; }
+#rlc-root .rlc-pg-match, #rlc-root .rlc-pg-vs, #rlc-root .rlc-pg-lobby { display: flex; flex-direction: column; gap: 20px; }
+#rlc-root .rlc-pg-lobby { margin-bottom: 16px; }
+
+/* Fatos curtos: rótulo, valor grande, nota; separados por fio vertical como os números do LoL. */
+#rlc-root .rlc-pg-facts { display: flex; flex-wrap: wrap; gap: 12px 0; margin: 0; }
+#rlc-root .rlc-pg-facts > div { display: flex; flex-direction: column; gap: 2px; min-width: 120px; max-width: 240px; padding-right: 24px; margin-right: 24px; border-right: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.14)); }
+#rlc-root .rlc-pg-facts > div:last-child { border-right: 0; margin-right: 0; }
+#rlc-root .rlc-pg-facts dt { font-size: 12px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+#rlc-root .rlc-pg-facts dd { margin: 0; font-size: 20px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-pg-facts small { font-size: 12px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+#rlc-root .rlc-pg-facts small[data-sign='up'] { color: var(--rlc-color-win, #5fd18a); }
+#rlc-root .rlc-pg-facts small[data-sign='down'] { color: var(--rlc-color-loss, #e66a6a); }
+#rlc-root .rlc-pg-facts > div[data-me='true'] dd { color: var(--rlc-pg-tone); }
+
+/* Unidades disputadas: retrato pequeno com quantos jogadores e cópias. */
+#rlc-root .rlc-pg-contested > small { display: block; margin-bottom: 6px; font-size: 12px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+#rlc-root .rlc-pg-contested ul { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; padding: 0; list-style: none; }
+#rlc-root .rlc-pg-contested li { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+#rlc-root .rlc-pg-contested li > span { display: flex; flex-direction: column; line-height: 1.25; }
+#rlc-root .rlc-pg-contested li small { font-size: 12px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+#rlc-root .rlc-pg-cunit, #rlc-root .rlc-pg-uicon { flex: none; display: block; width: 32px; height: 32px; border-radius: var(--rlc-radius-sm, 6px); background: var(--rlc-color-bg, #0b1020); object-fit: cover; }
+
+#rlc-root .rlc-pg-partner { display: flex; align-items: baseline; gap: 10px; margin: 0; font-size: 15px; }
+#rlc-root .rlc-pg-partner small { font-size: 12px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+
+/* Progresso de traço: emblema na cor do estágio, nome, "3/5" e quanto falta. */
+#rlc-root .rlc-pg-tprog { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 16px; margin: 0; padding: 0; list-style: none; }
+#rlc-root .rlc-pg-tprog li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; column-gap: 8px; align-items: center; font-size: 13px; }
+#rlc-root .rlc-pg-tprog .rlc-pg-ticon { grid-row: 1 / 3; }
+#rlc-root .rlc-pg-tprog li > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-pg-tprog b { font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-pg-tprog small { grid-column: 2 / -1; font-size: 11px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); }
+#rlc-root .rlc-pg-tprog li[data-style='0'] { opacity: 0.6; }
+#rlc-root .rlc-pg-ticon { box-sizing: border-box; display: inline-block; width: 26px; height: 26px; padding: 5px; vertical-align: middle; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: var(--rlc-color-track, rgba(255, 255, 255, 0.18)); }
+#rlc-root .rlc-pg-tprog li[data-style='1'] .rlc-pg-ticon, #rlc-root .rlc-pg-compname .rlc-pg-ticon { background: var(--rlc-color-tierBronze, #a5704c); }
+#rlc-root .rlc-pg-tprog li[data-style='2'] .rlc-pg-ticon { background: var(--rlc-color-tierSilver, #a9b6c2); }
+#rlc-root .rlc-pg-tprog li[data-style='3'] .rlc-pg-ticon { background: var(--rlc-color-tierGold, #e7c25a); }
+#rlc-root .rlc-pg-tprog li[data-style='4'] .rlc-pg-ticon { background: linear-gradient(135deg, var(--rlc-color-tierDiamond, #7fb4ff), var(--rlc-color-tierMaster, #c77dff), var(--rlc-color-tierEmerald, #4fd1a5)); }
+
+/* Linha do tempo de eliminação: tabela enxuta, o 8º no topo e o campeão no pé. */
+#rlc-root .rlc-pg-elim { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-pg-elim th { padding: 0 10px 6px; font-size: 11px; font-weight: 600; text-align: left; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.65)); white-space: nowrap; }
+#rlc-root .rlc-pg-elim td { padding: 6px 10px; border-top: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.08)); white-space: nowrap; }
+#rlc-root .rlc-pg-elim td small { margin-left: 8px; font-size: 11px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); }
+#rlc-root .rlc-pg-elim .rlc-tft-place { display: inline-block; min-width: 34px; margin-right: 8px; font-size: 15px; text-align: left; }
+#rlc-root .rlc-pg-elim tr[data-band='first'] .rlc-tft-place { color: var(--rlc-color-highlight, #e7c25a); }
+#rlc-root .rlc-pg-elim tr[data-band='bottom'] .rlc-tft-place { color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); }
+#rlc-root .rlc-pg-elim tr[data-me='true'] td { font-weight: 700; background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.06)); }
+#rlc-root .rlc-pg-elim tr[data-me='true'] td:first-child { box-shadow: inset 3px 0 0 var(--rlc-pg-tone); }
+
+/* Você vs histórico: faixa de colocações (a desta partida contornada), comp e mais usados em duas colunas. */
+#rlc-root .rlc-pg-vs .rlc-tft-strip { max-width: 520px; }
+#rlc-root .rlc-pg-vs .rlc-tft-strip li[data-now='true'] { outline: 1px solid var(--rlc-color-text, #fff); outline-offset: 1px; }
+#rlc-root .rlc-pg-comp p { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; margin: 0; font-size: 13px; }
+#rlc-root .rlc-pg-compname { display: inline-flex; gap: 12px; font-weight: 700; font-size: 14px; }
+#rlc-root .rlc-pg-compname > span { display: inline-flex; align-items: center; gap: 6px; }
+#rlc-root .rlc-pg-comp p > span + span { color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.75)); }
+#rlc-root .rlc-pg-usedcols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px 32px; }
+#rlc-root .rlc-pg-used { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; margin: 0; padding: 0; list-style: none; }
+#rlc-root .rlc-pg-used li { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+#rlc-root .rlc-pg-used li[data-here='true'] { color: var(--rlc-color-text, #fff); font-weight: 700; }
+#rlc-root .rlc-pg-used li[data-here='true'] .rlc-pg-uicon { box-shadow: 0 0 0 2px var(--rlc-pg-tone); }
+#rlc-root .rlc-pg-used li > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-pg-used small { font-size: 12px; font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-pg-vs > small { font-size: 12px; }
+
+#rlc-root .rlc-pg-actions { position: absolute; left: 56px; right: 32px; bottom: 24px; z-index: 2; display: flex; justify-content: space-between; align-items: center; }
+#rlc-root .rlc-pg-honors ul { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+#rlc-root .rlc-pg-honors ul li { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+#rlc-root .rlc-pg-honors ul li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-pg-honors ul li em { grid-column: auto; color: var(--rlc-color-danger); }

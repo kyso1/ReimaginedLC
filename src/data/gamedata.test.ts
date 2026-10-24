@@ -30,12 +30,21 @@ test('falha de rede vira mapa vazio', async () => {
 });
 
 test('splash da skin pelo splashPath do campeão, com cache por campeão', async () => {
-  const champ = { skins: [{ id: 40000, splashPath: '/a.jpg' }, { id: 40067, splashPath: '/lol-game-data/assets/ASSETS/janna_67.jpg' }] };
+  const champ = {
+    skins: [
+      { id: 40000, splashPath: '/a.jpg' },
+      { id: 40067, splashPath: '/lol-game-data/assets/ASSETS/janna_67.jpg', chromas: [{ id: 40068 }] },
+      { id: 40070, splashPath: '/t1.jpg', questSkinInfo: { tiers: [{ id: 40071, splashPath: '/t2.jpg' }] } },
+    ],
+  };
   const f = vi.fn().mockResolvedValue(json(champ));
   const game = createGameData(f);
   expect(await game.splash(40067)).toBe('/lol-game-data/assets/ASSETS/janna_67.jpg');
   expect(await game.splash(40000)).toBe('/a.jpg');
-  expect(await game.splash(40999)).toBeNull();
+  // Croma usa a da skin-mãe; estágio evolutivo, a própria; skin desconhecida, a base.
+  expect(await game.splash(40068)).toBe('/lol-game-data/assets/ASSETS/janna_67.jpg');
+  expect(await game.splash(40071)).toBe('/t2.jpg');
+  expect(await game.splash(40999)).toBe('/a.jpg');
   expect(f).toHaveBeenCalledTimes(1);
   expect(f).toHaveBeenCalledWith('/lol-game-data/assets/v1/champions/40.json');
 });

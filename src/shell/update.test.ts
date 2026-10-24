@@ -1,74 +1,49 @@
+import { signal } from '@preact/signals';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../i18n';
-import { checkForUpdate, isNewer, RELEASES_API, update } from './update';
+import { UPDATE_EVENT } from '../../loader/shared';
+import { canReload, reloadForUpdate, safeToReload, update, watchUpdates } from './update';
 
-const store = new Map<string, unknown>();
-const DAY = 24 * 60 * 60 * 1000;
-const release = (tag: string) => new Response(JSON.stringify({ tag_name: tag, html_url: `https://github.com/kyso1/ReimaginedLC/releases/tag/${tag}` }), { status: 200 });
+const phase = signal<{ status: 'ready'; data: string | null }>({ status: 'ready', data: 'None' });
+const lcu = { gameflowPhase: phase } as unknown as Parameters<typeof watchUpdates>[0];
 
 beforeEach(() => {
   setLocale('pt_BR');
-  store.clear();
   update.value = null;
-  window.DataStore = { has: (k) => store.has(k), get: (k) => store.get(k), set: (k, v) => void store.set(k, v), remove: (k) => void store.delete(k) };
   window.Toast = { success: vi.fn(), error: vi.fn() };
 });
 afterEach(() => {
-  delete window.DataStore;
   delete window.Toast;
 });
 
-test('isNewer compara versões semânticas, com ou sem "v"', () => {
-  expect(isNewer('0.1.0', 'v0.2.0')).toBe(true);
-  expect(isNewer('0.2.0', 'v0.2.0')).toBe(false);
-  expect(isNewer('0.10.0', 'v0.9.1')).toBe(false);
-  expect(isNewer('1.0.0', '1.0.1')).toBe(true);
-  expect(isNewer('0.1.0', 'lixo')).toBe(false);
-  expect(isNewer('0.1.0', 'v0.2.0-beta.1')).toBe(false);
+test('fases seguras: só fora de fila, seleção e partida', () => {
+  for (const p of ['None', 'Lobby', 'EndOfGame']) expect(safeToReload(p)).toBe(true);
+  for (const p of ['Matchmaking', 'ReadyCheck', 'ChampSelect', 'GameStart', 'InProgress', 'Reconnect', null, undefined]) expect(safeToReload(p)).toBe(false);
 });
 
-test('versão nova: avisa uma vez e guarda o resultado; no mesmo dia não consulta de novo', async () => {
-  const fetcher = vi.fn(async () => release('v0.2.0'));
-  await checkForUpdate('0.1.0', 1000, fetcher);
-  expect(fetcher).toHaveBeenCalledWith(RELEASES_API);
-  expect(update.value).toEqual({ version: '0.2.0', url: 'https://github.com/kyso1/ReimaginedLC/releases/tag/v0.2.0' });
+test('versão pronta do carregador (já publicada ou por evento) aparece uma vez; Recarregar respeita a fase', () => {
+  const win = new EventTarget() as Window & { __rlcLoader?: unknown };
+  win.__rlcLoader = { version: '0.1.0', base: 'https://x/', ready: '0.2.0' };
+  watchUpdates(lcu, win);
+  expect(update.value).toEqual({ version: '0.2.0' });
+  win.dispatchEvent(new CustomEvent(UPDATE_EVENT, { detail: { version: '0.2.0' } }));
   expect(window.Toast!.success).toHaveBeenCalledTimes(1);
-  update.value = null;
-  await checkForUpdate('0.1.0', 1000 + DAY / 2, fetcher);
-  expect(fetcher).toHaveBeenCalledTimes(1);
-  expect(update.peek()?.version).toBe('0.2.0');
-  expect(window.Toast!.success).toHaveBeenCalledTimes(1);
-  await checkForUpdate('0.1.0', 1000 + DAY + 1, fetcher);
-  expect(fetcher).toHaveBeenCalledTimes(2);
-  expect(window.Toast!.success).toHaveBeenCalledTimes(1);
+  win.dispatchEvent(new CustomEvent(UPDATE_EVENT, { detail: { version: '0.3.0' } }));
+  expect(update.value).toEqual({ version: '0.3.0' });
+
+  const reload = vi.fn();
+  phase.value = { status: 'ready', data: 'ChampSelect' };
+  expect(canReload.value).toBe(false);
+  reloadForUpdate(reload);
+  expect(reload).not.toHaveBeenCalled();
+  phase.value = { status: 'ready', data: 'Lobby' };
+  expect(canReload.value).toBe(true);
+  reloadForUpdate(reload);
+  expect(reload).toHaveBeenCalledTimes(1);
 });
 
-test('sem versão nova, falha de rede ou resposta estranha: nada aparece, e só tenta de novo no dia seguinte', async () => {
-  await checkForUpdate('0.2.0', 1000, async () => release('v0.2.0'));
-  expect(update.value).toBeNull();
-  store.clear();
-  const failing = vi.fn(async () => {
-    throw new Error('offline');
-  });
-  await checkForUpdate('0.1.0', 1000, failing);
-  await checkForUpdate('0.1.0', 2000, failing);
-  expect(failing).toHaveBeenCalledTimes(1);
-  store.clear();
-  await checkForUpdate('0.1.0', 1000, async () => new Response('{"tag_name":42,"html_url":"javascript:alert(1)"}', { status: 200 }));
-  expect(update.value).toBeNull();
-  store.clear();
-  await checkForUpdate('0.1.0', 1000, async () => new Response(JSON.stringify({ tag_name: 'v0.3.0', html_url: 'https://evil.example/x' }), { status: 200 }));
+test('sem carregador nada aparece', () => {
+  watchUpdates(lcu, new EventTarget() as Window);
   expect(update.value).toBeNull();
   expect(window.Toast!.success).not.toHaveBeenCalled();
-});
-
-test('só aceita a página de release deste projeto, e um checkedAt no futuro não congela a consulta', async () => {
-  const other = async () => new Response(JSON.stringify({ tag_name: 'v9.0.0', html_url: 'https://github.com/outro/repo/releases/tag/v9.0.0' }), { status: 200 });
-  await checkForUpdate('0.1.0', 1000, other);
-  expect(update.value).toBeNull();
-  store.set('rlc.update', { checkedAt: 9e15, version: '99.0.0', url: 'https://github.com/kyso1/ReimaginedLC/releases/tag/v99.0.0', notified: null });
-  const fetcher = vi.fn(async () => new Response(JSON.stringify({ tag_name: ' v0.2.0 ', html_url: 'https://github.com/kyso1/ReimaginedLC/releases/tag/v0.2.0' }), { status: 200 }));
-  await checkForUpdate('0.1.0', 1000, fetcher);
-  expect(fetcher).toHaveBeenCalledTimes(1);
-  expect(update.value).toEqual({ version: '0.2.0', url: 'https://github.com/kyso1/ReimaginedLC/releases/tag/v0.2.0' });
 });

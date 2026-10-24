@@ -68,3 +68,50 @@ test('a tela inicial não mostra nome de invocador', () => {
   expect(host.textContent).not.toMatch(/Fulano|anon-/);
   expect(host.querySelectorAll('button')).toHaveLength(2);
 });
+
+test('destaques: abas da Riot, slides da aba, miniatura troca o slide e Ver na loja abre a loja', async () => {
+  const pages: Record<string, unknown> = {
+    '/lol-activity-center/v1/content/client-nav': { data: [{ title: 'True Damage', action: { type: 'lc_home_tab', payload: { tabId: 'td' } } }] },
+    '/lol-activity-center/v1/content/td': {
+      blades: [{ type: 'mediaGallery', items: [
+        { mediaGalleryItemID: 'y', header: { title: '*Yasuo', links: [{ media: { type: 'image', url: '/y.png' }, action: { type: 'lc_store_paw' } }] } },
+        { mediaGalleryItemID: 's', header: { title: 'Senna', links: [{ media: { type: 'image', url: '/s.png' } }] } },
+      ] }],
+    },
+  };
+  const onStore = vi.fn();
+  render(<Home version={null} locale="pt_BR" onPlay={() => {}} onStore={onStore} load={async (u) => pages[u] ?? null} />, host);
+  for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 30));
+  expect(host.querySelector('.rlc-feat-tabs')!.textContent).toBe('True Damage');
+  expect(host.querySelector('.rlc-feat-title')!.textContent).toBe('Yasuo');
+  button('Ver na loja')!.click();
+  expect(onStore).toHaveBeenCalledTimes(1);
+  (host.querySelector('[aria-label="Senna"]') as HTMLButtonElement).click();
+  await new Promise((r) => setTimeout(r, 30));
+  expect(host.querySelector('.rlc-feat-title')!.textContent).toBe('Senna');
+  expect(button('Ver na loja')).toBeUndefined();
+});
+
+test('destaques: o fundo troca de slide com fusão (Crossfade), não com corte seco', async () => {
+  // jsdom não carrega imagem: a falsa avisa "carregou" logo depois de receber o endereço.
+  vi.stubGlobal('Image', class { onload: (() => void) | null = null; set src(_: string) { setTimeout(() => this.onload?.()); } });
+  const pages: Record<string, unknown> = {
+    '/lol-activity-center/v1/content/client-nav': { data: [{ title: 'True Damage', action: { type: 'lc_home_tab', payload: { tabId: 'td' } } }] },
+    '/lol-activity-center/v1/content/td': {
+      blades: [{ type: 'mediaGallery', items: [
+        { mediaGalleryItemID: 'y', header: { title: 'Yasuo', links: [{ media: { type: 'image', url: '/y.png' } }] } },
+        { mediaGalleryItemID: 's', header: { title: 'Senna', links: [{ media: { type: 'image', url: '/s.png' } }] } },
+      ] }],
+    },
+  };
+  const wait = async () => { for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 20)); };
+  const layers = () => [...host.querySelectorAll<HTMLElement>('.rlc-feat-bg.rlc-xfade .rlc-xfade-layer')].map((l) => l.style.backgroundImage);
+  render(<Home version={null} locale="pt_BR" onPlay={() => {}} load={async (u) => pages[u] ?? null} />, host);
+  await wait();
+  expect(layers()).toEqual(['url("/y.png")']);
+  (host.querySelector('[aria-label="Senna"]') as HTMLButtonElement).click();
+  await wait();
+  // As duas camadas convivem durante a fusão; a nova entra por cima.
+  expect(layers()).toEqual(['url("/y.png")', 'url("/s.png")']);
+  vi.unstubAllGlobals();
+});

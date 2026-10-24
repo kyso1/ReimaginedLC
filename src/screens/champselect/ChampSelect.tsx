@@ -2,14 +2,20 @@ import { useEffect, useMemo, useState } from 'preact/hooks';
 import { t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
+import { Crossfade } from '../../ui/Crossfade';
 import { useAction } from '../../ui/useAction';
 import { useDecoded } from '../../ui/useDecoded';
-import { ChampionGrid, Drawer, LANES, type Lane, type Tab } from './Drawer';
-import { RunesSpellsTab, SkinsTab } from './Loadout';
+import { ChampionGrid, Drawer, LANES, type Lane } from './Drawer';
+import { Loadout, SkinCarousel, skinOf } from './Loadout';
+import { RuneEditor, useApplyOnLock, type RecoContext } from './RuneEditor';
 import { Bench, SwapCards, swapMenu } from './Swaps';
-import { bansByTeam, displayedChampion, flatActions, myTurn, remainingSeconds, selectPhase, type SelectPhase, type Session } from './logic';
+import { actingCells, bansByTeam, displayedChampion, laneOpponent, myTurn, remainingSeconds, selectPhase, type SelectPhase, type Session } from './logic';
+import { useRealNames } from './names';
 import { Team } from './Teams';
+import { rankedQueueOf } from '../../ui/Rank';
+import { useEscape } from '../../ui/useEscape';
 import { prefs } from '../../shell/prefs';
+import { roseStatus, useRose } from '../../plugins/rose';
 
 const PHASE_TEXT: Record<SelectPhase, TextKey | null> = {
   ban: 'phaseBan',
@@ -20,23 +26,41 @@ const PHASE_TEXT: Record<SelectPhase, TextKey | null> = {
   none: null,
 };
 
-/** Seleção de campeões no layout Cinemático: campeão em tela cheia, times no topo, gaveta com abas embaixo. */
+/**
+ * Seleção de campeões em palco: a splash do seu campeão ocupa a tela (o mouse na grade troca a prévia), com fase,
+ * tempo, nome e skin no topo e o carrossel de skins embaixo. Aliados em cartões à esquerda, inimigos espelhados à
+ * direita. A grade cobre o palco enquanto se escolhe e some no ✕, no Esc ou ao travar. Feitiços, runas, sentinela,
+ * skin e Travar ficam na barra de vidro do pé.
+ */
 export function ChampSelect({ lcu }: { lcu: Lcu }) {
   const session = lcu.champSelect.value.data;
   const champions = useLoaded(lcu.game.champions, EMPTY);
   const spells = useLoaded(lcu.game.spells, EMPTY);
-  const [tab, setTab] = useState<Tab>('champions');
+  // Grade fechada mostra o palco; reabre sozinha quando chega a minha vez e fecha ao travar.
+  const [drawerOpen, setDrawerOpen] = useState(true);
+  // Campeão sob o mouse na grade: só a prévia do palco, nada é enviado.
+  const [preview, setPreview] = useState<number | null>(null);
+  const real = useRealNames(session);
   const seconds = useSelectClock(session);
   const local = session?.myTeam.find((c) => c.cellId === session.localPlayerCellId) ?? null;
   const shown = local ? displayedChampion(local) : null;
   const turn = session ? myTurn(session) : null;
   const locked = shown?.locked === true;
-  // A aba segue o momento: Campeões na minha vez, Skins depois de confirmar. Trocar à mão vale até a próxima mudança.
+  // A grade segue o momento: abre na minha vez, fecha ao travar. Abrir ou fechar à mão vale até a próxima mudança.
   useEffect(() => {
-    if (turn) setTab('champions');
-    else if (locked) setTab('skins');
+    if (turn) setDrawerOpen(true);
+    else if (locked) setDrawerOpen(false);
   }, [turn?.action.id, locked]);
-  const splashUrl = useLoaded(() => lcu.game.splash(shown ? (shown.locked && local!.selectedSkinId > 0 ? local!.selectedSkinId : shown.championId * 1000) : undefined), null, [shown?.championId, shown?.locked, local?.selectedSkinId]);
+  const previewing = drawerOpen && preview ? preview : 0;
+  // ROSE conectado: o carrossel oferece também skins não possuídas. A escolhida (`pick`) só vai para o palco e para o
+  // ROSE; a LCU não sabe dela. Zera ao trocar de campeão.
+  useRose(prefs.value.rose);
+  const rose = prefs.value.rose && roseStatus.value === 'connected';
+  const [rosePick, setRosePick] = useState<number | null>(null);
+  useEffect(() => setRosePick(null), [shown?.championId]);
+  const pick = rose ? rosePick : null;
+  const stageSkin = previewing ? previewing * 1000 : shown ? (shown.locked && (pick ?? local!.selectedSkinId) > 0 ? (pick ?? local!.selectedSkinId) : shown.championId * 1000) : undefined;
+  const splashUrl = useLoaded(() => lcu.game.splash(stageSkin), null, [stageSkin]);
   const splash = useDecoded(splashUrl);
 
   const hover = useAction((id: number, championId: number) => request('PATCH', `/lol-champ-select/v1/session/actions/${id}`, { championId }));
@@ -50,80 +74,136 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   });
   const quit = useAction(() => request('POST', '/lol-lobby-team-builder/champ-select/v1/session/quit'));
 
+  // Editor de runas por cima do centro e da direita; recomendações para o campeão em destaque.
+  const [runesOpen, setRunesOpen] = useState(false);
+  // Com o editor de runas aberto, o Escape é dele.
+  useEscape(() => !runesOpen && setDrawerOpen(false));
+  const lanes = lcu.lanes.value.data ?? {};
+  const position = local ? local.assignedPosition || (lanes[String(shown?.championId ?? 0)]?.recommendedPositions?.[0] ?? '') : '';
+  const reco: RecoContext | null =
+    session && local
+      ? {
+          championId: shown?.championId ?? 0,
+          position,
+          enemies: session.theirTeam.map((c) => (c.championId > 0 ? c.championId : 0)),
+          laneEnemy: laneOpponent(session.theirTeam, position, lanes),
+          champions,
+          spells,
+          me: local,
+        }
+      : null;
+  useApplyOnLock(lcu, reco, locked, session?.id ?? '');
+
   if (!session) return <section class="rlc-champselect" />;
 
   const phase = selectPhase(session);
   const allowed = (turn?.kind === 'ban' ? lcu.bannable.value.data : lcu.pickable.value.data) ?? [];
   const highlighted = turn && allowed.includes(turn.action.championId) ? turn.action.championId : 0;
   const bans = bansByTeam(session);
-  const active = new Set(flatActions(session).filter((a) => a.isInProgress && !a.completed).map((a) => a.actorCellId));
+  const active = actingCells(session);
+  // Banidos saem da grade (a LCU pode mandar ainda na lista de disponíveis).
+  const banned = new Set([...bans.mine, ...bans.theirs]);
   const phaseKey = PHASE_TEXT[phase];
+  const total = Math.max(1, Math.round((session.timer?.totalTimeInPhase ?? 0) / 1000));
 
   const assigned = (local?.assignedPosition ?? '').toUpperCase();
   const favorites = new Map((lcu.gridChampions.value.data ?? []).map((c) => [c.id, c.positionsFavorited ?? []]));
   for (const [id, lanes] of favOverrides) favorites.set(id, lanes);
   const quitButton = (session as Session & { showQuitButton?: boolean }).showQuitButton ? (
-    <button type="button" class="rlc-button" data-variant="pill" disabled={quit.pending} onClick={() => quit.run()}>
+    <button type="button" class="rlc-button" data-variant="danger" disabled={quit.pending} onClick={() => quit.run()}>
       {t('quitSelect')}
     </button>
   ) : null;
 
-  const mainAction = turn ? (
-    <button type="button" class="rlc-button" data-variant="primary" disabled={!highlighted || commit.pending || hover.pending} onClick={() => commit.run(turn.action.id, highlighted)}>
-      {turn.kind === 'ban' ? t('banAction') : t('confirm')}
-    </button>
-  ) : null;
+  // No planejamento só se declara a intenção: sem botão de travar.
+  const mainAction =
+    turn && turn.kind !== 'intent' ? (
+      <button type="button" class="rlc-button rlc-cs-lock" data-variant="primary" data-kind={turn.kind} disabled={!highlighted || commit.pending || hover.pending} onClick={() => commit.run(turn.action.id, highlighted)}>
+        {turn.kind === 'ban' ? t('banAction') : t('csLock')}
+      </button>
+    ) : null;
+
+  const stageId = previewing || shown?.championId || 0;
+  const skins = lcu.skins.value.data ?? [];
+  const chosen = locked && local ? skinOf(skins, pick ?? local.selectedSkinId) : undefined;
+  const skin = previewing ? undefined : chosen;
 
   return (
-    <section class="rlc-champselect" data-layout={prefs.value.champSelectLayout}>
-      <div class="rlc-cs-splash" key={splash ?? 'none'} style={splash ? { backgroundImage: `url("${splash}")` } : undefined} />
-      <header class="rlc-cs-top">
-        <Team cells={session.myTeam} side="mine" bans={bans.mine} active={active} localCellId={session.localPlayerCellId} champions={champions} spells={spells} name={lcu.name} menuFor={(c) => (c.cellId === session.localPlayerCellId ? null : swapMenu(session, c))} />
-        <div class="rlc-cs-clock">
-          <span class="rlc-cs-timer">{seconds}</span>
-          {phaseKey ? <span class="rlc-cs-phase">{t(phaseKey)}</span> : null}
-        </div>
-        <Team cells={session.theirTeam} side="theirs" bans={bans.theirs} active={active} localCellId={-1} champions={champions} spells={spells} name={lcu.name} />
-      </header>
-      {shown ? <h1 class="rlc-cs-champ-name">{champions.get(shown.championId)?.name ?? ''}</h1> : null}
-      <SwapCards session={session} />
-      <Bench session={session} champions={champions} />
-      <Drawer
-        tab={tab}
-        onTab={setTab}
-        action={
+    <section class="rlc-champselect" data-phase={phase} data-grid={drawerOpen ? 'open' : undefined}>
+      {stageSkin ? <Crossfade src={splash} class="rlc-cs-splash" position="center 15%" /> : null}
+      {/* Ponte para o ROSE-SkinMonitor, que lê o nome da skin no DOM (`.skin-name-text`) e fica com o último visível. */}
+      {rose && chosen ? (
+        <span class="skin-name-text rlc-rose-mirror" aria-hidden="true">
+          {chosen.name}
+        </span>
+      ) : null}
+      <span class="rlc-cs-timebar" aria-hidden="true">
+        <i style={{ width: `${Math.min(100, (seconds / total) * 100)}%` }} />
+      </span>
+      <Team cells={session.myTeam} side="mine" bans={bans.mine} active={active} localCellId={session.localPlayerCellId} champions={champions} spells={spells} name={lcu.name} splash={lcu.game.splash} real={real} rankQueue={rankedQueueOf(lcu.gameflowSession.value.data?.gameData?.queue?.id) ?? 'RANKED_SOLO_5x5'} menuFor={(c) => (c.cellId === session.localPlayerCellId ? null : swapMenu(session, c))} />
+      <div class="rlc-cs-center">
+        <header class="rlc-cs-head">
+          <p class="rlc-cs-clock">
+            {phaseKey ? <span class="rlc-cs-phase">{t(phaseKey)}</span> : null}
+            <span>
+              <span class="rlc-cs-timer">{seconds}</span> s
+            </span>
+          </p>
+          {stageId ? <h1 class="rlc-cs-champ-name">{champions.get(stageId)?.name ?? ''}</h1> : null}
+          {skin && !skin.isBase ? <p class="rlc-cs-skin-name">{skin.name}</p> : null}
+        </header>
+        <Bench session={session} champions={champions} />
+        {drawerOpen ? (
+          <Drawer onClose={() => setDrawerOpen(false)}>
+            <ChampionGrid
+              ids={(turn ? allowed : (lcu.pickable.value.data ?? [])).filter((id) => !banned.has(id))}
+              champions={champions}
+              selected={highlighted}
+              lanes={lanes}
+              favorites={favorites}
+              initialLane={(LANES as readonly string[]).includes(assigned) ? (assigned as Lane) : null}
+              onFavorite={(id, lane) => favorite.run(id, lane)}
+              onHover={setPreview}
+              onPick={(id) => {
+                // Fora da minha vez a grade só mostra; nada é enviado.
+                if (turn) hover.run(turn.action.id, id);
+              }}
+            />
+          </Drawer>
+        ) : (
           <>
-            {quitButton}
-            {mainAction}
+            <button type="button" class="rlc-button rlc-cs-reopen" data-variant="pill" onClick={() => setDrawerOpen(true)}>
+              {t('csDrawerOpen')}
+            </button>
+            {local ? <SkinCarousel skins={skins} me={local} rose={rose} pick={pick} onPick={setRosePick} /> : null}
           </>
-        }
-      >
-        {tab === 'champions' ? (
-          <ChampionGrid
-            ids={turn ? allowed : (lcu.pickable.value.data ?? [])}
-            champions={champions}
-            selected={highlighted}
-            lanes={lcu.lanes.value.data ?? {}}
-            favorites={favorites}
-            initialLane={(LANES as readonly string[]).includes(assigned) ? (assigned as Lane) : null}
-            onFavorite={(id, lane) => favorite.run(id, lane)}
-            onPick={(id) => {
-              // Fora da minha vez a grade só mostra; nada é enviado.
-              if (turn) hover.run(turn.action.id, id);
-            }}
-          />
-        ) : null}
-        {tab === 'skins' && local ? <SkinsTab skins={lcu.skins.value.data ?? []} me={local} /> : null}
-        {tab === 'runes' && local ? (
-          <RunesSpellsTab
+        )}
+      </div>
+      <Team cells={session.theirTeam} side="theirs" bans={bans.theirs} active={active} localCellId={-1} champions={champions} spells={spells} name={lcu.name} splash={lcu.game.splash} />
+      <SwapCards session={session} />
+      <footer class="rlc-cs-bar">
+        {local ? (
+          <Loadout
             me={local}
             spells={spells}
             gameMode={lcu.gameflowSession.value.data?.gameData?.queue?.gameMode ?? null}
-            pages={lcu.perkPages.value.data ?? []}
-            currentPage={lcu.currentPerkPage.value.data?.id ?? null}
+            pageName={lcu.currentPerkPage.value.data?.name ?? null}
+            onRunes={() => setRunesOpen(true)}
+            summonerId={lcu.chatMe.value.data?.summonerId}
           />
         ) : null}
-      </Drawer>
+        {local && locked && skins.some((s) => s.unlocked) ? (
+          <button type="button" class="rlc-button rlc-cs-skin-chip" data-variant="pill" aria-pressed={!drawerOpen} onClick={() => setDrawerOpen(false)}>
+            {t('tabSkins')}
+            {skin ? <small>{skin.name}</small> : null}
+          </button>
+        ) : null}
+        <div class="rlc-cs-action">
+          {quitButton}
+          {mainAction}
+        </div>
+      </footer>
+      {runesOpen ? <RuneEditor lcu={lcu} mode="overlay" reco={reco} artSkin={stageSkin ?? null} onClose={() => setRunesOpen(false)} /> : null}
     </section>
   );
 }

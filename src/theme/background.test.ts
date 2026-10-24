@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { DEFAULT_BG, pickRandom, sanitizeBg, sourceFor, wantsRandom } from './background';
+import { DEFAULT_BG, GLOBAL_SCREENS, pickRandom, sanitizeBg, sourceFor, wantsRandom } from './background';
 
 test('sanitizeBg aceita só o formato esperado e limita os ajustes', () => {
   expect(sanitizeBg('lixo')).toEqual(DEFAULT_BG);
@@ -14,8 +14,17 @@ test('sourceFor: global vale para todas; por tela usa a da tela e cai no global'
   expect(sourceFor({ ...DEFAULT_BG, scope: 'global', global: g, screens: { home: h } }, 'home')).toEqual(g);
   expect(sourceFor({ ...DEFAULT_BG, scope: 'screens', global: g, screens: { home: h } }, 'home')).toEqual(h);
   expect(sourceFor({ ...DEFAULT_BG, scope: 'screens', global: g, screens: { home: h } }, 'profile')).toEqual(g);
-  expect(sourceFor({ ...DEFAULT_BG, scope: 'screens', global: g, screens: {} }, 'champselect')).toBeNull();
+  expect(sourceFor({ ...DEFAULT_BG, scope: 'screens', global: g, screens: {} }, 'champselect')).toEqual(g);
   expect(sourceFor(DEFAULT_BG, 'home')).toBeNull();
+});
+
+test('sourceFor: o fundo global vale em todas as telas e vistas fora da partida, nunca na partida', () => {
+  const f = { kind: 'file', key: 'meu', mime: 'image/jpeg' } as const;
+  const b = { ...DEFAULT_BG, global: f, dim: 0.9, blur: 3 };
+  for (const s of ['home', 'lobby', 'profile', 'collection', 'loot', 'events', 'store', 'settings', 'postgame', 'champselect', 'honor']) expect(sourceFor(b, s), s).toEqual(f);
+  expect(GLOBAL_SCREENS).not.toContain('ingame');
+  expect(sourceFor(b, 'ingame')).toBeNull();
+  expect(sourceFor(b, 'unknown')).toBeNull();
 });
 
 test('pickRandom escolhe entre as skins possuídas de forma estável para a mesma semente', () => {
@@ -28,7 +37,8 @@ test('pickRandom escolhe entre as skins possuídas de forma estável para a mesm
 test('wantsRandom: só nas telas com fundo personalizado; tela com fonte própria fica com ela', () => {
   const b = { ...DEFAULT_BG, random: true };
   expect(wantsRandom(b, 'home')).toBe(true);
-  expect(wantsRandom(b, 'champselect')).toBe(false);
+  expect(wantsRandom(b, 'champselect')).toBe(true);
+  expect(wantsRandom(b, 'store')).toBe(true);
   expect(wantsRandom(b, 'ingame')).toBe(false);
   expect(wantsRandom({ ...b, scope: 'screens', screens: { lobby: { kind: 'splash', skinId: 1 } } }, 'lobby')).toBe(false);
   expect(wantsRandom({ ...b, scope: 'screens' }, 'profile')).toBe(true);

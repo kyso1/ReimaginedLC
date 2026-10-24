@@ -4,6 +4,8 @@ export interface RailItem {
   id: string;
   label: string;
   active?: boolean;
+  /** Ponto dourado: há algo para resgatar ali. */
+  dot?: boolean;
   onSelect: () => void;
 }
 
@@ -13,7 +15,12 @@ const ICONS: Record<string, string> = {
   lobby: 'M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3 3-5 6-5s6 2 6 5m0-1c1-2 3-4 5-4 2 0 3 1 3 3',
   profile: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 9c0-4 3-6 7-6s7 2 7 6',
   collection: 'M4 6h7v7H4zm9 0h7v7h-7zM4 15h7v5H4zm9 0h7v5h-7z',
-  settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm8-3 2-1-2-4-2 1-2-1-1-2h-4l-1 2-2 1-2-1-2 4 2 1v2l-2 1 2 4 2-1 2 1 1 2h4l1-2 2-1 2 1 2-4-2-1z',
+  // Baú: tampa arqueada, corpo e fecho.
+  loot: 'M4 11h16v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zm0 0V9a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2m-10 0v3h4v-3',
+  events: 'M12 3 3 8l9 5 9-5zM3 13l9 5 9-5',
+  store: 'M5 8h14l-1 12H6zm4 0V6a3 3 0 0 1 6 0v2',
+  // Engrenagem do Feather Icons (MIT).
+  settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z',
   champselect: 'M12 3 4 7v5c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7z',
   ingame: 'M6 4l14 8-14 8z',
   honor: 'M12 21 4 13a5 5 0 0 1 8-6 5 5 0 0 1 8 6z',
@@ -36,6 +43,7 @@ export function Rail({ items }: { items: RailItem[] }) {
             ) : (
               item.label.charAt(0).toUpperCase()
             )}
+            {item.dot ? <span class="rlc-rail-dot" aria-hidden="true" /> : null}
           </button>
         </Fragment>
       ))}

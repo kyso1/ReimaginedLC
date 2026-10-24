@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
@@ -6,9 +6,10 @@ import type { LolLobbyLobbyCustomGame } from '../../lcu/types';
 import { Button } from '../../ui/Button';
 import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
+import { useDrawerClose } from './Modes';
 import { customLobbyBody, customModes, type CustomForm } from './queues';
 
-const MAP: Record<number, TextKey> = { 11: 'modeSr', 12: 'modeAram', 22: 'modeTft' };
+const MAP: Record<number, TextKey> = { 11: 'modeSr', 12: 'modeAram', 22: 'modeTft', 30: 'mapArena', 453: 'mapClassicRift' };
 const SPECTATORS: Array<[CustomForm['spectators'], TextKey]> = [
   ['NotAllowed', 'specNone'],
   ['LobbyAllowed', 'specLobby'],
@@ -17,20 +18,22 @@ const SPECTATORS: Array<[CustomForm['spectators'], TextKey]> = [
 
 /** Lista de salas personalizadas abertas e criação de sala. Abre pela tela de modos. */
 export function CustomBrowser({ lcu, onClose }: { lcu: Lcu; onClose: () => void }) {
-  useEscape(onClose);
+  const sheet = useRef<HTMLDivElement>(null);
+  const close = useDrawerClose(sheet, onClose);
+  useEscape(close);
   useEffect(() => void lcu.customGames.refresh(), [lcu]);
   const games = lcu.customGames.state.value.data ?? [];
   const modes = customModes(lcu.queues.value.data ?? []);
 
   return (
-    <div class="rlc-veil rlc-modes rlc-custom" role="dialog" aria-modal="true" aria-label={t('modeCustom')}>
+    <div class="rlc-veil rlc-modes rlc-custom" role="dialog" aria-modal="true" aria-label={t('modeCustom')} ref={sheet}>
       <h2>{t('modeCustom')}</h2>
       <div class="rlc-custom-panels">
         <RoomList games={games} refresh={lcu.customGames.refresh} onJoined={onClose} />
         <CreateRoom modes={modes} onCreated={onClose} />
       </div>
       <div class="rlc-modes-actions">
-        <Button onClick={onClose}>{t('back')}</Button>
+        <Button onClick={close}>{t('back')}</Button>
       </div>
     </div>
   );
@@ -67,7 +70,7 @@ function RoomList({ games, refresh, onJoined }: { games: LolLobbyLobbyCustomGame
             }}
           >
             <span class="rlc-room-name">{g.lobbyName}</span>
-            <span>{MAP[g.mapId] ? t(MAP[g.mapId]!) : `#${g.mapId}`}</span>
+            <span>{t(MAP[g.mapId] ?? 'mapOther')}</span>
             <span>
               {g.filledPlayerSlots}/{g.maxPlayerSlots}
             </span>

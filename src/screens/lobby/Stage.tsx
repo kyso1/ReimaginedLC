@@ -3,8 +3,9 @@ import { useEffect, useState } from 'preact/hooks';
 import { t } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import type { LolLobbyLobbyParticipantDto } from '../../lcu/types';
+import { Rank } from '../../ui/Rank';
 import { useDecoded } from '../../ui/useDecoded';
-import { positionKey } from './format';
+import { PositionIcons } from './Positions';
 
 export type Participant = LolLobbyLobbyParticipantDto;
 
@@ -26,17 +27,21 @@ interface ColumnProps {
   showPositions?: boolean;
   /** Nome no lugar do nome do invocador (bots). */
   label?: string;
-  /** Clique na própria coluna (escolha de posições). */
-  onSelf?: () => void;
+  /** Própria coluna: os ícones de posição abrem o seletor. */
+  editPositions?: boolean;
+  /** Fila ranqueada (chave do `queueMap`) cujo elo a coluna mostra; null sem elo. */
+  rankQueue?: string | null;
   /** Menu ⋯ do líder. */
   menu?: ComponentChildren;
   /** Conteúdo da vaga vazia (convidar, trocar de time, bot). */
   empty?: ComponentChildren;
   /** TFT: Pequenas Lendas por contentId; a coluna mostra a do membro no lugar da splash. */
   companions?: Lcu['game']['companions'];
+  /** TFT: clique na Pequena Lenda (só a do jogador local) abre Personalizar. */
+  onLegend?: () => void;
 }
 
-export function Column({ member, profile, name, splash: splashOf, isLocal = false, showPositions = false, label, onSelf, menu, empty, companions }: ColumnProps) {
+export function Column({ member, profile, name, splash: splashOf, isLocal = false, showPositions = false, label, editPositions = false, rankQueue = null, menu, empty, companions, onLegend }: ColumnProps) {
   const legend = useLegend(companions ? member : null, companions);
   const splash = useDecoded(useSplash(companions ? null : member, profile, splashOf));
   const resolved = useName(member, name);
@@ -47,31 +52,42 @@ export function Column({ member, profile, name, splash: splashOf, isLocal = fals
       </div>
     );
   }
-  const positions = showPositions ? [member.firstPositionPreference, member.secondPositionPreference].map(positionKey).filter((k) => k !== null) : [];
   const body = (
     <>
       <span class="rlc-col-name">
         {label ?? resolved}
         {member.isLeader ? <span class="rlc-col-leader" title={t('leaderMark')} aria-label={t('leaderMark')}> ★</span> : null}
       </span>
-      {positions.length ? <span class="rlc-col-pos">{positions.map((k) => t(k)).join(' · ')}</span> : null}
+      {showPositions ? <PositionIcons first={member.firstPositionPreference} second={member.secondPositionPreference} editable={editPositions} /> : null}
+      {member.isBot ? null : <Rank puuid={member.puuid} queue={rankQueue} />}
     </>
   );
+  // Quem ainda não pode entrar na fila (atualizando, com o client ocupado) fica apagado com reticências no meio.
+  const waiting = member.ready === false && !member.isBot;
   return (
-    <div class="rlc-col" data-local={isLocal ? 'true' : undefined}>
+    <div class="rlc-col" data-local={isLocal ? 'true' : undefined} data-tft={companions ? 'true' : undefined} data-unready={waiting ? 'true' : undefined}>
+      {waiting ? (
+        <span class="rlc-col-wait" role="status" aria-label={t('socNotReady')} title={t('socNotReady')}>
+          <i />
+          <i />
+          <i />
+        </span>
+      ) : null}
       {splash ? <div class="rlc-col-splash" style={{ backgroundImage: `url("${splash}")` }} /> : null}
       {legend ? (
-        <div class="rlc-col-legend" title={legend.name} style={{ '--rlc-legend': `url("${legend.icon}")` }}>
-          <img src={legend.icon} alt={legend.name} />
+        <div class="rlc-col-legend">
+          {onLegend ? (
+            <button type="button" class="rlc-col-legend-card" title={`${legend.name} · ${t('tftCustomize')}`} aria-label={`${t('tftCustomize')}: ${legend.name}`} onClick={onLegend}>
+              <img src={legend.icon} alt="" />
+            </button>
+          ) : (
+            <span class="rlc-col-legend-card" title={legend.name}>
+              <img src={legend.icon} alt={legend.name} />
+            </span>
+          )}
         </div>
       ) : null}
-      {onSelf ? (
-        <button type="button" class="rlc-col-main" aria-label={t('positions')} onClick={onSelf}>
-          {body}
-        </button>
-      ) : (
-        <div class="rlc-col-info">{body}</div>
-      )}
+      <div class="rlc-col-info">{body}</div>
       {menu}
     </div>
   );

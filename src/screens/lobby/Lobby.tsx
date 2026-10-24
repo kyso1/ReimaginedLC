@@ -1,15 +1,16 @@
 import type { ComponentChildren } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useState } from 'preact/hooks';
+import { prefs } from '../../shell/prefs';
 import { t } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
 import { Confirm } from '../../shell/overlays/Confirm';
+import { rankedQueueOf } from '../../ui/Rank';
 import { useAction } from '../../ui/useAction';
 import { BotPicker, useBots } from './BotPicker';
-import { formatClock } from './format';
+import { formatClock, useClock } from './format';
 import { InviteFriends } from './InviteFriends';
 import { MemberMenu } from './MemberMenu';
-import { Positions } from './Positions';
 import { Column, Stage, type Participant } from './Stage';
 import { TftCustomize } from './TftCustomize';
 
@@ -17,7 +18,7 @@ const MEMBERS = '/lol-lobby/v2/lobby/members';
 
 /** Lobby no layout Palco: uma coluna por vaga e a barra flutuante com fila e busca. */
 export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
-  const [panel, setPanel] = useState<null | 'positions' | 'invite' | 'tft' | { botTeam: number }>(null);
+  const [panel, setPanel] = useState<null | 'invite' | 'tft' | { botTeam: number }>(null);
   const [kicking, setKicking] = useState<Participant | null>(null);
   const bots = useBots(lcu.lobby.value.data?.gameConfig.isCustom === true, lcu.game);
   const switchTeam = useAction((team: number) => request('POST', `/lol-lobby/v2/lobby/team/TEAM${team === 100 ? 1 : 2}`));
@@ -66,10 +67,12 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
       isLocal={m ? isLocal(m) : false}
       showPositions={!config.isCustom && config.showPositionSelector}
       label={m?.isBot ? (bots.find((b) => b.id === m.botChampionId)?.name ?? t('bot')) : undefined}
-      onSelf={m && isLocal(m) && !config.isCustom && config.showPositionSelector ? () => setPanel('positions') : undefined}
+      editPositions={m ? isLocal(m) : false}
+      rankQueue={rankedQueueOf(config.queueId)}
       menu={m ? memberMenu(m, team) : null}
       empty={empty}
       companions={isTft ? lcu.game.companions : undefined}
+      onLegend={isTft && m && isLocal(m) ? () => setPanel('tft') : undefined}
     />
   );
 
@@ -144,11 +147,11 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
   }
 
   return (
-    <section class="rlc-lobby" data-custom={config.isCustom ? 'true' : undefined}>
+    // Entrada: colunas sobem uma a uma saindo do desfoque, a barra por último (só ao montar a tela).
+    <section class="rlc-lobby" data-custom={config.isCustom ? 'true' : undefined} data-enter={prefs.value.lobbyAnim && prefs.value.motion !== 'off' ? 'true' : undefined}>
       {stage}
       {bar}
       {panel === 'tft' ? <TftCustomize onClose={() => setPanel(null)} /> : null}
-      {panel === 'positions' ? <Positions onClose={() => setPanel(null)} /> : null}
       {panel === 'invite' ? <InviteFriends friends={lcu.friends.value.data ?? []} exclude={new Set(data.members.map((m) => m.puuid))} onClose={() => setPanel(null)} /> : null}
       {panel && typeof panel === 'object' ? <BotPicker bots={bots} teamId={panel.botTeam} onClose={() => setPanel(null)} /> : null}
       {kicking ? (
@@ -217,7 +220,7 @@ export function LobbyBar({ lcu, title, subtitle, onTitle, leader, partyType, sta
         ) : null}
         {children}
         {!searching ? (
-          <button type="button" class="rlc-button" data-variant="pill" disabled={leave.pending} onClick={() => leave.run()}>
+          <button type="button" class="rlc-button" data-variant="danger" disabled={leave.pending} onClick={() => leave.run()}>
             {t('leave')}
           </button>
         ) : null}
@@ -245,15 +248,3 @@ export function LobbyBar({ lcu, title, subtitle, onTitle, leader, partyType, sta
   );
 }
 
-/** Tempo na fila contado localmente a partir do último valor da LCU, que só chega em eventos esparsos. */
-function useClock(base: number, active: boolean): number {
-  const [anchor, setAnchor] = useState(() => ({ base, at: Date.now() }));
-  const [, tick] = useState(0);
-  useEffect(() => setAnchor({ base, at: Date.now() }), [base]);
-  useEffect(() => {
-    if (!active) return;
-    const id = setInterval(() => tick((n) => n + 1), 1000);
-    return () => clearInterval(id);
-  }, [active]);
-  return active ? anchor.base + (Date.now() - anchor.at) / 1000 : base;
-}

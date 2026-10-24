@@ -1,54 +1,336 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
-import { request } from '../../lcu/request';
 import { prefs, setPrefs, type Prefs } from '../../shell/prefs';
-import { update } from '../../shell/update';
+import { isLite, liteAuto, readPotato, writePotato } from '../../shell/perf';
+import { canReload, reloadForUpdate, update } from '../../shell/update';
 import { applyTheme } from '../../theme/apply';
 import { Confirm } from '../../shell/overlays/Confirm';
 import { background, BG_SCREENS, deleteMedia, MAX_MEDIA_BYTES, MEDIA, putMedia, setBackground, type BgScreen, type BgSource } from '../../theme/background';
 import type { Game, ThemeEngine } from '../../theme/engine';
-import { TOKEN_KINDS, TRANSITIONS, type ThemeManifest } from '../../theme/validate';
+import { TOKEN_KINDS, TRANSITIONS, type ThemeManifest, type Transition } from '../../theme/validate';
 import { extensions } from '../../extensions';
+import { BuiltIns, Marketplace } from '../../plugins/Marketplace';
+import { roseStatus, startRose, useRose } from '../../plugins/rose';
+import { SpotifySettings } from '../../plugins/SpotifyWidget';
+import { request } from '../../lcu/request';
 import { getJson } from '../profile/data';
 import { MemberMenu } from '../lobby/MemberMenu';
+import { pct, Range, Row, Seg, Switch } from './controls';
+import { ChatRows, GameFields, gamePeeks, humanize, KeysArea, searchNames, useGameData, type GameData } from './game';
 
-type Tab = 'appearance' | 'layouts' | 'general' | 'game';
-const TABS: Array<[Tab, TextKey]> = [
-  ['appearance', 'stAppearance'],
-  ['layouts', 'stLayouts'],
-  ['general', 'stGeneral'],
-  ['game', 'stGame'],
+type Area = 'look' | 'anim' | 'sound' | 'plug' | 'general' | 'notif' | 'chat' | 'game' | 'keys';
+
+// Ícones de traço simples, um por área.
+const ICONS: Record<Area, string> = {
+  look: 'M12 4a8 8 0 1 0 0 16a8 8 0 1 0 0-16M12 4a8 8 0 0 0 0 16z',
+  anim: 'M4 12c4-8 12 8 16 0',
+  sound: 'M4 9h4l5-4v14l-5-4H4zM17 9a4 4 0 0 1 0 6',
+  plug: 'M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4',
+  general: 'M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6M12 3v3M12 18v3M3 12h3M18 12h3',
+  notif: 'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20h4',
+  chat: 'M4 5h16v11H9l-5 4z',
+  game: 'M6 9h12a3 3 0 0 1 3 3v2a3 3 0 0 1-5 2l-1-1H9l-1 1a3 3 0 0 1-5-2v-2a3 3 0 0 1 3-3z',
+  keys: 'M5 8h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2zM7 12h.01M11 12h.01M15 12h2',
+};
+const Icon = ({ area }: { area: Area }) => (
+  <svg class="rlc-st-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d={ICONS[area]} />
+  </svg>
+);
+
+const AREAS: Array<[Area, TextKey, TextKey]> = [
+  ['look', 'stAppearance', 'stPurLook'],
+  ['anim', 'stAreaAnim', 'stPurAnim'],
+  ['sound', 'stAreaSound', 'stPurSound'],
+  ['plug', 'stAreaPlug', 'stPurPlug'],
+  ['general', 'stGeneral', 'stPurGeneral'],
+  ['notif', 'stAreaNotif', 'stPurNotif'],
+  ['chat', 'stAreaChat', 'stPurChat'],
+  ['game', 'stGame', 'stPurGame'],
+  ['keys', 'stAreaKeys', 'stPurKeys'],
 ];
 
-/** Configurações: aparência (temas, fundo), layouts, geral e as configurações do jogo. */
+// Linhas das áreas da camada, para a busca achar a configuração pelo nome.
+const OWN_ROWS: Partial<Record<Area, TextKey[]>> = {
+  look: ['stThemesLol', 'stThemesTft', 'stImport', 'stNewTheme', 'stBackground', 'stBgScreen', 'stBgSource', 'stBgRandom', 'stBgDim', 'stBgBlur', 'stBgPosX', 'stBgPosY'],
+  anim: ['stMotion', 'stVideo', 'stReadyAnim', 'stLobbyAnim'],
+  sound: ['stAmbient', 'stAmbientVol', 'stClicks', 'stClickVol'],
+  plug: ['stRunesAuto', 'stRunesMatchup', 'stRunesLock', 'stAllSplashes', 'mkAutoAccept', 'mkAcceptDelay', 'mkOffline', 'roseName', 'spName', 'spStatus', 'mkTitle'],
+  general: ['stLanguage', 'stOpenOnStart', 'perfLite', 'perfPotato', 'stShortcut', 'versionLabel'],
+  chat: ['socialPinned'],
+};
+
+/** Comparação de busca sem caixa nem acento. */
+const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+
+const LOCALES: Array<[Prefs['locale'], () => string]> = [
+  ['auto', () => t('stLangAuto')],
+  ['pt', () => 'Português (Brasil)'],
+  ['en', () => 'English'],
+];
+const OPEN: Array<['last' | 'true' | 'false', TextKey]> = [
+  ['last', 'stOpenLast'],
+  ['true', 'stOpenOn'],
+  ['false', 'stOpenOff'],
+];
+const MOTIONS: Array<[Prefs['motion'], TextKey]> = [
+  ['full', 'stMotionFull'],
+  ['reduced', 'stMotionReduced'],
+  ['off', 'stMotionOff'],
+];
+const openKey = (v: Prefs['openOnStart']) => (v === null ? 'last' : v ? 'true' : 'false');
+
+/** Resumo do estado atual de cada área, mostrado no painel. */
+function peeks(area: Area, themes: ThemeEngine, data: GameData): string[] {
+  const p = prefs.value;
+  const b = background.value;
+  switch (area) {
+    case 'look': {
+      const src = b.global.kind === 'splash' ? t('stBgSplash') : b.global.kind === 'file' ? t('stPeekCustomBg') : null;
+      return [themes.forGame.lol.value.label, ...(src ? [src] : []), ...(b.dim > 0 ? [`${t('stBgDim')} ${pct(b.dim)}`] : [])];
+    }
+    case 'anim':
+      return [t(MOTIONS.find(([m]) => m === p.motion)?.[1] ?? 'stMotionFull'), t(p.video ? 'stPeekVideoOn' : 'stPeekVideoOff')];
+    case 'sound':
+      return [p.ambient ? `${t('stPeekAmbient')} ${pct(p.ambientVolume)}` : t('stPeekNoAmbient'), p.clicks ? `${t('stPeekClicks')} ${pct(p.clickVolume)}` : t('stPeekNoClicks'), ...gamePeeks(data, 'sound')];
+    case 'plug': {
+      const on = [p.runesAuto && t('stPeekRunes'), p.runesAuto && p.runesMatchup && t('stPeekMatchup'), p.allSplashes && t('stPeekSplashes'), p.autoAccept && t('stPeekAccept'), p.appearOffline && t('stPeekOffline')].filter((x): x is string => !!x);
+      return on.length ? on : [t('stPeekPlugOff')];
+    }
+    case 'general':
+      return [LOCALES.find(([l]) => l === p.locale)?.[1]() ?? t('stLangAuto'), t(OPEN.find(([o]) => o === openKey(p.openOnStart))![1])];
+    default:
+      return gamePeeks(data, area);
+  }
+}
+
+/** Configurações em painéis: um por área com o resumo do estado; o clique abre a área. */
 export function Settings({ lcu, themes }: { lcu: Lcu; themes: ThemeEngine }) {
-  const [tab, setTab] = useState<Tab | string>('appearance');
-  const extra = extensions().settingsTabs;
+  const [area, setArea] = useState<string | null>(null);
+  const [focus, setFocus] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<ThemeManifest | null>(null);
+  const [data, setData] = useGameData();
+  const detail = useRef<HTMLDivElement>(null);
+  const extra = extensions().settingsTabs;
+  // Linha achada pela busca: realça e rola até ela (as do jogo chegam depois, por isso a cada render).
+  useEffect(() => {
+    if (!focus || !detail.current) return;
+    for (const row of detail.current.querySelectorAll<HTMLElement>('[data-name]')) {
+      const hit = row.dataset.name === focus;
+      if (hit && row.dataset.hit !== 'true') row.scrollIntoView?.({ block: 'center' });
+      row.dataset.hit = hit ? 'true' : 'false';
+    }
+  });
   if (editing) return <ThemeEditor themes={themes} initial={editing} onClose={() => setEditing(null)} />;
+  const open = (a: string | null, f: string | null = null) => {
+    setArea(a);
+    setFocus(f);
+  };
+
+  if (area) {
+    const own = AREAS.find(([a]) => a === area);
+    const ext = extra.find((x) => x.id === area);
+    return (
+      <section class="rlc-settings rlc-st-panels" data-area={area}>
+        <header class="rlc-st-head">
+          <button type="button" class="rlc-st-back" aria-label={t('back')} onClick={() => open(null)}>
+            {`‹ ${t('stTitle')}`}
+          </button>
+          <h2>
+            {own ? <Icon area={own[0]} /> : null}
+            {own ? t(own[1]) : ext?.label()}
+          </h2>
+        </header>
+        <div class="rlc-st-detail" ref={detail}>
+          {area === 'look' ? <Appearance lcu={lcu} themes={themes} onEdit={setEditing} /> : null}
+          {area === 'anim' ? <Animations /> : null}
+          {area === 'sound' ? (
+            <>
+              <Sound />
+              <GameFields data={data} setData={setData} area="sound" />
+            </>
+          ) : null}
+          {area === 'plug' ? <Plugins /> : null}
+          {area === 'general' ? <General /> : null}
+          {area === 'chat' ? (
+            <section class="rlc-st-card">
+              <Row name={t('socialPinned')} desc={t('socialPinnedDesc')}>
+                <Switch label={t('socialPinned')} checked={prefs.value.socialPinned} onChange={(socialPinned) => setPrefs({ socialPinned })} />
+              </Row>
+            </section>
+          ) : null}
+          {area === 'notif' || area === 'chat' ? (
+            <>
+              <ChatRows data={data} setData={setData} area={area} />
+              <GameFields data={data} setData={setData} area={area} />
+            </>
+          ) : null}
+          {area === 'game' ? <GameFields data={data} setData={setData} area="game" /> : null}
+          {area === 'keys' ? <KeysArea data={data} setData={setData} /> : null}
+          {ext ? <ext.render lcu={lcu} /> : null}
+        </div>
+      </section>
+    );
+  }
+
+  const q = fold(query.trim());
+  const names: Array<[Area, string]> = [...Object.entries(OWN_ROWS).flatMap(([a, keys]) => keys.map((k): [Area, string] => [a as Area, t(k)])), ...searchNames(data)];
+  const hits = q ? names.filter(([, n]) => fold(n).includes(q)) : [];
+  const shown = q ? AREAS.filter(([a, name, purpose]) => fold(t(name)).includes(q) || fold(t(purpose)).includes(q) || hits.some(([h]) => h === a)) : AREAS;
   return (
-    <section class="rlc-settings">
-      <nav class="rlc-tabs-text">
-        {TABS.map(([k, label]) => (
-          <button type="button" key={k} aria-current={tab === k ? 'page' : undefined} onClick={() => setTab(k)}>
-            {t(label)}
-          </button>
-        ))}
-        {extra.map((x) => (
-          <button type="button" key={x.id} aria-current={tab === x.id ? 'page' : undefined} onClick={() => setTab(x.id)}>
-            {x.label()}
-          </button>
-        ))}
-      </nav>
-      <div class="rlc-st-body">
-        {tab === 'appearance' ? <Appearance lcu={lcu} themes={themes} onEdit={setEditing} /> : null}
-        {tab === 'layouts' ? <Layouts /> : null}
-        {tab === 'general' ? <General /> : null}
-        {tab === 'game' ? <GameSettings /> : null}
-        {extra.map((x) => (tab === x.id ? <x.render key={x.id} lcu={lcu} /> : null))}
-      </div>
+    <section class="rlc-settings rlc-st-panels">
+      <header class="rlc-st-head">
+        <h2>{t('stTitle')}</h2>
+        <input class="rlc-input rlc-st-search" type="search" placeholder={t('stSearch')} aria-label={t('stSearch')} value={query} onInput={(e) => setQuery(e.currentTarget.value)} />
+      </header>
+      {hits.length ? (
+        <div class="rlc-st-hits" role="group" aria-label={t('stFound')}>
+          {hits.slice(0, 12).map(([a, n]) => (
+            <button type="button" key={`${a}:${n}`} class="rlc-st-hit" onClick={() => open(a, n)}>
+              <b>{n}</b>
+              <span>{t(AREAS.find(([x]) => x === a)![1])}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {shown.length ? (
+        <div class="rlc-st-grid">
+          {shown.map(([a, name, purpose]) => (
+            <button type="button" key={a} class="rlc-st-tile" data-area={a} onClick={() => open(a)}>
+              <b class="rlc-st-tile-name">
+                <Icon area={a} />
+                {t(name)}
+              </b>
+              <span class="rlc-st-purpose">{t(purpose)}</span>
+              <span class="rlc-st-peek">
+                {peeks(a, themes, data).map((p) => (
+                  <span key={p} class="rlc-st-tag">
+                    {p}
+                  </span>
+                ))}
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p class="rlc-muted">{t('stNothing')}</p>
+      )}
+      {extra.length ? (
+        <nav class="rlc-tabs-text rlc-st-ext" aria-label={t('stExtensions')}>
+          {extra.map((x) => (
+            <button type="button" key={x.id} onClick={() => open(x.id)}>
+              {x.label()}
+            </button>
+          ))}
+        </nav>
+      ) : null}
     </section>
+  );
+}
+
+function Animations() {
+  const p = prefs.value;
+  return (
+    <section class="rlc-st-card">
+      <Row name={t('stMotion')} desc={t('stMotionDesc')}>
+        <Seg label={t('stMotion')} value={p.motion} options={MOTIONS.map(([m, k]) => [m, t(k)])} onPick={(motion) => setPrefs({ motion })} />
+      </Row>
+      <Row name={t('stVideo')} desc={t('stVideoDesc')}>
+        <Switch label={t('stVideo')} checked={p.video} onChange={(video) => setPrefs({ video })} />
+      </Row>
+      <Row name={t('stReadyAnim')} desc={t('stReadyAnimDesc')}>
+        <Switch label={t('stReadyAnim')} checked={p.readyCheckAnim} onChange={(readyCheckAnim) => setPrefs({ readyCheckAnim })} />
+      </Row>
+      <Row name={t('stLobbyAnim')} desc={t('stLobbyAnimDesc')}>
+        <Switch label={t('stLobbyAnim')} checked={p.lobbyAnim} onChange={(lobbyAnim) => setPrefs({ lobbyAnim })} />
+      </Row>
+    </section>
+  );
+}
+
+function Sound() {
+  const p = prefs.value;
+  return (
+    <section class="rlc-st-card">
+      <h3>{t('stInClient')}</h3>
+      <Row name={t('stAmbient')} desc={t('stAmbientDesc')}>
+        <Switch label={t('stAmbient')} checked={p.ambient} onChange={(ambient) => setPrefs({ ambient })} />
+      </Row>
+      <Row name={t('stAmbientVol')}>
+        <Range label={t('stAmbientVol')} value={p.ambientVolume} min={0} max={1} step={0.05} text={pct(p.ambientVolume)} onInput={(ambientVolume) => setPrefs({ ambientVolume })} />
+      </Row>
+      <Row name={t('stClicks')} desc={t('stClicksDesc')}>
+        <Switch label={t('stClicks')} checked={p.clicks} onChange={(clicks) => setPrefs({ clicks })} />
+      </Row>
+      <Row name={t('stClickVol')}>
+        <Range label={t('stClickVol')} value={p.clickVolume} min={0} max={1} step={0.05} text={pct(p.clickVolume)} onInput={(clickVolume) => setPrefs({ clickVolume })} />
+      </Row>
+      <Row name={t('socChatSound')} desc={t('socChatSoundDesc')}>
+        <Switch label={t('socChatSound')} checked={p.chatSound} onChange={(chatSound) => setPrefs({ chatSound })} />
+      </Row>
+    </section>
+  );
+}
+
+type BoolPref = 'runesAuto' | 'runesMatchup' | 'runesApplyOnLock' | 'allSplashes';
+const PLUGINS: Array<[BoolPref, TextKey, TextKey]> = [
+  ['runesAuto', 'stRunesAuto', 'stRunesAutoDesc'],
+  ['runesMatchup', 'stRunesMatchup', 'stRunesMatchupDesc'],
+  ['runesApplyOnLock', 'stRunesLock', 'stRunesLockDesc'],
+  ['allSplashes', 'stAllSplashes', 'stAllSplashesDesc'],
+];
+
+function Plugins() {
+  const p = prefs.value;
+  return (
+    <>
+      <section class="rlc-st-card">
+        {PLUGINS.map(([key, name, desc]) => (
+          <Row key={key} name={t(name)} desc={t(desc)}>
+            <Switch label={t(name)} checked={p[key]} onChange={(on) => setPrefs({ [key]: on })} />
+          </Row>
+        ))}
+        <BuiltIns />
+        <RoseRow />
+        <SpotifySettings />
+      </section>
+      <Marketplace />
+    </>
+  );
+}
+
+const ROSE_URL = 'https://github.com/Alban1911/Rose';
+
+/** Integração com o ROSE: liga só com o app rodando (enquanto a tela está aberta, a ponte só sonda). */
+function RoseRow() {
+  useRose(true);
+  const on = prefs.value.rose;
+  const status = roseStatus.value;
+  const state = status === 'connected' ? t('roseConnected') : status === 'searching' || status === 'off' ? t('roseSearching') : t('roseAbsent');
+  return (
+    <Row name={t('roseName')} desc={t('roseDesc')}>
+      <span class="rlc-st-rose" data-status={status}>
+        <span role="status">{state}</span>
+        <button type="button" class="rlc-mk-link" onClick={() => void request('POST', '/riotclient/open-url-in-browser', ROSE_URL).catch(() => {})}>
+          {t('roseLink')}
+        </button>
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        class="rlc-st-switch"
+        aria-label={t('roseName')}
+        checked={on}
+        disabled={!on && status !== 'connected'}
+        onChange={(e) => {
+          const rose = e.currentTarget.checked;
+          setPrefs({ rose });
+          if (rose) startRose();
+        }}
+      />
+    </Row>
   );
 }
 
@@ -74,7 +356,6 @@ function derive(themes: ThemeEngine, from: string, label: string): ThemeManifest
 }
 
 function Appearance({ lcu, themes, onEdit }: { lcu: Lcu; themes: ThemeEngine; onEdit: (m: ThemeManifest) => void }) {
-  const p = prefs.value;
   const [deleting, setDeleting] = useState<{ name: string; label: string } | null>(null);
   const groups: Array<[Game, TextKey]> = [
     ['lol', 'stThemesLol'],
@@ -101,7 +382,7 @@ function Appearance({ lcu, themes, onEdit }: { lcu: Lcu; themes: ThemeEngine; on
   return (
     <div class="rlc-st-appearance">
       {groups.map(([game, label]) => (
-        <section key={game} class="rlc-st-group">
+        <section key={game} class="rlc-st-group rlc-st-card" data-name={t(label)}>
           <h3>{t(label)}</h3>
           <div class="rlc-st-themes">
             {themes.list.value.map((th) => {
@@ -150,20 +431,6 @@ function Appearance({ lcu, themes, onEdit }: { lcu: Lcu; themes: ThemeEngine; on
           </div>
         </section>
       ))}
-      <section class="rlc-st-row">
-        <label>
-          {t('stMotion')}
-          <select class="rlc-input" aria-label={t('stMotion')} value={p.motion} onChange={(e) => setPrefs({ motion: e.currentTarget.value as Prefs['motion'] })}>
-            <option value="full">{t('stMotionFull')}</option>
-            <option value="reduced">{t('stMotionReduced')}</option>
-            <option value="off">{t('stMotionOff')}</option>
-          </select>
-        </label>
-        <label class="rlc-st-check">
-          <input type="checkbox" checked={p.video} onChange={(e) => setPrefs({ video: e.currentTarget.checked })} />
-          {t('stVideo')}
-        </label>
-      </section>
       <BackgroundSection lcu={lcu} />
       {deleting ? (
         <Confirm
@@ -182,6 +449,8 @@ function Appearance({ lcu, themes, onEdit }: { lcu: Lcu; themes: ThemeEngine; on
 }
 
 const SCREEN_LABEL: Record<BgScreen, TextKey> = { home: 'home', lobby: 'lobby', profile: 'navProfile', collection: 'navCollection', postgame: 'railPostGame' };
+/** Escurecer para no máximo 85%: acima disso o fundo some e a tela parece apagada. */
+export const DIM_MAX = 0.85;
 
 /** Fundo personalizado: por cima do tema, sem alterá-lo. */
 function BackgroundSection({ lcu }: { lcu: Lcu }) {
@@ -204,47 +473,50 @@ function BackgroundSection({ lcu }: { lcu: Lcu }) {
     const inUse = [latest.global, ...Object.values(latest.screens)].some((s) => s?.kind === 'file' && s.key === previous);
     if (previous && !inUse) void deleteMedia(previous);
   };
-  const slider = (label: TextKey, key: 'dim' | 'blur' | 'posX' | 'posY', max: number, step: number) => (
-    <label class="rlc-st-slider">
-      {t(label)}
-      <input type="range" min={0} max={max} step={step} value={b[key]} onInput={(e) => setBackground({ ...b, [key]: Number(e.currentTarget.value) })} />
-    </label>
-  );
+  const slider = (label: TextKey, desc: TextKey, key: 'dim' | 'blur' | 'posX' | 'posY', max: number, step: number, text: (v: number) => string) => {
+    const value = Math.min(max, b[key]);
+    return (
+      <Row name={t(label)} desc={t(desc)}>
+        <Range label={t(label)} dataKey={key} value={value} min={0} max={max} step={step} text={text(value)} onInput={(v) => setBackground({ ...b, [key]: Math.min(max, Math.max(0, v)) })} />
+      </Row>
+    );
+  };
   return (
-    <section class="rlc-st-bg">
+    <section class="rlc-st-bg rlc-st-card" data-name={t('stBackground')}>
       <h3>{t('stBackground')}</h3>
-      <div class="rlc-chip-row">
-        {(['global', ...BG_SCREENS] as const).map((s) => (
-          <button type="button" key={s} class="rlc-queue-chip" aria-pressed={screen === s} onClick={() => setScreen(s)}>
-            {s === 'global' ? t('stBgAll') : t(SCREEN_LABEL[s])}
+      <Row name={t('stBgScreen')} desc={t('stBgScreenDesc')}>
+        <div class="rlc-chip-row">
+          {(['global', ...BG_SCREENS] as const).map((s) => (
+            <button type="button" key={s} class="rlc-queue-chip" aria-pressed={screen === s} onClick={() => setScreen(s)}>
+              {s === 'global' ? t('stBgAll') : t(SCREEN_LABEL[s])}
+            </button>
+          ))}
+        </div>
+      </Row>
+      <Row name={t('stBgSource')} desc={t('stBgSourceDesc')}>
+        <div class="rlc-chip-row">
+          <button type="button" class="rlc-queue-chip" aria-pressed={current.kind === 'none'} onClick={() => setSource({ kind: 'none' })}>
+            {t('stBgNone')}
           </button>
-        ))}
-      </div>
-      <div class="rlc-chip-row">
-        <button type="button" class="rlc-queue-chip" aria-pressed={current.kind === 'none'} onClick={() => setSource({ kind: 'none' })}>
-          {t('stBgNone')}
-        </button>
-        <button type="button" class="rlc-queue-chip" aria-pressed={current.kind === 'splash'} onClick={() => setPicking(!picking)}>
-          {t('stBgSplash')}
-        </button>
-        <label class="rlc-queue-chip" aria-pressed={current.kind === 'file'}>
-          {t('stBgFile')}
-          <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/webm,video/mp4" hidden onChange={(e) => void onFile(e.currentTarget.files?.[0])} />
-        </label>
-        {screen === 'global' ? (
-          <label class="rlc-st-check">
-            <input type="checkbox" checked={b.random} onChange={(e) => setBackground({ ...b, random: e.currentTarget.checked })} />
-            {t('stBgRandom')}
+          <button type="button" class="rlc-queue-chip" aria-pressed={current.kind === 'splash'} onClick={() => setPicking(!picking)}>
+            {t('stBgSplash')}
+          </button>
+          <label class="rlc-queue-chip" aria-pressed={current.kind === 'file'}>
+            {t('stBgFile')}
+            <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/webm,video/mp4" hidden onChange={(e) => void onFile(e.currentTarget.files?.[0])} />
           </label>
-        ) : null}
-      </div>
+        </div>
+      </Row>
       {picking ? <SplashPicker lcu={lcu} onPick={(skinId) => (setSource({ kind: 'splash', skinId }), setPicking(false))} /> : null}
-      <div class="rlc-st-sliders">
-        {slider('stBgDim', 'dim', 0.9, 0.05)}
-        {slider('stBgBlur', 'blur', 20, 1)}
-        {slider('stBgPosX', 'posX', 100, 1)}
-        {slider('stBgPosY', 'posY', 100, 1)}
-      </div>
+      {screen === 'global' ? (
+        <Row name={t('stBgRandom')} desc={t('stBgRandomDesc')}>
+          <Switch label={t('stBgRandom')} checked={b.random} onChange={(random) => setBackground({ ...b, random })} />
+        </Row>
+      ) : null}
+      {slider('stBgDim', 'stBgDimDesc', 'dim', DIM_MAX, 0.05, pct)}
+      {slider('stBgBlur', 'stBgBlurDesc', 'blur', 20, 1, (v) => `${v}px`)}
+      {slider('stBgPosX', 'stBgPosDesc', 'posX', 100, 1, (v) => `${v}%`)}
+      {slider('stBgPosY', 'stBgPosDesc', 'posY', 100, 1, (v) => `${v}%`)}
     </section>
   );
 }
@@ -290,50 +562,53 @@ function SplashPicker({ lcu, onPick }: { lcu: Lcu; onPick: (skinId: number) => v
   );
 }
 
-function Layouts() {
-  const p = prefs.value;
+const LITE: Array<[Prefs['lite'], TextKey]> = [
+  ['auto', 'perfLiteAuto'],
+  ['on', 'perfLiteOn'],
+  ['off', 'perfLiteOff'],
+];
+
+/** "Ativar modo de especificação baixa" do client oficial: lido da LCU ao abrir; some se a LCU não responder. */
+function PotatoRow() {
+  const [on, setOn] = useState<boolean | null>(null);
+  useEffect(() => {
+    let live = true;
+    void readPotato().then((v) => live && setOn(v));
+    return () => void (live = false);
+  }, []);
+  if (on === null) return null;
   return (
-    <section class="rlc-st-group">
-      <h3>{t('stChampSelectLayout')}</h3>
-      <div class="rlc-chip-row">
-        <button type="button" class="rlc-queue-chip" aria-pressed={p.champSelectLayout === 'cinematic'} onClick={() => setPrefs({ champSelectLayout: 'cinematic' })}>
-          {t('stCinematic')}
-        </button>
-        <button type="button" class="rlc-queue-chip" aria-pressed={p.champSelectLayout === 'classic'} onClick={() => setPrefs({ champSelectLayout: 'classic' })}>
-          {t('stClassic')}
-        </button>
-      </div>
-    </section>
+    <Row name={t('perfPotato')} desc={t('perfPotatoDesc')}>
+      <Switch label={t('perfPotato')} checked={on} onChange={(v, el) => void writePotato(v).then(() => setOn(v), () => (el.checked = on))} />
+    </Row>
   );
 }
 
 function General() {
   const p = prefs.value;
   return (
-    <section class="rlc-st-group rlc-st-general">
-      <label>
-        {t('stLanguage')}
-        <select class="rlc-input" aria-label={t('stLanguage')} value={p.locale} onChange={(e) => setPrefs({ locale: e.currentTarget.value as Prefs['locale'] })}>
-          <option value="auto">{t('stLangAuto')}</option>
-          <option value="pt">Português (Brasil)</option>
-          <option value="en">English</option>
-        </select>
-      </label>
-      <label>
-        {t('stOpenOnStart')}
-        <select class="rlc-input" aria-label={t('stOpenOnStart')} value={p.openOnStart === null ? 'last' : String(p.openOnStart)} onChange={(e) => setPrefs({ openOnStart: e.currentTarget.value === 'last' ? null : e.currentTarget.value === 'true' })}>
-          <option value="last">{t('stOpenLast')}</option>
-          <option value="true">{t('stOpenOn')}</option>
-          <option value="false">{t('stOpenOff')}</option>
-        </select>
-      </label>
-      <p class="rlc-muted">{`${t('stShortcut')}: Ctrl+Shift+F12`}</p>
-      <p class="rlc-muted">{`${t('versionLabel')} ${__RLC_VERSION__}`}</p>
+    <section class="rlc-st-card rlc-st-general">
+      <Row name={t('stLanguage')} desc={t('stLanguageDesc')}>
+        <Seg label={t('stLanguage')} value={p.locale} options={LOCALES.map(([l, label]) => [l, label()])} onPick={(locale) => setPrefs({ locale })} />
+      </Row>
+      <Row name={t('stOpenOnStart')} desc={t('stOpenOnStartDesc')}>
+        <Seg label={t('stOpenOnStart')} value={openKey(p.openOnStart)} options={OPEN.map(([o, k]) => [o, t(k)])} onPick={(v) => setPrefs({ openOnStart: v === 'last' ? null : v === 'true' })} />
+      </Row>
+      <Row name={t('perfLite')} desc={t(p.lite === 'auto' ? (isLite('auto', liteAuto.value) ? 'perfLiteDescAutoOn' : 'perfLiteDescAutoOff') : 'perfLiteDesc')}>
+        <Seg label={t('perfLite')} value={p.lite} options={LITE.map(([v, k]) => [v, t(k)])} onPick={(lite) => setPrefs({ lite })} />
+      </Row>
+      <PotatoRow />
+      <Row name={t('stShortcut')} desc={t('stShortcutDesc')}>
+        <span class="rlc-st-key">Ctrl + Shift + F12</span>
+      </Row>
+      <Row name={t('versionLabel')}>
+        <span class="rlc-muted">{__RLC_VERSION__}</span>
+      </Row>
       {update.value ? (
         <div class="rlc-st-update">
-          <span>{`${t('updateAvailable')} ${update.value.version}`}</span>
-          <button type="button" class="rlc-button" data-variant="primary" onClick={() => void request('POST', '/riotclient/open-url-in-browser', update.value!.url).catch(() => {})}>
-            {t('updateOpen')}
+          <span>{`${t('updReady')} ${update.value.version}`}</span>
+          <button type="button" class="rlc-button" data-variant="primary" disabled={!canReload.value} title={canReload.value ? undefined : t('updReloadLater')} onClick={() => reloadForUpdate()}>
+            {t('updReload')}
           </button>
         </div>
       ) : null}
@@ -341,76 +616,16 @@ function General() {
   );
 }
 
-type Schema = Record<string, Record<string, { default: unknown }>>;
-type Values = Record<string, Record<string, unknown>>;
-
-/** Configurações do jogo geradas do esquema da LCU; cada mudança grava (PATCH + save). */
-function GameSettings() {
-  const [schema, setSchema] = useState<Schema | null>(null);
-  const [values, setValues] = useState<Values>({});
-  useEffect(() => {
-    void getJson<Schema>('/lol-game-settings/v1/game-settings-schema').then(setSchema);
-    void getJson<Values>('/lol-game-settings/v1/game-settings').then((v) => setValues(v ?? {}));
-  }, []);
-  const save = async (cat: string, key: string, value: unknown, el: HTMLInputElement) => {
-    const previous = values[cat]?.[key] ?? schema?.[cat]?.[key]?.default;
-    try {
-      await request('PATCH', '/lol-game-settings/v1/game-settings', { [cat]: { [key]: value } });
-      await request('POST', '/lol-game-settings/v1/save');
-      setValues((v) => ({ ...v, [cat]: { ...(v[cat] ?? {}), [key]: value } }));
-    } catch {
-      // O Toast já saiu em `request`. O navegador já mudou o controle: volta ao valor que a LCU tem.
-      if (el.type === 'checkbox') el.checked = previous === true;
-      else el.value = String(previous);
-    }
-  };
-  if (!schema) return <p class="rlc-muted">{t('loadingQueues')}</p>;
-  const label = (k: string) => k.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2');
-  return (
-    <div class="rlc-st-game">
-      {Object.entries(schema).map(([cat, fields]) => (
-        <details key={cat} class="rlc-st-cat" open={cat === 'General'}>
-          <summary>{label(cat)}</summary>
-          <div class="rlc-st-fields">
-            {Object.entries(fields).map(([key, def]) => {
-            const current = values[cat]?.[key] ?? def.default;
-            if (typeof def.default === 'boolean')
-              return (
-                <label key={key} class="rlc-st-check">
-                  <input type="checkbox" data-key={`${cat}.${key}`} checked={current === true} onChange={(e) => void save(cat, key, e.currentTarget.checked, e.currentTarget)} />
-                  {label(key)}
-                </label>
-              );
-            if (typeof def.default === 'number')
-              return (
-                <label key={key} class="rlc-st-slider">
-                  {label(key)}
-                  <input
-                    type="number"
-                    data-key={`${cat}.${key}`}
-                    value={Number(current)}
-                    step={Number.isInteger(def.default) ? 1 : 'any'}
-                    onChange={(e) => {
-                      // Campo vazio vira 0 em Number(''): não grava. Campo de inteiro (modos, índices) grava inteiro.
-                      const raw = e.currentTarget.value.trim();
-                      const n = Number(raw);
-                      if (raw === '' || !Number.isFinite(n)) return void (e.currentTarget.value = String(current));
-                      void save(cat, key, Number.isInteger(def.default) ? Math.round(n) : n, e.currentTarget);
-                    }}
-                  />
-                </label>
-              );
-            return null;
-          })}
-          </div>
-        </details>
-      ))}
-    </div>
-  );
-}
-
 const FONTS = ['Quicksand, system-ui, sans-serif', 'system-ui, sans-serif', 'Georgia, serif', '"Segoe UI", sans-serif', '"Trebuchet MS", sans-serif', 'monospace'];
 const EASINGS = ['ease', 'ease-in-out', 'linear', 'cubic-bezier(0.7, 0, 0.2, 1)', 'cubic-bezier(0.2, 0.8, 0.2, 1)'];
+const TRANSITION_LABEL: Record<Transition, TextKey> = { wipe: 'stTrWipe', fade: 'stTrFade', slide: 'stTrSlide', zoom: 'stTrZoom' };
+// Nomes legíveis no editor: a pilha de fontes mostra só a primeira família; a curva, um nome.
+const fontLabel = (f: string) => {
+  const first = f.split(',')[0]!.trim().replace(/^["']|["']$/g, '');
+  return first === 'system-ui' ? t('stFontSystem') : first === 'monospace' ? t('stFontMono') : first;
+};
+const easingLabel = (e: string) => t(`stEase_${e}` as TextKey) || t('stEaseCustom');
+const tokenLabel = (token: string) => t(`stTok_${token}` as TextKey) || humanize(token.replace('.', '_'));
 
 /** Editor de tema: painel à esquerda, prévia ao vivo à direita com o tema aplicado só nela. */
 function ThemeEditor({ themes, initial, onClose }: { themes: ThemeEngine; initial: ThemeManifest; onClose: () => void }) {
@@ -422,31 +637,22 @@ function ThemeEditor({ themes, initial, onClose }: { themes: ThemeEngine; initia
     if (preview.current && resolved.ok) applyTheme(preview.current, resolved.theme);
   });
   const setToken = (token: string, value: string) => setDraft({ ...draft, tokens: { ...draft.tokens, [token]: value } });
+  const choice = (token: string, value: string, list: string[], label: (v: string) => string) => (
+    <select class="rlc-input" data-token={token} value={value} onChange={(e) => setToken(token, e.currentTarget.value)}>
+      {[value, ...list.filter((f) => f !== value)].filter(Boolean).map((f) => (
+        <option key={f} value={f}>
+          {label(f)}
+        </option>
+      ))}
+    </select>
+  );
   const field = (token: string) => {
     const kind = TOKEN_KINDS[token];
     const value = draft.tokens[token] ?? '';
     if (kind === 'color' && /^#[0-9a-f]{6}$/i.test(value || '#000000'))
       return <input type="color" data-token={token} value={value || '#000000'} onInput={(e) => setToken(token, e.currentTarget.value)} />;
-    if (kind === 'font')
-      return (
-        <select class="rlc-input" data-token={token} value={value} onChange={(e) => setToken(token, e.currentTarget.value)}>
-          {[value, ...FONTS.filter((f) => f !== value)].filter(Boolean).map((f) => (
-            <option key={f} value={f}>
-              {f}
-            </option>
-          ))}
-        </select>
-      );
-    if (kind === 'easing')
-      return (
-        <select class="rlc-input" data-token={token} value={value} onChange={(e) => setToken(token, e.currentTarget.value)}>
-          {[value, ...EASINGS.filter((f) => f !== value)].filter(Boolean).map((f) => (
-            <option key={f} value={f}>
-              {f}
-            </option>
-          ))}
-        </select>
-      );
+    if (kind === 'font') return choice(token, value, FONTS, fontLabel);
+    if (kind === 'easing') return choice(token, value, EASINGS, easingLabel);
     if (kind === 'length' || kind === 'duration') {
       const unit = kind === 'duration' ? 'ms' : 'px';
       return <input type="range" data-token={token} min={0} max={kind === 'duration' ? 1000 : 60} value={parseFloat(value) || 0} onInput={(e) => setToken(token, `${e.currentTarget.value}${unit}`)} />;
@@ -466,7 +672,7 @@ function ThemeEditor({ themes, initial, onClose }: { themes: ThemeEngine; initia
         <input class="rlc-input rlc-ed-name" aria-label={t('stThemeName')} value={draft.label} maxLength={40} onInput={(e) => setDraft({ ...draft, label: e.currentTarget.value })} />
         {Object.keys(TOKEN_KINDS).map((token) => (
           <label key={token} class="rlc-ed-field">
-            <span>{token}</span>
+            <span>{tokenLabel(token)}</span>
             {field(token)}
           </label>
         ))}
@@ -475,7 +681,7 @@ function ThemeEditor({ themes, initial, onClose }: { themes: ThemeEngine; initia
           <select class="rlc-input" value={draft.transition ?? 'wipe'} onChange={(e) => setDraft({ ...draft, transition: e.currentTarget.value as ThemeManifest['transition'] })}>
             {TRANSITIONS.map((tr) => (
               <option key={tr} value={tr}>
-                {tr}
+                {t(TRANSITION_LABEL[tr])}
               </option>
             ))}
           </select>
