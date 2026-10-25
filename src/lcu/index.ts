@@ -59,6 +59,8 @@ export interface Lcu {
   skins: Signal<StoreState<TeamBuilderDirect_SkinSelectorSkin[]>>;
   pickable: Signal<StoreState<number[]>>;
   bannable: Signal<StoreState<number[]>>;
+  /** Cartões do ARAM (2 ou 3 campeões para escolher um); 404 fora dele. O terceiro, quando há, é a carta da sorte. */
+  subset: Signal<StoreState<number[]>> & { refresh: () => Promise<void> };
   perkPages: Signal<StoreState<LolPerksPerkPageResource[]>>;
   currentPerkPage: Signal<StoreState<LolPerksPerkPageResource>>;
   gameflowSession: Signal<StoreState<LolGameflowGameflowSession>>;
@@ -141,6 +143,7 @@ export function createLcu(doc: Document = document): Lcu {
     skins: createStore('/lol-champ-select/v1/skin-carousel-skins', socket),
     pickable: createStore('/lol-champ-select/v1/pickable-champion-ids', socket),
     bannable: createStore('/lol-champ-select/v1/bannable-champion-ids', socket),
+    subset: createStore('/lol-lobby-team-builder/champ-select/v1/subset-champion-list', socket),
     perkPages: createStore('/lol-perks/v1/pages', socket),
     currentPerkPage: createStore('/lol-perks/v1/currentpage', socket),
     gameflowSession: createStore('/lol-gameflow/v1/session', socket),

@@ -25,7 +25,7 @@ Before you finish, run `npx tsc --noEmit` and `npx vitest run`. Both must pass.
 | `src/shell/` | App frame: `App.tsx` (screen routing by gameflow phase), `router.ts`, `layer.ts` (on/off, Ctrl+Shift+F12), `prefs.ts` (settings), `update.ts`, overlays, sounds. |
 | `src/lcu/` | Client API: `request.ts` (HTTP), stores fed by the client WebSocket (`createStore`), generated types in `types.d.ts`. |
 | `src/screens/<screen>/` | One folder per screen: `home`, `lobby`, `modes`, `champselect`, `ingame`, `postgame`, `honor`, `profile`, `collection`, `store`, `events`, `social`, `settings`. Tests sit next to the code. |
-| `src/plugins/` | Built-in optional plugins: auto-accept, appear offline, marketplace, ROSE bridge, Spotify. |
+| `src/plugins/` | Built-in optional plugins: auto-accept, appear offline, dodge, marketplace, ROSE bridge, Spotify. |
 | `src/theme/` | Themes: `validate.ts` (format and tokens), `resolve.ts` (`extends`), `apply.ts` (tokens to CSS variables), `engine.ts`, `contrast.ts`, `ai.ts` (schema and AI prompt), `customCss.ts`. |
 | `src/ui/` | Shared components (`Loader`, `Rail`, `RoleIcon`, ...) and CSS: `styles.css` plus one file per area in `src/ui/css/`. |
 | `src/i18n/` | `pt-BR.json` and `en-US.json`. Same keys in both (tested). |

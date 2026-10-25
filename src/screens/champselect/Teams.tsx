@@ -13,6 +13,7 @@ import { useDecoded } from '../../ui/useDecoded';
 interface TeamProps {
   cells: Cell[];
   side: 'mine' | 'theirs';
+  /** Banimentos do time; 0 é banimento nulo. */
   bans: number[];
   /** Vagas agindo agora e o que fazem. */
   active: Map<number, 'ban' | 'pick'>;
@@ -48,9 +49,11 @@ export function Team({ cells, side, bans, active, localCellId, champions, spells
       </div>
       {bans.length ? (
         <div class="rlc-cs-bans" aria-label={t('bans')} title={t('bans')}>
-          {bans.map((id) => {
+          {bans.map((id, i) => {
+            // 0: o jogador não baniu (banimento nulo).
+            if (!id) return <span key={i} class="rlc-cs-ban-none" role="img" aria-label={t('csBanNone')} title={t('csBanNone')} />;
             const champ = champions.get(id);
-            return champ?.icon ? <img key={id} src={champ.icon} alt={champ.name} title={champ.name} /> : <span key={id} class="rlc-cs-ban-empty" />;
+            return champ?.icon ? <img key={i} src={champ.icon} alt={champ.name} title={champ.name} /> : <span key={i} class="rlc-cs-ban-empty" />;
           })}
         </div>
       ) : null}

@@ -279,12 +279,13 @@ function Sound() {
   );
 }
 
-type BoolPref = 'runesAuto' | 'runesMatchup' | 'runesApplyOnLock' | 'allSplashes';
+type BoolPref = 'runesAuto' | 'runesMatchup' | 'runesApplyOnLock' | 'allSplashes' | 'dodge';
 const PLUGINS: Array<[BoolPref, TextKey, TextKey]> = [
   ['runesAuto', 'stRunesAuto', 'stRunesAutoDesc'],
   ['runesMatchup', 'stRunesMatchup', 'stRunesMatchupDesc'],
   ['runesApplyOnLock', 'stRunesLock', 'stRunesLockDesc'],
   ['allSplashes', 'stAllSplashes', 'stAllSplashesDesc'],
+  ['dodge', 'stDodge', 'stDodgeDesc'],
 ];
 
 function Plugins() {

@@ -3,6 +3,7 @@ import type { Champion } from '../../data/gamedata';
 import { request } from '../../lcu/request';
 import type { TeamBuilderDirect_ChampSelectSwapContract } from '../../lcu/types';
 import { MemberMenu } from '../lobby/MemberMenu';
+import { useEffect, useState } from 'preact/hooks';
 import { useAction } from '../../ui/useAction';
 import type { Cell, Session } from './logic';
 
@@ -73,28 +74,71 @@ function SwapCard({ route, incoming, contract, who }: { route: string; incoming:
   );
 }
 
-/** Banco do ARAM e rolagem. */
-export function Bench({ session, champions }: { session: Session; champions: Map<number, Champion> }) {
+/**
+ * Banco do ARAM. Com os cartões (ARAM atual) o banco aparece já na escolha, mas durante ela só os campeões dos meus
+ * cartões podem ser pegos; os outros esperam a finalização, como no client. Sem cartões (ARAM antigo) há rolagem.
+ */
+export function Bench({ session, champions, subset }: { session: Session; champions: Map<number, Champion>; subset: number[] }) {
   const swap = useAction((id: number) => request('POST', `${BASE}/bench/swap/${id}`));
   const reroll = useAction(() => request('POST', `${BASE}/my-selection/reroll`));
-  if (!session.benchEnabled && !session.allowRerolling) return null;
+  const cards = session.allowSubsetChampionPicks === true;
+  const phase = session.timer?.phase;
+  const show = cards ? session.benchEnabled && (phase === 'BAN_PICK' || phase === 'FINALIZATION') : session.benchEnabled || session.allowRerolling;
+  if (!show) return null;
   const bench = (session.benchChampions ?? []) as Array<{ championId: number }>;
   return (
-    <div class="rlc-cs-bench">
+    <div class="rlc-cs-bench" role="group" aria-label={t('csBench')}>
+      {session.benchEnabled ? <span class="rlc-cs-bench-label">{t('csBench')}</span> : null}
       {bench.map(({ championId }) => {
         const champ = champions.get(championId);
-        const label = champ?.name ?? String(championId);
+        const name = champ?.name ?? String(championId);
+        const wait = cards && phase === 'BAN_PICK' && !subset.includes(championId);
+        const label = wait ? `${name} · ${t('csBenchWait')}` : name;
         return (
-          <button type="button" key={championId} class="rlc-cs-champ" aria-label={label} title={label} disabled={swap.pending} onClick={() => swap.run(championId)}>
-            {champ?.icon ? <img src={champ.icon} alt="" /> : <span>{label}</span>}
+          <button type="button" key={championId} class="rlc-cs-champ" aria-label={label} title={label} disabled={swap.pending || wait} onClick={() => swap.run(championId)}>
+            {champ?.icon ? <img src={champ.icon} alt="" /> : <span>{name}</span>}
           </button>
         );
       })}
-      {session.allowRerolling ? (
+      {session.allowRerolling && !cards ? (
         <button type="button" class="rlc-button" data-variant="pill" disabled={reroll.pending || session.rerollsRemaining <= 0} onClick={() => reroll.run()}>
           {t('reroll')} ({session.rerollsRemaining})
         </button>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Cartões do ARAM: 2 campeões aleatórios (3 com a carta da sorte, sempre a terceira). Clicar escolhe na hora, como no
+ * client; o que sobra vai para o banco do time. O mouse no cartão troca a prévia do palco.
+ */
+export function SubsetCards({ ids, champions, splash, disabled, onPick, onHover }: { ids: number[]; champions: Map<number, Champion>; splash: (skinId: number) => Promise<string | null>; disabled: boolean; onPick: (id: number) => void; onHover: (id: number | null) => void }) {
+  return (
+    <div class="rlc-cs-cards">
+      <h2 class="rlc-cs-cards-title">{t('csCardsTitle')}</h2>
+      <div class="rlc-cs-cards-row" onMouseLeave={() => onHover(null)}>
+        {ids.map((id, i) => (
+          <SubsetCard key={id} id={id} lucky={ids.length === 3 && i === 2} champ={champions.get(id)} splash={splash} disabled={disabled} onPick={onPick} onHover={onHover} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SubsetCard({ id, lucky, champ, splash, disabled, onPick, onHover }: { id: number; lucky: boolean; champ?: Champion; splash: (skinId: number) => Promise<string | null>; disabled: boolean; onPick: (id: number) => void; onHover: (id: number | null) => void }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    void splash(id * 1000).then((u) => live && setUrl(u)).catch(() => {});
+    return () => void (live = false);
+  }, [id, splash]);
+  const name = champ?.name ?? String(id);
+  return (
+    <button type="button" class="rlc-cs-card" data-lucky={lucky ? 'true' : undefined} aria-label={lucky ? `${name} · ${t('csLuckyCard')}` : name} disabled={disabled} onMouseEnter={() => onHover(id)} onFocus={() => onHover(id)} onClick={() => onPick(id)}>
+      {url ? <span class="rlc-cs-card-art" style={{ backgroundImage: `url("${url}")` }} aria-hidden="true" /> : null}
+      {lucky ? <span class="rlc-cs-card-lucky">{t('csLuckyCard')}</span> : null}
+      <span class="rlc-cs-card-name">{name}</span>
+    </button>
   );
 }

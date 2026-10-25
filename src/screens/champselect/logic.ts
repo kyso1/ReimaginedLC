@@ -54,17 +54,35 @@ export function selectPhase(session: Session): SelectPhase {
 }
 
 /**
- * Banimentos por time. No Tournament Draft o campo `bans` vem vazio; os banimentos estão nas ações `ban`
- * concluídas (`championId` -1 é banimento que expirou). As duas fontes são somadas sem repetir.
+ * Banimentos por time, na ordem em que aconteceram. `0` é banimento nulo: ação concluída sem campeão (o jogador não
+ * baniu ou o tempo acabou). No Tournament Draft o campo `bans` vem vazio; nos outros modos ele é somado sem repetir.
  */
 export function bansByTeam(session: Session): { mine: number[]; theirs: number[] } {
-  const mine = new Set<number>(session.bans?.myTeamBans ?? []);
-  const theirs = new Set<number>(session.bans?.theirTeamBans ?? []);
-  for (const a of flatActions(session)) {
-    if (a.type !== 'ban' || !a.completed || a.championId <= 0) continue;
-    (a.isAllyAction ? mine : theirs).add(a.championId);
-  }
-  return { mine: [...mine], theirs: [...theirs] };
+  const mine: number[] = [];
+  const theirs: number[] = [];
+  const add = (list: number[], id: number) => (id <= 0 ? list.push(0) : !list.includes(id) && list.push(id));
+  for (const a of flatActions(session)) if (a.type === 'ban' && a.completed) add(a.isAllyAction ? mine : theirs, a.championId);
+  for (const id of session.bans?.myTeamBans ?? []) if (id > 0) add(mine, id);
+  for (const id of session.bans?.theirTeamBans ?? []) if (id > 0) add(theirs, id);
+  return { mine, theirs };
+}
+
+/** Campeões que ninguém mais pode pegar: banidos, ou travados por outro jogador (exceto com escolhas repetidas). */
+export function unavailable(session: Session): Map<number, 'banned' | 'picked'> {
+  const out = new Map<number, 'banned' | 'picked'>();
+  const bans = bansByTeam(session);
+  for (const id of [...bans.mine, ...bans.theirs]) if (id > 0) out.set(id, 'banned');
+  if (session.allowDuplicatePicks) return out;
+  for (const a of flatActions(session)) if (a.type === 'pick' && a.completed && a.championId > 0 && a.actorCellId !== session.localPlayerCellId && !out.has(a.championId)) out.set(a.championId, 'picked');
+  return out;
+}
+
+/** Campeões que os aliados querem jogar: intenção do planejamento ou o destaque da escolha em andamento. */
+export function allyWants(session: Session): Set<number> {
+  const out = new Set<number>();
+  for (const c of session.myTeam) if (c.cellId !== session.localPlayerCellId && c.championPickIntent > 0) out.add(c.championPickIntent);
+  for (const a of flatActions(session)) if (a.type === 'pick' && a.isAllyAction && !a.completed && a.championId > 0 && a.actorCellId !== session.localPlayerCellId) out.add(a.championId);
+  return out;
 }
 
 /** Segundos restantes a partir do último valor da LCU (`adjustedTimeLeftInPhase`, em ms) e de quando ele chegou. */

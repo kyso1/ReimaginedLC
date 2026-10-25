@@ -99,6 +99,7 @@ All of them are off by default. Turn them on in **Settings › Plugins**.
 |---|---|
 | **Auto-accept** | Accepts the match when the queue pops. |
 | **Appear offline** | Keeps your chat status offline, even during matches. |
+| **Dodge** | Leaves champion select without closing the client. The dodge penalty still applies (lockout, and LP in ranked). |
 | **Marketplace** | Installs Pengu Loader plugins (plugins only, not themes) from the community registry. |
 | **ROSE** | Integrates with [ROSE](https://github.com/Alban1911/Rose), a separate app for custom skins, so you can pick skins from the champion select carousel. ROSE is a third-party tool with its own risks. |
 | **Spotify** | Shows what is playing in your Spotify and controls it from the client. Controls need Spotify Premium. It can also show the track as your status. It needs a free Spotify developer Client ID; the plugin settings walk you through it. |

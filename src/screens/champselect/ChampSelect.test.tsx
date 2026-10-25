@@ -5,6 +5,8 @@ import { setLocale } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { action, cell, fakeLcu, ready, session } from '../../test/fixtures';
 import { ChampSelect } from './ChampSelect';
+import { DODGE_PATH } from '../../plugins/dodge';
+import { setPrefs } from '../../shell/prefs';
 
 let root: HTMLElement;
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -261,6 +263,22 @@ test('Sair só aparece com showQuitButton e chama a LCU', async () => {
   expect(btn('Sair da seleção')).toBeUndefined();
 });
 
+test('dodge: só com o plugin ligado, pede confirmação e então chama o quitV2', async () => {
+  setup(pickTurn());
+  await settle();
+  expect(btn('Dodge')).toBeUndefined();
+  setPrefs({ dodge: true });
+  await settle();
+  act(() => btn('Dodge')!.click());
+  expect(fetchMock.mock.calls.filter((c) => c[1]?.method)).toEqual([]);
+  const dialog = root.querySelector('[role="dialog"]')!;
+  expect(dialog.textContent).toContain('penalidade de dodge');
+  act(() => btn('Dodge', dialog)!.click());
+  expect(call(DODGE_PATH)).toHaveLength(1);
+  expect(decodeURIComponent(DODGE_PATH)).toContain('["","teambuilder-draft","quitV2",""]');
+  setPrefs({ dodge: false });
+});
+
 test('banimentos aparecem sob o time certo', async () => {
   setup(session({ myTeam: [me], theirTeam: [enemy], actions: [[action({ type: 'ban', completed: true, championId: 157 })], [action({ type: 'ban', completed: true, championId: 266, isAllyAction: false })]] }));
   await settle();
@@ -496,10 +514,69 @@ test('planejamento: clique declara a intenção na ação de escolha, sem botão
   expect(JSON.parse(call('/lol-champ-select/v1/session/actions/6')[0]![1].body)).toEqual({ championId: 103 });
 });
 
-test('campeão banido sai da grade mesmo se a LCU ainda o lista como disponível', async () => {
-  setup(session({ myTeam: [me], actions: [[action({ type: 'ban', completed: true, championId: 157 })], [action({ id: 6, type: 'pick', isInProgress: true })]] }));
+test('banido e travado por outro ficam na grade, cinza e sem clique, mesmo se a LCU ainda os lista', async () => {
+  setup(session({ myTeam: [me, ally], actions: [[action({ type: 'ban', completed: true, championId: 157 })], [action({ actorCellId: 1, type: 'pick', completed: true, championId: 266 }), action({ id: 6, type: 'pick', isInProgress: true })]] }), { pickable: ready([103, 157]) });
   await settle();
-  expect([...root.querySelectorAll('.rlc-cs-champ')].map((c) => c.getAttribute('aria-label'))).toEqual(['Aatrox', 'Ahri']);
+  const tiles = [...root.querySelectorAll<HTMLElement>('.rlc-cs-tile')];
+  expect(tiles.map((t) => [t.querySelector('button')!.getAttribute('aria-label'), t.dataset.state])).toEqual([['Aatrox · Já escolhido', 'picked'], ['Ahri', undefined], ['Yasuo · Banido', 'banned']]);
+  const yasuo = btn('Yasuo · Banido')!;
+  expect(yasuo.disabled).toBe(true);
+  act(() => yasuo.click());
+  expect(fetchMock.mock.calls.filter((c) => c[1]?.method)).toEqual([]);
+});
+
+test('banir o campeão que um aliado quer mostra o aviso; o ladrilho dele vem marcado', async () => {
+  const wanting = { ...ally, championPickIntent: 157 };
+  setup(session({ myTeam: [me, wanting], theirTeam: [enemy], actions: [[action({ id: 0, type: 'ban', isInProgress: true, championId: 103 })]] }));
+  await settle();
+  expect(root.querySelector('.rlc-cs-warn')).toBeNull();
+  expect(root.querySelector('.rlc-cs-tile[data-wanted="true"] button')!.getAttribute('aria-label')).toBe('Yasuo · Um aliado quer jogar');
+  setup(session({ myTeam: [me, wanting], theirTeam: [enemy], actions: [[action({ id: 0, type: 'ban', isInProgress: true, championId: 157 })]] }));
+  await settle();
+  expect(root.querySelector('.rlc-cs-warn')!.textContent).toBe('Um aliado quer jogar com esse campeão.');
+  expect(btn('Banir')!.disabled).toBe(false);
+});
+
+test('banimento nulo aparece como quadro vazio no time de quem não baniu', async () => {
+  setup(session({ myTeam: [me], theirTeam: [enemy], actions: [[action({ type: 'ban', completed: true, championId: 157 }), action({ type: 'ban', completed: true, championId: 0 }), action({ type: 'ban', completed: true, championId: -1, isAllyAction: false })]] }));
+  await settle();
+  const [mine, theirs] = root.querySelectorAll('.rlc-cs-bans');
+  expect([...mine!.children].map((e) => e.getAttribute('alt') ?? e.getAttribute('aria-label'))).toEqual(['Yasuo', 'Sem banimento']);
+  expect(theirs!.querySelector('.rlc-cs-ban-none')!.getAttribute('title')).toBe('Sem banimento');
+});
+
+const aramTimer = (phase: string) => ({ phase, adjustedTimeLeftInPhase: 12000, totalTimeInPhase: 12000, internalNowInEpochMs: 0, isInfinite: false }) as never;
+const subsetOf = (ids: number[]) => Object.assign(ready(ids), { refresh: async () => {} });
+
+test('ARAM com cartões: sem grade nem Travar; o clique no cartão escolhe e a terceira é a carta da sorte', async () => {
+  setup(session({ myTeam: [me], allowSubsetChampionPicks: true, benchEnabled: true, actions: [[action({ id: 6, type: 'pick', isInProgress: true })]] } as never), { subset: subsetOf([103, 157, 266]) });
+  await settle();
+  expect(root.querySelector('.rlc-cs-drawer')).toBeNull();
+  expect(btn('Mostrar campeões')).toBeUndefined();
+  expect(btn('Travar')).toBeUndefined();
+  expect(root.querySelector('.rlc-cs-cards-title')!.textContent).toBe('Escolha seu campeão');
+  const cards = [...root.querySelectorAll<HTMLButtonElement>('.rlc-cs-card')];
+  expect(cards.map((c) => c.getAttribute('aria-label'))).toEqual(['Ahri', 'Yasuo', 'Aatrox · Carta da sorte']);
+  act(() => void cards[1]!.dispatchEvent(new MouseEvent('mouseenter')));
+  await settle();
+  expect(root.querySelector('.rlc-cs-champ-name')!.textContent).toBe('Yasuo');
+  act(() => cards[1]!.click());
+  expect(JSON.parse(call('/lol-champ-select/v1/session/actions/6')[0]![1].body)).toEqual({ championId: 157, completed: true });
+});
+
+test('ARAM com cartões: depois de escolher, banco sem rolagem; na escolha só os meus cartões saem do banco', async () => {
+  const picked = { ...me, championId: 157 };
+  const bench = [{ championId: 103, isPriority: false }, { championId: 266, isPriority: false }];
+  const lcu = setup(session({ myTeam: [picked], allowSubsetChampionPicks: true, benchEnabled: true, allowRerolling: true, rerollsRemaining: 1, benchChampions: bench, timer: aramTimer('BAN_PICK'), actions: [[action({ id: 6, type: 'pick', completed: true, championId: 157 })]] } as never), { subset: subsetOf([157, 103]) });
+  await settle();
+  const scope = root.querySelector('.rlc-cs-bench')!;
+  expect(btn('Ahri', scope)!.disabled).toBe(false);
+  expect(btn('Aatrox · Disponível na finalização', scope)!.disabled).toBe(true);
+  expect(btn('Rolar (1)')).toBeUndefined();
+  expect(btn('Mostrar campeões')).toBeUndefined();
+  act(() => void (lcu.champSelect.value = ready(session({ myTeam: [picked], allowSubsetChampionPicks: true, benchEnabled: true, benchChampions: bench, timer: aramTimer('FINALIZATION') } as never))));
+  act(() => btn('Aatrox', root.querySelector('.rlc-cs-bench')!)!.click());
+  expect(call('/lol-champ-select/v1/session/bench/swap/266')).toHaveLength(1);
 });
 
 test('gaveta de campeões: ✕ e Esc fecham, o botão reabre e a minha vez reabre sozinha', async () => {

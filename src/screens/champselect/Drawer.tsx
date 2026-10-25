@@ -36,10 +36,14 @@ interface GridProps {
   onFavorite: (id: number, lane: Lane) => void;
   /** Campeão sob o mouse (null ao sair da grade): o palco mostra a splash dele. */
   onHover?: (id: number | null) => void;
+  /** Banidos ou já escolhidos por outro: ficam na grade, cinza e sem clique. */
+  blocked?: Map<number, 'banned' | 'picked'>;
+  /** Campeões que um aliado quer jogar (marcados na vez de banir). */
+  wanted?: Set<number>;
 }
 
 /** Grade de campeões permitidos: busca por nome, separador por rota e favoritos da rota na frente. */
-export function ChampionGrid({ ids, champions, selected, onPick, lanes, favorites, initialLane, onFavorite, onHover }: GridProps) {
+export function ChampionGrid({ ids, champions, selected, onPick, lanes, favorites, initialLane, onFavorite, onHover, blocked, wanted }: GridProps) {
   const [query, setQuery] = useState('');
   const [lane, setLane] = useState<Lane | null>(initialLane);
   // Menu do clique direito (ou tecla de menu / Shift+F10): ponto de abertura e o botão para devolver o foco.
@@ -76,9 +80,14 @@ export function ChampionGrid({ ids, champions, selected, onPick, lanes, favorite
         ))}
       </div>
       <div class="rlc-cs-grid" onMouseLeave={() => onHover?.(null)}>
-        {list.map((c) => (
-          <div key={c.id} class="rlc-cs-tile">
-            <button type="button" class="rlc-cs-champ" aria-label={c.name} title={c.name} aria-pressed={c.id === selected} onMouseEnter={() => onHover?.(c.id)} onClick={() => onPick(c.id)}
+        {list.map((c) => {
+          const state = blocked?.get(c.id);
+          const want = !state && wanted?.has(c.id);
+          const note = state ? t(state === 'banned' ? 'csBanned' : 'csPicked') : want ? t('csAllyWants') : '';
+          const label = note ? `${c.name} · ${note}` : c.name;
+          return (
+          <div key={c.id} class="rlc-cs-tile" data-state={state} data-wanted={want ? 'true' : undefined}>
+            <button type="button" class="rlc-cs-champ" aria-label={label} title={label} aria-pressed={c.id === selected} disabled={!!state} onMouseEnter={() => onHover?.(c.id)} onClick={() => onPick(c.id)}
               onContextMenu={(e) => openMenu(e, c.id)}
               onKeyDown={(e) => (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) && openMenu(e, c.id)}
             >
@@ -96,8 +105,10 @@ export function ChampionGrid({ ids, champions, selected, onPick, lanes, favorite
                 ★
               </span>
             ) : null}
+            {want ? <span class="rlc-cs-want" aria-hidden="true" /> : null}
           </div>
-        ))}
+          );
+        })}
       </div>
       {menu ? (
         <FavMenu

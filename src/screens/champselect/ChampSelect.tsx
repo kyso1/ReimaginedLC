@@ -8,14 +8,16 @@ import { useDecoded } from '../../ui/useDecoded';
 import { ChampionGrid, Drawer, LANES, type Lane } from './Drawer';
 import { Loadout, SkinCarousel, skinOf } from './Loadout';
 import { RuneEditor, useApplyOnLock, type RecoContext } from './RuneEditor';
-import { Bench, SwapCards, swapMenu } from './Swaps';
-import { actingCells, bansByTeam, displayedChampion, laneOpponent, myTurn, remainingSeconds, selectPhase, type SelectPhase, type Session } from './logic';
+import { Bench, SubsetCards, SwapCards, swapMenu } from './Swaps';
+import { actingCells, allyWants, bansByTeam, displayedChampion, laneOpponent, myTurn, remainingSeconds, selectPhase, unavailable, type SelectPhase, type Session } from './logic';
 import { useRealNames } from './names';
 import { Team } from './Teams';
 import { rankedQueueOf } from '../../ui/Rank';
 import { useEscape } from '../../ui/useEscape';
 import { prefs } from '../../shell/prefs';
 import { roseStatus, useRose } from '../../plugins/rose';
+import { dodge } from '../../plugins/dodge';
+import { Confirm } from '../../shell/overlays/Confirm';
 
 const PHASE_TEXT: Record<SelectPhase, TextKey | null> = {
   ban: 'phaseBan',
@@ -46,12 +48,21 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   const shown = local ? displayedChampion(local) : null;
   const turn = session ? myTurn(session) : null;
   const locked = shown?.locked === true;
+  // ARAM não tem grade: o campeão vem dos cartões (ARAM atual), do banco ou da rolagem (ARAM antigo).
+  const cards = session?.allowSubsetChampionPicks === true;
+  const gridless = !!session && (cards || session.benchEnabled || session.allowRerolling);
+  const cardTurn = cards && turn?.kind === 'pick';
+  const subset = lcu.subset.value.data ?? [];
+  useEffect(() => {
+    if (cards) void lcu.subset.refresh();
+  }, [cards, session?.id]);
   // A grade segue o momento: abre na minha vez, fecha ao travar. Abrir ou fechar à mão vale até a próxima mudança.
   useEffect(() => {
     if (turn) setDrawerOpen(true);
     else if (locked) setDrawerOpen(false);
   }, [turn?.action.id, locked]);
-  const previewing = drawerOpen && preview ? preview : 0;
+  const gridOpen = drawerOpen && !gridless;
+  const previewing = (gridOpen || cardTurn) && preview ? preview : 0;
   // ROSE conectado: o carrossel oferece também skins não possuídas. A escolhida (`pick`) só vai para o palco e para o
   // ROSE; a LCU não sabe dela. Zera ao trocar de campeão.
   useRose(prefs.value.rose);
@@ -73,6 +84,8 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
     setFavOverrides((prev) => new Map(prev).set(id, fresh?.positionsFavorited ?? []));
   });
   const quit = useAction(() => request('POST', '/lol-lobby-team-builder/champ-select/v1/session/quit'));
+  const leave = useAction(dodge);
+  const [dodging, setDodging] = useState(false);
 
   // Editor de runas por cima do centro e da direita; recomendações para o campeão em destaque.
   const [runesOpen, setRunesOpen] = useState(false);
@@ -98,11 +111,16 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
 
   const phase = selectPhase(session);
   const allowed = (turn?.kind === 'ban' ? lcu.bannable.value.data : lcu.pickable.value.data) ?? [];
-  const highlighted = turn && allowed.includes(turn.action.championId) ? turn.action.championId : 0;
   const bans = bansByTeam(session);
   const active = actingCells(session);
-  // Banidos saem da grade (a LCU pode mandar ainda na lista de disponíveis).
-  const banned = new Set([...bans.mine, ...bans.theirs]);
+  // Banidos e escolhidos por outro ficam na grade, cinza e sem clique (a LCU pode mandá-los ainda como disponíveis).
+  const blocked = unavailable(session);
+  const highlighted = turn && allowed.includes(turn.action.championId) && !blocked.has(turn.action.championId) ? turn.action.championId : 0;
+  const wants = allyWants(session);
+  // Fora da vez de banir os indisponíveis só entram se forem meus (a grade é das minhas escolhas).
+  const owned = new Set((lcu.gridChampions.value.data ?? []).filter((c) => c.owned || c.rented || c.freeToPlayForQueue).map((c) => c.id));
+  const gridIds = [...new Set([...(turn ? allowed : (lcu.pickable.value.data ?? [])), ...[...blocked.keys()].filter((id) => turn?.kind === 'ban' || !owned.size || owned.has(id))])];
+  const banWarn = turn?.kind === 'ban' && highlighted > 0 && wants.has(highlighted);
   const phaseKey = PHASE_TEXT[phase];
   const total = Math.max(1, Math.round((session.timer?.totalTimeInPhase ?? 0) / 1000));
 
@@ -115,9 +133,17 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
     </button>
   ) : null;
 
-  // No planejamento só se declara a intenção: sem botão de travar.
+  // Plugin de dodge: sai da seleção sem fechar o client, depois de confirmar. Some quando a partida já vai começar.
+  const dodgeButton =
+    prefs.value.dodge && session.timer?.phase !== 'GAME_STARTING' ? (
+      <button type="button" class="rlc-button" data-variant="danger" disabled={leave.pending} onClick={() => setDodging(true)}>
+        {t('csDodge')}
+      </button>
+    ) : null;
+
+  // No planejamento só se declara a intenção, e nos cartões do ARAM o clique já escolhe: sem botão de travar.
   const mainAction =
-    turn && turn.kind !== 'intent' ? (
+    turn && turn.kind !== 'intent' && !cardTurn ? (
       <button type="button" class="rlc-button rlc-cs-lock" data-variant="primary" data-kind={turn.kind} disabled={!highlighted || commit.pending || hover.pending} onClick={() => commit.run(turn.action.id, highlighted)}>
         {turn.kind === 'ban' ? t('banAction') : t('csLock')}
       </button>
@@ -129,7 +155,7 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   const skin = previewing ? undefined : chosen;
 
   return (
-    <section class="rlc-champselect" data-phase={phase} data-grid={drawerOpen ? 'open' : undefined}>
+    <section class="rlc-champselect" data-phase={phase} data-grid={gridOpen || cardTurn ? 'open' : undefined}>
       {stageSkin ? <Crossfade src={splash} class="rlc-cs-splash" position="center 15%" /> : null}
       {/* Ponte para o ROSE-SkinMonitor, que lê o nome da skin no DOM (`.skin-name-text`) e fica com o último visível. */}
       {rose && chosen ? (
@@ -152,11 +178,17 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
           {stageId ? <h1 class="rlc-cs-champ-name">{champions.get(stageId)?.name ?? ''}</h1> : null}
           {skin && !skin.isBase ? <p class="rlc-cs-skin-name">{skin.name}</p> : null}
         </header>
-        <Bench session={session} champions={champions} />
-        {drawerOpen ? (
+        {cardTurn ? (
+          <SubsetCards ids={subset} champions={champions} splash={lcu.game.splash} disabled={commit.pending} onHover={setPreview} onPick={(id) => commit.run(turn.action.id, id)} />
+        ) : (
+          <Bench session={session} champions={champions} subset={subset} />
+        )}
+        {cardTurn ? null : gridOpen ? (
           <Drawer onClose={() => setDrawerOpen(false)}>
             <ChampionGrid
-              ids={(turn ? allowed : (lcu.pickable.value.data ?? [])).filter((id) => !banned.has(id))}
+              ids={gridIds}
+              blocked={blocked}
+              wanted={turn?.kind === 'ban' ? wants : undefined}
               champions={champions}
               selected={highlighted}
               lanes={lanes}
@@ -172,9 +204,11 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
           </Drawer>
         ) : (
           <>
-            <button type="button" class="rlc-button rlc-cs-reopen" data-variant="pill" onClick={() => setDrawerOpen(true)}>
-              {t('csDrawerOpen')}
-            </button>
+            {gridless ? null : (
+              <button type="button" class="rlc-button rlc-cs-reopen" data-variant="pill" onClick={() => setDrawerOpen(true)}>
+                {t('csDrawerOpen')}
+              </button>
+            )}
             {local ? <SkinCarousel skins={skins} me={local} rose={rose} pick={pick} onPick={setRosePick} /> : null}
           </>
         )}
@@ -193,16 +227,33 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
           />
         ) : null}
         {local && locked && skins.some((s) => s.unlocked) ? (
-          <button type="button" class="rlc-button rlc-cs-skin-chip" data-variant="pill" aria-pressed={!drawerOpen} onClick={() => setDrawerOpen(false)}>
+          <button type="button" class="rlc-button rlc-cs-skin-chip" data-variant="pill" aria-pressed={!gridOpen} onClick={() => setDrawerOpen(false)}>
             {t('tabSkins')}
             {skin ? <small>{skin.name}</small> : null}
           </button>
         ) : null}
         <div class="rlc-cs-action">
+          {banWarn ? (
+            <p class="rlc-cs-warn" role="alert">
+              {t('csBanAllyWarn')}
+            </p>
+          ) : null}
           {quitButton}
+          {dodgeButton}
           {mainAction}
         </div>
       </footer>
+      {dodging ? (
+        <Confirm
+          message={t('csDodgeConfirm')}
+          confirmLabel={t('csDodge')}
+          onConfirm={() => {
+            setDodging(false);
+            leave.run();
+          }}
+          onCancel={() => setDodging(false)}
+        />
+      ) : null}
       {runesOpen ? <RuneEditor lcu={lcu} mode="overlay" reco={reco} artSkin={stageSkin ?? null} onClose={() => setRunesOpen(false)} /> : null}
     </section>
   );

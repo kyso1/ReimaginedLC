@@ -41,6 +41,8 @@ export interface Prefs {
   /** Spotify do computador (widget tocando agora) e a música como recado do chat. */
   spotify: boolean;
   spotifyStatus: boolean;
+  /** Botão de dodge na seleção de campeões, sem fechar o client (a penalidade vale igual). */
+  dodge: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -67,6 +69,7 @@ export const DEFAULT_PREFS: Prefs = {
   rose: false,
   spotify: false,
   spotifyStatus: false,
+  dodge: false,
 };
 const KEY = 'rlc.prefs';
 const oneOf = <T extends string>(v: unknown, options: readonly T[], def: T): T => (options.includes(v as T) ? (v as T) : def);
@@ -99,6 +102,7 @@ export function sanitizePrefs(v: unknown): Prefs {
     rose: bool(o.rose, DEFAULT_PREFS.rose),
     spotify: bool(o.spotify, DEFAULT_PREFS.spotify),
     spotifyStatus: bool(o.spotifyStatus, DEFAULT_PREFS.spotifyStatus),
+    dodge: bool(o.dodge, DEFAULT_PREFS.dodge),
   };
 }
 

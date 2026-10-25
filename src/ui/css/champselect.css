@@ -58,6 +58,8 @@
 #rlc-root .rlc-cs-bans { display: flex; flex-wrap: wrap; gap: 4px; }
 #rlc-root .rlc-cs-side[data-side='theirs'] .rlc-cs-bans { justify-content: flex-end; }
 #rlc-root .rlc-cs-bans img, #rlc-root .rlc-cs-ban-empty { width: 22px; height: 22px; border-radius: 4px; filter: grayscale(1); opacity: 0.7; background: var(--rlc-color-surface); }
+/* Banimento nulo: quadro vazio riscado, para ver que alguém não baniu. */
+#rlc-root .rlc-cs-ban-none { width: 22px; height: 22px; box-sizing: border-box; border: 1px dashed var(--rlc-color-border); border-radius: 4px; background: linear-gradient(135deg, transparent calc(50% - 1px), var(--rlc-color-textMuted) calc(50% - 1px), var(--rlc-color-textMuted) calc(50% + 1px), transparent calc(50% + 1px)); opacity: 0.7; }
 
 /* Palco: fase e tempo pequenos, nome do campeão grande, skin embaixo. */
 #rlc-root .rlc-cs-center { position: relative; z-index: 1; grid-column: 2; grid-row: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; padding-bottom: 14px; }
@@ -92,6 +94,14 @@
 #rlc-root .rlc-cs-fav { position: absolute; top: 2px; right: 4px; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: var(--rlc-color-scrim, rgba(4, 6, 12, 0.72)); color: var(--rlc-color-textMuted); font-size: 11px; line-height: 20px; cursor: pointer; opacity: 0; transition: opacity var(--rlc-motion-duration) var(--rlc-motion-easing); }
 #rlc-root .rlc-cs-tile:hover .rlc-cs-fav, #rlc-root .rlc-cs-fav:focus-visible { opacity: 1; }
 #rlc-root .rlc-cs-fav[aria-pressed='true'] { opacity: 1; color: var(--rlc-color-highlight, #ffd36b); }
+/* Banidos e já escolhidos: continuam na grade, cinza e sem clique. Desejo de aliado: anel na vez de banir. */
+#rlc-root .rlc-cs-tile[data-state] .rlc-cs-champ { cursor: not-allowed; }
+#rlc-root .rlc-cs-tile[data-state] .rlc-cs-champ img { filter: grayscale(1); opacity: 0.35; }
+#rlc-root .rlc-cs-tile[data-state] .rlc-cs-tile-name { opacity: 0.5; }
+#rlc-root .rlc-cs-tile[data-state='banned'] .rlc-cs-champ { background: linear-gradient(135deg, transparent calc(50% - 1px), var(--rlc-color-danger, #c8364a) calc(50% - 1px), var(--rlc-color-danger, #c8364a) calc(50% + 1px), transparent calc(50% + 1px)), var(--rlc-color-surface); }
+#rlc-root .rlc-cs-tile[data-state='banned'] .rlc-cs-champ img { mix-blend-mode: luminosity; }
+#rlc-root .rlc-cs-tile[data-wanted='true'] .rlc-cs-champ { border-color: var(--rlc-color-highlight, #ffd36b); }
+#rlc-root .rlc-cs-want { position: absolute; top: 4px; left: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--rlc-color-highlight, #ffd36b); box-shadow: 0 0 0 2px var(--rlc-color-scrim, rgba(4, 6, 12, 0.72)); pointer-events: none; }
 #rlc-root .rlc-cs-fav-mark { position: absolute; top: 2px; right: 4px; width: 18px; height: 18px; border-radius: 50%; background: var(--rlc-color-scrim, rgba(4, 6, 12, 0.72)); color: var(--rlc-color-highlight, #ffd36b); font-size: 10px; line-height: 18px; text-align: center; pointer-events: none; }
 /* Menu do clique direito num campeão: vidro escuro, rotas com ícone e a estrela acesa onde já é favorito. */
 #rlc-root .rlc-cs-ctx-backdrop { position: fixed; inset: 0; z-index: 40; }
@@ -106,7 +116,9 @@
 
 /* Grade fechada: o palco fica livre; reabrir e o carrossel de skins descem para o pé, logo acima da barra. */
 #rlc-root .rlc-cs-reopen { margin-top: auto; }
-#rlc-root .rlc-cs-carousel { display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 100%; }
+#rlc-root .rlc-cs-reopen + .rlc-cs-carousel { margin-top: 0; }
+/* Carrossel no pé do palco também sem o botão da grade (ARAM não tem grade). */
+#rlc-root .rlc-cs-carousel { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 100%; }
 #rlc-root .rlc-cs-skins { display: flex; gap: 6px; max-width: 100%; overflow-x: auto; padding: 3px; }
 #rlc-root .rlc-cs-skin { flex: none; width: 84px; height: 48px; padding: 0; border: 0; border-radius: var(--rlc-radius-sm); background: var(--rlc-color-surface); overflow: hidden; opacity: 0.7; cursor: pointer; transition: opacity var(--rlc-motion-duration) var(--rlc-motion-easing); }
 #rlc-root .rlc-cs-skin img { width: 100%; height: 100%; object-fit: cover; object-position: center 25%; }
@@ -130,8 +142,27 @@
 #rlc-root .rlc-st-rose + .rlc-st-switch:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* Banco do ARAM, logo sob o nome. */
-#rlc-root .rlc-cs-bench { display: flex; gap: 6px; align-items: center; }
+#rlc-root .rlc-cs-bench { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; align-items: center; max-width: 100%; padding: 6px 10px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(14, 16, 26, 0.55)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.78))); backdrop-filter: blur(14px) brightness(0.8); }
+#rlc-root .rlc-cs-bench-label { margin-right: 4px; font-size: 12px; font-weight: 700; color: var(--rlc-color-textMuted); }
 #rlc-root .rlc-cs-bench .rlc-cs-champ { width: 48px; }
+#rlc-root .rlc-cs-bench .rlc-cs-champ:disabled { cursor: not-allowed; }
+#rlc-root .rlc-cs-bench .rlc-cs-champ:disabled img { filter: grayscale(1); opacity: 0.45; }
+
+/* Cartões do ARAM: 2 ou 3 retratos grandes no meio do palco; a carta da sorte com borda de destaque. */
+#rlc-root .rlc-cs-cards { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; animation: rlc-fade var(--rlc-motion-duration) var(--rlc-motion-easing) both; }
+#rlc-root .rlc-cs-cards-title { margin: 0; font-size: 18px; font-weight: 700; text-shadow: 0 2px 10px var(--rlc-color-textShadow, #000); }
+#rlc-root .rlc-cs-cards-row { display: flex; justify-content: center; gap: clamp(12px, 2vw, 28px); max-width: 100%; }
+#rlc-root .rlc-cs-card { position: relative; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; width: clamp(150px, 15vw, 220px); aspect-ratio: 3 / 4.4; padding: 0 0 16px; border: 2px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-surface); color: var(--rlc-color-text); font: inherit; overflow: hidden; cursor: pointer; box-shadow: 0 16px 40px var(--rlc-color-shade, rgba(0, 0, 0, 0.5)); transition: transform var(--rlc-motion-duration) var(--rlc-motion-easing), border-color var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-cs-card:hover:not(:disabled), #rlc-root .rlc-cs-card:focus-visible { transform: translateY(-6px); border-color: var(--rlc-color-accent); }
+#rlc-root .rlc-cs-card:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 3px; }
+#rlc-root .rlc-cs-card:disabled { cursor: progress; opacity: 0.7; }
+#rlc-root .rlc-cs-card[data-lucky='true'] { border-color: var(--rlc-color-highlight, #ffd36b); }
+#rlc-root .rlc-cs-card-art { position: absolute; inset: 0; background-size: cover; background-position: center 20%; -webkit-mask-image: linear-gradient(180deg, black 55%, transparent 100%); }
+#rlc-root .rlc-cs-card-name { position: relative; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 20px; text-shadow: 0 2px 8px var(--rlc-color-textShadow, #000); }
+#rlc-root .rlc-cs-card-lucky { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); padding: 2px 10px; border-radius: var(--rlc-radius-pill); background: var(--rlc-color-highlight, #ffd36b); color: var(--rlc-color-bg); font-size: 11px; font-weight: 700; white-space: nowrap; }
+
+/* Aviso ao banir o campeão que um aliado quer. */
+#rlc-root .rlc-cs-warn { margin: 0; max-width: 220px; font-size: 12px; line-height: 1.3; color: var(--rlc-color-danger, #c8364a); }
 
 /* Barra de vidro: feitiços, runas, sentinela, skin e, à direita, Sair e Travar. */
 #rlc-root .rlc-cs-bar { position: relative; z-index: 2; grid-column: 2; grid-row: 2; display: flex; align-items: center; gap: 14px; margin-bottom: 16px; padding: 8px 10px 8px 12px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(14, 16, 26, 0.55)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.78))); backdrop-filter: blur(14px) brightness(0.8); }

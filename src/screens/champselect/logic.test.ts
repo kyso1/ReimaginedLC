@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { action, cell, session } from '../../test/fixtures';
-import { actingCells, bansByTeam, displayedChampion, flatActions, laneOpponent, myTurn, remainingSeconds, selectPhase } from './logic';
+import { actingCells, allyWants, bansByTeam, displayedChampion, flatActions, laneOpponent, myTurn, remainingSeconds, selectPhase, unavailable } from './logic';
 
 test('flatActions achata os grupos de turno', () => {
   const s = session({ actions: [[action({ id: 1 })], [action({ id: 2 }), action({ id: 3 })]] });
@@ -28,12 +28,26 @@ test('minha vez de escolher e fase de finalização', () => {
   expect(selectPhase(session({ timer: { phase: 'GAME_STARTING', adjustedTimeLeftInPhase: 0, totalTimeInPhase: 0, internalNowInEpochMs: 0, isInfinite: false } as never }))).toBe('none');
 });
 
-test('banimentos por time vêm das ações concluídas, sem os vazios, somados ao campo bans quando houver', () => {
+test('banimentos por time vêm das ações concluídas, com 0 no banimento nulo, somados ao campo bans quando houver', () => {
   const s = session({
     actions: [[action({ type: 'ban', completed: true, championId: 157, isAllyAction: true })], [action({ type: 'ban', completed: true, championId: -1 })], [action({ type: 'ban', completed: true, championId: 266, isAllyAction: false })], [action({ type: 'ban', championId: 10, isInProgress: true })]],
     bans: { myTeamBans: [157, 55], theirTeamBans: [], numBans: 3 } as never,
   });
-  expect(bansByTeam(s)).toEqual({ mine: [157, 55], theirs: [266] });
+  expect(bansByTeam(s)).toEqual({ mine: [157, 0, 55], theirs: [266] });
+});
+
+test('indisponíveis: banidos e travados por outro; com escolhas repetidas só os banidos', () => {
+  const actions = [[action({ type: 'ban', completed: true, championId: 157 })], [action({ actorCellId: 1, type: 'pick', completed: true, championId: 266 }), action({ actorCellId: 0, type: 'pick', completed: true, championId: 103 }), action({ actorCellId: 2, type: 'pick', isInProgress: true, championId: 99 })]];
+  expect(unavailable(session({ actions }))).toEqual(new Map([[157, 'banned'], [266, 'picked']]));
+  expect(unavailable(session({ actions, allowDuplicatePicks: true }))).toEqual(new Map([[157, 'banned']]));
+});
+
+test('aliados querem: intenção do planejamento e destaque da escolha em andamento, sem os meus', () => {
+  const s = session({
+    myTeam: [cell({ cellId: 0, championPickIntent: 1 }), cell({ cellId: 1, championPickIntent: 157 })],
+    actions: [[action({ actorCellId: 2, type: 'pick', isInProgress: true, championId: 266 }), action({ actorCellId: 0, type: 'pick', isInProgress: true, championId: 103 }), action({ actorCellId: 7, type: 'pick', isAllyAction: false, championId: 55 })]],
+  });
+  expect([...allyWants(s)]).toEqual([157, 266]);
 });
 
 test('tempo restante nunca negativo e arredondado para cima', () => {
