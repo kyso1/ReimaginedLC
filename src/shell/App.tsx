@@ -2,6 +2,7 @@ import type { Signal } from '@preact/signals';
 import { h, type JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { t, type TextKey } from '../i18n';
+import { saveError } from './report';
 import type { Lcu } from '../lcu';
 import { request } from '../lcu/request';
 import { Honor } from '../screens/honor/Honor';
@@ -250,6 +251,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   const join: RoomJoin | undefined = room?.password && room.mucJwtDto ? { type: room.type, password: room.password, mucJwtDto: room.mucJwtDto as RoomJoin['mucJwtDto'] } : undefined;
   const onError = (error: unknown) => {
     console.error('[rlc]', error);
+    saveError(error);
     enabled.value = false;
     window.Toast?.error(t('screenFailed'));
   };

@@ -2,7 +2,16 @@ import { prefs } from './prefs';
 
 export const ISSUES_URL = 'https://github.com/kyso1/ReimaginedLC/issues/new?template=bug.yml';
 
-/** Último erro que desligou a camada (start.ts grava em sessionStorage), ou null. */
+/** Guarda o erro que desligou a camada. Sobrevive ao recarregar a página: sessionStorage['rlc:lastError']. */
+export function saveError(error: unknown): void {
+  try {
+    sessionStorage.setItem('rlc:lastError', `${new Date().toISOString()} ${error instanceof Error ? error.stack : String(error)}`);
+  } catch {
+    // sem armazenamento: fica só no console
+  }
+}
+
+/** Último erro que desligou a camada (gravado por `saveError`), ou null. */
 export function lastError(): string | null {
   try {
     return sessionStorage.getItem('rlc:lastError');

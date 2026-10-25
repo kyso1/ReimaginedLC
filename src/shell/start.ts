@@ -1,3 +1,4 @@
+import { saveError } from './report';
 import { effect, signal } from '@preact/signals';
 import { h, render } from 'preact';
 import { setLocale, t } from '../i18n';
@@ -100,12 +101,7 @@ export async function start(): Promise<void> {
     // `h(App, ...)` e não `App(...)`: o Preact precisa montar o componente para os hooks funcionarem.
     const onError = (error: unknown) => {
       console.error('[rlc]', error);
-      // Sobrevive ao recarregar a página: dá para ler depois em sessionStorage['rlc:lastError'].
-      try {
-        sessionStorage.setItem('rlc:lastError', `${new Date().toISOString()} ${error instanceof Error ? error.stack : String(error)}`);
-      } catch {
-        // sem armazenamento: fica só no console
-      }
+      saveError(error);
       enabled.value = false;
       window.Toast?.error(t('screenFailed'));
     };
