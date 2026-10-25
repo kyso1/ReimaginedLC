@@ -1,4 +1,4 @@
-import { cpSync, readdirSync, rmSync } from 'node:fs';
+import { cpSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import preact from '@preact/preset-vite';
 import type { Plugin } from 'vite';
@@ -14,9 +14,11 @@ function copyToPengu(enabled: boolean): Plugin {
     closeBundle() {
       if (!enabled) return;
       const target = join(process.env.PENGU_DIR ?? 'C:\\Program Files\\Pengu Loader', 'plugins', 'ReimaginedLC');
-      // Chunks têm hash no nome: os do build anterior saem antes da cópia para não se acumular na pasta do plugin.
+      // Chunks têm hash no nome. Um client aberto ainda pede os do build que carregou (telas sob demanda): apagar na hora
+      // derruba a próxima tela nova. Saem só os de mais de um dia, para não se acumular na pasta do plugin.
+      const old = Date.now() - 86_400_000;
       try {
-        for (const f of readdirSync(target)) if (f.endsWith('.js')) rmSync(join(target, f));
+        for (const f of readdirSync(target)) if (f.endsWith('.js') && statSync(join(target, f)).mtimeMs < old) rmSync(join(target, f));
       } catch {}
       cpSync('dist/ReimaginedLC', target, { recursive: true });
       console.log(`copiado para ${target}`);
