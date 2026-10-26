@@ -313,4 +313,7 @@ test('abrir vários de uma vez usa o repeat da receita', async () => {
   act(() => root.querySelector<HTMLButtonElement>('[role="dialog"] button[data-variant="primary"]')!.click());
   await settle();
   expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-loot/v1/recipes/CHEST_generic_OPEN/craft?repeat=2')).toBe(true);
+  // A revelação abre depois da resposta: deixa os efeitos dela rodarem antes do teardown do jsdom.
+  await settle();
+  await settle();
 });
