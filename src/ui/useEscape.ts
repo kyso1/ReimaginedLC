@@ -8,7 +8,9 @@ export function useEscape(fn: () => void): void {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') latest.current();
     };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    // A limpeza usa o mesmo documento: pode rodar depois que o global já saiu (fim de teste, camada desligando).
+    const doc = document;
+    doc.addEventListener('keydown', onKey);
+    return () => doc.removeEventListener('keydown', onKey);
   }, []);
 }
