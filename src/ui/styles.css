@@ -561,3 +561,11 @@
 #rlc-root .rlc-honor-card:disabled { cursor: default; }
 #rlc-root .rlc-honor-card:disabled:not([data-voted]) { opacity: 0.45; filter: grayscale(0.6); }
 #rlc-root .rlc-honor-card[data-voted] { border-color: var(--rlc-color-accent); box-shadow: 0 0 0 2px var(--rlc-color-accent), 0 0 24px var(--rlc-color-accent); transform: translateY(-4px); }
+
+/* Troca de página: telas sem entrada própria (o lobby, a seleção e o perfil já animam) sobem um pouco saindo do
+   desfoque. Só ao montar; `backwards` não deixa transform/filter depois (não muda o bloco de contenção dos fixos). */
+@keyframes rlc-page-in { from { opacity: 0; transform: translateY(14px) scale(0.985); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+#rlc-root .rlc-home, #rlc-root .rlc-collection, #rlc-root .rlc-loot-view, #rlc-root .rlc-events, #rlc-root .rlc-clash, #rlc-root .rlc-store, #rlc-root .rlc-settings, #rlc-root .rlc-postgame, #rlc-root .rlc-honor, #rlc-root .rlc-ingame { animation: rlc-page-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+#rlc-root[data-motion='reduced'] .rlc-home, #rlc-root[data-motion='reduced'] .rlc-collection, #rlc-root[data-motion='reduced'] .rlc-loot-view, #rlc-root[data-motion='reduced'] .rlc-events, #rlc-root[data-motion='reduced'] .rlc-clash, #rlc-root[data-motion='reduced'] .rlc-store, #rlc-root[data-motion='reduced'] .rlc-settings, #rlc-root[data-motion='reduced'] .rlc-postgame, #rlc-root[data-motion='reduced'] .rlc-honor, #rlc-root[data-motion='reduced'] .rlc-ingame { animation: rlc-fade 0.25s ease backwards; }
+#rlc-root[data-motion='off'] .rlc-home, #rlc-root[data-motion='off'] .rlc-collection, #rlc-root[data-motion='off'] .rlc-loot-view, #rlc-root[data-motion='off'] .rlc-events, #rlc-root[data-motion='off'] .rlc-clash, #rlc-root[data-motion='off'] .rlc-store, #rlc-root[data-motion='off'] .rlc-settings, #rlc-root[data-motion='off'] .rlc-postgame, #rlc-root[data-motion='off'] .rlc-honor, #rlc-root[data-motion='off'] .rlc-ingame { animation: none; }
+@media (prefers-reduced-motion: reduce) { #rlc-root .rlc-home, #rlc-root .rlc-collection, #rlc-root .rlc-loot-view, #rlc-root .rlc-events, #rlc-root .rlc-clash, #rlc-root .rlc-store, #rlc-root .rlc-settings, #rlc-root .rlc-postgame, #rlc-root .rlc-honor, #rlc-root .rlc-ingame { animation: none; } }
