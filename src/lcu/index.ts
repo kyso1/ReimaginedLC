@@ -79,7 +79,8 @@ export interface Lcu {
   orangeEssence: Signal<StoreState<LolLootPlayerLoot>> & { refresh: () => Promise<void> };
   friendRequests: Signal<StoreState<LolChatFriendRequestResource[]>>;
   conversations: Signal<StoreState<LolChatConversationResource[]>> & { refresh: () => Promise<void> };
-  loot: Signal<StoreState<LolLootPlayerLoot[]>>;
+  /** Espólio; a LCU não manda evento na lista ao criar/abrir: `refresh` relê. */
+  loot: Signal<StoreState<LolLootPlayerLoot[]>> & { refresh: () => Promise<void> };
   /** Eventos por prefixo de URI (mensagens de chat têm o id da mensagem na URI). */
   events: { onPrefix: (prefix: string, fn: (uri: string, eventType: string, data: unknown) => void) => () => void };
 }
@@ -110,6 +111,23 @@ export const createNames = (fetcher: Fetcher = (u) => fetch(u)) =>
     const n = (b as { gameName?: unknown }).gameName;
     return typeof n === 'string' && n ? n : null;
   }, fetcher);
+
+/**
+ * Espólio: a lista não recebe evento quando algo é criado, aberto ou ganho; os avisos chegam em outras URIs do
+ * lol-loot (mapa, item, notificações). Qualquer um deles relê a lista, agrupado em 300 ms.
+ */
+function lootStore(socket: ReturnType<typeof connect>) {
+  const store = createStore<LolLootPlayerLoot[]>('/lol-loot/v1/player-loot', socket);
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  socket.subscribePrefix('/lol-loot/', (uri) => {
+    if (uri === '/lol-loot/v1/player-loot' || timer) return;
+    timer = setTimeout(() => {
+      timer = null;
+      void store.refresh();
+    }, 300);
+  });
+  return store;
+}
 
 /** Abre o único WebSocket do plugin e cria os stores. */
 export function createLcu(doc: Document = document): Lcu {
@@ -157,7 +175,7 @@ export function createLcu(doc: Document = document): Lcu {
     orangeEssence: createStore('/lol-loot/v1/player-loot/CURRENCY_cosmetic', socket),
     friendRequests: createStore('/lol-chat/v2/friend-requests', socket),
     conversations: createListStore('/lol-chat/v1/conversations', socket),
-    loot: createStore('/lol-loot/v1/player-loot', socket),
+    loot: lootStore(socket),
     events: { onPrefix: (prefix, fn) => socket.subscribePrefix(prefix, fn) },
   };
 }

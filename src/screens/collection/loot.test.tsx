@@ -317,3 +317,16 @@ test('abrir vários de uma vez usa o repeat da receita', async () => {
   await settle();
   await settle();
 });
+
+test('depois do craft relê o espólio na hora (a LCU não manda evento na lista)', async () => {
+  const lcu = mount();
+  const refresh = vi.fn(async () => {});
+  lcu.loot.refresh = refresh;
+  await settle();
+  await settle();
+  act(() => root.querySelector<HTMLButtonElement>('.rlc-lt-actions button')!.click());
+  act(() => root.querySelector<HTMLButtonElement>('[role="dialog"] button[data-variant="primary"]')!.click());
+  await settle();
+  await settle();
+  expect(refresh).toHaveBeenCalled();
+});

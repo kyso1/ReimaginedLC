@@ -221,3 +221,45 @@
 #rlc-root .rlc-rc-me[data-avail='away']::after, #rlc-root .rlc-status-avail[data-avail='away'] i { -webkit-mask-image: var(--rlc-st-away); background: var(--rlc-color-away, #e6b04a); }
 #rlc-root .rlc-rc-me[data-avail='offline']::after, #rlc-root .rlc-status-avail[data-avail='offline'] i { -webkit-mask-image: var(--rlc-st-offline); background: var(--rlc-color-textMuted); }
 #rlc-root .rlc-rc-me[data-avail='mobile']::after, #rlc-root .rlc-status-avail[data-avail='mobile'] i { -webkit-mask-image: var(--rlc-st-mobile); background: var(--rlc-color-mobile, #9aa4b8); }
+
+/* Abertura da gaveta: largura com desaceleração longa, rótulos deslizando da direita em cascata (linha a linha),
+   fundo do cabeçalho assentando com um zoom leve. Ao fechar, tudo some rápido e junto, sem cascata. */
+#rlc-root .rlc-rc, #rlc-root .rlc-rc-drawer { transition-duration: 0.46s; transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+#rlc-root .rlc-rc-label { transform: translateX(16px); transition: opacity 0.14s ease, transform 0.2s ease, visibility 0s linear 0.16s; }
+#rlc-root .rlc-rc[data-open='true'] .rlc-rc-label { transform: none; transition: opacity 0.32s ease var(--rlc-rc-delay, 0.08s), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1) var(--rlc-rc-delay, 0.08s), visibility 0s; }
+#rlc-root .rlc-rc-banner { transform: scale(1.08); transition: opacity 0.22s ease, transform 0.3s ease; }
+#rlc-root .rlc-rc[data-open='true'] .rlc-rc-banner { transform: none; transition: opacity 0.4s ease 0.06s, transform 0.9s cubic-bezier(0.22, 1, 0.36, 1); }
+#rlc-root .rlc-rc-inner > .rlc-rc-me-row { --rlc-rc-delay: 0.06s; }
+#rlc-root .rlc-rc-inner > .rlc-rc-tools { --rlc-rc-delay: 0.1s; }
+#rlc-root .rlc-rc-list > :nth-child(1) { --rlc-rc-delay: 0.145s; }
+#rlc-root .rlc-rc-list > :nth-child(2) { --rlc-rc-delay: 0.170s; }
+#rlc-root .rlc-rc-list > :nth-child(3) { --rlc-rc-delay: 0.195s; }
+#rlc-root .rlc-rc-list > :nth-child(4) { --rlc-rc-delay: 0.220s; }
+#rlc-root .rlc-rc-list > :nth-child(5) { --rlc-rc-delay: 0.245s; }
+#rlc-root .rlc-rc-list > :nth-child(6) { --rlc-rc-delay: 0.270s; }
+#rlc-root .rlc-rc-list > :nth-child(7) { --rlc-rc-delay: 0.295s; }
+#rlc-root .rlc-rc-list > :nth-child(8) { --rlc-rc-delay: 0.320s; }
+#rlc-root .rlc-rc-list > :nth-child(9) { --rlc-rc-delay: 0.345s; }
+#rlc-root .rlc-rc-list > :nth-child(10) { --rlc-rc-delay: 0.370s; }
+#rlc-root .rlc-rc-list > :nth-child(11) { --rlc-rc-delay: 0.395s; }
+#rlc-root .rlc-rc-list > :nth-child(12) { --rlc-rc-delay: 0.420s; }
+#rlc-root .rlc-rc-list > :nth-child(n+13) { --rlc-rc-delay: 0.45s; }
+/* Amigos dentro da pasta: cascata própria, um após o outro. */
+#rlc-root .rlc-rc-friend:nth-child(1) { --rlc-rc-delay: 0.19s; }
+#rlc-root .rlc-rc-friend:nth-child(2) { --rlc-rc-delay: 0.22s; }
+#rlc-root .rlc-rc-friend:nth-child(3) { --rlc-rc-delay: 0.25s; }
+#rlc-root .rlc-rc-friend:nth-child(4) { --rlc-rc-delay: 0.28s; }
+#rlc-root .rlc-rc-friend:nth-child(5) { --rlc-rc-delay: 0.31s; }
+#rlc-root .rlc-rc-friend:nth-child(6) { --rlc-rc-delay: 0.34s; }
+#rlc-root .rlc-rc-friend:nth-child(7) { --rlc-rc-delay: 0.37s; }
+#rlc-root .rlc-rc-friend:nth-child(8) { --rlc-rc-delay: 0.40s; }
+#rlc-root .rlc-rc-friend:nth-child(9) { --rlc-rc-delay: 0.43s; }
+#rlc-root .rlc-rc-friend:nth-child(10) { --rlc-rc-delay: 0.46s; }
+#rlc-root .rlc-rc-friend:nth-child(11) { --rlc-rc-delay: 0.49s; }
+#rlc-root .rlc-rc-friend:nth-child(12) { --rlc-rc-delay: 0.52s; }
+#rlc-root .rlc-rc-friend:nth-child(n+13) { --rlc-rc-delay: 0.55s; }
+#rlc-root .rlc-rc-avatar, #rlc-root .rlc-rc-me { transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.15s ease; }
+#rlc-root .rlc-rc-friend:hover .rlc-rc-avatar { transform: scale(1.08); }
+#rlc-root[data-motion='reduced'] .rlc-rc-label, #rlc-root[data-motion='off'] .rlc-rc-label, #rlc-root[data-motion='reduced'] .rlc-rc-banner, #rlc-root[data-motion='off'] .rlc-rc-banner { transform: none; }
+#rlc-root[data-motion='off'] .rlc-rc, #rlc-root[data-motion='off'] .rlc-rc-drawer, #rlc-root[data-motion='off'] .rlc-rc-label, #rlc-root[data-motion='off'] .rlc-rc-banner { transition: none; }
+@media (prefers-reduced-motion: reduce) { #rlc-root .rlc-rc-label, #rlc-root .rlc-rc-banner { transform: none; transition: none; } }

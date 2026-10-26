@@ -167,6 +167,8 @@ function Craft({ lcu }: { lcu: Lcu }) {
     const result = await request<LolLootPlayerLootUpdate>('POST', `/lol-loot/v1/recipes/${encodeURIComponent(menu.name)}/craft?repeat=${repeat}`, ids);
     // Abrir mostra tudo o que veio (inclusive o resgatado na hora, como ícones e essências); desencantar só confirma.
     if (menu.actionType === 'OPEN' || result?.added?.length || result?.redeemed?.length) setReveal({ items: revealItems(result), chest: menu.actionType === 'OPEN' ? from?.tilePath : undefined });
+    // A lista não recebe evento do craft: relê já, para o que saiu sumir e o que entrou aparecer.
+    await Promise.all([lcu.loot.refresh(), lcu.orangeEssence.refresh()]).catch(() => {});
   });
 
   // Bandeja: Essência Laranja (do espólio ou do store próprio), chaves e baús.
