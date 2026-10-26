@@ -174,6 +174,48 @@ const idbCache: Deps['cache'] = {
   set: (c) => tx('readwrite', (s) => s.put(c, 'app')).then(() => undefined),
 };
 
+interface Store {
+  has(key: string): boolean;
+  get(key: string): unknown;
+  set(key: string, value: unknown): void;
+}
+const STORE_KEY = 'rlc-loader.app';
+const base64 = (buf: ArrayBuffer) => {
+  const u = new Uint8Array(buf);
+  let s = '';
+  for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000));
+  return btoa(s);
+};
+const toBuffer = (s: string) => unbase64(s).buffer as ArrayBuffer;
+
+/**
+ * O IndexedDB é da origem `https://127.0.0.1:<porta>` e a porta do client muda a cada abertura: a versão baixada
+ * sumia ao reiniciar e o client voltava para a cópia local. A cópia que vale fica no DataStore do Pengu (arquivo);
+ * o IndexedDB fica de reserva. Tudo é re-verificado ao ler, então o armazenamento não precisa ser confiável.
+ */
+export function persistentCache(store: Store | undefined, fallback: Deps['cache']): Deps['cache'] {
+  return {
+    async get() {
+      try {
+        const v = store?.has(STORE_KEY) ? (store.get(STORE_KEY) as { version?: unknown; manifest?: unknown; sig?: unknown; code?: unknown }) : null;
+        if (v && typeof v.version === 'string' && typeof v.manifest === 'string' && typeof v.sig === 'string' && typeof v.code === 'string')
+          return { version: v.version, manifest: toBuffer(v.manifest), sig: v.sig, code: toBuffer(v.code) };
+      } catch (e) {
+        log('cópia do DataStore ilegível', e);
+      }
+      return fallback.get().catch(() => null);
+    },
+    async set(c) {
+      try {
+        store?.set(STORE_KEY, { version: c.version, manifest: base64(c.manifest), sig: c.sig, code: base64(c.code) });
+      } catch (e) {
+        log('DataStore não guardou', e);
+      }
+      await fallback.set(c).catch(() => {});
+    },
+  };
+}
+
 let app: Promise<AppModule | null> = Promise.resolve(null);
 
 /** Inicia o carregamento com dependências dadas (o `init` do Pengu usa as reais). */
@@ -206,7 +248,7 @@ export function init(context?: { rcp?: Rcp }): void {
   void boot(context, {
     fetcher: (u) => fetch(u),
     importer: (u) => import(/* @vite-ignore */ u) as Promise<AppModule>,
-    cache: idbCache,
+    cache: persistentCache((globalThis as { DataStore?: Store }).DataStore, idbCache),
     base: new URL(/* @vite-ignore */ '.', import.meta.url).href,
   });
 }

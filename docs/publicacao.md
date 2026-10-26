@@ -11,9 +11,9 @@ O repositório fica numa constante só: `REPO` em `loader/index.ts`. Ele precisa
 ## Como o carregador escolhe
 
 1. `init(context)` (síncrono): registra já os `postInit` que o bundle usa (`EARLY_APIS`: `rcp-fe-lol-paw`, `rcp-fe-lol-shared-components`) e entrega ao bundle um contexto que repassa essas APIs quando chegam. Outros nomes vão direto ao Pengu (podem chegar tarde para plugins da loja).
-2. Lê a versão da cópia local (`app/manifest.json`) e a versão guardada no IndexedDB (`rlc-loader`). Se a guardada for mais nova, **re-verifica** assinatura e sha256 e importa os bytes por `blob:`. Senão importa `app/index.js`.
+2. Lê a versão da cópia local (`app/manifest.json`) e a versão guardada no DataStore do Pengu (`rlc-loader.app`; o IndexedDB `rlc-loader` fica de reserva, porque é da origem `127.0.0.1:<porta>` e a porta muda a cada abertura do client). Se a guardada for mais nova, **re-verifica** assinatura e sha256 e importa os bytes por `blob:`. Senão importa `app/index.js`.
 3. Publica `window.__rlcLoader = { version, base, ready }` antes do import (`base` é de onde o bundle busca fontes e temas: jsDelivr versionado ou `app/`).
-4. No início e a cada 6 h consulta `releases/latest` do GitHub (60 req/h sem login). Versão mais nova: baixa `manifest.json`, `manifest.sig` e `index.js`, verifica, guarda no IndexedDB e emite `rlc:update-ready`.
+4. No início e a cada 6 h consulta `releases/latest` do GitHub (60 req/h sem login). Versão mais nova: baixa `manifest.json`, `manifest.sig` e `index.js`, verifica, guarda (DataStore e IndexedDB) e emite `rlc:update-ready`. No próximo início do client a versão guardada já sobe sozinha.
 5. O bundle (`src/shell/update.ts`) mostra "Atualização pronta" com **Recarregar** em Configurações → Geral (e um Toast). O botão só fica ativo nas fases None, Lobby, PreEndOfGame, WaitingForStats e EndOfGame. Nunca recarrega sozinho.
 
 Segurança: o carregador só executa bytes que ele mesmo verificou (ECDSA P-256 / SHA-256 sobre o `manifest.json`, chave pública em `PUBLIC_KEY`, depois sha256 do `index.js`). Nunca faz `import()` de URL remota. Fontes e temas (não são código) vêm por URL versionada. Qualquer falha (rede, assinatura, hash) cai para a cópia local e só loga no console.

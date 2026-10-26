@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { buildManifest, writeSigned } from '../scripts/manifest';
-import { boot, cdnBase, checkLatest, download, LATEST_API, pickApp, proxyContext, verify, type Cached, type Deps } from './index';
+import { boot, cdnBase, checkLatest, download, LATEST_API, persistentCache, pickApp, proxyContext, verify, type Cached, type Deps } from './index';
 import { isNewer, UPDATE_EVENT } from './shared';
 
 // Par de chaves só do teste: a chave real nunca entra aqui.
@@ -148,4 +148,19 @@ test('boot: publica o estado antes do import, importa só blob: ou local, e anun
   expect(next.importer.mock.calls[0]![0]).toMatch(/^blob:/);
   neverRemote(next.importer);
   vi.useRealTimers();
+});
+
+test('versão baixada sobrevive ao reinício: fica no DataStore (o IndexedDB muda com a porta do client)', async () => {
+  const m = new Map<string, unknown>();
+  const store = { has: (k: string) => m.has(k), get: (k: string) => m.get(k), set: (k: string, v: unknown) => void m.set(k, v) };
+  const lost = { get: async () => null, set: async () => {} };
+  const bytes = (s: string) => new TextEncoder().encode(s).buffer as ArrayBuffer;
+  const c: Cached = { version: '0.3.0', manifest: bytes('{"version":"0.3.0"}'), sig: 'c2ln', code: bytes('export const x = 1;') };
+  await persistentCache(store, lost).set(c);
+  // "Reinício": cache novo, IndexedDB vazio.
+  const back = await persistentCache(store, lost).get();
+  expect(back?.version).toBe('0.3.0');
+  expect(new TextDecoder().decode(back!.code)).toBe('export const x = 1;');
+  expect(new TextDecoder().decode(back!.manifest)).toBe('{"version":"0.3.0"}');
+  expect(await persistentCache(undefined, lost).get()).toBeNull();
 });
