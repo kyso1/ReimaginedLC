@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { fakeLcu, ready } from '../../test/fixtures';
-import { actionLabel, Loot, lootGroup, lootName, rarityLabel } from './Loot';
+import { actionLabel, Loot, lootGroup, lootName, lootStrings, rarityLabel, revealItems } from './Loot';
 
 let root: HTMLElement;
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -50,7 +50,8 @@ function mount(loot = LOOT) {
 }
 
 test('grupos e nomes: nunca o id técnico; moedas fora da grade', () => {
-  expect(lootGroup(LOOT[0] as never)).toBe('materials');
+  expect(lootGroup(LOOT[0] as never)).toBe('chests');
+  expect(lootGroup(LOOT[1] as never)).toBe('materials');
   expect(lootGroup(LOOT[2] as never)).toBe('champions');
   expect(lootGroup(LOOT[5] as never)).toBe('wards');
   expect(lootGroup({ displayCategories: 'ETERNALS' })).toBe('eternals');
@@ -58,9 +59,9 @@ test('grupos e nomes: nunca o id técnico; moedas fora da grade', () => {
   expect(lootName(LOOT[1] as never)).toBe('Chave Hextec');
   expect(lootName(item('MATERIAL_new', '') as never)).toBe('Item de espólio');
   mount();
-  expect(sections()).toEqual(['Materiais 2', 'Campeões 2', 'Skins 1', 'Sentinelas 1']);
+  expect(sections()).toEqual(['Baús 1', 'Materiais 1', 'Campeões 2', 'Skins 1', 'Sentinelas 1']);
   expect(names()).toEqual(['Baú Hextec', 'Chave Hextec', 'Aatrox', 'Ahri', 'Viego Dissonância', 'Sentinela Poro']);
-  expect(root.textContent).not.toMatch(/CHAMPION_RENTAL|MATERIAL_key|Essência Mítica/);
+  expect(root.textContent).not.toMatch(/CHAMPION_RENTAL|MATERIAL_key/);
 });
 
 test('trilho filtra com contagem; busca e ordenação', () => {
@@ -96,7 +97,7 @@ test('trilho filtra com contagem; busca e ordenação', () => {
   expect(names()).toEqual(['Ahri', 'Aatrox']);
   act(() => rail('Todos').click());
   pick('rarity');
-  expect(sections()).toEqual(['Materiais 2', 'Campeões 2', 'Skins 1', 'Sentinelas 1']);
+  expect(sections()).toEqual(['Baús 1', 'Materiais 1', 'Campeões 2', 'Skins 1', 'Sentinelas 1']);
   pick('name');
   expect(names().slice(2, 4)).toEqual(['Aatrox', 'Ahri']);
 });
@@ -118,8 +119,8 @@ test('palco mostra quantidade e as ações do menu da LCU; desabilitadas ficam d
   expect(root.querySelector('.rlc-lt-stage h2')!.textContent).toBe('Baú Hextec');
   expect(root.querySelector('.rlc-lt-stage p')!.textContent).toContain('×2');
   const actions = [...root.querySelectorAll<HTMLButtonElement>('.rlc-lt-actions button')];
-  expect(actions.map((b) => b.textContent)).toEqual(['Abrir', 'Desencantar']);
-  expect(actions[1]!.disabled).toBe(true);
+  expect(actions.map((b) => b.textContent)).toEqual(['Abrir', 'Todos ×2', 'Desencantar']);
+  expect(actions[2]!.disabled).toBe(true);
 });
 
 test('ação pede confirmação, cria pela receita com os itens envolvidos e revela o que saiu', async () => {
@@ -135,6 +136,9 @@ test('ação pede confirmação, cria pela receita com os itens envolvidos e rev
   const call = fetchMock.mock.calls.find((c) => String(c[0]).startsWith('/lol-loot/v1/recipes/CHEST_generic_OPEN/craft'))!;
   expect(call[0]).toBe('/lol-loot/v1/recipes/CHEST_generic_OPEN/craft?repeat=1');
   expect(JSON.parse(call[1].body)).toEqual(['CHEST_generic', 'MATERIAL_key']);
+  // Primeiro o baú tremendo; o clique pula para os cartões.
+  expect(root.querySelector('.rlc-reveal-chest img')!.getAttribute('src')).toBe('/t/CHEST_generic.png');
+  act(() => root.querySelector<HTMLElement>('.rlc-reveal')!.click());
   expect(root.querySelector('.rlc-lt-reveal')!.textContent).toContain('Skin de Ahri');
 });
 
@@ -152,7 +156,7 @@ test('cancelar a confirmação não cria nada', async () => {
 test('bandeja: Essência Laranja, chaves e baús', () => {
   mount();
   const tray = [...root.querySelectorAll('.rlc-lt-tray .rlc-lt-balance')].map((b) => b.textContent);
-  expect(tray).toEqual(['754Essência Laranja', '3Chaves', '2Baús']);
+  expect(tray).toEqual(['754Essência Laranja', '3Chaves', '102Essência Mítica', '2Baús']);
   expect(root.querySelector<HTMLImageElement>('.rlc-lt-tray img')!.getAttribute('src')).toBe('/fe/lol-loot/assets/tray_icons/currency_cosmetic.png');
 });
 
@@ -286,4 +290,27 @@ test('reformular: sem duplo envio enquanto a criação está em andamento', asyn
   expect(crafts()).toHaveLength(1);
   release(new Response('{"added":[],"removed":[],"redeemed":[]}', { status: 200 }));
   await settle();
+});
+
+test('baú sem nome da LCU usa o texto do próprio client; revelação soma o que entrou e o resgatado na hora', () => {
+  lootStrings.value = { loot_name_chest_128: 'Cápsula de Campeão' };
+  expect(lootName(item('CHEST_128', 'CHEST') as never)).toBe('Cápsula de Campeão');
+  lootStrings.value = {};
+  const pl = (lootId: string, itemDesc: string, rarity = 'DEFAULT') => ({ lootId, itemDesc, localizedName: '', tilePath: `/t/${lootId}.png`, rarity });
+  const r = { added: [{ deltaCount: 1, playerLoot: pl('CHAMPION_RENTAL_1', 'Annie') }, { deltaCount: 1, playerLoot: pl('CHAMPION_RENTAL_1', 'Annie') }], removed: [], redeemed: [{ deltaCount: 1, playerLoot: pl('EMOTE_9', 'Poro', 'MYTHIC') }] };
+  expect(revealItems(r as never)).toEqual([
+    { name: 'Annie', art: '/t/CHAMPION_RENTAL_1.png', count: 2, chase: false },
+    { name: 'Poro', art: '/t/EMOTE_9.png', count: 1, chase: true },
+  ]);
+});
+
+test('abrir vários de uma vez usa o repeat da receita', async () => {
+  mount();
+  await settle();
+  await settle();
+  act(() => [...root.querySelectorAll<HTMLButtonElement>('.rlc-lt-actions button')].find((b) => b.textContent === 'Todos ×2')!.click());
+  expect(root.querySelector('[role="dialog"]')!.textContent).toContain('Abrir: Baú Hextec ×2?');
+  act(() => root.querySelector<HTMLButtonElement>('[role="dialog"] button[data-variant="primary"]')!.click());
+  await settle();
+  expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-loot/v1/recipes/CHEST_generic_OPEN/craft?repeat=2')).toBe(true);
 });

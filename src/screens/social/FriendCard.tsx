@@ -6,6 +6,7 @@ import type { LolChatFriendResource } from '../../lcu/types';
 import { Rank, rankedQueueOf } from '../../ui/Rank';
 import { formatClock } from '../lobby/format';
 import { tierLabel } from '../profile/data';
+import { useDecoded } from '../../ui/useDecoded';
 
 export const profileIcon = (id: number | undefined) => (id ? `/lol-game-data/assets/v1/profile-icons/${id}.jpg` : '');
 
@@ -80,6 +81,23 @@ function useChampion(lcu: Lcu, id: number): Champion | null {
   return c;
 }
 
+/** Splash do fundo de perfil do amigo, como no client (mesma do Perfil dele). */
+function useBanner(lcu: Lcu, puuid: string): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    setUrl(null);
+    if (!puuid) return;
+    let live = true;
+    void lcu
+      .profile(puuid)
+      .then((pr) => (pr?.backgroundSkinId ? lcu.game.splash(pr.backgroundSkinId) : null))
+      .then((u) => live && setUrl(u))
+      .catch(() => {});
+    return () => void (live = false);
+  }, [puuid]);
+  return useDecoded(url);
+}
+
 /** Relógio da partida desde `lol.timeStamp` (início do jogo, em ms). */
 function useElapsed(start: number): string {
   const [now, setNow] = useState(Date.now());
@@ -103,8 +121,10 @@ export function FriendCard({ lcu, friend: f, top }: { lcu: Lcu; friend: Friend; 
   const ranked = rankedQueueOf(Number(lol.queueId));
   const soloLabel = tierLabel(lol.rankedLeagueTier, lol.rankedLeagueDivision);
   const lastSeen = p === 'offline' ? Number(f.lastSeenOnlineTimestamp) : 0;
+  const banner = useBanner(lcu, f.puuid);
   return (
     <div class="rlc-fcard" role="tooltip" style={{ top: `${top}px` }} data-group={p}>
+      {banner ? <div class="rlc-fcard-banner" aria-hidden="true" style={{ backgroundImage: `url("${banner}")` }} /> : null}
       <div class="rlc-fcard-head">
         <span class="rlc-fcard-icon">{f.icon ? <img src={profileIcon(f.icon)} alt="" /> : null}</span>
         <span class="rlc-fcard-id">

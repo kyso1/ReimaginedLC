@@ -279,13 +279,14 @@ function Sound() {
   );
 }
 
-type BoolPref = 'runesAuto' | 'runesMatchup' | 'runesApplyOnLock' | 'allSplashes' | 'dodge';
+type BoolPref = 'runesAuto' | 'runesMatchup' | 'runesApplyOnLock' | 'allSplashes' | 'dodge' | 'nameReveal';
 const PLUGINS: Array<[BoolPref, TextKey, TextKey]> = [
   ['runesAuto', 'stRunesAuto', 'stRunesAutoDesc'],
   ['runesMatchup', 'stRunesMatchup', 'stRunesMatchupDesc'],
   ['runesApplyOnLock', 'stRunesLock', 'stRunesLockDesc'],
   ['allSplashes', 'stAllSplashes', 'stAllSplashesDesc'],
   ['dodge', 'stDodge', 'stDodgeDesc'],
+  ['nameReveal', 'stNameReveal', 'stNameRevealDesc'],
 ];
 
 function Plugins() {
@@ -505,7 +506,10 @@ function BackgroundSection({ lcu }: { lcu: Lcu }) {
     if (!MEDIA.test(file.type)) return void window.Toast?.error(t('stFileType'));
     if (file.size > MAX_MEDIA_BYTES) return void window.Toast?.error(t('stFileTooBig'));
     const key = `bg-${Date.now()}`;
-    if (!(await putMedia(key, file))) return void window.Toast?.error(t('stFileFailed'));
+    const saved = await putMedia(key, file);
+    if (!saved) return void window.Toast?.error(t('stFileFailed'));
+    // Grande demais para a cópia que sobrevive: vale só até fechar o client.
+    if (saved === 'session') window.Toast?.error(t('stFileSession'));
     const previous = current.kind === 'file' ? current.key : null;
     setSource({ kind: 'file', key, mime: file.type });
     // O arquivo anterior desta fonte só sai se nenhuma outra fonte ainda usa.

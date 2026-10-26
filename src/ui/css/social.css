@@ -196,3 +196,28 @@
 #rlc-root .rlc-chat-empty, #rlc-root .rlc-chat-pick { margin: auto; padding: 16px; text-align: center; }
 #rlc-root .rlc-chat-dock .rlc-chat-window { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 #rlc-root .rlc-chat-dock .rlc-chat-window header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 8px; border-bottom: 1px solid var(--rlc-color-border); }
+/* Cartão do amigo: o fundo de perfil dele no topo, sumindo para o vidro. */
+#rlc-root .rlc-fcard { overflow: hidden; }
+#rlc-root .rlc-fcard-banner { position: absolute; left: 0; right: 0; top: 0; height: 120px; background-size: cover; background-position: center 20%; -webkit-mask-image: linear-gradient(180deg, black 30%, transparent); opacity: 0.75; animation: rlc-fade var(--rlc-motion-duration) var(--rlc-motion-easing) both; }
+#rlc-root .rlc-fcard > :not(.rlc-fcard-banner) { position: relative; }
+#rlc-root .rlc-fcard-banner ~ .rlc-fcard-head { margin-top: 44px; }
+
+/* Ícones de status: formas diferentes por estado (não só a cor): bolinha online, play em jogo, lua ausente,
+   anel offline, celular e controle (Discord). Máscara SVG pintada com a cor do estado; um disco da cor do fundo atrás. */
+#rlc-root { --rlc-st-online: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Ccircle cx='6' cy='6' r='5.5'/%3E%3C/svg%3E"); --rlc-st-playing: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill-rule='evenodd' d='M6 .5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zM4.7 3.4v5.2L8.9 6z'/%3E%3C/svg%3E"); --rlc-st-away: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M7.4.7A5.5 5.5 0 1 0 11.4 7.6 4.4 4.4 0 0 1 7.4.7z'/%3E%3C/svg%3E"); --rlc-st-offline: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill-rule='evenodd' d='M6 .5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zm0 2.6a2.9 2.9 0 1 0 0 5.8 2.9 2.9 0 0 0 0-5.8z'/%3E%3C/svg%3E"); --rlc-st-mobile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill-rule='evenodd' d='M4 .5h4A1.5 1.5 0 0 1 9.5 2v8A1.5 1.5 0 0 1 8 11.5H4A1.5 1.5 0 0 1 2.5 10V2A1.5 1.5 0 0 1 4 .5zM4 2.2v6.3h4V2.2z'/%3E%3C/svg%3E"); --rlc-st-discord: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill-rule='evenodd' d='M3.6 2.5h4.8c1.4 0 2.2 1 2.6 2.6l.5 2.6c.2 1.2-1.1 1.9-2 1.1L8.3 7.7H3.7L2.5 8.8c-.9.8-2.2.1-2-1.1L1 5.1c.4-1.6 1.2-2.6 2.6-2.6zM4 4.4a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8zm4 0a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8z'/%3E%3C/svg%3E"); }
+#rlc-root .rlc-rc-avatar::before, #rlc-root .rlc-rc-me::before { content: ''; position: absolute; right: -3px; bottom: -3px; width: 15px; height: 15px; border-radius: 50%; background: var(--rlc-color-bg); }
+#rlc-root .rlc-rc-me::before { width: 17px; height: 17px; right: -4px; bottom: -4px; }
+#rlc-root .rlc-rc-avatar::after, #rlc-root .rlc-rc-me::after, #rlc-root .rlc-status-avail i, #rlc-root .rlc-fcard-dot { border: 0; border-radius: 0; -webkit-mask: var(--rlc-st-online) center / contain no-repeat; background: var(--rlc-color-online, #5fd18a); }
+#rlc-root .rlc-rc-avatar::after { right: -1px; bottom: -1px; width: 11px; height: 11px; }
+#rlc-root .rlc-rc-me::after { right: -2px; bottom: -2px; width: 13px; height: 13px; }
+#rlc-root .rlc-status-avail i, #rlc-root .rlc-fcard-dot { width: 10px; height: 10px; }
+#rlc-root .rlc-chat-item .rlc-rc-avatar::before { display: none; }
+#rlc-root .rlc-rc-avatar[data-group='playing']::after, #rlc-root .rlc-fcard[data-group='playing'] .rlc-fcard-dot { -webkit-mask-image: var(--rlc-st-playing); background: var(--rlc-color-playing, #5aa0ff); }
+#rlc-root .rlc-rc-avatar[data-group='away']::after, #rlc-root .rlc-fcard[data-group='away'] .rlc-fcard-dot { -webkit-mask-image: var(--rlc-st-away); background: var(--rlc-color-away, #e6b04a); }
+#rlc-root .rlc-rc-avatar[data-group='offline']::after, #rlc-root .rlc-fcard[data-group='offline'] .rlc-fcard-dot { -webkit-mask-image: var(--rlc-st-offline); background: var(--rlc-color-textMuted); }
+#rlc-root .rlc-rc-avatar[data-group='mobile']::after, #rlc-root .rlc-fcard[data-group='mobile'] .rlc-fcard-dot { -webkit-mask-image: var(--rlc-st-mobile); background: var(--rlc-color-mobile, #9aa4b8); }
+#rlc-root .rlc-rc-avatar[data-group='discord']::after, #rlc-root .rlc-fcard[data-group='discord'] .rlc-fcard-dot { -webkit-mask-image: var(--rlc-st-discord); background: var(--rlc-color-discord, #7b86f0); }
+#rlc-root .rlc-rc-me[data-avail='dnd']::after, #rlc-root .rlc-status-avail[data-avail='dnd'] i { -webkit-mask-image: var(--rlc-st-playing); background: var(--rlc-color-playing, #5aa0ff); }
+#rlc-root .rlc-rc-me[data-avail='away']::after, #rlc-root .rlc-status-avail[data-avail='away'] i { -webkit-mask-image: var(--rlc-st-away); background: var(--rlc-color-away, #e6b04a); }
+#rlc-root .rlc-rc-me[data-avail='offline']::after, #rlc-root .rlc-status-avail[data-avail='offline'] i { -webkit-mask-image: var(--rlc-st-offline); background: var(--rlc-color-textMuted); }
+#rlc-root .rlc-rc-me[data-avail='mobile']::after, #rlc-root .rlc-status-avail[data-avail='mobile'] i { -webkit-mask-image: var(--rlc-st-mobile); background: var(--rlc-color-mobile, #9aa4b8); }

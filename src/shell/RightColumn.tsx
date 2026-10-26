@@ -16,7 +16,7 @@ const byPresence = (a: Friend, b: Friend) => PRESENCE_ORDER.indexOf(presenceOf(a
 const groupLabel = (g: Pick<LolChatGroupResource, 'name'>) => (g.name === '**Default' ? t('groupGeneral') : g.name);
 const availabilityKey = (a: string | undefined): TextKey => (a === 'away' ? 'statusAway' : a === 'offline' ? 'statusInvisible' : a === 'dnd' ? 'statusDnd' : a === 'mobile' ? 'statusMobile' : 'statusOnline');
 /** Altura reservada ao cartão para não sair por baixo da janela. */
-const CARD_ROOM = 240;
+const CARD_ROOM = 300;
 
 const MY_PROFILE = '/lol-summoner/v1/current-summoner/summoner-profile';
 
@@ -207,7 +207,21 @@ function FriendFolders({ lcu, friends, groups, query, avatar, onFriend, menuFor,
   const row = (f: Friend) => {
     const p = presenceOf(f);
     return (
-      <div key={f.puuid || f.id} class="rlc-rc-row rlc-rc-friend" data-group={p} onMouseEnter={(e) => onHover(f, e.currentTarget)} onMouseLeave={onLeave}>
+      <div
+        key={f.puuid || f.id}
+        class="rlc-rc-row rlc-rc-friend"
+        data-group={p}
+        onMouseEnter={(e) => onHover(f, e.currentTarget)}
+        onMouseLeave={onLeave}
+        // Clique direito abre o mesmo menu do ⋯ da linha.
+        onContextMenu={(e) => {
+          const more = e.currentTarget.querySelector<HTMLButtonElement>('.rlc-col-menu');
+          if (!more) return;
+          e.preventDefault();
+          onLeave();
+          more.click();
+        }}
+      >
         <div class="rlc-rc-label">
           <button type="button" class="rlc-rc-friend-main" onClick={() => onFriend?.(f)}>
             <span class="rlc-rc-fname">{friendName(f)}</span>

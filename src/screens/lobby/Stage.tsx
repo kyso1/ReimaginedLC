@@ -6,6 +6,7 @@ import type { LolLobbyLobbyParticipantDto } from '../../lcu/types';
 import { Rank } from '../../ui/Rank';
 import { useDecoded } from '../../ui/useDecoded';
 import { PositionIcons } from './Positions';
+import { profileIcon } from '../social/FriendCard';
 
 export type Participant = LolLobbyLobbyParticipantDto;
 
@@ -39,9 +40,11 @@ interface ColumnProps {
   companions?: Lcu['game']['companions'];
   /** TFT: clique na Pequena Lenda (só a do jogador local) abre Personalizar. */
   onLegend?: () => void;
+  /** Jogo Rápido: as vagas (campeão e rota) do membro, abaixo do elo. */
+  slots?: ComponentChildren;
 }
 
-export function Column({ member, profile, name, splash: splashOf, isLocal = false, showPositions = false, label, editPositions = false, rankQueue = null, menu, empty, companions, onLegend }: ColumnProps) {
+export function Column({ member, profile, name, splash: splashOf, isLocal = false, showPositions = false, label, editPositions = false, rankQueue = null, menu, empty, companions, onLegend, slots }: ColumnProps) {
   const legend = useLegend(companions ? member : null, companions);
   const splash = useDecoded(useSplash(companions ? null : member, profile, splashOf));
   const resolved = useName(member, name);
@@ -55,11 +58,14 @@ export function Column({ member, profile, name, splash: splashOf, isLocal = fals
   const body = (
     <>
       <span class="rlc-col-name">
-        {label ?? resolved}
+        {/* TFT: ícone de perfil à esquerda do nome (no LoL quem identifica é o fundo de perfil). */}
+        {companions && !member.isBot && member.summonerIconId ? <img class="rlc-col-icon" src={profileIcon(member.summonerIconId)} alt="" /> : null}
+        <span class="rlc-col-nick">{label ?? resolved}</span>
         {member.isLeader ? <span class="rlc-col-leader" title={t('leaderMark')} aria-label={t('leaderMark')}> ★</span> : null}
       </span>
       {showPositions ? <PositionIcons first={member.firstPositionPreference} second={member.secondPositionPreference} editable={editPositions} /> : null}
       {member.isBot ? null : <Rank puuid={member.puuid} queue={rankQueue} />}
+      {slots}
     </>
   );
   // Quem ainda não pode entrar na fila (atualizando, com o client ocupado) fica apagado com reticências no meio.
@@ -74,6 +80,8 @@ export function Column({ member, profile, name, splash: splashOf, isLocal = fals
         </span>
       ) : null}
       {splash ? <div class="rlc-col-splash" style={{ backgroundImage: `url("${splash}")` }} /> : null}
+      {/* TFT: a própria Pequena Lenda, desfocada, é o fundo da coluna e do cartão. */}
+      {legend ? <div class="rlc-col-splash rlc-col-legend-bg" style={{ backgroundImage: `url("${legend.icon}")` }} aria-hidden="true" /> : null}
       {legend ? (
         <div class="rlc-col-legend">
           {onLegend ? (

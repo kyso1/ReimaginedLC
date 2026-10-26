@@ -68,8 +68,10 @@ export function Profile({ lcu, puuid }: { lcu: Lcu; puuid: string }) {
   const [tab, setTab] = useState<Tab>('summary');
   // Aba para onde vai quando o quadro do histórico termina de descer; null = quadro parado.
   const [leaving, setLeaving] = useState<Tab | null>(null);
-  // Com o quadro aberto, trocar de aba (ou clicar no histórico de novo) desce o quadro antes.
-  const pick = (k: Tab) => (tab === 'history' ? setLeaving(k === 'history' ? 'summary' : k) : setTab(k));
+  // Histórico e Ranqueadas sobem num quadro abaixo do nome. Com o quadro aberto, trocar de aba (ou clicar na mesma
+  // de novo) desce o quadro antes.
+  const sheet = tab === 'history' || tab === 'ranked';
+  const pick = (k: Tab) => (sheet ? setLeaving(k === tab ? 'summary' : k) : setTab(k));
   const id = encodeURIComponent(puuid);
   const summoner = useFetched<Summoner>(`/lol-summoner/v2/summoners/puuid/${id}`);
   const ranked = useFetched<Ranked>(`/lol-ranked/v1/ranked-stats/${id}`);
@@ -115,7 +117,7 @@ export function Profile({ lcu, puuid }: { lcu: Lcu; puuid: string }) {
     .join(' · ');
 
   return (
-    <section class="rlc-profile" data-tab={tab} data-sheet={tab === 'history' && !leaving ? 'true' : undefined}>
+    <section class="rlc-profile" data-tab={tab} data-sheet={sheet && !leaving ? 'true' : undefined}>
       <div class="rlc-pf-bg" style={splash ? { backgroundImage: `url("${splash}")` } : undefined} />
       <nav class="rlc-tabs-text">
         {TABS.map(([k, label]) => (
@@ -124,7 +126,7 @@ export function Profile({ lcu, puuid }: { lcu: Lcu; puuid: string }) {
           </button>
         ))}
       </nav>
-      {tab === 'summary' || tab === 'history' ? (
+      {tab === 'summary' || sheet ? (
         <div class="rlc-pf-showcase">
           <Badge look={look} banners={banners} onEdit={own ? setCustomizing : undefined} bare />
           <div class="rlc-pf-who">
@@ -156,8 +158,10 @@ export function Profile({ lcu, puuid }: { lcu: Lcu; puuid: string }) {
           onClose={() => setCustomizing(null)}
         />
       ) : null}
-      {tab === 'history' ? (
+      {sheet ? (
         <HistorySheet
+          key={tab}
+          label={t(tab === 'ranked' ? 'profileRanked' : 'profileHistory')}
           leaving={!!leaving}
           onLeave={() => !customizing && setLeaving('summary')}
           onClosed={() => {
@@ -165,10 +169,9 @@ export function Profile({ lcu, puuid }: { lcu: Lcu; puuid: string }) {
             setLeaving(null);
           }}
         >
-          <History lcu={lcu} puuid={puuid} ranked={ranked} />
+          {tab === 'ranked' ? <RankedCards ranked={ranked} /> : <History lcu={lcu} puuid={puuid} ranked={ranked} />}
         </HistorySheet>
       ) : null}
-      {tab === 'ranked' ? <RankedCards ranked={ranked} /> : null}
       {tab === 'mastery' ? <Mastery lcu={lcu} puuid={puuid} /> : null}
     </section>
   );
@@ -183,13 +186,13 @@ const FILTERS: Array<[QueueFilter, TextKey]> = [
 const PAGE = 20;
 
 /** Quadro de vidro que sobe sobre o perfil; desce (animado) quando `leaving` liga, e só então avisa `onClosed`. */
-function HistorySheet({ leaving, onLeave, onClosed, children }: { leaving: boolean; onLeave: () => void; onClosed: () => void; children: ComponentChildren }) {
+function HistorySheet({ label, leaving, onLeave, onClosed, children }: { label: string; leaving: boolean; onLeave: () => void; onClosed: () => void; children: ComponentChildren }) {
   const ref = useRef<HTMLDivElement>(null);
   const close = useDrawerClose(ref, onClosed);
   useEffect(() => void (leaving && close()), [leaving]);
   useEscape(onLeave);
   return (
-    <div ref={ref} class="rlc-pf-sheet" role="region" aria-label={t('profileHistory')}>
+    <div ref={ref} class="rlc-pf-sheet" role="region" aria-label={label}>
       {children}
     </div>
   );

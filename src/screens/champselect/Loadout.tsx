@@ -178,6 +178,9 @@ export function Loadout({ me, spells, gameMode, pageName, onRunes, summonerId }:
   const [open, setOpen] = useState<1 | 2 | null>(null);
   const setSpells = useAction((body: { spell1Id?: number; spell2Id?: number }) => request('PATCH', MY_SELECTION, body));
   const available = [...spells.values()].filter((s) => !gameMode || s.gameModes.includes(gameMode)).sort((a, b) => a.name.localeCompare(b.name));
+  // Arena: o mapa não tem runas e os dois feitiços do modo são fixos (Flash e Fuga), como no client.
+  const arena = gameMode === 'CHERRY';
+  const fixed = arena || (available.length > 0 && available.length <= 2);
   const slots: Array<[1 | 2, number]> = [
     [1, me.spell1Id],
     [2, me.spell2Id],
@@ -196,7 +199,7 @@ export function Loadout({ me, spells, gameMode, pageName, onRunes, summonerId }:
           const spell = spells.get(id);
           const label = `${t('spell')} ${slot}: ${spell?.name ?? id}`;
           return (
-            <button type="button" key={slot} class="rlc-cs-spell-slot" aria-label={label} title={label} aria-expanded={open === slot} onClick={() => setOpen(open === slot ? null : slot)}>
+            <button type="button" key={slot} class="rlc-cs-spell-slot" aria-label={label} title={label} aria-expanded={fixed ? undefined : open === slot} disabled={fixed} onClick={() => setOpen(open === slot ? null : slot)}>
               {spell?.icon ? <img src={spell.icon} alt="" /> : String(id)}
             </button>
           );
@@ -211,12 +214,14 @@ export function Loadout({ me, spells, gameMode, pageName, onRunes, summonerId }:
           </div>
         ) : null}
       </div>
-      <div class="rlc-cs-runes">
-        <span class="rlc-cs-page-name">{pageName ?? t('runeNoPage')}</span>
-        <button type="button" class="rlc-button" data-variant="pill" onClick={onRunes}>
-          {t('runeOpen')}
-        </button>
-      </div>
+      {arena ? null : (
+        <div class="rlc-cs-runes">
+          <span class="rlc-cs-page-name">{pageName ?? t('runeNoPage')}</span>
+          <button type="button" class="rlc-button" data-variant="pill" onClick={onRunes}>
+            {t('runeOpen')}
+          </button>
+        </div>
+      )}
       <WardPicker summonerId={summonerId} />
     </div>
   );

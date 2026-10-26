@@ -113,12 +113,32 @@ export function useChatSound(lcu: Lcu, visibleId: string | null): void {
   }, [lcu]);
 }
 
+/**
+ * Conversas abertas na tela, a última por cima. A ativa na LCU é a que o client marca como lida (zera
+ * `unreadMessageCount` e tira o aviso); sem nenhuma aberta, nenhuma fica ativa e as novas voltam a contar.
+ */
+const opened: string[] = [];
+const ACTIVE = '/lol-chat/v1/conversations/active';
+// Silencioso: conversa que sumiu não vira aviso de erro.
+const setActive = (id?: string) => void fetch(ACTIVE, id ? { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) } : { method: 'DELETE' }).catch(() => {});
+function useActiveConversation(id: string): void {
+  useEffect(() => {
+    opened.push(id);
+    setActive(id);
+    return () => {
+      opened.splice(opened.lastIndexOf(id), 1);
+      setActive(opened[opened.length - 1]);
+    };
+  }, [id]);
+}
+
 /** Avisos de entrada e saída da sala que a LCU grava como mensagem de sistema. */
 const ROOM_NOISE = new Set(['joined_room', 'left_room']);
 
 /** Mensagens e campo de envio. Mensagens de sistema em cinza; texto sempre como texto (links não abrem). */
 export function ChatBody({ lcu, conversationId }: { lcu: Lcu; conversationId: string }) {
   const messages = useConversation(lcu, conversationId);
+  useActiveConversation(conversationId);
   const me = lcu.chatMe.value.data?.puuid;
   const author = useAuthors(lcu, conversationId, messages);
   const shown = messages.filter((m) => !(m.type === 'system' && ROOM_NOISE.has(m.body)));

@@ -48,8 +48,8 @@ test('histórico com cache por puuid', async () => {
   expect(f).toHaveBeenCalledWith('/lol-match-history/v1/products/lol/p%201/matches?begIndex=0&endIndex=20');
 });
 
-function Probe({ s, out }: { s: ReturnType<typeof session>; out: (m: Map<number, unknown>) => void }) {
-  out(useRealNames(s));
+function Probe({ s, out, on = true }: { s: ReturnType<typeof session>; out: (m: Map<number, unknown>) => void; on?: boolean }) {
+  out(useRealNames(s, on).byCell);
   return null;
 }
 
@@ -73,5 +73,30 @@ test('tenta de novo enquanto a sala não tem todos e para quando casa todo mundo
   const before = f.mock.calls.length;
   await act(async () => void (await vi.advanceTimersByTimeAsync(10000)));
   expect(f.mock.calls.length).toBe(before);
+  render(null, root);
+});
+
+test('desligado não consulta a sala nem o mapa de silenciar', async () => {
+  const f = vi.fn(async () => new Response('{}', { status: 200 }));
+  vi.stubGlobal('fetch', f);
+  const s = session({ myTeam: [cell({ cellId: 0, puuid: 'p0' })] });
+  const root = document.createElement('div');
+  await act(async () => render(<Probe s={s} on={false} out={() => {}} />, root));
+  expect(f).not.toHaveBeenCalled();
+  render(null, root);
+});
+
+function Extra({ s }: { s: ReturnType<typeof session> }) {
+  const r = useRealNames(s);
+  return <p>{r.extra.map((x) => x.gameName).join(',')}</p>;
+}
+
+test('nomes ocultos que não casam com vaga ficam na lista de quem está na sala', async () => {
+  vi.stubGlobal('fetch', async (url: string) => new Response(url === PARTICIPANTS ? JSON.stringify({ participants: [part('p0', 'Eu'), part('p1', 'Ana'), part('p2', 'Bia')] }) : '{}', { status: 200 }));
+  const s = session({ myTeam: [cell({ cellId: 0, puuid: 'p0' }), cell({ cellId: 1, puuid: '', nameVisibilityType: 'HIDDEN' }), cell({ cellId: 2, puuid: '', nameVisibilityType: 'HIDDEN' })] });
+  const root = document.createElement('div');
+  await act(async () => render(<Extra s={s} />, root));
+  await act(async () => void (await new Promise((r) => setTimeout(r, 0))));
+  expect(root.textContent).toBe('Ana,Bia');
   render(null, root);
 });

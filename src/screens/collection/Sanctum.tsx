@@ -4,6 +4,7 @@ import { request } from '../../lcu/request';
 import { Confirm } from '../../shell/overlays/Confirm';
 import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
+import { Reveal } from '../../ui/Reveal';
 import { getJson } from '../profile/data';
 
 /** Faixa do Santuário em `/lol-sanctum/v1/banners` (só os campos usados). Datas em segundos. */
@@ -358,29 +359,11 @@ function SparkPacks({ offer, rp, onPick, onClose }: { offer: { price: number; le
 function RollResults({ load, drops, onClose }: { load: Load; drops: SanctumDrop[]; onClose: () => void }) {
   const detail = useInstanceDetails(load, drops.filter((d) => d.type !== 'CURRENCY').map((d) => d.itemInstanceId));
   const n = new Intl.NumberFormat(locale());
-  return (
-    <div class="rlc-veil rlc-lt-reveal" role="dialog" aria-modal="true" aria-label={t('lootRollResults')}>
-      <h2>{t('lootRollResults')}</h2>
-      <div class="rlc-lt-reveal-cards">
-        {drops.map((d, i) => {
-          const essence = d.itemInstanceId === MYTHIC_ESSENCE_ID;
-          const c = essence ? undefined : detail(d.itemInstanceId);
-          const art = essence ? '/fe/lol-static-assets/images/currency/tokens/mythic_essence.png' : c?.assets?.tilePath || c?.item?.tilePath || c?.assets?.iconPath || c?.item?.imagePath;
-          const label = essence ? `${n.format(d.quantity)} ${t('lootMythicEssence')}` : c?.item?.name || t('lootItem');
-          return (
-            <div key={i} class="rlc-lt-reveal-card" data-chase={d.isChaseItem ? 'true' : undefined} style={{ animationDelay: `${i * 120}ms` }}>
-              {art ? <img src={art} alt="" /> : null}
-              <span>
-                {label}
-                {!essence && d.quantity > 1 ? ` ×${n.format(d.quantity)}` : ''}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-      <button type="button" class="rlc-button" data-variant="primary" onClick={onClose}>
-        {t('ok')}
-      </button>
-    </div>
-  );
+  const items = drops.map((d) => {
+    const essence = d.itemInstanceId === MYTHIC_ESSENCE_ID;
+    const c = essence ? undefined : detail(d.itemInstanceId);
+    const art = essence ? '/fe/lol-static-assets/images/currency/tokens/mythic_essence.png' : c?.assets?.tilePath || c?.item?.tilePath || c?.assets?.iconPath || c?.item?.imagePath;
+    return essence ? { name: `${n.format(d.quantity)} ${t('lootMythicEssence')}`, art } : { name: c?.item?.name || t('lootItem'), art, count: d.quantity, chase: d.isChaseItem };
+  });
+  return <Reveal title={t('lootRollResults')} items={items} onClose={onClose} />;
 }

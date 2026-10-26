@@ -83,9 +83,9 @@ async function mount() {
   for (let i = 0; i < 4; i++) await settle();
 }
 
-test('abas só para o que tem dados: evento com trilha e Clash; marcos e TFT sem passe ficam de fora', async () => {
+test('abas só para o que tem dados: evento com trilha; marcos, TFT sem passe e Clash (tela própria) ficam de fora', async () => {
   await mount();
-  expect(tabs()).toEqual(['Temporada de Teste', 'Clash']);
+  expect(tabs()).toEqual(['Temporada de Teste']);
 });
 
 test('trilha: três estados (resgatado, resgatável, bloqueado por passe ou nível), nível atual, arte e prazo', async () => {
@@ -212,15 +212,6 @@ test('a trilha abre já na primeira recompensa resgatável, mesmo longe do come�
   expect(root.querySelector('.rlc-ev-sel')!.textContent).toContain('R20');
 });
 
-test('Clash sem torneio mostra o estado vazio, patamar, pontos e ingressos', async () => {
-  await mount();
-  act(() => tab('Clash').click());
-  const text = root.querySelector('.rlc-ev-clash')!.textContent!;
-  expect(text).toContain('Nenhum torneio agendado');
-  expect(text).toContain('II');
-  expect(text).toContain('1.450');
-  expect(text).toContain('Ingressos');
-});
 
 const TFT: TftPass = {
   info: { passId: 'tft-1', title: 'Passe de Teste', endDate: Date.now() + 3 * DAY, premium: false },

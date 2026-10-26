@@ -49,3 +49,35 @@
 #rlc-root .rlc-app[data-screen='lobby'] .rlc-stage:not([data-band='blue']) > .rlc-col:first-child:not([data-empty='true']) { padding-bottom: 292px; }
 /* A arte central (tático do TFT) sobe junto, para o nome não ficar por cima dela. */
 #rlc-root .rlc-app[data-screen='lobby'] .rlc-stage:not([data-band='blue']) > .rlc-col:first-child:not([data-empty='true']) > .rlc-col-legend { padding-bottom: calc(20% + 180px); }
+
+/* Voz do grupo na barra: microfone (riscado quando mudo), quantos estão no canal e sair. */
+#rlc-root .rlc-voice { display: inline-flex; align-items: center; gap: 6px; }
+#rlc-root .rlc-voice[data-muted='true'] { color: var(--rlc-color-dangerText, #f08a94); }
+#rlc-root .rlc-voice-group { display: inline-flex; gap: 4px; }
+#rlc-root .rlc-voice-leave { display: inline-grid; place-items: center; padding-left: 10px; padding-right: 10px; color: var(--rlc-color-dangerText, #f08a94); }
+#rlc-root .rlc-voice-count { min-width: 16px; font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-voice-count[data-speaking='true'] { color: var(--rlc-color-online, #5fd18a); }
+
+/* Jogo Rápido: vagas (campeão com a rota no canto) sob o nome; o editor reaproveita a gaveta do TFT. */
+#rlc-root .rlc-qp-strip { display: flex; justify-content: center; gap: 8px; margin-top: 6px; }
+#rlc-root .rlc-qp-slot { position: relative; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-sm); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.06)); color: var(--rlc-color-textMuted); font: inherit; font-size: 20px; }
+#rlc-root button.rlc-qp-slot { cursor: pointer; pointer-events: auto; }
+#rlc-root button.rlc-qp-slot:hover { border-color: var(--rlc-color-accent); color: var(--rlc-color-text); }
+#rlc-root .rlc-qp-slot > img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+#rlc-root .rlc-qp-slot > i { font-style: normal; }
+#rlc-root .rlc-qp-slot > svg { position: absolute; right: -6px; bottom: -6px; width: 20px; height: 20px; padding: 2px; border-radius: 50%; background: var(--rlc-color-bg); color: var(--rlc-color-text); }
+#rlc-root .rlc-qp-pick { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+#rlc-root .rlc-qp-pick > img, #rlc-root .rlc-qp-pick > span { display: grid; place-items: center; width: 120px; height: 120px; border-radius: var(--rlc-radius-md); object-fit: cover; background: var(--rlc-color-shade, rgba(0, 0, 0, 0.35)); font-size: 40px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-qp-positions { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+#rlc-root .rlc-qp-positions button { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 1px solid var(--rlc-color-border); border-radius: 50%; background: transparent; color: var(--rlc-color-textMuted); cursor: pointer; }
+#rlc-root .rlc-qp-positions button[aria-checked='true'] { border-color: var(--rlc-color-accent); background: var(--rlc-color-glassCardHover, rgba(255, 255, 255, 0.14)); color: var(--rlc-color-text); }
+#rlc-root .rlc-qp-positions svg { width: 22px; height: 22px; }
+#rlc-root .rlc-qp-spells { position: relative; display: flex; justify-content: center; gap: 8px; }
+#rlc-root .rlc-qp-spells .rlc-cs-spell-list { bottom: auto; top: calc(100% + 6px); }
+#rlc-root .rlc-qp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+#rlc-root .rlc-qp-champ { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 4px 6px; border: 1px solid transparent; border-radius: var(--rlc-radius-sm); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.06)); color: var(--rlc-color-text); font: inherit; font-size: 11px; cursor: pointer; }
+#rlc-root .rlc-qp-champ img { width: 100%; aspect-ratio: 1; border-radius: var(--rlc-radius-sm); object-fit: cover; }
+#rlc-root .rlc-qp-champ span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-qp-champ:hover { background: var(--rlc-color-glassCardHover, rgba(255, 255, 255, 0.12)); }
+#rlc-root .rlc-qp-champ[aria-pressed='true'] { border-color: var(--rlc-color-accent); }
+#rlc-root .rlc-qp-positions button[data-scarce='true'] { border-color: var(--rlc-color-highlight, #c8a04a); color: var(--rlc-color-highlight, #c8a04a); }

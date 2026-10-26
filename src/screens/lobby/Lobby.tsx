@@ -1,5 +1,6 @@
+import { Voice } from './Voice';
 import type { ComponentChildren } from 'preact';
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { prefs } from '../../shell/prefs';
 import { t } from '../../i18n';
 import type { Lcu } from '../../lcu';
@@ -13,12 +14,22 @@ import { InviteFriends } from './InviteFriends';
 import { MemberMenu } from './MemberMenu';
 import { Column, Stage, type Participant } from './Stage';
 import { TftCustomize } from './TftCustomize';
+import { QuickPlayEditor, quickPlayProblem, SlotStrip } from './QuickPlay';
+import type { Champion } from '../../data/gamedata';
 
 const MEMBERS = '/lol-lobby/v2/lobby/members';
 
 /** Lobby no layout Palco: uma coluna por vaga e a barra flutuante com fila e busca. */
 export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
-  const [panel, setPanel] = useState<null | 'invite' | 'tft' | { botTeam: number }>(null);
+  const [panel, setPanel] = useState<null | 'invite' | 'tft' | { botTeam: number } | { qp: 0 | 1 }>(null);
+  const [champions, setChampions] = useState<Map<number, Champion>>(new Map());
+  const quickPlay = lcu.lobby.value.data?.gameConfig.showQuickPlaySlotSelection === true;
+  useEffect(() => {
+    if (!quickPlay) return;
+    let live = true;
+    void lcu.game.champions().then((m) => live && setChampions(m));
+    return () => void (live = false);
+  }, [quickPlay]);
   const [kicking, setKicking] = useState<Participant | null>(null);
   const bots = useBots(lcu.lobby.value.data?.gameConfig.isCustom === true, lcu.game);
   const switchTeam = useAction((team: number) => request('POST', `/lol-lobby/v2/lobby/team/TEAM${team === 100 ? 1 : 2}`));
@@ -73,6 +84,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
       empty={empty}
       companions={isTft ? lcu.game.companions : undefined}
       onLegend={isTft && m && isLocal(m) ? () => setPanel('tft') : undefined}
+      slots={quickPlay && m && !m.isBot ? <SlotStrip slots={m.playerSlots} champions={champions} onEdit={isLocal(m) ? (i) => setPanel({ qp: i }) : undefined} /> : undefined}
     />
   );
 
@@ -132,10 +144,12 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
       <LobbyBar
         lcu={lcu}
         title={queueName}
+        subtitle={quickPlay ? (quickPlayProblem(data.restrictions, data.scarcePositions) ?? undefined) : undefined}
         onTitle={leader ? onModes : undefined}
         leader={leader}
         partyType={data.partyType}
-        start={leader ? { label: t('findMatch'), path: '/lol-lobby/v2/lobby/matchmaking/search', enabled: data.canStartActivity } : null}
+        // Jogo Rápido: a LCU deixa `canStartActivity` ligado mesmo com vaga inválida; a restrição QP é quem diz.
+        start={leader ? { label: t('findMatch'), path: '/lol-lobby/v2/lobby/matchmaking/search', enabled: data.canStartActivity && !(quickPlay && quickPlayProblem(data.restrictions, data.scarcePositions)) } : null}
       >
         {isTft ? (
           <button type="button" class="rlc-button" onClick={() => setPanel('tft')}>
@@ -153,7 +167,8 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
       {bar}
       {panel === 'tft' ? <TftCustomize onClose={() => setPanel(null)} /> : null}
       {panel === 'invite' ? <InviteFriends friends={lcu.friends.value.data ?? []} exclude={new Set(data.members.map((m) => m.puuid))} onClose={() => setPanel(null)} /> : null}
-      {panel && typeof panel === 'object' ? <BotPicker bots={bots} teamId={panel.botTeam} onClose={() => setPanel(null)} /> : null}
+      {panel && typeof panel === 'object' && 'qp' in panel ? <QuickPlayEditor lcu={lcu} slots={local.playerSlots} queueId={config.queueId} summonerId={local.summonerId} initial={panel.qp} scarce={data.scarcePositions} onClose={() => setPanel(null)} /> : null}
+      {panel && typeof panel === 'object' && 'botTeam' in panel ? <BotPicker bots={bots} teamId={panel.botTeam} onClose={() => setPanel(null)} /> : null}
       {kicking ? (
         <Confirm
           message={`${t('kickConfirm')} ${kicking.summonerName}`}
@@ -219,6 +234,7 @@ export function LobbyBar({ lcu, title, subtitle, onTitle, leader, partyType, sta
           </button>
         ) : null}
         {children}
+        <Voice lcu={lcu} />
         {!searching ? (
           <button type="button" class="rlc-button" data-variant="danger" disabled={leave.pending} onClick={() => leave.run()}>
             {t('leave')}

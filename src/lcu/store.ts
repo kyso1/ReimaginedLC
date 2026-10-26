@@ -42,3 +42,30 @@ export function createStore<T>(
   void refresh();
   return Object.assign(state, { refresh });
 }
+
+/**
+ * Lista cujo item muda na URI dele (`/lol-chat/v1/friends/{id}`): a LCU não manda evento na lista quando um amigo
+ * muda de status, só no item. Cria, atualiza e apaga o item na lista pelo `id`.
+ */
+export function createListStore<T extends { id: string }>(uri: string, socket: LcuSocket, get?: (uri: string) => Promise<Response>): Signal<StoreState<T[]>> & { refresh: () => Promise<void> } {
+  const store = createStore<T[]>(uri, socket, get);
+  socket.subscribePrefix(`${uri}/`, (itemUri, eventType, data) => {
+    const id = decodeURIComponent(itemUri.slice(uri.length + 1));
+    // Sub-recursos do item (`/friends/{id}/...`) não são o item.
+    if (!id || id.includes('/')) return;
+    const list = store.peek().data;
+    if (!list) return;
+    const rest = list.filter((x) => x.id !== id);
+    if (eventType === 'Delete') {
+      if (rest.length !== list.length) store.value = { status: 'ready', data: rest };
+    } else if (data && typeof data === 'object' && (data as T).id === id) {
+      // Só o próprio item: URIs irmãs (`/conversations/active`, `/notify`) não são itens da lista.
+      const i = list.findIndex((x) => x.id === id);
+      const next = [...list];
+      if (i >= 0) next[i] = data as T;
+      else next.push(data as T);
+      store.value = { status: 'ready', data: next };
+    }
+  });
+  return store;
+}

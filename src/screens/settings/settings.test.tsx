@@ -370,7 +370,7 @@ test('apagar tema do usuário pede confirmação', () => {
 });
 
 test('fundo: arquivo novo apaga o anterior; arquivo grande demais ou de tipo errado é recusado', async () => {
-  const put = vi.spyOn(bg, 'putMedia').mockResolvedValue(true);
+  const put = vi.spyOn(bg, 'putMedia').mockResolvedValue('kept');
   const del = vi.spyOn(bg, 'deleteMedia').mockResolvedValue();
   bg.background.value = { ...bg.DEFAULT_BG, global: { kind: 'file', key: 'bg-old', mime: 'image/png' } };
   mount();

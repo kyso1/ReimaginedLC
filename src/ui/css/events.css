@@ -103,3 +103,11 @@
 
 /* Cartões com aspect-ratio: a linha do grid mede pela altura máxima (senão achata no Chromium do client). */
 #rlc-root .rlc-ev-troves { grid-auto-rows: max-content; }
+
+/* Clash: tela própria com o troféu desenhado no topo. */
+#rlc-root .rlc-clash { position: absolute; inset: 36px 40px 0; display: flex; flex-direction: column; gap: 18px; overflow-y: auto; padding-bottom: 24px; }
+#rlc-root .rlc-clash-hero { display: flex; align-items: center; gap: 24px; padding: 20px 24px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-lg, 16px); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(10, 12, 20, 0.55)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.78))); backdrop-filter: blur(14px) brightness(0.8); }
+#rlc-root .rlc-clash-hero h1 { margin: 0 0 4px; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 40px; }
+#rlc-root .rlc-clash-hero p { margin: 0; text-transform: capitalize; }
+#rlc-root .rlc-clash-trophy { flex: none; width: 112px; height: 112px; filter: drop-shadow(0 6px 18px var(--rlc-color-shade, rgba(0, 0, 0, 0.45))); }
+#rlc-root .rlc-clash h3 { margin: 8px 0 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; }

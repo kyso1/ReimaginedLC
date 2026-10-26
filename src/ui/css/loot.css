@@ -145,8 +145,8 @@
 #rlc-root .rlc-lt-tile:focus-visible { outline: 2px solid var(--rlc-color-accent, #fff); outline-offset: 2px; }
 
 /* Revelação com até 10 cartões (invocação x10): quebra em linhas */
-#rlc-root .rlc-loot .rlc-lt-reveal-cards { flex-wrap: wrap; justify-content: center; max-width: min(900px, calc(100vw - 32px)); }
-#rlc-root .rlc-loot .rlc-lt-reveal-card[data-chase='true'] { border-color: var(--rlc-color-rarityMythic, #b678ff); box-shadow: 0 0 30px var(--rlc-color-rarityMythic, #b678ff); }
+#rlc-root .rlc-lt-reveal-cards { flex-wrap: wrap; justify-content: center; max-width: min(900px, calc(100vw - 32px)); }
+#rlc-root .rlc-lt-reveal-card[data-chase='true'] { border-color: var(--rlc-color-rarityMythic, #b678ff); box-shadow: 0 0 30px var(--rlc-color-rarityMythic, #b678ff); }
 
 /* Santuário: saldos e o atalho de comprar Centelhas, à direita da faixa */
 #rlc-root .rlc-lt-hero-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
@@ -166,3 +166,29 @@
 #rlc-root .rlc-lt-pack:disabled { opacity: 0.45; cursor: not-allowed; }
 #rlc-root .rlc-lt-pack:focus-visible { outline: 2px solid var(--rlc-color-accent, #fff); outline-offset: 2px; }
 #rlc-root .rlc-lt-pack span, #rlc-root .rlc-lt-pack b { display: flex; align-items: center; gap: 6px; }
+
+/* Revelação: baú tremendo e brilhando, clarão ao abrir, cartões virando. Fica no topo de tudo (portal na raiz). */
+#rlc-root .rlc-reveal { position: absolute; z-index: 60; overflow: hidden; cursor: default; }
+#rlc-root .rlc-reveal:not([data-open]) { cursor: pointer; }
+#rlc-root .rlc-reveal-chest { position: relative; width: 220px; height: 220px; display: flex; align-items: center; justify-content: center; }
+#rlc-root .rlc-reveal-chest::before { content: ''; position: absolute; inset: -40px; border-radius: 50%; background: radial-gradient(circle, var(--rlc-color-highlight, #c8a04a) 0%, transparent 65%); opacity: 0.35; animation: rlc-chest-glow 1100ms ease-in forwards; }
+#rlc-root .rlc-reveal-chest img { position: relative; width: 180px; height: 180px; object-fit: contain; animation: rlc-chest-shake 1100ms ease-in forwards; }
+#rlc-root .rlc-reveal-burst { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: radial-gradient(circle, var(--rlc-color-text, #fff) 0%, var(--rlc-color-highlight, #c8a04a) 40%, transparent 70%); pointer-events: none; animation: rlc-burst 700ms ease-out forwards; }
+#rlc-root .rlc-reveal h2, #rlc-root .rlc-reveal .rlc-lt-reveal-cards, #rlc-root .rlc-reveal > .rlc-button { position: relative; }
+#rlc-root .rlc-reveal .rlc-lt-reveal-cards { max-height: 60vh; overflow-y: auto; padding: 16px; }
+#rlc-root .rlc-reveal-noart { width: 120px; height: 120px; border-radius: var(--rlc-radius-sm); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.06)); }
+#rlc-root .rlc-lt-desc { margin: 0; font-size: 13px; line-height: 1.4; color: var(--rlc-color-textMuted); }
+@keyframes rlc-chest-shake {
+  0% { transform: scale(0.85); }
+  20% { transform: scale(1) rotate(0); }
+  40% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+  60% { transform: rotate(-6deg) scale(1.04); }
+  70% { transform: rotate(6deg) scale(1.06); }
+  80% { transform: rotate(-8deg) scale(1.08); }
+  90% { transform: rotate(8deg) scale(1.12); }
+  100% { transform: scale(1.3); opacity: 0.4; }
+}
+@keyframes rlc-chest-glow { to { opacity: 1; transform: scale(1.4); } }
+@keyframes rlc-burst { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(40); } }
+#rlc-root[data-motion='off'] .rlc-reveal-burst, #rlc-root[data-motion='reduced'] .rlc-reveal-burst { display: none; }

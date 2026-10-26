@@ -190,3 +190,28 @@
   #rlc-root .rlc-cs-art, #rlc-root .rlc-cs-drawer, #rlc-root .rlc-cs-ctx { animation: none; }
   #rlc-root .rlc-cs-timebar i { transition: none; }
 }
+#rlc-root .rlc-cs-room { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 6px 10px; border-radius: 8px; background: var(--rlc-color-surface); font-size: 12px; }
+#rlc-root .rlc-cs-room > span:first-child { color: var(--rlc-color-textMuted); text-transform: uppercase; letter-spacing: 0.06em; font-size: 10px; }
+#rlc-root .rlc-cs-room-name { color: var(--rlc-color-text); }
+
+/* Antes de escolher: o mapa do lado do time ao fundo do palco, com o rótulo do lado e as escolhas dos aliados. */
+#rlc-root .rlc-cs-map { position: absolute; inset: 0; z-index: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 14px; padding-bottom: 150px; pointer-events: none; animation: rlc-fade 500ms var(--rlc-motion-easing) both; }
+#rlc-root .rlc-cs-map-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; filter: saturate(0.85); -webkit-mask-image: radial-gradient(ellipse 60% 70% at 50% 45%, black 40%, transparent 85%); }
+#rlc-root .rlc-cs-map-side { position: relative; margin: 0; padding: 6px 16px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-pill, 999px); background: var(--rlc-color-glassTop, rgba(10, 12, 20, 0.6)); backdrop-filter: blur(12px); font-family: var(--rlc-font-display); font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; }
+#rlc-root .rlc-cs-map[data-side='blue'] .rlc-cs-map-side { color: var(--rlc-color-playing, #5aa0ff); }
+#rlc-root .rlc-cs-map[data-side='red'] .rlc-cs-map-side { color: var(--rlc-color-dangerText, #f08a94); }
+#rlc-root .rlc-cs-map-picks { position: relative; display: flex; gap: 10px; }
+#rlc-root .rlc-cs-map-pick { position: relative; display: grid; place-items: center; width: 52px; height: 52px; border: 2px solid var(--rlc-color-border); border-radius: 50%; background: var(--rlc-color-glassTop, rgba(10, 12, 20, 0.6)); overflow: visible; }
+#rlc-root .rlc-cs-map-pick > img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; opacity: 0.6; transition: opacity var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-cs-map-pick[data-locked='true'] { border-color: var(--rlc-color-highlight, #c8a04a); }
+#rlc-root .rlc-cs-map-pick[data-locked='true'] > img { opacity: 1; }
+#rlc-root .rlc-cs-map-pick > i { width: 10px; height: 10px; border-radius: 50%; background: var(--rlc-color-textMuted); opacity: 0.5; }
+#rlc-root .rlc-cs-map-pick > svg { position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; padding: 2px; border-radius: 50%; background: var(--rlc-color-bg); }
+
+/* Arena: outros times em grupos de subtime (ícone e campeões), compactos na coluna da direita. */
+#rlc-root .rlc-cs-arena { gap: 6px; overflow-y: auto; }
+#rlc-root .rlc-cs-subteam { display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding: 6px 8px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-glassTop, rgba(10, 12, 20, 0.55)); backdrop-filter: blur(12px); }
+#rlc-root .rlc-cs-subteam-icon { width: 28px; height: 28px; margin-right: auto; object-fit: contain; }
+#rlc-root .rlc-cs-subteam-pick { width: 40px; height: 40px; border: 1px solid var(--rlc-color-border); border-radius: 50%; overflow: hidden; background: var(--rlc-color-shade, rgba(0, 0, 0, 0.35)); }
+#rlc-root .rlc-cs-subteam-pick[data-locked='true'] { border-color: var(--rlc-color-highlight, #c8a04a); }
+#rlc-root .rlc-cs-subteam-pick img { width: 100%; height: 100%; object-fit: cover; }

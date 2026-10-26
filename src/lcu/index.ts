@@ -2,7 +2,7 @@ import type { Signal } from '@preact/signals';
 import { createGameData, type GameData } from '../data/gamedata';
 import { request } from './request';
 import { connect } from './socket';
-import { createStore, type StoreState } from './store';
+import { createListStore, createStore, type StoreState } from './store';
 import type {
   LolChatFriendResource,
   LolChatGroupResource,
@@ -127,7 +127,7 @@ export function createLcu(doc: Document = document): Lcu {
     readyCheck: createStore('/lol-matchmaking/v1/ready-check', socket),
     invitations: createStore('/lol-lobby/v2/received-invitations', socket),
     queues: createStore('/lol-game-queues/v1/queues', socket),
-    friends: createStore('/lol-chat/v1/friends', socket),
+    friends: createListStore('/lol-chat/v1/friends', socket),
     friendGroups: createStore('/lol-chat/v1/friend-groups', socket),
     customGames: {
       state: games,
@@ -156,7 +156,7 @@ export function createLcu(doc: Document = document): Lcu {
     wallet: createStore('/lol-inventory/v1/wallet?currencyTypes=' + encodeURIComponent('["RP","lol_blue_essence"]'), socket),
     orangeEssence: createStore('/lol-loot/v1/player-loot/CURRENCY_cosmetic', socket),
     friendRequests: createStore('/lol-chat/v2/friend-requests', socket),
-    conversations: createStore('/lol-chat/v1/conversations', socket),
+    conversations: createListStore('/lol-chat/v1/conversations', socket),
     loot: createStore('/lol-loot/v1/player-loot', socket),
     events: { onPrefix: (prefix, fn) => socket.subscribePrefix(prefix, fn) },
   };

@@ -78,3 +78,13 @@
 @media (prefers-reduced-motion: reduce) {
   #rlc-root .rlc-tft-drawer, #rlc-root .rlc-col-legend-card { animation: none; transition: none; }
 }
+
+/* Fundo da coluna e do cartão: a Pequena Lenda equipada, desfocada (por baixo do vidro). */
+#rlc-root .rlc-col[data-tft='true'] > .rlc-col-legend-bg { inset: -40px; background-size: cover; background-position: center; filter: blur(28px) brightness(0.55) saturate(1.2); transform: scale(1.1); }
+#rlc-root .rlc-col[data-tft='true'] > .rlc-col-legend-bg ~ .rlc-col-legend .rlc-col-legend-card { background: transparent; }
+#rlc-root .rlc-col[data-tft='true'] { overflow: hidden; }
+
+/* Nome com o ícone de perfil à esquerda. */
+#rlc-root .rlc-col-name { display: inline-flex; align-items: center; gap: 8px; }
+#rlc-root .rlc-col-nick { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+#rlc-root .rlc-col-icon { flex: none; width: 28px; height: 28px; border: 1px solid var(--rlc-color-border); border-radius: 50%; object-fit: cover; }

@@ -149,8 +149,13 @@ test('histórico: Esc, clicar na aba de novo ou trocar de aba descem o quadro', 
   expect(root.querySelector('.rlc-pf-sheet')).toBeNull();
   await openHistory();
   act(() => tab('Ranqueadas').click());
+  // Ranqueadas sobe no mesmo quadro, abaixo do nome, como o histórico.
+  const sheet = root.querySelector('.rlc-pf-sheet')!;
+  expect(sheet.getAttribute('aria-label')).toBe('Ranqueadas');
+  expect(sheet.querySelectorAll('.rlc-rk-card')).toHaveLength(3);
+  expect(root.querySelector('.rlc-pf-showcase .rlc-pf-name')).not.toBeNull();
+  esc();
   expect(root.querySelector('.rlc-pf-sheet')).toBeNull();
-  expect(root.querySelectorAll('.rlc-rk-card')).toHaveLength(3);
 });
 
 test('histórico: filtro por fila; carregar mais', async () => {

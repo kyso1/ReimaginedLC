@@ -1,3 +1,5 @@
+import { Fragment } from 'preact';
+import { signal } from '@preact/signals';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
@@ -6,6 +8,7 @@ import type { LolLootContextMenu, LolLootPlayerLoot, LolLootPlayerLootUpdate } f
 import { Confirm } from '../../shell/overlays/Confirm';
 import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
+import { Reveal, type RevealItem } from '../../ui/Reveal';
 import { MythicShop } from './MythicShop';
 import { fill, Sanctum } from './Sanctum';
 
@@ -17,8 +20,9 @@ const TABS: Array<[Tab, TextKey]> = [
 ];
 
 /** Filtros do trilho, na ordem do client oficial. */
-export type Group = 'materials' | 'champions' | 'skins' | 'eternals' | 'emotes' | 'wards' | 'icons';
+export type Group = 'chests' | 'materials' | 'champions' | 'skins' | 'eternals' | 'emotes' | 'wards' | 'icons';
 const GROUPS: Array<[Group, TextKey]> = [
+  ['chests', 'lootChestsTray'],
   ['materials', 'lootMaterials'],
   ['champions', 'colChampions'],
   ['skins', 'colSkins'],
@@ -58,10 +62,30 @@ export function rarityLabel(r: string | undefined): string | null {
   return hit ? t(hit[1]) : null;
 }
 
+/**
+ * Textos do próprio client para o espólio (`loot_name_chest_128` = "Cápsula de Campeão"): a LCU manda baús e cápsulas
+ * sem `localizedName`. Vêm do `trans.json` do lol-loot, no idioma do client; carregado uma vez.
+ */
+export const lootStrings = signal<Record<string, string>>({});
+let stringsAsked = false;
+export function loadLootStrings(): void {
+  if (stringsAsked) return;
+  stringsAsked = true;
+  void fetch('/fe/lol-loot/trans.json')
+    .then((r) => (r.ok ? r.json() : null))
+    .then((v: unknown) => {
+      if (v && typeof v === 'object') lootStrings.value = Object.fromEntries(Object.entries(v).filter((e): e is [string, string] => typeof e[1] === 'string').map(([k, x]) => [k.toLowerCase(), x]));
+    })
+    .catch(() => (stringsAsked = false));
+}
+const clientText = (kind: 'name' | 'description', lootId: string) => lootStrings.value[`loot_${kind}_${lootId.toLowerCase()}`] || '';
+
 /** Nome visível do item: nunca o `lootId` (`CHAMPION_RENTAL_266`). */
 export function lootName(l: Pick<LolLootPlayerLoot, 'lootId' | 'localizedName' | 'itemDesc'>): string {
   if (l.localizedName) return l.localizedName;
   if (l.itemDesc) return l.itemDesc;
+  const fromClient = clientText('name', l.lootId);
+  if (fromClient) return fromClient;
   const material = MATERIAL[l.lootId];
   return material ? t(material) : t('lootItem');
 }
@@ -77,8 +101,9 @@ export function actionLabel(m: LolLootContextMenu): string {
 }
 
 /** Categoria do item pelo `displayCategories` da LCU; o que não se reconhece (baús, chaves) vai para Materiais. */
-export function lootGroup(l: Pick<LolLootPlayerLoot, 'displayCategories'>): Group {
+export function lootGroup(l: Pick<LolLootPlayerLoot, 'displayCategories'> & Partial<Pick<LolLootPlayerLoot, 'type'>>): Group {
   const c = String(l.displayCategories ?? '').toUpperCase();
+  if (l.type === 'CHEST') return 'chests';
   if (c.includes('ETERNAL')) return 'eternals';
   if (c.includes('WARD')) return 'wards';
   if (c.includes('ICON')) return 'icons';
@@ -120,9 +145,10 @@ function Craft({ lcu }: { lcu: Lcu }) {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<Sort>('name');
   const [focusId, setFocusId] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<{ menu: LolLootContextMenu; loot: LolLootPlayerLoot } | null>(null);
+  const [confirm, setConfirm] = useState<{ menu: LolLootContextMenu; loot: LolLootPlayerLoot; repeat: number } | null>(null);
   const [reroll, setReroll] = useState<{ menu: LolLootContextMenu; loot: LolLootPlayerLoot; pool: string[] } | null>(null);
-  const [reveal, setReveal] = useState<LolLootPlayerLootUpdate | null>(null);
+  const [reveal, setReveal] = useState<{ items: RevealItem[]; chest?: string } | null>(null);
+  useEffect(loadLootStrings, []);
   // Cache do menu vale para um estado do espólio: qualquer mudança (chave nova, essência gasta) consulta de novo.
   const menus = useMemo<MenuCache>(() => new Map(), [lcu.loot.value]);
   const raw = lcu.loot.value.data ?? [];
@@ -137,15 +163,17 @@ function Craft({ lcu }: { lcu: Lcu }) {
   const count = (g: Group | 'all') => all.filter((l) => g === 'all' || lootGroup(l) === g).length;
 
   // Corpo do craft: um lootId por vaga da receita (o client oficial faz igual em `craft(recipeName, itemIds, repeat)`).
-  const craft = useAction(async (menu: LolLootContextMenu, ids: string[]) => {
-    const result = await request<LolLootPlayerLootUpdate>('POST', `/lol-loot/v1/recipes/${encodeURIComponent(menu.name)}/craft?repeat=1`, ids);
-    if (result?.added?.length) setReveal(result);
+  const craft = useAction(async (menu: LolLootContextMenu, ids: string[], repeat = 1, from?: LolLootPlayerLoot) => {
+    const result = await request<LolLootPlayerLootUpdate>('POST', `/lol-loot/v1/recipes/${encodeURIComponent(menu.name)}/craft?repeat=${repeat}`, ids);
+    // Abrir mostra tudo o que veio (inclusive o resgatado na hora, como ícones e essências); desencantar só confirma.
+    if (menu.actionType === 'OPEN' || result?.added?.length || result?.redeemed?.length) setReveal({ items: revealItems(result), chest: menu.actionType === 'OPEN' ? from?.tilePath : undefined });
   });
 
   // Bandeja: Essência Laranja (do espólio ou do store próprio), chaves e baús.
   const orange = raw.find((l) => l.lootId === 'CURRENCY_cosmetic')?.count ?? lcu.orangeEssence.value.data?.count ?? 0;
   const keys = raw.find((l) => l.lootId === 'MATERIAL_key');
   const fragments = raw.find((l) => l.lootId === 'MATERIAL_key_fragment');
+  const mythic = raw.find((l) => l.lootId === 'CURRENCY_mythic');
   const chests = all.filter((l) => l.type === 'CHEST');
   const chestCount = chests.reduce((s, l) => s + l.count, 0);
 
@@ -199,10 +227,11 @@ function Craft({ lcu }: { lcu: Lcu }) {
             <div class="rlc-lt-art" style={focus.splashPath || focus.tilePath ? { backgroundImage: `url("${focus.splashPath || focus.tilePath}")` } : undefined} />
             {rarityLabel(focus.rarity) ? <small class="rlc-lt-rarity" data-rarity={rarityKey(focus.rarity).toLowerCase()}>{rarityLabel(focus.rarity)}</small> : null}
             <h2>{lootName(focus)}</h2>
+            {clientText('description', focus.lootId) ? <p class="rlc-lt-desc">{clientText('description', focus.lootId)}</p> : null}
             <p class="rlc-muted">
               {focus.isRental && (lootGroup(focus) === 'champions' || lootGroup(focus) === 'skins') ? `${t('lootShard')} · ` : ''}×{n.format(focus.count)}
             </p>
-            <Actions key={focus.lootId} lootId={focus.lootId} count={focus.count} cache={menus} units={(pool) => rerollUnits(pool, raw).length} onAction={(menu, pool) => (menu.actionType === 'REROLL' ? setReroll({ menu, loot: focus, pool }) : setConfirm({ menu, loot: focus }))} busy={craft.pending} />
+            <Actions key={focus.lootId} lootId={focus.lootId} count={focus.count} cache={menus} units={(pool) => rerollUnits(pool, raw).length} onAction={(menu, pool, repeat) => (menu.actionType === 'REROLL' ? setReroll({ menu, loot: focus, pool }) : setConfirm({ menu, loot: focus, repeat }))} busy={craft.pending} />
           </>
         ) : (
           <p class="rlc-muted">{t('lootPick')}</p>
@@ -212,14 +241,15 @@ function Craft({ lcu }: { lcu: Lcu }) {
         <Balance icon="/fe/lol-loot/assets/tray_icons/currency_cosmetic.png" label={t('lootOrange')} value={n.format(orange)} />
         <Balance icon={keys?.tilePath || '/fe/lol-loot/assets/loot_item_icons/material_key.png'} label={t('lootKeys')} value={n.format(keys?.count ?? 0)} />
         {fragments?.count ? <Balance icon={fragments.tilePath} label={t('lootKeyFragment')} value={n.format(fragments.count)} /> : null}
+        {mythic?.count ? <Balance icon={mythic.tilePath} label={t('lootMythicEssence')} value={n.format(mythic.count)} /> : null}
         <Balance icon={chests[0]?.tilePath} label={t('lootChestsTray')} value={n.format(chestCount)} />
       </footer>
       {confirm ? (
         <Confirm
-          message={`${actionLabel(confirm.menu)}: ${lootName(confirm.loot)}?`}
+          message={`${actionLabel(confirm.menu)}: ${lootName(confirm.loot)}${confirm.repeat > 1 ? ` ×${confirm.repeat}` : ''}?`}
           confirmLabel={actionLabel(confirm.menu)}
           onConfirm={() => {
-            craft.run(confirm.menu, [confirm.loot.lootId, ...(confirm.menu.requiredOthers ? [confirm.menu.requiredOthers] : [])]);
+            craft.run(confirm.menu, [confirm.loot.lootId, ...(confirm.menu.requiredOthers ? [confirm.menu.requiredOthers] : [])], confirm.repeat, confirm.loot);
             setConfirm(null);
           }}
           onCancel={() => setConfirm(null)}
@@ -236,22 +266,7 @@ function Craft({ lcu }: { lcu: Lcu }) {
           onCancel={() => setReroll(null)}
         />
       ) : null}
-      {reveal ? (
-        <div class="rlc-veil rlc-lt-reveal" role="dialog" aria-modal="true">
-          <h2>{t('lootReceived')}</h2>
-          <div class="rlc-lt-reveal-cards">
-            {reveal.added.map((a, i) => (
-              <div key={i} class="rlc-lt-reveal-card" style={{ animationDelay: `${i * 120}ms` }}>
-                {a.playerLoot?.tilePath ? <img src={a.playerLoot.tilePath} alt="" /> : null}
-                <span>{a.playerLoot ? lootName(a.playerLoot) : ''}</span>
-              </div>
-            ))}
-          </div>
-          <button type="button" class="rlc-button" data-variant="primary" onClick={() => setReveal(null)}>
-            {t('ok')}
-          </button>
-        </div>
-      ) : null}
+      {reveal ? <Reveal title={t('lootReceived')} chest={reveal.chest} items={reveal.items} onClose={() => setReveal(null)} /> : null}
     </div>
   );
 }
@@ -288,7 +303,7 @@ const getList = <T,>(url: string, init?: RequestInit): Promise<T[]> =>
  * O menu da LCU marca Reformular como possível mesmo com menos de 3 peças; quem decide é a receita
  * (`/recipes/initial-item`, vagas com os lootIds aceitos), lida só quando o menu traz Reformular.
  */
-function Actions({ lootId, count, cache, units, onAction, busy }: { lootId: string; count: number; cache: MenuCache; units: (pool: string[]) => number; onAction: (m: LolLootContextMenu, pool: string[]) => void; busy: boolean }) {
+function Actions({ lootId, count, cache, units, onAction, busy }: { lootId: string; count: number; cache: MenuCache; units: (pool: string[]) => number; onAction: (m: LolLootContextMenu, pool: string[], repeat: number) => void; busy: boolean }) {
   const [state, setState] = useState<{ menu: LolLootContextMenu[]; pool: string[] }>({ menu: [], pool: [] });
   useEffect(() => {
     let live = true;
@@ -315,9 +330,17 @@ function Actions({ lootId, count, cache, units, onAction, busy }: { lootId: stri
       {state.menu.map((m) => {
         const blocked = m.actionType === 'REROLL' && short;
         return (
-          <button type="button" key={m.name} class="rlc-button" data-variant="pill" disabled={!m.enabled || blocked || busy} title={blocked ? t('lootRerollNeed') : undefined} onClick={() => onAction(m, state.pool)}>
-            {actionLabel(m)}
-          </button>
+          <Fragment key={m.name}>
+            <button type="button" class="rlc-button" data-variant="pill" disabled={!m.enabled || blocked || busy} title={blocked ? t('lootRerollNeed') : undefined} onClick={() => onAction(m, state.pool, 1)}>
+              {actionLabel(m)}
+            </button>
+            {/* Vários iguais: abrir ou desencantar todos de uma vez (o `repeat` da receita, como no client). */}
+            {count > 1 && m.enabled && (m.actionType === 'OPEN' || m.actionType === 'DISENCHANT') ? (
+              <button type="button" class="rlc-button" data-variant="pill" disabled={busy} onClick={() => onAction(m, state.pool, count)}>
+                {`${t('lootAll')} ×${count}`}
+              </button>
+            ) : null}
+          </Fragment>
         );
       })}
       {state.menu.some((m) => m.actionType === 'REROLL') && short ? <small class="rlc-muted">{t('lootRerollNeed')}</small> : null}
@@ -410,4 +433,18 @@ function Reroll({ menu, loot, pool, all, onCraft, onCancel }: { menu: LolLootCon
       ) : null}
     </div>
   );
+}
+
+/** Cartões da revelação: o que entrou no espólio e o que foi resgatado na hora (somados por item). */
+export function revealItems(r: LolLootPlayerLootUpdate | null): RevealItem[] {
+  const byId = new Map<string, RevealItem>();
+  for (const d of [...(r?.added ?? []), ...(r?.redeemed ?? [])]) {
+    const l = d.playerLoot;
+    if (!l?.lootId) continue;
+    const prev = byId.get(l.lootId);
+    const count = Math.max(1, d.deltaCount || 1);
+    if (prev) prev.count = (prev.count ?? 1) + count;
+    else byId.set(l.lootId, { name: lootName(l), art: l.tilePath || undefined, count, chase: rarityRank(l.rarity) >= 2 });
+  }
+  return [...byId.values()];
 }

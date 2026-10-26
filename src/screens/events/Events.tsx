@@ -4,21 +4,20 @@ import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
+import { ChoicePicker } from '../../shell/overlays/Rewards';
 import {
-  activeEvents, claimAll, clashDates, daysLeft, eventPass, getJson, loadTftPasses, missionCards, openPassPurchase, pendingChoices, rewardState, selectChoice,
-  type Choice, type ClashPlayer, type ClashTournament, type Grant, type HubEvent, type Level, type MissionCard, type ObjectiveCategory, type Pass,
+  activeEvents, claimAll, daysLeft, eventPass, getJson, loadTftPasses, missionCards, openPassPurchase, pendingChoices, rewardState, selectChoice,
+  type Choice, type Grant, type HubEvent, type Level, type MissionCard, type ObjectiveCategory, type Pass,
   type Reward, type TrackItem, type TrackProgress, type Trove,
 } from './data';
 
 export { pendingClaims, openPassPurchase } from './data';
 
-interface Clash { player: ClashPlayer; points: number | null; dates: number[] }
 interface Loaded {
   lol: Array<{ pass: Pass; missions: MissionCard[] }>;
   tft: Pass[];
   troves: Trove[];
   wallet: Record<string, number>;
-  clash: Clash | null;
 }
 
 const base = (id: string) => `/lol-event-hub/v1/events/${encodeURIComponent(id)}`;
@@ -39,15 +38,12 @@ async function loadLolEvent(e: HubEvent, categories: ObjectiveCategory[], choice
 }
 
 async function loadAll(): Promise<Loaded> {
-  const [events, objectives, tft, troves, wallet, player, rewards, tournaments, grants] = await Promise.all([
+  const [events, objectives, tft, troves, wallet, grants] = await Promise.all([
     getJson<HubEvent[]>('/lol-event-hub/v1/events'),
     getJson<Array<{ objectivesCategories?: ObjectiveCategory[] }>>('/lol-objectives/v1/objectives/lol'),
     loadTftPasses().catch(() => []),
     getJson<Trove[]>('/lol-tft-troves/v1/banners'),
     getJson<Record<string, number>>('/lol-inventory/v1/wallet/0'),
-    getJson<ClashPlayer>('/lol-clash/v1/player'),
-    getJson<{ seasonVp?: number }>('/lol-clash/v1/rewards'),
-    getJson<ClashTournament[]>('/lol-clash/v1/all-tournaments'),
     getJson<Grant[]>('/lol-rewards/v1/grants'),
   ]);
   const categories = objectives?.[0]?.objectivesCategories ?? [];
@@ -59,11 +55,10 @@ async function loadAll(): Promise<Loaded> {
     tft,
     troves: (troves ?? []).filter((b) => Date.parse(b.startDate) <= now && now < Date.parse(b.endDate)),
     wallet: wallet ?? {},
-    clash: player ? { player, points: rewards?.seasonVp ?? null, dates: clashDates(tournaments ?? [], now) } : null,
   };
 }
 
-/** Eventos: uma aba por evento do LoL ativo, passe do TFT, Reinos dos Tesouros e Clash. Só aparecem abas com dados. */
+/** Eventos: uma aba por evento do LoL ativo, passe do TFT e Reinos dos Tesouros (o Clash tem tela própria). Só aparecem abas com dados. */
 export function Events({ lcu }: { lcu: Lcu }) {
   void lcu;
   const [data, setData] = useState<Loaded | null>(null);
@@ -77,7 +72,6 @@ export function Events({ lcu }: { lcu: Lcu }) {
     ...data.lol.map(({ pass, missions }) => ({ key: pass.id, label: pass.name, body: () => <PassView key={pass.id} pass={pass} missions={missions} onChanged={reload} /> })),
     ...data.tft.map((pass) => ({ key: pass.id, label: data.tft.length > 1 ? pass.name : t('evPassTft'), body: () => <PassView key={pass.id} pass={pass} missions={[]} onChanged={reload} /> })),
     ...(data.troves.length ? [{ key: 'troves', label: t('evTroves'), body: () => <Troves troves={data.troves} wallet={data.wallet} /> }] : []),
-    ...(data.clash ? [{ key: 'clash', label: t('evClash'), body: () => <ClashView clash={data.clash!} /> }] : []),
   ];
   if (!tabs.length) return <section class="rlc-events"><p class="rlc-ev-empty">{t('evNone')}</p></section>;
   const current = tabs.find((x) => x.key === tab) ?? tabs[0]!;
@@ -263,34 +257,6 @@ function Cell({ level, row, sel, busy, onSelect, onClaim }: { level: Level; row:
   );
 }
 
-/** Seletor da recompensa de escolha: marca até `max` opções e confirma. */
-function ChoicePicker({ choice, pending, onPick, onCancel }: { choice: Choice; pending: boolean; onPick: (ids: string[]) => void; onCancel: () => void }) {
-  const [picked, setPicked] = useState<string[]>([]);
-  useEscape(onCancel);
-  const toggle = (id: string) =>
-    setPicked(picked.includes(id) ? picked.filter((x) => x !== id) : choice.max === 1 ? [id] : picked.length < choice.max ? [...picked, id] : picked);
-  return (
-    <div class="rlc-veil" role="dialog" aria-modal="true" aria-label={t('evChooseTitle')}>
-      <div class="rlc-dialog rlc-ev-choice">
-        <p>{t('evChooseTitle')}{choice.max > 1 ? ` (${picked.length}/${choice.max})` : ''}</p>
-        <div class="rlc-ev-options">
-          {choice.options.map((o) => (
-            <button type="button" key={o.id} class="rlc-ev-option" aria-pressed={picked.includes(o.id)} onClick={() => toggle(o.id)}>
-              {o.icon ? <img src={o.icon} alt="" /> : null}
-              <span>{o.name}</span>
-            </button>
-          ))}
-        </div>
-        <div class="rlc-dialog-actions">
-          <button type="button" class="rlc-button" data-variant="primary" disabled={pending || picked.length < choice.min} onClick={() => onPick(picked)}>
-            {t('evChooseConfirm')}
-          </button>
-          <button type="button" class="rlc-button" onClick={onCancel}>{t('cancel')}</button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 const LockIcon = () => (
   <svg class="rlc-ev-lock" viewBox="0 0 24 24" aria-hidden="true">
@@ -354,29 +320,3 @@ function Troves({ troves, wallet }: { troves: Trove[]; wallet: Record<string, nu
   );
 }
 
-const ROMAN = ['', 'I', 'II', 'III', 'IV'];
-
-function ClashView({ clash }: { clash: Clash }) {
-  const n = new Intl.NumberFormat(locale());
-  const date = new Intl.DateTimeFormat(locale(), { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
-  const tickets = clash.player.tickets ?? {};
-  return (
-    <div class="rlc-ev-page-body rlc-ev-clash">
-      {clash.player.isClashBanned ? <p class="rlc-ev-note">{t('evClashBanned')}</p> : null}
-      <div class="rlc-ev-stats">
-        <div><span class="rlc-ev-muted">{t('evClashTier')}</span><b>{ROMAN[clash.player.tier] ?? clash.player.tier}</b></div>
-        {clash.points !== null ? <div><span class="rlc-ev-muted">{t('evClashPoints')}</span><b>{n.format(clash.points)}</b></div> : null}
-        <div>
-          <span class="rlc-ev-muted">{t('evClashTickets')}</span>
-          <b>{n.format(tickets.BASIC ?? 0)} <small>{t('evClashBasic')}</small> · {n.format(tickets.PREMIUM ?? 0)} <small>{t('evClashPremium')}</small></b>
-        </div>
-      </div>
-      <h3>{t('evClashSchedule')}</h3>
-      {clash.dates.length ? (
-        <ul class="rlc-ev-dates">{clash.dates.map((d) => <li key={d}>{date.format(d)}</li>)}</ul>
-      ) : (
-        <p class="rlc-ev-empty">{t('evClashNone')}</p>
-      )}
-    </div>
-  );
-}

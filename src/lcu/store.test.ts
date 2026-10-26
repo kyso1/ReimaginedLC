@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest';
 import type { LcuSocket } from './socket';
-import { createStore } from './store';
+import { createListStore, createStore } from './store';
 
 function fakeSocket() {
   const listeners = new Map<string, (eventType: string, data: unknown) => void>();
@@ -126,4 +126,28 @@ test('refresh exposto refaz o GET e atualiza o estado', async () => {
   await settle();
   await store.refresh();
   expect(store.value).toEqual({ status: 'ready', data: [1, 2] });
+});
+
+test('lista por item: amigo que muda de status na URI dele atualiza a lista; Delete tira; sub-recurso não mexe', async () => {
+  let prefixFn: (uri: string, eventType: string, data: unknown) => void = () => {};
+  const socket: LcuSocket = { subscribe: () => () => {}, subscribePrefix: (_p, fn) => ((prefixFn = fn), () => {}), onReconnect: () => () => {}, close: () => {} };
+  const store = createListStore<{ id: string; availability: string }>('/lol-chat/v1/friends', socket, async () => res(200, [{ id: 'a@x', availability: 'dnd' }, { id: 'b@x', availability: 'chat' }]));
+  await settle();
+  prefixFn('/lol-chat/v1/friends/a@x', 'Update', { id: 'a@x', availability: 'chat' });
+  expect(store.value.data!.map((f) => f.availability)).toEqual(['chat', 'chat']);
+  prefixFn('/lol-chat/v1/friends/c%40x', 'Create', { id: 'c@x', availability: 'away' });
+  expect(store.value.data!.map((f) => f.id)).toEqual(['a@x', 'b@x', 'c@x']);
+  prefixFn('/lol-chat/v1/friends/b@x/notes', 'Update', { id: 'zzz', availability: 'x' });
+  prefixFn('/lol-chat/v1/friends/b@x', 'Delete', null);
+  expect(store.value.data!.map((f) => f.id)).toEqual(['a@x', 'c@x']);
+});
+
+test('lista por item: URI irmã que não é item (conversations/active) não entra na lista', async () => {
+  let prefixFn: (uri: string, eventType: string, data: unknown) => void = () => {};
+  const socket: LcuSocket = { subscribe: () => () => {}, subscribePrefix: (_p, fn) => ((prefixFn = fn), () => {}), onReconnect: () => () => {}, close: () => {} };
+  const store = createListStore<{ id: string }>('/lol-chat/v1/conversations', socket, async () => res(200, [{ id: 'a@x' }]));
+  await settle();
+  prefixFn('/lol-chat/v1/conversations/active', 'Update', { id: 'a@x' });
+  prefixFn('/lol-chat/v1/conversations/active', 'Delete', null);
+  expect(store.value.data).toEqual([{ id: 'a@x' }]);
 });

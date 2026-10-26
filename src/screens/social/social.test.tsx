@@ -275,3 +275,14 @@ test('autor sem nome conhecido (seleção com nomes ocultos) aparece como Jogado
   expect(root.querySelector('.rlc-chat-author')!.textContent).toBe('Jogador');
   expect(root.querySelector('.rlc-chat-msg[data-mine]')).toBeNull();
 });
+
+test('abrir a conversa marca como ativa (o client zera as não lidas) e fechar solta', async () => {
+  const lcu = withValues({ chatMe: ready({ puuid: 'me' }) });
+  act(() => render(<ChatWindow lcu={lcu} conversationId="zeca@pvp.net" title="Zeca" onClose={() => {}} />, root));
+  await settle();
+  const active = () => calls('/lol-chat/v1/conversations/active').map((c) => [c[1]?.method, c[1]?.body]);
+  expect(active()).toContainEqual(['PUT', JSON.stringify({ id: 'zeca@pvp.net' })]);
+  fetchMock.mockClear();
+  act(() => render(null, root));
+  expect(active()).toEqual([['DELETE', undefined]]);
+});

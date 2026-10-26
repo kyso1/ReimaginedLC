@@ -43,6 +43,8 @@ export interface Prefs {
   spotifyStatus: boolean;
   /** Botão de dodge na seleção de campeões, sem fechar o client (a penalidade vale igual). */
   dodge: boolean;
+  /** Revelar os nomes reais dos aliados na seleção (consulta a sala de chat e o histórico deles). */
+  nameReveal: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -70,6 +72,7 @@ export const DEFAULT_PREFS: Prefs = {
   spotify: false,
   spotifyStatus: false,
   dodge: false,
+  nameReveal: true,
 };
 const KEY = 'rlc.prefs';
 const oneOf = <T extends string>(v: unknown, options: readonly T[], def: T): T => (options.includes(v as T) ? (v as T) : def);
@@ -103,6 +106,7 @@ export function sanitizePrefs(v: unknown): Prefs {
     spotify: bool(o.spotify, DEFAULT_PREFS.spotify),
     spotifyStatus: bool(o.spotifyStatus, DEFAULT_PREFS.spotifyStatus),
     dodge: bool(o.dodge, DEFAULT_PREFS.dodge),
+    nameReveal: bool(o.nameReveal, DEFAULT_PREFS.nameReveal),
   };
 }
 

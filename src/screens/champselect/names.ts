@@ -41,33 +41,44 @@ export function roomOf(list: Participant[], chatId = ''): Participant[] {
 export function matchNames(cells: Cell[], room: Participant[], obfuscated: Map<string, string> = new Map()): Map<number, RealName> {
   const found = new Map<number, RealName>();
   const used = new Set<string>();
-  const real = (p: Participant): RealName => ({ gameName: p.game_name!, tagLine: p.game_tag ?? '', puuid: p.puuid! });
   for (const c of cells) {
     const puuid = c.puuid || (c.obfuscatedPuuid ? obfuscated.get(c.obfuscatedPuuid) : undefined);
     const p = puuid ? room.find((x) => x.puuid === puuid) : undefined;
     if (p) {
-      found.set(c.cellId, real(p));
+      found.set(c.cellId, realOf(p));
       used.add(p.puuid!);
     }
   }
   const cellsLeft = cells.filter((c) => !found.has(c.cellId));
   const left = room.filter((p) => !used.has(p.puuid!));
-  if (cellsLeft.length === 1 && left.length === 1) found.set(cellsLeft[0]!.cellId, real(left[0]!));
+  if (cellsLeft.length === 1 && left.length === 1) found.set(cellsLeft[0]!.cellId, realOf(left[0]!));
   return found;
 }
 
 const TRIES = 10;
 const RETRY_MS = 2000;
 
-/** Nomes reais por vaga aliada. A sala enche aos poucos no começo da seleção: tenta de novo enquanto falta alguém. */
-export function useRealNames(session: Session | null): Map<number, RealName> {
-  const [names, setNames] = useState<Map<number, RealName>>(new Map());
+export interface RealNames {
+  /** Nome real por vaga, quando dá para saber quem é quem. */
+  byCell: Map<number, RealName>;
+  /** Quem está na sala mas não deu para casar com uma vaga (nomes ocultos na ranqueada). */
+  extra: RealName[];
+}
+const NONE: RealNames = { byCell: new Map(), extra: [] };
+const realOf = (p: Participant): RealName => ({ gameName: p.game_name!, tagLine: p.game_tag ?? '', puuid: p.puuid! });
+
+/**
+ * Nomes reais dos aliados (plugin "Revelar nomes"; `on` falso não consulta nada). A sala enche aos poucos no começo
+ * da seleção: tenta de novo enquanto falta alguém.
+ */
+export function useRealNames(session: Session | null, on = true): RealNames {
+  const [names, setNames] = useState<RealNames>(NONE);
   const id = session?.id ?? '';
   const cells = session?.myTeam ?? [];
   // Refaz quando entra alguém novo na equipe (troca de vaga, aliado que carregou depois).
   const shape = cells.map((c) => `${c.cellId}:${c.puuid}:${c.obfuscatedPuuid}`).join('|');
   useEffect(() => {
-    if (!session) return setNames(new Map());
+    if (!session || !on) return setNames(NONE);
     let live = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const run = async (n: number) => {
@@ -76,7 +87,9 @@ export function useRealNames(session: Session | null): Map<number, RealName> {
       const room = roomOf(list?.participants ?? [], session.chatDetails?.multiUserChatId);
       const obf = new Map(Object.values(mutes ?? {}).flatMap((m) => (m.puuid && m.obfuscatedPuuid ? [[m.obfuscatedPuuid, m.puuid] as [string, string]] : [])));
       const found = matchNames(cells, room, obf);
-      setNames(found);
+      const used = new Set([...found.values()].map((r) => r.puuid));
+      const mine = new Set(cells.map((c) => c.puuid).filter(Boolean));
+      setNames({ byCell: found, extra: room.filter((p) => !used.has(p.puuid!) && !mine.has(p.puuid!)).map(realOf) });
       if (found.size < cells.length && n + 1 < TRIES) timer = setTimeout(() => void run(n + 1), RETRY_MS);
     };
     void run(0);
@@ -84,7 +97,7 @@ export function useRealNames(session: Session | null): Map<number, RealName> {
       live = false;
       clearTimeout(timer);
     };
-  }, [id, shape]);
+  }, [id, shape, on]);
   return names;
 }
 

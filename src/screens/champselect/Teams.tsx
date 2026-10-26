@@ -29,13 +29,15 @@ interface TeamProps {
   rankQueue?: string | null;
   /** Nomes reais por vaga (sala de chat da seleção). */
   real?: Map<number, RealName>;
+  /** Aliados na sala que não deu para ligar a uma vaga (nomes ocultos). */
+  extra?: RealName[];
 }
 
 /**
  * Coluna de um time: um cartão de vidro por vaga, com a splash do campeão entrando pelo lado de fora, e os banimentos
  * numa fileira pequena embaixo. Inimigos ficam espelhados e sem nome: só o campeão ou o que estão fazendo.
  */
-export function Team({ cells, side, bans, active, localCellId, champions, spells, name, splash, menuFor, rankQueue = null, real }: TeamProps) {
+export function Team({ cells, side, bans, active, localCellId, champions, spells, name, splash, menuFor, rankQueue = null, real, extra = [] }: TeamProps) {
   return (
     <div class="rlc-cs-side" data-side={side}>
       <div class="rlc-cs-team">
@@ -47,6 +49,17 @@ export function Team({ cells, side, bans, active, localCellId, champions, spells
           ),
         )}
       </div>
+      {extra.length ? (
+        <div class="rlc-cs-room" aria-label={t('csInRoom')}>
+          <span>{t('csInRoom')}</span>
+          {extra.map((r) => (
+            <span key={r.puuid} class="rlc-cs-room-name" title={`${r.gameName}#${r.tagLine}`}>
+              {r.gameName}
+              {r.tagLine ? <small class="rlc-cs-tag">#{r.tagLine}</small> : null}
+            </span>
+          ))}
+        </div>
+      ) : null}
       {bans.length ? (
         <div class="rlc-cs-bans" aria-label={t('bans')} title={t('bans')}>
           {bans.map((id, i) => {
@@ -54,6 +67,50 @@ export function Team({ cells, side, bans, active, localCellId, champions, spells
             if (!id) return <span key={i} class="rlc-cs-ban-none" role="img" aria-label={t('csBanNone')} title={t('csBanNone')} />;
             const champ = champions.get(id);
             return champ?.icon ? <img key={i} src={champ.icon} alt={champ.name} title={champ.name} /> : <span key={i} class="rlc-cs-ban-empty" />;
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Subtimes da Arena na ordem das vagas (o client usa os mesmos nomes e ícones). */
+const SUBTEAMS = ['Poro', 'Minion', 'Scuttle', 'Krug', 'Raptor', 'Sentinel'];
+
+/**
+ * Arena: os outros times em grupos pequenos (um por subtime, pela vaga), cada um com o ícone do subtime e os
+ * campeões escolhidos. Os banimentos de todos ficam juntos embaixo, como no client.
+ */
+export function ArenaTeams({ cells, size, champions, bans }: { cells: Cell[]; size: number; champions: Map<number, Champion>; bans: number[] }) {
+  const groups = new Map<number, Cell[]>();
+  for (const c of [...cells].sort((a, b) => a.cellId - b.cellId)) {
+    const g = Math.floor(c.cellId / size);
+    groups.set(g, [...(groups.get(g) ?? []), c]);
+  }
+  return (
+    <div class="rlc-cs-side rlc-cs-arena" data-side="theirs">
+      {[...groups].map(([g, list]) => {
+        const name = SUBTEAMS[g] ?? '';
+        return (
+          <div key={g} class="rlc-cs-subteam" aria-label={name}>
+            {name ? <img class="rlc-cs-subteam-icon" src={`/fe/lol-champ-select/images/subteams/${name}.png`} alt={name} title={name} /> : null}
+            {list.map((c) => {
+              const shown = displayedChampion(c);
+              const champ = shown ? champions.get(shown.championId) : undefined;
+              return (
+                <span key={c.cellId} class="rlc-cs-subteam-pick" data-locked={shown?.locked ? 'true' : undefined} title={champ?.name ?? t('cellPicking')}>
+                  {champ?.icon ? <img src={champ.icon} alt={champ.name} /> : null}
+                </span>
+              );
+            })}
+          </div>
+        );
+      })}
+      {bans.length ? (
+        <div class="rlc-cs-bans" aria-label={t('bans')} title={t('bans')}>
+          {bans.map((id, i) => {
+            const champ = champions.get(id);
+            return champ?.icon ? <img key={i} src={champ.icon} alt={champ.name} title={champ.name} /> : <span key={i} class="rlc-cs-ban-none" role="img" aria-label={t('csBanNone')} />;
           })}
         </div>
       ) : null}

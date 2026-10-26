@@ -100,6 +100,7 @@ Todos começam desligados. Ligue em **Configurações › Plugins**.
 | **Aceitar automaticamente** | Aceita a partida quando a fila estoura. |
 | **Aparecer offline** | Mantém seu status do chat offline, inclusive durante as partidas. |
 | **Dodge** | Sai da seleção de campeões sem fechar o client. A penalidade de dodge vale igual (tempo de espera e, na ranqueada, PdL). |
+| **Revelar nomes** | Mostra o Riot ID dos aliados com nome oculto na seleção de campeões, com elo e últimas partidas. Desligado, não faz nenhuma consulta. |
 | **Marketplace** | Instala plugins do Pengu Loader (só plugins, sem temas) do registro da comunidade. |
 | **ROSE** | Integra com o [ROSE](https://github.com/Alban1911/Rose), um app à parte para skins personalizadas, para escolher a skin no carrossel da seleção de campeões. O ROSE é uma ferramenta de terceiros, com riscos próprios. |
 | **Spotify** | Mostra o que está tocando no seu Spotify e controla pelo client. Os controles exigem Spotify Premium. Também pode mostrar a música no seu status. Precisa de um Client ID gratuito de desenvolvedor do Spotify; as configurações do plugin explicam o passo a passo. |

@@ -105,7 +105,62 @@ function open(): Promise<IDBDatabase | null> {
   return db;
 }
 
-export async function deleteMedia(key: string): Promise<void> {
+/**
+ * O IndexedDB é da origem `https://127.0.0.1:<porta>`, e a porta do client muda a cada abertura: o que foi guardado
+ * lá some ao reiniciar. Uma cópia fica no DataStore do Pengu (arquivo, sobrevive) como data URL. Imagem grande é
+ * reduzida antes (até `PERSIST_SIDE` px, WebP); vídeo e GIF só vão se couberem em `PERSIST_BYTES`.
+ */
+export const PERSIST_BYTES = 6 * 1024 * 1024;
+const PERSIST_SIDE = 2560;
+const persistKey = (key: string) => `rlc.media.${key}`;
+
+async function shrink(blob: Blob): Promise<Blob> {
+  if (!/^image\/(png|jpeg|webp)$/.test(blob.type) || typeof createImageBitmap === 'undefined') return blob;
+  try {
+    const img = await createImageBitmap(blob);
+    const scale = Math.min(1, PERSIST_SIDE / Math.max(img.width, img.height));
+    if (scale === 1 && blob.size <= PERSIST_BYTES) return blob;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b ?? blob), 'image/webp', 0.9));
+  } catch {
+    return blob;
+  }
+}
+
+const toDataUrl = (blob: Blob) =>
+  new Promise<string | null>((resolve) => {
+    const r = new FileReader();
+    r.onload = () => resolve(typeof r.result === 'string' ? r.result : null);
+    r.onerror = () => resolve(null);
+    r.readAsDataURL(blob);
+  });
+
+function fromDataUrl(url: unknown): Blob | null {
+  const m = typeof url === 'string' ? /^data:([\w/+.-]+);base64,(.*)$/s.exec(url) : null;
+  if (!m || !MEDIA.test(m[1]!)) return null;
+  try {
+    const bin = atob(m[2]!);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: m[1] });
+  } catch {
+    return null;
+  }
+}
+
+async function persist(key: string, blob: Blob): Promise<boolean> {
+  const small = await shrink(blob);
+  if (small.size > PERSIST_BYTES) return false;
+  const url = await toDataUrl(small);
+  if (!url) return false;
+  writeSetting(persistKey(key), url);
+  return true;
+}
+
+async function idbDelete(key: string): Promise<void> {
   const d = await open();
   if (!d) return;
   await new Promise<void>((resolve) => {
@@ -116,7 +171,7 @@ export async function deleteMedia(key: string): Promise<void> {
   });
 }
 
-export async function putMedia(key: string, blob: Blob): Promise<boolean> {
+async function idbPut(key: string, blob: Blob): Promise<boolean> {
   const d = await open();
   if (!d) return false;
   return new Promise((resolve) => {
@@ -127,7 +182,7 @@ export async function putMedia(key: string, blob: Blob): Promise<boolean> {
   });
 }
 
-export async function getMedia(key: string): Promise<Blob | null> {
+async function idbGet(key: string): Promise<Blob | null> {
   const d = await open();
   if (!d) return null;
   return new Promise((resolve) => {
@@ -135,4 +190,31 @@ export async function getMedia(key: string): Promise<Blob | null> {
     req.onsuccess = () => resolve(req.result instanceof Blob ? req.result : null);
     req.onerror = () => resolve(null);
   });
+}
+
+export async function deleteMedia(key: string): Promise<void> {
+  try {
+    window.DataStore?.remove(persistKey(key));
+  } catch {
+    // sem DataStore não há cópia
+  }
+  await idbDelete(key);
+}
+
+/**
+ * Guarda o arquivo. Devolve 'kept' quando ficou também a cópia que sobrevive ao reiniciar, 'session' quando só o
+ * IndexedDB guardou (arquivo grande demais: vale até fechar o client) e false quando nada guardou.
+ */
+export async function putMedia(key: string, blob: Blob): Promise<'kept' | 'session' | false> {
+  const [idb, kept] = await Promise.all([idbPut(key, blob), persist(key, blob)]);
+  return kept ? 'kept' : idb ? 'session' : false;
+}
+
+/** Arquivo do IndexedDB; senão a cópia do DataStore, que volta para o IndexedDB desta origem. */
+export async function getMedia(key: string): Promise<Blob | null> {
+  const hit = await idbGet(key);
+  if (hit) return hit;
+  const copy = fromDataUrl(readSetting<unknown>(persistKey(key), null));
+  if (copy) void idbPut(key, copy);
+  return copy;
 }

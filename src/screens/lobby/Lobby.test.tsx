@@ -242,7 +242,7 @@ test('em fila com a fase ainda em Lobby (como a LCU faz na fila normal), a barra
 });
 
 test('TFT: a coluna mostra a Pequena Lenda equipada no lugar da splash, e Personalizar abre a gaveta', async () => {
-  const tft = leader({ summonerName: 'Fulano', memberData: { 'TFT.Tactician': 'abc' } } as never);
+  const tft = leader({ summonerName: 'Fulano', summonerIconId: 29, memberData: { 'TFT.Tactician': 'abc' } } as never);
   const lcu = withSignals({ lobby: ready(lobby([tft], tft, { gameMode: 'TFT', queueId: 1100 })) });
   lcu.profile = async () => ({ backgroundSkinId: 1001 });
   lcu.game = { ...lcu.game, splash: async () => '/s.jpg', companions: async () => new Map([['abc', { itemId: 91003, name: 'Chibi Orianna', icon: '/o.png' }]]) };
@@ -251,7 +251,10 @@ test('TFT: a coluna mostra a Pequena Lenda equipada no lugar da splash, e Person
   await settle();
   const col = root.querySelector<HTMLElement>('.rlc-col')!;
   expect(col.querySelector<HTMLImageElement>('.rlc-col-legend img')!.getAttribute('src')).toBe('/o.png');
-  expect(col.querySelector('.rlc-col-splash')).toBeNull();
+  // Sem a splash do perfil: o fundo é a própria lenda (desfocada no CSS).
+  expect(col.querySelectorAll('.rlc-col-splash')).toHaveLength(1);
+  expect(col.querySelector<HTMLElement>('.rlc-col-legend-bg')!.style.backgroundImage).toContain('/o.png');
+  expect(col.querySelector<HTMLImageElement>('.rlc-col-name .rlc-col-icon')!.getAttribute('src')).toBe('/lol-game-data/assets/v1/profile-icons/29.jpg');
   act(() => btn('Personalizar')!.click());
   expect(root.querySelector('.rlc-tft-drawer')).not.toBeNull();
 });

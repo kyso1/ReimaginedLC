@@ -702,3 +702,24 @@ test('interface da Riot congelada só com a camada visível', async () => {
   await flush();
   expect(riot.dataset.rlcFrozen).toBeUndefined();
 });
+
+test('gaveta de amigos: passar o mouse rápido não abre; parado um instante abre e fecha logo ao sair', async () => {
+  enabled.value = true;
+  mount();
+  await flush();
+  const rc = () => root.querySelector('.rlc-rc')!;
+  const wait = async (ms: number) => {
+    await new Promise((r) => setTimeout(r, ms));
+    await flush();
+  };
+  rc().dispatchEvent(new MouseEvent('mouseenter'));
+  rc().dispatchEvent(new MouseEvent('mouseleave'));
+  await wait(300);
+  expect(rc().getAttribute('data-open')).toBeNull();
+  rc().dispatchEvent(new MouseEvent('mouseenter'));
+  await wait(300);
+  expect(rc().getAttribute('data-open')).toBe('true');
+  rc().dispatchEvent(new MouseEvent('mouseleave'));
+  await wait(450);
+  expect(rc().getAttribute('data-open')).toBeNull();
+});

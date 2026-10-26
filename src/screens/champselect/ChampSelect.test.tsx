@@ -149,6 +149,9 @@ test('fora da vez: sem botão de confirmar nem banir, e clique na grade não env
   expect(root.querySelector('.rlc-cs-phase')!.textContent).toBe('Aguardando');
   expect(btn('Travar')).toBeUndefined();
   expect(btn('Banir')).toBeUndefined();
+  // Fora da vez a grade começa fechada (palco com o mapa); aberta à mão, só mostra.
+  expect(root.querySelector('.rlc-cs-drawer')).toBeNull();
+  act(() => btn('Mostrar campeões')!.click());
   act(() => root.querySelector<HTMLButtonElement>('.rlc-cs-champ')!.click());
   // só leituras (nomes da sala); nenhuma escrita
   expect(fetchMock.mock.calls.filter((c) => c[1]?.method)).toEqual([]);
@@ -582,6 +585,7 @@ test('ARAM com cartões: depois de escolher, banco sem rolagem; na escolha só o
 test('gaveta de campeões: ✕ e Esc fecham, o botão reabre e a minha vez reabre sozinha', async () => {
   const lcu = setup(session({ myTeam: [me], actions: [[action({ id: 6, type: 'pick', isInProgress: false })]] }));
   await settle();
+  act(() => btn('Mostrar campeões')!.click());
   act(() => btn('Fechar seleção de campeões')!.click());
   expect(root.querySelector('.rlc-cs-drawer')).toBeNull();
   act(() => btn('Mostrar campeões')!.click());
@@ -661,4 +665,32 @@ test('editor de runas na seleção: fundo com a skin escolhida', async () => {
     await settle();
     expect(root.querySelector<HTMLElement>('.rlc-re-art-splash .rlc-xfade-layer:last-child')?.style.backgroundImage).toBe('url("/splash/103005.jpg")');
   });
+});
+
+test('antes de escolher: palco mostra o mapa do lado do time com as escolhas dos aliados', async () => {
+  fetchMock.mockImplementation(async (url: string) =>
+    url === '/lol-maps/v2/maps'
+      ? new Response(JSON.stringify([{ id: 11, gameMode: 'CLASSIC', assets: { 'map-south': 'm/south.png', 'map-north': 'm/north.png' } }]), { status: 200 })
+      : new Response(null, { status: 204 }),
+  );
+  const lcu = setup(session({ myTeam: [cell({ ...me, team: 2 } as never), cell({ cellId: 1, championPickIntent: 103, assignedPosition: 'middle' } as never)], actions: [[action({ actorCellId: 3, type: 'pick', isInProgress: true })]] }));
+  lcu.gameflowSession.value = ready({ map: { id: 11 }, gameData: { queue: { gameMode: 'CLASSIC' } } }) as never;
+  await settle();
+  await settle();
+  const map = root.querySelector('.rlc-cs-map')!;
+  expect(map.getAttribute('data-side')).toBe('red');
+  expect(map.querySelector('img')!.getAttribute('src')).toBe('/m/north.png');
+  expect(map.textContent).toContain('Lado vermelho');
+  expect(map.querySelectorAll('.rlc-cs-map-pick')).toHaveLength(2);
+});
+
+test('Arena: sem runas, feitiços fixos e os outros times agrupados por subtime', async () => {
+  const lcu = setupLoadout({ gameflowSession: ready({ gameData: { queue: { gameMode: 'CHERRY' } } }), champSelect: ready({ ...lockedMe(), myTeam: [...lockedMe().myTeam, cell({ cellId: 1 }), cell({ cellId: 2 })], theirTeam: [3, 4, 5, 6].map((id) => cell({ cellId: id, team: 2 })) }) });
+  void lcu;
+  await settle();
+  await settle();
+  expect(root.querySelector('.rlc-cs-runes')).toBeNull();
+  expect([...root.querySelectorAll<HTMLButtonElement>('.rlc-cs-spell-slots .rlc-cs-spell-slot')].every((b) => b.disabled)).toBe(true);
+  const groups = [...root.querySelectorAll('.rlc-cs-subteam')].map((g) => [g.getAttribute('aria-label'), g.querySelectorAll('.rlc-cs-subteam-pick').length]);
+  expect(groups).toEqual([['Minion', 3], ['Scuttle', 1]]);
 });

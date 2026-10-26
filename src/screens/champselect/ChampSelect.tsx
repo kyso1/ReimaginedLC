@@ -11,7 +11,8 @@ import { RuneEditor, useApplyOnLock, type RecoContext } from './RuneEditor';
 import { Bench, SubsetCards, SwapCards, swapMenu } from './Swaps';
 import { actingCells, allyWants, bansByTeam, displayedChampion, laneOpponent, myTurn, remainingSeconds, selectPhase, unavailable, type SelectPhase, type Session } from './logic';
 import { useRealNames } from './names';
-import { Team } from './Teams';
+import { ArenaTeams, Team } from './Teams';
+import { MapSide, useMapArt } from './MapSide';
 import { rankedQueueOf } from '../../ui/Rank';
 import { useEscape } from '../../ui/useEscape';
 import { prefs } from '../../shell/prefs';
@@ -38,11 +39,11 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   const session = lcu.champSelect.value.data;
   const champions = useLoaded(lcu.game.champions, EMPTY);
   const spells = useLoaded(lcu.game.spells, EMPTY);
-  // Grade fechada mostra o palco; reabre sozinha quando chega a minha vez e fecha ao travar.
-  const [drawerOpen, setDrawerOpen] = useState(true);
+  // Grade fechada mostra o palco (o mapa do lado do time até eu escolher); abre sozinha na minha vez e fecha ao travar.
+  const [drawerOpen, setDrawerOpen] = useState(false);
   // Campeão sob o mouse na grade: só a prévia do palco, nada é enviado.
   const [preview, setPreview] = useState<number | null>(null);
-  const real = useRealNames(session);
+  const real = useRealNames(session, prefs.value.nameReveal);
   const seconds = useSelectClock(session);
   const local = session?.myTeam.find((c) => c.cellId === session.localPlayerCellId) ?? null;
   const shown = local ? displayedChampion(local) : null;
@@ -73,6 +74,8 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   const stageSkin = previewing ? previewing * 1000 : shown ? (shown.locked && (pick ?? local!.selectedSkinId) > 0 ? (pick ?? local!.selectedSkinId) : shown.championId * 1000) : undefined;
   const splashUrl = useLoaded(() => lcu.game.splash(stageSkin), null, [stageSkin]);
   const splash = useDecoded(splashUrl);
+  const flow = lcu.gameflowSession.value.data;
+  const mapArt = useMapArt(flow?.map?.id, flow?.gameData?.queue?.gameMode);
 
   const hover = useAction((id: number, championId: number) => request('PATCH', `/lol-champ-select/v1/session/actions/${id}`, { championId }));
   const commit = useAction((id: number, championId: number) => request('PATCH', `/lol-champ-select/v1/session/actions/${id}`, { championId, completed: true }));
@@ -93,8 +96,10 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   useEscape(() => !runesOpen && setDrawerOpen(false));
   const lanes = lcu.lanes.value.data ?? {};
   const position = local ? local.assignedPosition || (lanes[String(shown?.championId ?? 0)]?.recommendedPositions?.[0] ?? '') : '';
+  const gameMode = lcu.gameflowSession.value.data?.gameData?.queue?.gameMode ?? null;
+  // Arena não tem runas: nada de recomendação nem de aplicar ao travar.
   const reco: RecoContext | null =
-    session && local
+    session && local && gameMode !== 'CHERRY'
       ? {
           championId: shown?.championId ?? 0,
           position,
@@ -156,7 +161,7 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
 
   return (
     <section class="rlc-champselect" data-phase={phase} data-grid={gridOpen || cardTurn ? 'open' : undefined}>
-      {stageSkin ? <Crossfade src={splash} class="rlc-cs-splash" position="center 15%" /> : null}
+      {stageSkin ? <Crossfade src={splash} class="rlc-cs-splash" position="center 15%" /> : mapArt && !gridOpen && !cardTurn ? <MapSide art={mapArt} cells={session.myTeam} champions={champions} /> : null}
       {/* Ponte para o ROSE-SkinMonitor, que lê o nome da skin no DOM (`.skin-name-text`) e fica com o último visível. */}
       {rose && chosen ? (
         <span class="skin-name-text rlc-rose-mirror" aria-hidden="true">
@@ -166,7 +171,7 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
       <span class="rlc-cs-timebar" aria-hidden="true">
         <i style={{ width: `${Math.min(100, (seconds / total) * 100)}%` }} />
       </span>
-      <Team cells={session.myTeam} side="mine" bans={bans.mine} active={active} localCellId={session.localPlayerCellId} champions={champions} spells={spells} name={lcu.name} splash={lcu.game.splash} real={real} rankQueue={rankedQueueOf(lcu.gameflowSession.value.data?.gameData?.queue?.id) ?? 'RANKED_SOLO_5x5'} menuFor={(c) => (c.cellId === session.localPlayerCellId ? null : swapMenu(session, c))} />
+      <Team cells={session.myTeam} side="mine" bans={bans.mine} active={active} localCellId={session.localPlayerCellId} champions={champions} spells={spells} name={lcu.name} splash={lcu.game.splash} real={real.byCell} extra={real.extra} rankQueue={rankedQueueOf(lcu.gameflowSession.value.data?.gameData?.queue?.id) ?? 'RANKED_SOLO_5x5'} menuFor={(c) => (c.cellId === session.localPlayerCellId ? null : swapMenu(session, c))} />
       <div class="rlc-cs-center">
         <header class="rlc-cs-head">
           <p class="rlc-cs-clock">
@@ -213,7 +218,11 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
           </>
         )}
       </div>
-      <Team cells={session.theirTeam} side="theirs" bans={bans.theirs} active={active} localCellId={-1} champions={champions} spells={spells} name={lcu.name} splash={lcu.game.splash} />
+      {gameMode === 'CHERRY' ? (
+        <ArenaTeams cells={session.theirTeam} size={Math.max(1, session.myTeam.length)} champions={champions} bans={bans.theirs} />
+      ) : (
+        <Team cells={session.theirTeam} side="theirs" bans={bans.theirs} active={active} localCellId={-1} champions={champions} spells={spells} name={lcu.name} splash={lcu.game.splash} />
+      )}
       <SwapCards session={session} />
       <footer class="rlc-cs-bar">
         {local ? (

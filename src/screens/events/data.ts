@@ -1,6 +1,9 @@
 import type { TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
+import { choiceOf, selectChoice, type Choice, type RewardGrant as Grant } from '../../shell/overlays/Rewards';
+
+export type { Choice, Grant };
 
 /** Leitura silenciosa da LCU (sem Toast): aba sem dados some, nunca vira erro de tela. */
 export const getJson = async <T,>(url: string): Promise<T | null> => {
@@ -28,7 +31,6 @@ export interface Reward {
   /** Recompensa de escolha: abre o seletor em vez de resgatar direto. */
   choice?: Choice;
 }
-export interface Choice { grantId: string; rewardGroupId: string; min: number; max: number; options: Array<{ id: string; name: string; icon: string }> }
 
 /** Estado visual do bloco: resgatado, pronto, preso ao passe ou a um nível futuro. */
 export type RewardState = 'claimed' | 'ready' | 'pass' | 'level';
@@ -75,23 +77,12 @@ const KINDS: Record<string, TextKey> = {
 export const activeEvents = (events: HubEvent[], now = Date.now()) =>
   events.filter((e) => !['kActivityCenterMilestones', 'kDemaciaPass'].includes(e.eventInfo.eventType) && Date.parse(e.eventInfo.startDate) <= now && now < Date.parse(e.eventInfo.endDate));
 
-/** Concessão de `/lol-rewards/v1/grants`; PENDING_SELECTION espera a escolha do jogador. */
-export interface Grant {
-  info: { id: string; rewardGroupId: string; status: string };
-  rewardGroup: { selectionStrategyConfig?: { minSelectionsAllowed: number; maxSelectionsAllowed: number } | null; rewards: Array<{ id: string; localizations: { title?: string }; media: { iconUrl?: string } }> };
-}
-
-/** Escolhas pendentes por grupo de recompensa. Grupo com uma opção só não é escolha: o claim-all resolve. */
+/** Escolhas pendentes por grupo de recompensa. */
 export function pendingChoices(grants: Grant[]): Map<string, Choice> {
   const map = new Map<string, Choice>();
   for (const g of grants) {
-    const cfg = g.rewardGroup.selectionStrategyConfig;
-    const max = cfg?.maxSelectionsAllowed ?? 1;
-    if (g.info.status !== 'PENDING_SELECTION' || g.rewardGroup.rewards.length <= max) continue;
-    map.set(g.info.rewardGroupId, {
-      grantId: g.info.id, rewardGroupId: g.info.rewardGroupId, min: cfg?.minSelectionsAllowed ?? 1, max,
-      options: g.rewardGroup.rewards.map((r) => ({ id: r.id, name: r.localizations.title ?? '', icon: r.media.iconUrl ?? '' })),
-    });
+    const c = choiceOf(g);
+    if (c) map.set(c.rewardGroupId, c);
   }
   return map;
 }
@@ -180,9 +171,7 @@ export const claimAll = (p: Pass) =>
     ? request('POST', `/lol-event-hub/v1/events/${encodeURIComponent(p.id)}/reward-track/claim-all`)
     : request('PUT', `/lol-tft-pass/v1/pass/${encodeURIComponent(p.id)}/milestone/claimAllRewards`);
 
-/** Escolha de recompensa, como o client oficial (rcp-fe-lol-shared-components): POST na concessão pendente. */
-export const selectChoice = (c: Choice, selections: string[]) =>
-  request('POST', `/lol-rewards/v1/grants/${encodeURIComponent(c.grantId)}/select`, { grantId: c.grantId, rewardGroupId: c.rewardGroupId, selections });
+export { selectChoice };
 
 /**
  * Compra do passe. Nunca compramos pela nossa interface: a compra tem de ser confirmada na janela da Riot.

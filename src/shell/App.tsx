@@ -22,6 +22,7 @@ import { enabled, hideRiot, setEnabled } from './layer';
 import { Confirm } from './overlays/Confirm';
 import { InvitationCards } from './overlays/Invitations';
 import { QueuePill } from './QueuePill';
+import { Rewards } from './overlays/Rewards';
 import { ReadyCheckOverlay, showReadyCheck } from './overlays/ReadyCheck';
 import { screenFor, type Screen } from './router';
 import { readSetting } from './storage';
@@ -50,6 +51,7 @@ const Settings = lazyView(() => import('../screens/settings/Settings').then((m) 
 const Profile = lazyView(() => import('../screens/profile/Profile').then((m) => m.Profile));
 const Store = lazyView(() => import('../screens/store/Store').then((m) => m.Store));
 const Events = lazyView(() => import('../screens/events/Events').then((m) => m.Events));
+const Clash = lazyView(() => import('../screens/clash/Clash').then((m) => m.Clash));
 // Fase -> tela provável seguinte, baixada no ocioso para não haver atraso ao chegar nela.
 const NEXT: Partial<Record<string, { preload: () => Promise<void> }>> = { Lobby: ChampSelect, Matchmaking: ChampSelect, ReadyCheck: ChampSelect, InProgress: PostGame, WaitingForStats: PostGame, PreEndOfGame: PostGame };
 
@@ -57,7 +59,10 @@ const RAIL: Partial<Record<Screen, TextKey>> = { champselect: 'railChampSelect',
 
 /** Escurecer o fundo nunca chega ao preto total: a tela sumia atrás dos painéis. */
 const MAX_DIM = 0.85;
-const RIGHT_CLOSE_MS = 1200;
+// Gaveta de amigos: abre só depois de o mouse parar um pouco nela (passar por cima a caminho de outro lugar não abre)
+// e fecha logo depois que ele sai (a folga só cobre um esbarrão na borda).
+const RIGHT_OPEN_MS = 220;
+const RIGHT_CLOSE_MS = 350;
 
 /** Elemento raiz da interface da Riot. */
 export const RIOT_ROOT_ID = 'rcp-fe-viewport-root';
@@ -74,9 +79,9 @@ interface Screens {
 }
 
 /** Telas livres do trilho, abertas fora do fluxo de partida. */
-export type View = 'profile' | 'collection' | 'loot' | 'events' | 'store' | 'settings';
+export type View = 'profile' | 'collection' | 'loot' | 'events' | 'clash' | 'store' | 'settings';
 type Views = Partial<Record<View, (props: { lcu: Lcu }) => JSX.Element>>;
-const VIEW_LABEL: Record<View, TextKey> = { profile: 'navProfile', collection: 'navCollection', loot: 'colLoot', events: 'navEvents', store: 'navStore', settings: 'navSettings' };
+const VIEW_LABEL: Record<View, TextKey> = { profile: 'navProfile', collection: 'navCollection', loot: 'colLoot', events: 'navEvents', clash: 'navClash', store: 'navStore', settings: 'navSettings' };
 
 interface Props {
   root: HTMLElement;
@@ -106,13 +111,13 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   const [confirmClose, setConfirmClose] = useState(false);
   const [view, setView] = useState<View | null>(null);
   const [rightOpen, setRightOpen] = useState(false);
-  // A gaveta de amigos fica 1,2 s depois de o mouse sair, para não fechar num esbarrão.
   const rightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdRight = (open: boolean) => {
     if (rightTimer.current) clearTimeout(rightTimer.current);
-    rightTimer.current = null;
-    if (open) setRightOpen(true);
-    else rightTimer.current = setTimeout(() => setRightOpen(false), RIGHT_CLOSE_MS);
+    rightTimer.current = setTimeout(() => {
+      rightTimer.current = null;
+      setRightOpen(open);
+    }, open ? RIGHT_OPEN_MS : RIGHT_CLOSE_MS);
   };
   useEffect(() => () => void (rightTimer.current && clearTimeout(rightTimer.current)), []);
   /** Conversas 1:1 abertas como abas e a que está à vista. */
@@ -305,6 +310,8 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
                   ? <section class="rlc-loot-view"><Loot lcu={lcu} /></section>
                 : shownView === 'events'
                   ? <Events lcu={lcu} />
+                : shownView === 'clash'
+                  ? <Clash lcu={lcu} />
                 : shownView === 'store'
                   ? <Store lcu={lcu} />
                 : shownView === 'settings'
@@ -359,6 +366,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
         {panel === 'custom' ? <CustomBrowser lcu={lcu} onClose={() => setPanel(null)} /> : null}
         {/* Em fila fora do lobby: pílula no canto; ao voltar ao lobby ela estica até a barra de busca. */}
         <QueuePill lcu={lcu} onLobby={page === 'lobby' && !shownView} onOpen={() => (setPanel(null), setView(null), setAtHome(false))} />
+        <Rewards lcu={lcu} />
         <InvitationCards invitations={lcu.invitations.value.data ?? []} queues={lcu.queues.value.data ?? []} name={lcu.name} />
         {readyVisible ? <ReadyCheck rc={lcu.readyCheck.value.data!} mode={currentQueue ? queueGroup(currentQueue) : 'sr'} queueName={currentQueue?.name} /> : null}
         <SpotifyWidget />
