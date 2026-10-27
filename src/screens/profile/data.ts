@@ -27,6 +27,8 @@ export interface Identity {
 export interface Game {
   gameId: number;
   queueId: number;
+  gameType?: string;
+  gameVersion?: string;
   gameDuration: number;
   gameCreation: number;
   mapId?: number;

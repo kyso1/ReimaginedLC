@@ -287,3 +287,11 @@
 #rlc-root .rlc-tft-topunits li { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
 #rlc-root .rlc-tft-topunits li > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 #rlc-root .rlc-tft-topunit { display: block; width: 40px; height: 40px; border-radius: var(--rlc-radius-sm, 6px); object-fit: cover; background: var(--rlc-color-bg, #0b1020); }
+/* Linha do detalhe da partida: campeão, fila e duração, com o botão de replay ao lado. */
+#rlc-root .rlc-md-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+#rlc-root .rlc-md-meta > p { margin: 0; }
+/* Botão de replay: ícone e estado; baixando, uma barra fina de progresso embaixo. */
+#rlc-root .rlc-replay { position: relative; display: inline-flex; align-items: center; gap: 8px; overflow: hidden; }
+#rlc-root .rlc-replay:disabled { opacity: 0.6; cursor: default; }
+#rlc-root .rlc-replay[data-state='watch'], #rlc-root .rlc-replay[data-state='download'] { color: var(--rlc-color-text); }
+#rlc-root .rlc-replay-bar { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--rlc-color-accent); transition: width var(--rlc-motion-duration) var(--rlc-motion-easing); }

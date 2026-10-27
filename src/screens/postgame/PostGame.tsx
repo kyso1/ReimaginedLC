@@ -1,5 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import { PlayerMenu, ReportDialog, useReported, type EogTarget } from './Report';
+import { ReplayButton } from '../profile/ReplayButton';
 import { useEffect, useState } from 'preact/hooks';
 import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
@@ -214,6 +215,8 @@ export function PostGame({ lcu }: { lcu: Lcu }) {
         <button type="button" class="rlc-button" data-variant="danger" disabled={leave.pending} onClick={() => leave.run()}>
           {t('leave')}
         </button>
+        {/* Replay da partida (LoL; TFT não tem), ao lado de Sair. */}
+        {!tft && eog?.gameId ? <ReplayButton game={{ gameId: eog.gameId, queueId: queue?.id ?? 0, gameType: eog.gameType || 'MATCHED_GAME' }} where="end-of-game" /> : null}
         <button type="button" class="rlc-button" data-variant="primary" disabled={again.pending} onClick={() => again.run()}>
           {t('playAgain')}
         </button>

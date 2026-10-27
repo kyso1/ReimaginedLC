@@ -16,6 +16,7 @@ import { crestFromId, prestigeTheme, type BannerCatalog, type ChallengeSummary, 
 import { Badge, IdentityModal, type Tab as IdentityTab } from './Identity';
 import { TftHistory } from './TftHistory';
 import { PlayerHover } from './PlayerHover';
+import { ReplayButton } from './ReplayButton';
 import { canReportFromHistory, PlayerMenu, ReportDialog, useReported, type EogTarget } from '../postgame/Report';
 
 type Tab = 'summary' | 'history' | 'ranked' | 'mastery';
@@ -458,7 +459,10 @@ function MatchDetail({ lcu, puuid, gameId, originY, onBack }: { lcu: Lcu; puuid:
       {game ? (
         <>
           <h2 class="rlc-md-result">{me?.stats.win ? t('victory') : t('defeat')}</h2>
-          <p class="rlc-muted">{`${champ(me)?.name ?? ''} · ${lcu.queues.value.data?.find((q) => q.id === game.queueId)?.name ?? ''} · ${formatClock(game.gameDuration)}`}</p>
+          <div class="rlc-md-meta">
+            <p class="rlc-muted">{`${champ(me)?.name ?? ''} · ${lcu.queues.value.data?.find((q) => q.id === game.queueId)?.name ?? ''} · ${formatClock(game.gameDuration)}`}</p>
+            <ReplayButton game={{ gameId: game.gameId, queueId: game.queueId, gameType: game.gameType ?? 'MATCHED_GAME', gameVersion: game.gameVersion, gameCreation: game.gameCreation, gameDuration: game.gameDuration }} where="match-history" />
+          </div>
           <nav class="rlc-tabs-text">
             {DETAIL_TABS.map(([k, label]) => (
               <button type="button" key={k} aria-current={tab === k ? 'page' : undefined} onClick={() => setTab(k)}>

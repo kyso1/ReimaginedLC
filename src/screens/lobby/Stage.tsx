@@ -26,6 +26,9 @@ interface ColumnProps {
   splash: Lcu['game']['splash'];
   isLocal?: boolean;
   showPositions?: boolean;
+  /** Rotas em alta da fila e se a fila obriga a escolher uma delas (ranqueadas). */
+  scarce?: readonly string[];
+  forceScarce?: boolean;
   /** Nome no lugar do nome do invocador (bots). */
   label?: string;
   /** Própria coluna: os ícones de posição abrem o seletor. */
@@ -44,7 +47,7 @@ interface ColumnProps {
   slots?: ComponentChildren;
 }
 
-export function Column({ member, profile, name, splash: splashOf, isLocal = false, showPositions = false, label, editPositions = false, rankQueue = null, menu, empty, companions, onLegend, slots }: ColumnProps) {
+export function Column({ member, profile, name, splash: splashOf, isLocal = false, showPositions = false, scarce, forceScarce, label, editPositions = false, rankQueue = null, menu, empty, companions, onLegend, slots }: ColumnProps) {
   const legend = useLegend(companions ? member : null, companions);
   const splash = useDecoded(useSplash(companions ? null : member, profile, splashOf));
   const resolved = useName(member, name);
@@ -63,7 +66,7 @@ export function Column({ member, profile, name, splash: splashOf, isLocal = fals
         <span class="rlc-col-nick">{label ?? resolved}</span>
         {member.isLeader ? <span class="rlc-col-leader" title={t('leaderMark')} aria-label={t('leaderMark')}> ★</span> : null}
       </span>
-      {showPositions ? <PositionIcons first={member.firstPositionPreference} second={member.secondPositionPreference} editable={editPositions} /> : null}
+      {showPositions ? <PositionIcons first={member.firstPositionPreference} second={member.secondPositionPreference} editable={editPositions} scarce={scarce} force={forceScarce} /> : null}
       {member.isBot ? null : <Rank puuid={member.puuid} queue={rankQueue} />}
       {slots}
     </>

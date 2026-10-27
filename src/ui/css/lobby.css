@@ -13,6 +13,9 @@
 #rlc-root .rlc-pos-option[aria-pressed='true'] { border-color: var(--rlc-color-accent); }
 /* A posição da outra vaga: escolher aqui troca as duas. */
 #rlc-root .rlc-pos-option[data-other='true'] { border-style: dashed; border-color: var(--rlc-color-border); }
+/* Rota em alta da fila: contorno e ícone na cor de destaque, com um ponto no canto (o nome vem no balão). */
+#rlc-root .rlc-pos-option[data-scarce='true'], #rlc-root .rlc-pos-slot[data-scarce='true'] { position: relative; border-color: var(--rlc-color-highlight, #c8a04a); color: var(--rlc-color-highlight, #c8a04a); }
+#rlc-root .rlc-pos-option[data-scarce='true']::after, #rlc-root .rlc-pos-slot[data-scarce='true']::after { content: ''; position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; border-radius: 50%; background: var(--rlc-color-highlight, #c8a04a); box-shadow: 0 0 0 2px var(--rlc-color-bg); }
 #rlc-root .rlc-pos-slot:focus-visible, #rlc-root .rlc-pos-option:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 2px; }
 @keyframes rlc-pos-open { from { opacity: 0; translate: 0 6px; } }
 #rlc-root .rlc-col-info .rlc-rank { justify-content: center; }

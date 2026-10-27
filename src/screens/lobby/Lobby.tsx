@@ -90,6 +90,8 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
       splash={lcu.game.splash}
       isLocal={m ? isLocal(m) : false}
       showPositions={!config.isCustom && config.showPositionSelector}
+      scarce={data.scarcePositions ?? []}
+      forceScarce={config.shouldForceScarcePositionSelection === true}
       label={m?.isBot ? (bots.find((b) => b.id === m.botChampionId)?.name ?? t('bot')) : undefined}
       editPositions={m ? isLocal(m) : false}
       rankQueue={rankedQueueOf(config.queueId)}
