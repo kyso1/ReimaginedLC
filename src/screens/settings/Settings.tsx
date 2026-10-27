@@ -120,8 +120,9 @@ const markScrolled = (e: Event) => {
   else delete el.dataset.scrolled;
 };
 
-export function Settings({ lcu, themes }: { lcu: Lcu; themes: ThemeEngine }) {
-  const [area, setArea] = useState<string | null>(null);
+/** `initialArea`: abre direto numa área (o aviso de atualização abre em Geral). */
+export function Settings({ lcu, themes, initialArea = null }: { lcu: Lcu; themes: ThemeEngine; initialArea?: string | null }) {
+  const [area, setArea] = useState<string | null>(initialArea);
   const [focus, setFocus] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<ThemeManifest | null>(null);
@@ -661,6 +662,15 @@ function General({ lcu, themes }: { lcu: Lcu; themes: ThemeEngine }) {
   const report = () => errorReport({ phase: lcu.gameflowPhase.value.data ?? null, theme: themes.forGame.lol.value.name, tftTheme: themes.forGame.tft.value.name });
   return (
     <section class="rlc-st-card rlc-st-general">
+      {/* Primeiro da área: é aqui que o aviso de versão nova manda o usuário. */}
+      {update.value ? (
+        <div class="rlc-st-update">
+          <span>{`${t('updReady')} ${update.value.version}`}</span>
+          <button type="button" class="rlc-button" data-variant="primary" disabled={!canReload.value} title={canReload.value ? undefined : t('updReloadLater')} onClick={() => reloadForUpdate()}>
+            {t('updReload')}
+          </button>
+        </div>
+      ) : null}
       <Row name={t('stLanguage')} desc={t('stLanguageDesc')}>
         <Seg label={t('stLanguage')} value={p.locale} options={LOCALES.map(([l, label]) => [l, label()])} onPick={(locale) => setPrefs({ locale })} />
       </Row>
@@ -699,14 +709,6 @@ function General({ lcu, themes }: { lcu: Lcu; themes: ThemeEngine }) {
           </a>
         </div>
       </Row>
-      {update.value ? (
-        <div class="rlc-st-update">
-          <span>{`${t('updReady')} ${update.value.version}`}</span>
-          <button type="button" class="rlc-button" data-variant="primary" disabled={!canReload.value} title={canReload.value ? undefined : t('updReloadLater')} onClick={() => reloadForUpdate()}>
-            {t('updReload')}
-          </button>
-        </div>
-      ) : null}
     </section>
   );
 }

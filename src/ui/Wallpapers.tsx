@@ -31,7 +31,7 @@ function useWallpaperList(): [State, () => void] {
 
 /**
  * Wallpapers do Wallpaper Engine e da pasta do usuário, servidos pelo auxiliar de fundos. Clique escolhe como fundo.
- * Sem o auxiliar, explica como instalar (um clique no `instalar-fundos.cmd` da pasta do plugin).
+ * Sem o auxiliar, explica como instalar (um clique no `install-helper.cmd` da pasta do plugin).
  */
 export function Wallpapers({ current, onPick, compact = false }: { current: BgSource; onPick: (src: BgSource) => void; compact?: boolean }) {
   const [state, reload] = useWallpaperList();

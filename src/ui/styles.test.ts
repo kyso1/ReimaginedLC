@@ -17,3 +17,15 @@ test('styles.css não tem cor literal fora de var(--rlc-*, reserva)', () => {
 test('styles.css não depende de :has() (regra do projeto para o Chromium do client)', () => {
   expect(ALL()).not.toContain(':has(');
 });
+
+test('editor de runas: o topo (com a lista de páginas) fica acima das colunas das árvores', () => {
+  const css = ALL();
+  // As colunas ganham z-index 1; o topo fica fora dessa regra e acima dela.
+  expect(css).toMatch(/\.rlc-re > :not\(\.rlc-re-art\):not\(\.rlc-re-tip\):not\(\.rlc-veil\):not\(\.rlc-re-top\) \{ position: relative; z-index: 1; \}/);
+  const top = /#rlc-root \.rlc-re > \.rlc-re-top \{[^}]*z-index: (\d+)/.exec(css);
+  expect(Number(top?.[1])).toBeGreaterThan(1);
+});
+
+test('cartão da seleção: nenhuma regra própria do menu dentro dele (ele abre solto na tela)', () => {
+  expect(ALL()).not.toContain('.rlc-cs-cell .rlc-menu');
+});

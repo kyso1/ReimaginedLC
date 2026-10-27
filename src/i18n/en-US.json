@@ -800,6 +800,9 @@
   "updReady": "ReimaginedLC update ready:",
   "updReload": "Reload",
   "updReloadLater": "Available outside queue, champion select and games",
+  "updNoticeTitle": "New ReimaginedLC version:",
+  "updNoticeText": "Go to Settings › General to update.",
+  "updNoticeOpen": "Open settings",
   "versionLabel": "Version",
   "navStore": "Store",
   "storeLoading": "Opening the store",
@@ -1186,7 +1189,7 @@
   "riftMapDesc": "On Summoner's Rift, the 3D map builds itself and shows each ally on their lane spot. Off, the client's map art is back.",
   "wpTitle": "Wallpapers",
   "wpLoading": "Looking for wallpapers…",
-  "wpAbsent": "To use Wallpaper Engine and your own wallpaper folder, install the wallpaper helper: open the plugins folder, go into ReimaginedLC and run instalar-fundos.cmd (only once; it starts with Windows).",
+  "wpAbsent": "To use Wallpaper Engine and your own wallpaper folder, install the wallpaper helper: open the plugins folder, go into ReimaginedLC and run install-helper.cmd (instalar-fundos.cmd in older downloads; only once, it starts with Windows).",
   "wpOpenPlugins": "Open plugins folder",
   "wpRetry": "Refresh",
   "wpEngine": "Wallpaper Engine",
@@ -1198,7 +1201,7 @@
   "wpUserEmpty": "Your folder is empty. Put images or videos (mp4, webm) in Pictures\\ReimaginedLC and click Refresh.",
   "wpEngineEmpty": "No Wallpaper Engine wallpapers found.",
   "stWallpapers": "Wallpapers (Wallpaper Engine and your folder)",
-  "stWallpapersDesc": "Uses the wallpaper helper (instalar-fundos.cmd in the plugin folder) to bring in Wallpaper Engine wallpapers and Pictures\\ReimaginedLC. Off, the client never contacts the helper.",
+  "stWallpapersDesc": "Uses the wallpaper helper (install-helper.cmd in the plugin folder, or instalar-fundos.cmd in older downloads) to bring in Wallpaper Engine wallpapers and Pictures\\ReimaginedLC. Off, the client never contacts the helper.",
   "fullscreenEnter": "Full screen",
   "fullscreenExit": "Exit full screen",
   "fullscreenFailed": "The client didn't allow full screen right now",
@@ -1208,5 +1211,5 @@
   "windowRestore": "Restore size",
   "stMaximize": "Maximized window",
   "stMaximizeDesc": "Maximizes the client like a browser: it fills the screen and the taskbar stays visible (also from the button between minimize and close). It's remembered; switching to the Riot client puts the window back to its previous size.",
-  "stMaximizeNeedsHelper": "Maximizing the client like a browser needs the ReimaginedLC helper: in the plugins folder, go into ReimaginedLC and run instalar-fundos.cmd (only once)."
+  "stMaximizeNeedsHelper": "Maximizing the client like a browser needs the ReimaginedLC helper: in the plugins folder, go into ReimaginedLC and run install-helper.cmd (instalar-fundos.cmd in older downloads; only once)."
 }

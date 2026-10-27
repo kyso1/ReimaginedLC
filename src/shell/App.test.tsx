@@ -788,3 +788,29 @@ test('Jogar no trilho, logo abaixo do Início, abre e fecha a escolha de modo (t
   await flush();
   expect(root.querySelector('.rlc-modes')).toBeNull();
 });
+
+test('versão nova pronta: aviso fica na tela, leva a Configurações › Geral (onde está o Recarregar) e dá para dispensar', async () => {
+  const { update } = await import('./update');
+  enabled.value = true;
+  update.value = { version: '9.9.9' };
+  try {
+    mount();
+    await flush();
+    const notice = () => root.querySelector('.rlc-update-notice');
+    expect(notice()!.textContent).toContain('Nova versão do ReimaginedLC: 9.9.9');
+    expect(notice()!.textContent).toContain('Configurações › Geral');
+    expect(root.querySelector('.rlc-rail-item[aria-label="Configurações"] .rlc-rail-dot, .rlc-rail-item[aria-label="Configurações"][data-dot]')).not.toBeNull();
+    [...notice()!.querySelectorAll('button')].find((b) => b.textContent === 'Abrir opções')!.click();
+    await shows('.rlc-st-general .rlc-st-update');
+    expect(root.querySelector('.rlc-st-general .rlc-st-update')!.textContent).toContain('9.9.9');
+    // Nas opções o aviso sai do caminho; voltando ao Início, continua lá até dispensar.
+    expect(notice()).toBeNull();
+    (root.querySelector('.rlc-rail-item[aria-label="Início"]') as HTMLButtonElement).click();
+    await flush();
+    root.querySelector<HTMLButtonElement>('.rlc-update-notice-close')!.click();
+    await flush();
+    expect(notice()).toBeNull();
+  } finally {
+    update.value = null;
+  }
+});

@@ -52,7 +52,6 @@
 #rlc-root .rlc-cs-side[data-side='theirs'] .rlc-cs-status { font-size: 13px; color: var(--rlc-color-text); }
 #rlc-root .rlc-cs-side[data-side='theirs'] .rlc-cs-cell[data-empty='true'] .rlc-cs-status { font-size: 11px; color: var(--rlc-color-textMuted); }
 #rlc-root .rlc-cs-cell .rlc-col-menu { position: absolute; top: 50%; right: -28px; width: 22px; height: 22px; margin-top: -11px; font-size: 11px; }
-#rlc-root .rlc-cs-cell .rlc-menu { top: 40px; left: 100%; right: auto; }
 
 /* Banimentos: fileira pequena e apagada sob os cartões. */
 #rlc-root .rlc-cs-bans { display: flex; flex-wrap: wrap; gap: 4px; }

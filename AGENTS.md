@@ -31,7 +31,7 @@ Before you finish, run `npx tsc --noEmit` and `npx vitest run`. Both must pass.
 | `src/i18n/` | `pt-BR.json` and `en-US.json`. Same keys in both (tested). |
 | `public/themes/<name>/theme.json` | Built-in themes. |
 | `loader/` | The signed auto-update loader that ships as `index.js`. |
-| `helper/` | Optional wallpaper helper (`rlc-fundos.ps1` + `instalar-fundos.cmd`): serves the Wallpaper Engine folder and `Pictures\ReimaginedLC` to the client on 127.0.0.1 (the client can't read folders). Client side: `src/theme/wallpapers.ts`, `src/ui/Wallpapers.tsx`. |
+| `helper/` | Optional helper (`rlc-helper.ps1` + `install-helper.cmd` / `uninstall-helper.cmd`, comments and messages in English): serves the Wallpaper Engine folder and `Pictures\ReimaginedLC` to the client on 127.0.0.1 (the client can't read folders) and maximizes the window like a browser. Client side: `src/theme/wallpapers.ts`, `src/ui/Wallpapers.tsx`. |
 | `docs/THEMES.md`, `docs/theme.schema.json` | Theme format and its JSON Schema. |
 
 ## Rules

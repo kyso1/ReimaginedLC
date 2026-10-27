@@ -54,7 +54,7 @@ jobs:
           cp dist-loader/ReimaginedLC/index.js pkg/ReimaginedLC/
           cp -r dist/ReimaginedLC pkg/ReimaginedLC/app
           # Auxiliar de fundos (Wallpaper Engine e pasta do usuário): instalação de um clique, opcional.
-          cp helper/rlc-fundos.ps1 helper/instalar-fundos.cmd helper/remover-fundos.cmd pkg/ReimaginedLC/
+          cp helper/rlc-helper.ps1 helper/install-helper.cmd helper/uninstall-helper.cmd pkg/ReimaginedLC/
           cd pkg && zip -r "../ReimaginedLC-${GITHUB_REF_NAME#v}.zip" ReimaginedLC
       - name: Publish
         env:

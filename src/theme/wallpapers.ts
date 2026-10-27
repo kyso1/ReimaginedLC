@@ -1,7 +1,7 @@
 import { signal } from '@preact/signals';
 
 /**
- * Auxiliar de fundos (helper/rlc-fundos.ps1): roda no Windows e serve, só para o client, a lista e os arquivos da pasta
+ * Auxiliar de fundos (helper/rlc-helper.ps1): roda no Windows e serve, só para o client, a lista e os arquivos da pasta
  * do Wallpaper Engine e da pasta do usuário (Imagens\ReimaginedLC). O client não enxerga pastas sozinho.
  * Escuta numa destas portas, a primeira livre na máquina.
  */

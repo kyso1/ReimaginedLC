@@ -28,7 +28,8 @@ export function swapMenu(session: Session, cell: Cell) {
       .filter((c) => c.cellId === cell.cellId && c.state === 'AVAILABLE')
       .map((c) => ({ label: t(k.offer), run: () => void send(k.route, c.id, 'request').catch(() => {}) })),
   );
-  return items.length ? <MemberMenu items={items} /> : null;
+  // Solto na tela: dentro do cartão, a lista entrava no fluxo dele e esticava o banner do campeão.
+  return items.length ? <MemberMenu floating items={items} /> : null;
 }
 
 /** Cartões de trocas recebidas (Aceitar, Recusar) e enviadas (aguardando, Cancelar). */

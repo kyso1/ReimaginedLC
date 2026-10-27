@@ -107,7 +107,7 @@ All of them are off by default. Turn them on in **Settings › Plugins**.
 
 ## Wallpapers (Wallpaper Engine and your own folder)
 
-The client can't read folders on its own, so this is an optional helper. In the plugin folder, run `instalar-fundos.cmd` once (no admin needed): it starts with Windows, finds your Wallpaper Engine wallpapers through Steam and creates `Pictures\ReimaginedLC` for your own images and videos (mp4, webm). Then pick them in **Settings › Appearance › Wallpapers** or with the picture button on Home. Video wallpapers play; scene and web wallpapers show their preview. It only listens on 127.0.0.1 and only answers the client. `remover-fundos.cmd` removes it.
+The client can't read folders on its own, so this is an optional helper. In the plugin folder, run `install-helper.cmd` once (no admin needed; it was `instalar-fundos.cmd` before 0.2.19): it starts with Windows, finds your Wallpaper Engine wallpapers through Steam and creates `Pictures\ReimaginedLC` for your own images and videos (mp4, webm). Then pick them in **Settings › Appearance › Wallpapers** or with the picture button on Home. Video wallpapers play; scene and web wallpapers show their preview. It only listens on 127.0.0.1 and only answers the client. `uninstall-helper.cmd` removes it.
 
 ## Updates
 

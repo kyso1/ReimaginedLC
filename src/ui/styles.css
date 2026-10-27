@@ -510,6 +510,12 @@
 #rlc-root ::-webkit-scrollbar-corner { background: transparent; }
 #rlc-root input[type='checkbox'], #rlc-root input[type='range'], #rlc-root input[type='radio'] { accent-color: var(--rlc-color-accent); }
 #rlc-root .rlc-st-update { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border: 1px solid var(--rlc-color-accent); border-radius: var(--rlc-radius-md); background: var(--rlc-color-surface); }
+/* Aviso de versão nova: canto de cima, abaixo dos botões da janela; fica até abrir as opções ou dispensar. */
+#rlc-root .rlc-update-notice { position: absolute; top: 44px; right: 84px; z-index: 8; display: flex; align-items: center; gap: 12px; max-width: min(460px, 60vw); padding: 10px 10px 10px 16px; border: 1px solid var(--rlc-color-accent); border-radius: var(--rlc-radius-md); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(14, 16, 26, 0.85)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.95))); box-shadow: 0 14px 32px var(--rlc-color-shade, rgba(0, 0, 0, 0.45)); animation: rlc-fade var(--rlc-motion-duration) var(--rlc-motion-easing) both; }
+#rlc-root .rlc-update-notice-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 13px; }
+#rlc-root .rlc-update-notice-text span { color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-update-notice-close { flex: none; display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--rlc-color-textMuted); font: inherit; cursor: pointer; }
+#rlc-root .rlc-update-notice-close:hover, #rlc-root .rlc-update-notice-close:focus-visible { color: var(--rlc-color-text); background: var(--rlc-color-surface); }
 
 /* Entrada no lobby: cada coluna sobe saindo do desfoque, uma após a outra; a barra chega por último. */
 #rlc-root .rlc-lobby[data-enter] .rlc-col { animation: rlc-col-enter 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) both; }

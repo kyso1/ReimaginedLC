@@ -485,8 +485,13 @@ test('menu do aliado oferece só as trocas disponíveis com ele', async () => {
   const cells = root.querySelectorAll('.rlc-cs-team')[0]!.querySelectorAll('.rlc-cs-cell');
   expect(cells[0]!.querySelector('.rlc-col-menu')).toBeNull();
   expect(cells[2]!.querySelector('.rlc-col-menu')).toBeNull();
+  root.id = 'rlc-root';
   act(() => cells[1]!.querySelector<HTMLButtonElement>('.rlc-col-menu')!.click());
   expect([...root.querySelectorAll('[role="menuitem"]')].map((b) => b.textContent)).toEqual(['Trocar campeão', 'Trocar posição']);
+  // A lista abre solta na tela, fora do cartão: dentro dele, entrava no fluxo e esticava o banner do campeão.
+  expect(cells[1]!.querySelector('.rlc-menu')).toBeNull();
+  expect(root.querySelector(':scope > .rlc-menu[data-floating]')).not.toBeNull();
+  root.removeAttribute('id');
   act(() => btn('Trocar posição')!.click());
   expect(call('/lol-champ-select/v1/session/position-swaps/11/request')).toHaveLength(1);
 });

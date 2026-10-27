@@ -107,7 +107,7 @@ Todos começam desligados. Ligue em **Configurações › Plugins**.
 
 ## Papéis de parede (Wallpaper Engine e sua pasta)
 
-O client não enxerga pastas sozinho, então isso usa um auxiliar opcional. Na pasta do plugin, rode `instalar-fundos.cmd` uma vez (não precisa de administrador): ele inicia com o Windows, acha seus papéis de parede do Wallpaper Engine pelo Steam e cria `Imagens\ReimaginedLC` para as suas imagens e vídeos (mp4, webm). Depois é só escolher em **Configurações › Aparência › Papéis de parede** ou no botão de imagem do Início. Papéis de parede em vídeo tocam; cenas e web aparecem pela prévia. Ele só escuta em 127.0.0.1 e só responde ao client. `remover-fundos.cmd` remove.
+O client não enxerga pastas sozinho, então isso usa um auxiliar opcional. Na pasta do plugin, rode `install-helper.cmd` uma vez (não precisa de administrador; antes da 0.2.19 era `instalar-fundos.cmd`): ele inicia com o Windows, acha seus papéis de parede do Wallpaper Engine pelo Steam e cria `Imagens\ReimaginedLC` para as suas imagens e vídeos (mp4, webm). Depois é só escolher em **Configurações › Aparência › Papéis de parede** ou no botão de imagem do Início. Papéis de parede em vídeo tocam; cenas e web aparecem pela prévia. Ele só escuta em 127.0.0.1 e só responde ao client. `uninstall-helper.cmd` remove.
 
 ## Atualizações
 

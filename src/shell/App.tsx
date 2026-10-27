@@ -23,6 +23,8 @@ import { enabled, hideRiot, setEnabled, shown as layerShown } from './layer';
 import { Confirm } from './overlays/Confirm';
 import { InvitationCards } from './overlays/Invitations';
 import { QueuePill } from './QueuePill';
+import { UpdateNotice } from './UpdateNotice';
+import { update } from './update';
 import { Rewards } from './overlays/Rewards';
 import { ReadyCheckOverlay, showReadyCheck } from './overlays/ReadyCheck';
 import { screenFor, type Screen } from './router';
@@ -133,6 +135,8 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   const [removing, setRemoving] = useState<LolChatFriendResource | null>(null);
   /** Perfil aberto: null é o próprio. */
   const [profilePuuid, setProfilePuuid] = useState<string | null>(null);
+  /** Área das opções aberta por um atalho (o aviso de atualização abre em Geral); null é a tela inicial delas. */
+  const [settingsArea, setSettingsArea] = useState<string | null>(null);
   // Telas livres fora do fluxo de partida (e no fim de jogo: o Início volta ao placar); na seleção e em jogo, a fase manda.
   const free = screen === 'home' || screen === 'lobby' || screen === 'postgame';
   useEffect(() => {
@@ -317,9 +321,10 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
                   label: t(VIEW_LABEL[v]),
                   active: shownView === v,
                   // Ponto = algo novo para pegar: recompensa de passe em Eventos, item novo (isNew) em Espólios.
-                  dot: (v === 'events' && claims > 0) || (v === 'loot' && (lcu.loot.value.data ?? []).some((l) => l.isNew && l.count > 0 && l.type !== 'CURRENCY')),
+                  dot: (v === 'events' && claims > 0) || (v === 'loot' && (lcu.loot.value.data ?? []).some((l) => l.isNew && l.count > 0 && l.type !== 'CURRENCY')) || (v === 'settings' && !!update.value),
                   onSelect: () => {
                     if (v === 'profile') setProfilePuuid(null);
+                    if (v === 'settings') setSettingsArea(null);
                     setView(v);
                   },
                 }))
@@ -344,7 +349,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
                 : shownView === 'store'
                   ? <Store lcu={lcu} />
                 : shownView === 'settings'
-                  ? <Settings lcu={lcu} themes={themes} />
+                  ? <Settings key={settingsArea ?? 'start'} lcu={lcu} themes={themes} initialArea={settingsArea} />
                 : <section class="rlc-unknown"><h2>{t(VIEW_LABEL[shownView])}</h2></section>
             : page === 'home' && screens.home
             ? h(screens.home, { version: lcu.build.value.data?.version ?? null, locale: lcu.regionLocale.value.data?.locale ?? null, onPlay: () => setPanel('modes'), onStore: () => setView('store'), onEvents: () => setView('events') })
@@ -394,6 +399,15 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
         ) : null}
         {panel === 'custom' ? <CustomBrowser lcu={lcu} onClose={() => setPanel(null)} /> : null}
         {/* Em fila fora do lobby: pílula no canto; ao voltar ao lobby ela estica até a barra de busca. */}
+        {free && shownView !== 'settings' ? (
+          <UpdateNotice
+            onOpen={() => {
+              setPanel(null);
+              setSettingsArea('general');
+              setView('settings');
+            }}
+          />
+        ) : null}
         <QueuePill lcu={lcu} onLobby={page === 'lobby' && !shownView} onOpen={() => (setPanel(null), setView(null), setAtHome(false))} />
         <Rewards lcu={lcu} />
         <InvitationCards invitations={lcu.invitations.value.data ?? []} queues={lcu.queues.value.data ?? []} name={lcu.name} />

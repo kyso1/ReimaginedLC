@@ -5,7 +5,7 @@ import { prefs, setPrefs } from './prefs';
 
 /**
  * Janela maximizada como num navegador: ocupa a área de trabalho e a barra de tarefas continua à vista. A página não
- * consegue mexer na própria janela e a Riot não tem isso; quem faz é o auxiliar (helper/rlc-fundos.ps1, versão 2+),
+ * consegue mexer na própria janela e a Riot não tem isso; quem faz é o auxiliar (helper/rlc-helper.ps1, versão 2+),
  * que também guarda o tamanho de antes para voltar a ele.
  *
  * - A escolha fica guardada (`maximized`) e volta sozinha ao abrir o client (sem precisar de clique).
