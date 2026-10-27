@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { startFullscreen, toggleFullscreen } from './fullscreen';
-import { enabled } from './layer';
+import { shown as enabled } from './layer';
 import { DEFAULT_PREFS, prefs } from './prefs';
 
 let full: Element | null = null;

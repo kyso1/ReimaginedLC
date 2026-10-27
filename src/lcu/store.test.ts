@@ -151,3 +151,28 @@ test('lista por item: URI irmã que não é item (conversations/active) não ent
   prefixFn('/lol-chat/v1/conversations/active', 'Delete', null);
   expect(store.value.data).toEqual([{ id: 'a@x' }]);
 });
+
+test('GET que falha (client subindo) tenta de novo até dar certo; evento no meio cancela a tentativa', async () => {
+  const { socket, emit } = fakeSocket();
+  const waits: Array<() => void> = [];
+  let n = 0;
+  const store = createStore<string>('/lol-gameflow/v1/gameflow-phase', socket, async () => (++n < 3 ? res(503, { message: 'subindo' }) : res(200, 'EndOfGame')), (fn) => void waits.push(fn));
+  await settle();
+  expect(store.value.status).toBe('unavailable');
+  waits.shift()!();
+  await settle();
+  expect(store.value.status).toBe('unavailable');
+  waits.shift()!();
+  await settle();
+  expect(store.value).toEqual({ status: 'ready', data: 'EndOfGame' });
+  expect(waits).toHaveLength(0);
+  // Falhou de novo, mas chegou evento antes da próxima tentativa: a tentativa não faz nada.
+  const other = createStore<string>('/x', socket, async () => res(500), (fn) => void waits.push(fn));
+  await settle();
+  emit('/x', 'Update', 'ok');
+  const calls = n;
+  waits.shift()!();
+  await settle();
+  expect(other.value).toEqual({ status: 'ready', data: 'ok' });
+  expect(n).toBe(calls);
+});

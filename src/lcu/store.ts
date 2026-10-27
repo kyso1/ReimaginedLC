@@ -3,18 +3,25 @@ import type { LcuSocket } from './socket';
 
 export type StoreState<T> = { status: 'loading' | 'ready' | 'unavailable'; data: T | null };
 
+/** Esperas entre novas leituras de um recurso que falhou (a API do client pode ainda estar subindo). */
+export const RETRY_MS = [1000, 2000, 4000, 8000, 15000, 30000];
+
 /**
  * Estado de um recurso da LCU: um GET inicial e depois os eventos daquela URI.
  * 404 no GET é estado válido (o recurso não existe agora), não erro.
+ * GET que falha (client ainda subindo, erro do servidor) tenta de novo com espera crescente até dar certo: sem isso, um
+ * recurso que não muda (fase do pós-jogo ao reabrir o client) ficava indisponível até a conexão cair.
  */
 export function createStore<T>(
   uri: string,
   socket: LcuSocket,
   get: (uri: string) => Promise<Response> = (u) => fetch(u),
+  wait: (fn: () => void, ms: number) => unknown = (fn, ms) => setTimeout(fn, ms),
 ): Signal<StoreState<T>> & { refresh: () => Promise<void> } {
   const state = signal<StoreState<T>>({ status: 'loading', data: null });
   // Discard GET responses and events older than the latest event; counter incremented by all updates.
   let updateCounter = 0;
+  let failures = 0;
 
   const refresh = async () => {
     const counter = ++updateCounter;
@@ -31,7 +38,13 @@ export function createStore<T>(
     } catch {
       outcome = { status: 'unavailable', data: null };
     }
-    if (counter === updateCounter) state.value = outcome;
+    if (counter !== updateCounter) return;
+    state.value = outcome;
+    if (outcome.status === 'unavailable') {
+      const ms = RETRY_MS[Math.min(failures++, RETRY_MS.length - 1)]!;
+      // Um evento ou outra leitura no meio do caminho já resolveu: a nova tentativa só vale se nada mudou.
+      wait(() => counter === updateCounter && void refresh(), ms);
+    } else failures = 0;
   };
 
   socket.subscribe(uri, (eventType, data) => {

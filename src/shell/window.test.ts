@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { resetHelper } from '../theme/wallpapers';
-import { enabled } from './layer';
+import { shown as enabled } from './layer';
 import { DEFAULT_PREFS, prefs } from './prefs';
 import { canMaximize, isMaximized, startWindow, toggleMaximize } from './window';
 

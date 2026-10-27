@@ -18,7 +18,7 @@ import type { ThemeEngine } from '../theme/engine';
 import { MediaBackground } from '../ui/MediaBackground';
 import { Rail } from '../ui/Rail';
 import { Boundary } from './Boundary';
-import { enabled, hideRiot, setEnabled } from './layer';
+import { enabled, hideRiot, setEnabled, shown as layerShown } from './layer';
 import { Confirm } from './overlays/Confirm';
 import { InvitationCards } from './overlays/Invitations';
 import { QueuePill } from './QueuePill';
@@ -203,6 +203,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   const frozen = useRef<{ el: HTMLElement; stop: () => void } | null>(null);
   const sync = (show: boolean, hideIt: boolean) => {
     root.dataset.visible = String(show);
+    layerShown.value = show;
     const riot = document.getElementById(RIOT_ROOT_ID);
     const mine = hidden.current;
     if (frozen.current && (frozen.current.el !== riot || !hideIt)) {

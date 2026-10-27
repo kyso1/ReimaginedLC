@@ -1,6 +1,6 @@
 import { effect, signal } from '@preact/signals';
 import { findHelper, helperVersion } from '../theme/wallpapers';
-import { enabled } from './layer';
+import { shown } from './layer';
 import { prefs, setPrefs } from './prefs';
 
 /**
@@ -55,7 +55,7 @@ export function toggleMaximize(): void {
 export function startWindow(): () => void {
   void findHelper().then(() => (canMaximize.value = helperVersion.value >= 2));
   const stop = effect(() => {
-    const want = enabled.value && prefs.value.maximized;
+    const want = shown.value && prefs.value.maximized;
     if (want)
       void findHelper().then(() => {
         if (helperVersion.value >= 2) void maximize();
@@ -65,7 +65,7 @@ export function startWindow(): () => void {
   // A Riot devolve a janela ao tamanho dela em alguns momentos (fim de partida, por exemplo): ao voltar o foco,
   // se a janela não está na área de trabalho, maximiza de novo.
   const onFocus = () => {
-    if (!enabled.value || !prefs.value.maximized || document.fullscreenElement) return;
+    if (!shown.value || !prefs.value.maximized || document.fullscreenElement) return;
     if (window.outerWidth < screen.availWidth - 8 || window.outerHeight < screen.availHeight - 8) {
       isMaximized.value = false;
       void maximize();

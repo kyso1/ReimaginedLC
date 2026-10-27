@@ -1,6 +1,6 @@
 import { effect } from '@preact/signals';
 import { t } from '../i18n';
-import { enabled } from './layer';
+import { shown } from './layer';
 import { prefs, setPrefs } from './prefs';
 
 /**
@@ -17,7 +17,7 @@ import { prefs, setPrefs } from './prefs';
 let leavingForRiot = false;
 let disarm: (() => void) | null = null;
 
-const want = () => enabled.value && prefs.value.fullscreen && prefs.value.fullscreenOn;
+const want = () => shown.value && prefs.value.fullscreen && prefs.value.fullscreenOn;
 
 function request(doc: Document, warn: boolean): Promise<void> {
   const r = doc.documentElement.requestFullscreen?.() ?? Promise.reject(new Error('sem Fullscreen API'));
@@ -73,7 +73,7 @@ export function startFullscreen(doc: Document = document): () => void {
   };
   doc.addEventListener('fullscreenchange', onChange);
   const stop = effect(() => {
-    const on = enabled.value;
+    const on = shown.value;
     const allowed = prefs.value.fullscreen;
     if (!on || !allowed) {
       disarm?.();

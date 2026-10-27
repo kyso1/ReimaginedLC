@@ -5,6 +5,11 @@ import { readSetting, writeSetting } from './storage';
 
 /** Camada do ReimaginedLC visível. Desligada, o client original aparece e funciona normalmente. */
 export const enabled = signal(false);
+/**
+ * A nossa interface está de fato na tela (ligada e com uma tela para mostrar). Ligada mas sem tela (client subindo, fase
+ * desconhecida), quem aparece é a da Riot: janela maximizada e tela cheia seguem este, não `enabled`.
+ */
+export const shown = signal(false);
 /** Com a camada ligada, esconder a interface da Riot (`visibility: hidden`) em vez de só cobri-la. */
 export const hideRiot = signal(true);
 
