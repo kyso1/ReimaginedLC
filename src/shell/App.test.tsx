@@ -755,3 +755,16 @@ test('durante a partida dá para ir ao Início ver o fundo e voltar à partida p
   await flush();
   expect(root.querySelector('.ingame-stub')).not.toBeNull();
 });
+
+test('no fim de jogo, Ver perfil de um jogador abre o perfil dele; Início volta ao placar', async () => {
+  enabled.value = true;
+  phase.value = ready('EndOfGame');
+  mount();
+  await shows('.rlc-postgame');
+  const { openProfile } = await import('./nav');
+  openProfile('outro-puuid');
+  await shows('.rlc-profile');
+  expect(root.querySelector('.rlc-postgame')).toBeNull();
+  (root.querySelector('.rlc-rail-item[aria-label="Início"]') as HTMLButtonElement).click();
+  await shows('.rlc-postgame');
+});

@@ -1,8 +1,10 @@
+import { createPortal } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
 import { MemberMenu } from '../lobby/MemberMenu';
+import { openProfile } from '../../shell/nav';
 import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
 import { getJson } from '../profile/data';
@@ -37,6 +39,15 @@ const CATEGORY: Record<string, TextKey> = {
 };
 const COMMENT_MAX = 500;
 
+/** Onde a denúncia é feita: o client usa o mesmo corpo e muda só o caminho. */
+export const REPORT_PATHS = {
+  endOfGame: '/lol-player-report-sender/v1/end-of-game-reports',
+  history: '/lol-player-report-sender/v1/match-history-reports',
+} as const;
+/** Pelo histórico, só até 5 dias depois da partida (a mesma janela do client). */
+export const HISTORY_REPORT_WINDOW_MS = 432e6;
+export const canReportFromHistory = (gameCreation: number, now = Date.now()) => gameCreation > 0 && now - gameCreation <= HISTORY_REPORT_WINDOW_MS;
+
 /** Corpo da denúncia, como o client manda (`reportPlayer` do modal da Riot). */
 export const reportBody = (gameId: number, target: EogTarget, categories: string[], comment: string) => ({
   comment: comment.trim(),
@@ -62,17 +73,19 @@ export function useReported(gameId: number | undefined): [Set<string>, (puuid: s
 }
 
 /** Janela de denúncia: categorias por seção (ao menos uma), comentário opcional e Enviar. */
-export function ReportDialog({ gameId, target, game, onSent, onClose }: { gameId: number; target: EogTarget; game: 'lol' | 'tft'; onSent: () => void; onClose: () => void }) {
+export function ReportDialog({ gameId, target, game, from = 'endOfGame', onSent, onClose }: { gameId: number; target: EogTarget; game: 'lol' | 'tft'; from?: keyof typeof REPORT_PATHS; onSent: () => void; onClose: () => void }) {
   const [picked, setPicked] = useState<string[]>([]);
   const [comment, setComment] = useState('');
   useEscape(onClose);
   const send = useAction(async () => {
-    await request('POST', '/lol-player-report-sender/v1/end-of-game-reports', reportBody(gameId, target, picked, comment));
+    await request('POST', REPORT_PATHS[from], reportBody(gameId, target, picked, comment));
     window.Toast?.success(t('rpSent'));
     onSent();
   });
   const toggle = (c: string) => setPicked(picked.includes(c) ? picked.filter((x) => x !== c) : [...picked, c]);
-  return (
+  // Na raiz: dentro de uma tela com transform (o detalhe do histórico) o véu ficaria preso a ela.
+  const root = document.getElementById('rlc-root');
+  const body = (
     <div class="rlc-veil" role="dialog" aria-modal="true" aria-label={`${t('rpTitle')}: ${target.name}`}>
       <div class="rlc-dialog rlc-rp">
         <h2>
@@ -101,20 +114,29 @@ export function ReportDialog({ gameId, target, game, onSent, onClose }: { gameId
       </div>
     </div>
   );
+  return root ? createPortal(body, root) : body;
 }
 
-/** Menu ⋯ de um jogador no fim de jogo: convidar para a próxima, adicionar como amigo e denunciar. */
-export function EogPlayerMenu({ lcu, target, reported, onReport }: { lcu: Lcu; target: EogTarget; reported: boolean; onReport: () => void }) {
+/**
+ * Menu ⋯ de um jogador da partida (fim de jogo e histórico): ver perfil, convidar, adicionar como amigo e denunciar.
+ * `invite`: no fim de jogo, o convite da próxima partida; no histórico, para o meu lobby (só com lobby aberto).
+ * `onReport` ausente: a denúncia não vale mais (já feita, ou fora da janela do histórico).
+ */
+export function PlayerMenu({ lcu, target, invite, onReport }: { lcu: Lcu; target: EogTarget; invite: 'endOfGame' | 'lobby' | null; onReport?: () => void }) {
   const friend = (lcu.friends.value.data ?? []).some((f) => f.puuid === target.puuid);
-  const invite = useAction(() => request('POST', '/lol-lobby/v2/eog-invitations', [{ toSummonerId: target.summonerId }]).then(() => window.Toast?.success(t('pgInvited'))));
+  const inviteEog = useAction(() => request('POST', '/lol-lobby/v2/eog-invitations', [{ toSummonerId: target.summonerId }]).then(() => window.Toast?.success(t('pgInvited'))));
+  const inviteLobby = useAction(() => request('POST', '/lol-lobby/v2/lobby/invitations', [{ toSummonerId: target.summonerId }]).then(() => window.Toast?.success(t('pgInvited'))));
   const add = useAction(() => request('POST', '/lol-chat/v2/friend-requests', { direction: 'out', puuid: target.puuid }).then(() => window.Toast?.success(t('pgFriendSent'))));
+  const canInvite = !!target.summonerId && (invite === 'endOfGame' || (invite === 'lobby' && !!lcu.lobby.value.data));
   return (
     <MemberMenu
+      floating
       items={[
-        ...(target.summonerId ? [{ label: t('pgInvite'), run: () => invite.run() }] : []),
+        { label: t('viewProfile'), run: () => openProfile(target.puuid) },
+        ...(canInvite ? [{ label: t(invite === 'lobby' ? 'inviteToLobby' : 'pgInvite'), run: () => (invite === 'lobby' ? inviteLobby : inviteEog).run() }] : []),
         ...(friend ? [] : [{ label: t('addFriend'), run: () => add.run() }]),
-        // Já denunciado nesta partida: a LCU recusa outra denúncia, então a opção some.
-        ...(reported ? [] : [{ label: t('rpTitle'), run: onReport }]),
+        // Já denunciado nesta partida (a LCU recusa outra) ou fora da janela: a opção some.
+        ...(onReport ? [{ label: t('rpTitle'), run: onReport }] : []),
       ]}
     />
   );

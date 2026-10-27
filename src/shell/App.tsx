@@ -16,6 +16,7 @@ import { queueGroup } from '../screens/modes/queues';
 import { applyTheme, mediaUrl } from '../theme/apply';
 import type { ThemeEngine } from '../theme/engine';
 import { MediaBackground } from '../ui/MediaBackground';
+import { profileRequest } from './nav';
 import { Rail } from '../ui/Rail';
 import { Boundary } from './Boundary';
 import { enabled, hideRiot, setEnabled, shown as layerShown } from './layer';
@@ -132,12 +133,20 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   const [removing, setRemoving] = useState<LolChatFriendResource | null>(null);
   /** Perfil aberto: null é o próprio. */
   const [profilePuuid, setProfilePuuid] = useState<string | null>(null);
-  // Telas livres só fora do fluxo de partida; ao entrar na seleção (ou depois), a fase manda.
-  const free = screen === 'home' || screen === 'lobby';
+  // Telas livres fora do fluxo de partida (e no fim de jogo: o Início volta ao placar); na seleção e em jogo, a fase manda.
+  const free = screen === 'home' || screen === 'lobby' || screen === 'postgame';
   useEffect(() => {
     if (!free) setView(null);
   }, [free]);
   const shownView = free ? view : null;
+  // Perfil pedido de fora (placar, histórico): abre como o "Ver perfil" do amigo.
+  const asked = profileRequest.value;
+  useEffect(() => {
+    if (!asked) return;
+    profileRequest.value = null;
+    setProfilePuuid(asked === lcu.chatMe.value.data?.puuid ? null : asked);
+    setView('profile');
+  }, [asked]);
   useEffect(() => {
     const next = NEXT[phaseName];
     if (visible && next) idle(next.preload);

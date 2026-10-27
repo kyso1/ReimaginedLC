@@ -285,6 +285,9 @@
 #rlc-root .rlc-menu { position: absolute; top: 60px; right: 8px; z-index: 4; display: flex; flex-direction: column; min-width: 180px; padding: 6px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-bg); }
 #rlc-root .rlc-menu button { padding: 8px 10px; border: 0; border-radius: var(--rlc-radius-sm); background: transparent; color: var(--rlc-color-text); font: inherit; text-align: left; cursor: pointer; }
 #rlc-root .rlc-menu button:hover { background: var(--rlc-color-surface); }
+/* Menu solto na tela (placar): posição vem do botão; acima de tudo da tela, abaixo dos diálogos. */
+#rlc-root .rlc-menu[data-floating] { position: fixed; left: auto; z-index: 19; box-shadow: 0 14px 32px var(--rlc-color-shade, rgba(0, 0, 0, 0.5)); }
+#rlc-root .rlc-menu-backdrop[data-floating] { z-index: 18; }
 
 #rlc-root .rlc-bar-wrap { position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 8px; width: min(820px, calc(100% - 48px)); }
 /* O chat da sala ocupa o canto inferior esquerdo (300 px a partir de 16 px da tela): a barra começa depois dele. */

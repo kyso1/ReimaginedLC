@@ -160,6 +160,16 @@
   #rlc-root .rlc-profile[data-tab] > .rlc-pf-showcase, #rlc-root .rlc-pf-name, #rlc-root .rlc-pf-id[data-bare] { transition: none; }
 }
 #rlc-root .rlc-pf-sheet > .rlc-md { padding-bottom: 20px; overflow-x: auto; }
+/* Voltar ao histórico fica no topo enquanto o detalhe rola (com fundo próprio, por cima do placar). */
+#rlc-root .rlc-md > .rlc-md-back { position: sticky; top: 0; z-index: 5; flex: none; align-self: flex-start; background: var(--rlc-color-glassTop, rgba(14, 16, 26, 0.85)); color: var(--rlc-color-text); backdrop-filter: blur(14px); box-shadow: 0 6px 18px var(--rlc-color-shade, rgba(0, 0, 0, 0.45)); }
+/* Cartão de um jogador da partida (mouse no nome): o do amigo, solto na tela. */
+#rlc-root .rlc-phover, #rlc-root .rlc-md-name .rlc-phover { display: inline-block; max-width: 100%; vertical-align: top; }
+#rlc-root .rlc-fcard.rlc-pcard { position: fixed; right: auto; z-index: 17; overflow: hidden; }
+#rlc-root .rlc-pcard-ranks { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+#rlc-root .rlc-pcard-ranks li { display: grid; grid-template-columns: 22px auto 1fr; align-items: center; gap: 8px; font-size: 12px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-pcard-ranks img { width: 22px; height: 22px; }
+#rlc-root .rlc-pcard-ranks b { justify-self: end; color: var(--rlc-color-text); font-weight: 700; }
+#rlc-root .rlc-pcard-unranked { margin: 0; font-size: 12px; color: var(--rlc-color-textMuted); }
 
 /* Feed no centro, coluna de números à direita. */
 #rlc-root .rlc-pf-feedwrap { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; }

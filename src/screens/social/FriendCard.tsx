@@ -82,7 +82,7 @@ function useChampion(lcu: Lcu, id: number): Champion | null {
 }
 
 /** Splash do fundo de perfil do amigo, como no client (mesma do Perfil dele). */
-function useBanner(lcu: Lcu, puuid: string): string | null {
+export function useBanner(lcu: Lcu, puuid: string): string | null {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     setUrl(null);

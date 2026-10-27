@@ -382,3 +382,19 @@ test('TFT: você vs seu histórico (média da fila, top 4 seguidos, comp repetid
   const used = root.querySelector('.rlc-pg-used li[data-here="true"]')!;
   expect(used.textContent).toBe('Vi3×');
 });
+
+test('pós-jogo: ações para todos os outros jogadores num menu solto (o placar não corta) e cartão no nome', async () => {
+  root.id = 'rlc-root';
+  const eog = eogBlock(false, me());
+  eog.teams[0]!.players[1]!.summonerId = 77;
+  act(() => render(<PostGame lcu={postgame(eog)} />, root));
+  await settle();
+  const cells = [...root.querySelectorAll('.rlc-pg-board .rlc-md-name')];
+  // Eu sem menu; todos os outros com menu e com o cartão ao passar o mouse no nome.
+  expect(cells.map((td) => !!td.querySelector('.rlc-col-menu'))).toEqual([false, true, true]);
+  expect(cells.every((td) => !!td.querySelector('.rlc-phover'))).toBe(true);
+  act(() => cells[1]!.querySelector<HTMLButtonElement>('.rlc-col-menu')!.click());
+  const menu = root.querySelector(':scope > .rlc-menu[data-floating]')!;
+  expect([...menu.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Ver perfil', 'Convidar para jogar', 'Adicionar', 'Denunciar']);
+  root.removeAttribute('id');
+});

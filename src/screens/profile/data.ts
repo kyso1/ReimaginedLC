@@ -22,7 +22,7 @@ export interface Participant {
 }
 export interface Identity {
   participantId: number;
-  player: { gameName?: string; summonerName?: string; puuid?: string };
+  player: { gameName?: string; tagLine?: string; summonerName?: string; puuid?: string; summonerId?: number; profileIcon?: number };
 }
 export interface Game {
   gameId: number;

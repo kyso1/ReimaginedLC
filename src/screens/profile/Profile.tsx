@@ -15,6 +15,8 @@ import {
 import { crestFromId, prestigeTheme, type BannerCatalog, type ChallengeSummary, type Look } from './look';
 import { Badge, IdentityModal, type Tab as IdentityTab } from './Identity';
 import { TftHistory } from './TftHistory';
+import { PlayerHover } from './PlayerHover';
+import { canReportFromHistory, PlayerMenu, ReportDialog, useReported, type EogTarget } from '../postgame/Report';
 
 type Tab = 'summary' | 'history' | 'ranked' | 'mastery';
 const TABS: Array<[Tab, TextKey]> = [
@@ -437,10 +439,20 @@ function MatchDetail({ lcu, puuid, gameId, originY, onBack }: { lcu: Lcu; puuid:
   const n = new Intl.NumberFormat(locale());
   const me = game ? mine(game, puuid) : undefined;
   const champ = (p: Participant | undefined) => icons.champions.get(p?.championId ?? 0);
+  // Ações por jogador, como no client: ver perfil, convidar para o meu lobby, adicionar e denunciar (até 5 dias).
+  const [reporting, setReporting] = useState<EogTarget | null>(null);
+  const [reported, markReported] = useReported(game?.gameId);
+  const menuFor = (p: Participant) => {
+    const who = game?.participantIdentities.find((x) => x.participantId === p.participantId)?.player;
+    if (!game || !who?.puuid || who.puuid === lcu.chatMe.value.data?.puuid) return null;
+    const target: EogTarget = { puuid: who.puuid, summonerId: who.summonerId ?? 0, name: playerName(game, p.participantId) };
+    const report = canReportFromHistory(game.gameCreation) && !reported.has(who.puuid) ? () => setReporting(target) : undefined;
+    return <PlayerMenu lcu={lcu} target={target} invite="lobby" onReport={report} />;
+  };
 
   return (
     <div class="rlc-md" style={{ '--rlc-origin-y': `${originY}px` }}>
-      <button type="button" class="rlc-button" data-variant="pill" onClick={onBack}>
+      <button type="button" class="rlc-button rlc-md-back" data-variant="pill" onClick={onBack}>
         {t('backToHistory')}
       </button>
       {game ? (
@@ -454,7 +466,7 @@ function MatchDetail({ lcu, puuid, gameId, originY, onBack }: { lcu: Lcu; puuid:
               </button>
             ))}
           </nav>
-          {tab === 'board' ? <Board game={game} me={me} icons={icons} /> : null}
+          {tab === 'board' ? <Board game={game} me={me} icons={icons} menuFor={menuFor} lcu={lcu} /> : null}
           {tab === 'stats' ? (
             <table class="rlc-md-team rlc-md-stats">
               <thead>
@@ -496,6 +508,19 @@ function MatchDetail({ lcu, puuid, gameId, originY, onBack }: { lcu: Lcu; puuid:
       ) : (
         <Loader label={t('mhLoading')} />
       )}
+      {reporting && game ? (
+        <ReportDialog
+          gameId={game.gameId}
+          target={reporting}
+          game="lol"
+          from="history"
+          onSent={() => {
+            markReported(reporting.puuid);
+            setReporting(null);
+          }}
+          onClose={() => setReporting(null)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -513,7 +538,7 @@ export const icon = (src: string | undefined, cls: string, name = '') => (src ? 
 
 /** Placar no padrão do client: campeão com nível, feitiços e runas, jogador, A/M/A, farm, 7 itens (o 7º é o amuleto), ouro e dano. */
 /** Placar dos dois times. `menuFor` põe ações por jogador ao lado do nome (fim de jogo: convidar, adicionar, denunciar). */
-export function Board({ game, me, icons, menuFor }: { game: Game; me: Participant | undefined; icons: Icons; menuFor?: (p: Participant) => ComponentChildren }) {
+export function Board({ game, me, icons, menuFor, lcu }: { game: Game; me: Participant | undefined; icons: Icons; menuFor?: (p: Participant) => ComponentChildren; lcu?: Lcu }) {
   const n = new Intl.NumberFormat(locale());
   const dec = new Intl.NumberFormat(locale(), { maximumFractionDigits: 1, minimumFractionDigits: 1 });
   const minutes = Math.max(1, game.gameDuration / 60);
@@ -566,7 +591,18 @@ export function Board({ game, me, icons, menuFor }: { game: Game; me: Participan
                       </div>
                     </td>
                     <td class="rlc-md-name">
-                      <span>{playerName(game, p.participantId)}</span>
+                      {(() => {
+                        const who = game.participantIdentities.find((x) => x.participantId === p.participantId)?.player;
+                        const name = <span>{playerName(game, p.participantId)}</span>;
+                        // Com o mouse no nome: fundo de perfil e elo, sem abrir o perfil (bots não têm puuid).
+                        return lcu && who?.puuid ? (
+                          <PlayerHover lcu={lcu} player={{ puuid: who.puuid, name: playerName(game, p.participantId), tag: who.tagLine, icon: who.profileIcon }}>
+                            {name}
+                          </PlayerHover>
+                        ) : (
+                          name
+                        );
+                      })()}
                       <small>{ch?.name ?? ''}</small>
                       {menuFor?.(p)}
                     </td>

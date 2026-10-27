@@ -6,6 +6,8 @@ import type { Lcu } from '../../lcu';
 import { fakeLcu, queue, ready } from '../../test/fixtures';
 import { relativeDay, teamGold } from './data';
 import { Profile } from './Profile';
+import { profileRequest } from '../../shell/nav';
+import { HOVER_DELAY_MS } from './PlayerHover';
 
 let root: HTMLElement;
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -28,7 +30,7 @@ const fullGame = {
   gameDuration: 1800,
   participants: [part(1, 100, 103, { kills: 8, deaths: 2, assists: 11, win: true, totalDamageDealtToChampions: 31000, goldEarned: 12500, visionScore: 30, totalMinionsKilled: 190, neutralMinionsKilled: 24, damageDealtToObjectives: 5000, item0: 3089, item1: 0, item6: 3340, champLevel: 16, perk0: 8112, perkSubStyle: 8200 }),
     part(6, 200, 238, { kills: 6, deaths: 5, assists: 2, win: false, totalDamageDealtToChampions: 24000, goldEarned: 11000, visionScore: 12, totalMinionsKilled: 170, neutralMinionsKilled: 0, damageDealtToObjectives: 2000 })],
-  participantIdentities: [ident(1, 'Fulano', 'me'), ident(6, '<i>Zeca</i>', 'z')],
+  participantIdentities: [ident(1, 'Fulano', 'me'), { participantId: 6, player: { ...ident(6, '<i>Zeca</i>', 'z').player, summonerId: 66 } }],
 };
 const timeline = { frames: [{ timestamp: 0, participantFrames: { '1': { participantId: 1, totalGold: 500 }, '6': { participantId: 6, totalGold: 500 } } }, { timestamp: 60000, participantFrames: { '1': { participantId: 1, totalGold: 900 }, '6': { participantId: 6, totalGold: 700 } } }] };
 const ranked = { queueMap: { RANKED_SOLO_5x5: { tier: 'GOLD', division: 'II', leaguePoints: 48, wins: 54, losses: 46, previousSeasonEndTier: 'GOLD', previousSeasonEndDivision: 'IV' }, RANKED_FLEX_SR: { tier: 'SILVER', division: 'I', leaguePoints: 12, wins: 20, losses: 18 }, RANKED_TFT: { tier: '', division: 'NA', leaguePoints: 0, wins: 0, losses: 0 } } };
@@ -42,7 +44,7 @@ function routes(url: string): unknown {
   }
   if (url === '/lol-match-history/v1/games/1') return fullGame;
   if (url === '/lol-match-history/v1/game-timelines/1') return timeline;
-  if (url === '/lol-ranked/v1/ranked-stats/me') return ranked;
+  if (url === '/lol-ranked/v1/ranked-stats/me' || url === '/lol-ranked/v1/ranked-stats/z') return ranked;
   if (url === '/lol-champion-mastery/v1/me/champion-mastery') return mastery;
   if (url === '/lol-game-data/assets/v1/perks.json') return [{ id: 8112, name: 'Eletrocutar', iconPath: '/r/8112.png' }];
   if (url === '/lol-game-data/assets/v1/perkstyles.json') return { styles: [{ id: 8200, name: 'Feitiçaria', iconPath: '/r/8200.png' }] };
@@ -299,4 +301,71 @@ test('histórico: roda de carregamento enquanto as partidas não chegam', async 
   await settle();
   expect(root.querySelector('.rlc-mh .rlc-loader')).toBeNull();
   expect(root.querySelectorAll('.rlc-mh-row').length).toBeGreaterThan(0);
+});
+
+/** Detalhe da partida 1 aberto, com a raiz do tema (para os menus e cartões soltos na tela). */
+async function openDetail(over: { lobby?: boolean } = {}) {
+  root.id = 'rlc-root';
+  const lcu = mount();
+  lcu.chatMe.value = ready({ puuid: 'me' }) as never;
+  if (over.lobby) lcu.lobby.value = ready({ partyId: 'p' }) as never;
+  await settle();
+  act(() => tab('Histórico').click());
+  await settle();
+  await settle();
+  act(() => (root.querySelector('.rlc-mh-row') as HTMLButtonElement).click());
+  await settle();
+  await settle();
+  return lcu;
+}
+const nameCell = (name: string) => [...root.querySelectorAll('.rlc-md-name')].find((td) => td.textContent?.includes(name))!;
+const floatingMenu = () => root.querySelector(':scope > .rlc-menu[data-floating]');
+
+test('histórico: ações por jogador (menos eu) num menu solto na tela; denúncia pelo caminho do histórico', async () => {
+  await openDetail({ lobby: true });
+  expect(nameCell('Fulano').querySelector('.rlc-col-menu')).toBeNull();
+  act(() => nameCell('Zeca').querySelector<HTMLButtonElement>('.rlc-col-menu')!.click());
+  // Fora da tabela (que corta o que passa da borda): solto na raiz do tema.
+  expect(floatingMenu()).not.toBeNull();
+  expect([...floatingMenu()!.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Ver perfil', 'Convidar para o lobby', 'Adicionar', 'Denunciar']);
+  act(() => [...floatingMenu()!.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Denunciar')!.click());
+  const dialog = root.querySelector(':scope > .rlc-veil[role="dialog"]')!;
+  act(() => dialog.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click());
+  act(() => [...dialog.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Enviar denúncia')!.click());
+  await settle();
+  const sent = fetchMock.mock.calls.find((c) => c[0] === '/lol-player-report-sender/v1/match-history-reports')!;
+  expect(JSON.parse(sent[1].body)).toMatchObject({ gameId: 1, offenderPuuid: 'z', categories: ['LEAVING_AFK'] });
+});
+
+test('histórico: passados 5 dias não dá mais para denunciar; sem lobby, sem convite; Ver perfil abre o perfil dele', async () => {
+  vi.setSystemTime(NOW + 6 * 864e5);
+  await openDetail();
+  act(() => nameCell('Zeca').querySelector<HTMLButtonElement>('.rlc-col-menu')!.click());
+  expect([...floatingMenu()!.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Ver perfil', 'Adicionar']);
+  act(() => [...floatingMenu()!.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Ver perfil')!.click());
+  expect(profileRequest.value).toBe('z');
+  profileRequest.value = null;
+});
+
+test('histórico: mouse parado no nome mostra fundo de perfil, Riot ID e elo, sem abrir o perfil; sai e some', async () => {
+  await openDetail();
+  const hover = nameCell('Zeca').querySelector('.rlc-phover')!;
+  act(() => void hover.dispatchEvent(new MouseEvent('mouseenter')));
+  expect(root.querySelector('.rlc-pcard')).toBeNull();
+  await act(async () => void (await new Promise((r) => setTimeout(r, HOVER_DELAY_MS + 50))));
+  await settle();
+  const card = root.querySelector(':scope > .rlc-pcard')!;
+  expect(card.textContent).toContain('<i>Zeca</i>');
+  expect(card.textContent).toContain('Solo/Duo');
+  expect(card.textContent).toContain('48 PdL');
+  act(() => void hover.dispatchEvent(new MouseEvent('mouseleave')));
+  expect(root.querySelector('.rlc-pcard')).toBeNull();
+});
+
+test('o voltar do detalhe fica preso no topo enquanto o placar rola', async () => {
+  await openDetail();
+  const back = root.querySelector('.rlc-md > .rlc-md-back')!;
+  expect(back.textContent).toBe('‹ Histórico');
+  const css = (await import('node:fs')).readFileSync('src/ui/css/profile.css', 'utf8');
+  expect(css).toMatch(/\.rlc-md > \.rlc-md-back \{[^}]*position: sticky; top: 0;/);
 });

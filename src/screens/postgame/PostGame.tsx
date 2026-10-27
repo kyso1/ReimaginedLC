@@ -1,5 +1,5 @@
 import type { ComponentChildren } from 'preact';
-import { EogPlayerMenu, ReportDialog, useReported, type EogTarget } from './Report';
+import { PlayerMenu, ReportDialog, useReported, type EogTarget } from './Report';
 import { useEffect, useState } from 'preact/hooks';
 import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
@@ -34,7 +34,7 @@ export function eogToGame(eog: LolEndOfGameEndOfGameStats): Game {
       (p.items ?? []).forEach((it, s) => (stats[`item${s}`] = it));
       const participantId = participants.length + 1;
       participants.push({ participantId, teamId: p.teamId || tm.teamId || (ti ? 200 : 100), championId: p.championId, spell1Id: p.spell1Id, spell2Id: p.spell2Id, stats });
-      participantIdentities.push({ participantId, player: { gameName: p.riotIdGameName || p.summonerName, puuid: p.puuid } });
+      participantIdentities.push({ participantId, player: { gameName: p.riotIdGameName || p.summonerName, tagLine: p.riotIdTagLine, puuid: p.puuid, summonerId: p.summonerId, profileIcon: p.profileIconId } });
     }),
   );
   return { gameId: eog.gameId ?? 0, queueId: 0, gameDuration: eog.gameLength ?? 0, gameCreation: 0, participants, participantIdentities };
@@ -130,7 +130,7 @@ export function PostGame({ lcu }: { lcu: Lcu }) {
   ]);
   const menuForPuuid = (puuid: string | undefined) => {
     const target = puuid ? targets.get(puuid) : undefined;
-    return target ? <EogPlayerMenu lcu={lcu} target={target} reported={reported.has(target.puuid)} onReport={() => setReporting(target)} /> : null;
+    return target ? <PlayerMenu lcu={lcu} target={target} invite="endOfGame" onReport={reported.has(target.puuid) ? undefined : () => setReporting(target)} /> : null;
   };
   const menuFor = (p: Participant) => menuForPuuid(game?.participantIdentities.find((x) => x.participantId === p.participantId)?.player.puuid);
   if (lcu.endOfGame.value.status === 'loading' && !tftStats && !gaveUp) return <section class="rlc-ingame"><Loader label={t('gameWaitingStats')} /></section>;
@@ -187,7 +187,7 @@ export function PostGame({ lcu }: { lcu: Lcu }) {
             </nav>
             {tab === 'board' ? (
               <div class="rlc-pg-board">
-                <Board game={game} me={me} icons={icons} menuFor={menuFor} />
+                <Board game={game} me={me} icons={icons} menuFor={menuFor} lcu={lcu} />
               </div>
             ) : (
               <div class="rlc-md-charts">
