@@ -19,7 +19,7 @@ export interface PurchaseItem {
 }
 
 interface PawApi {
-  createPAWModal(item: { itemId: number; inventoryType: string }, source: string, unused?: null, owner?: null, onPurchased?: null, onClosed?: (() => void) | null): boolean;
+  createPAWModal(item: { itemId: number; inventoryType: string }, source: string, unused?: null, owner?: null, onPurchased?: (() => void) | null, onClosed?: (() => void) | null): boolean;
 }
 
 let paw: PawApi | null = null;
@@ -48,14 +48,17 @@ const PAW_Z = '2147483001';
 /**
  * Abre a janela de compra da Riot para o item. 'dialog' quando abriu; 'store' quando quem chama deve mostrar
  * a página da loja da Riot (sem a API, oferta da Sua Loja ou a Riot recusou abrir).
- * TODO(integrador): confirmar no client que o modal aparece acima da camada e que fechar devolve o estilo.
+ * `done` roda quando a compra acontece e quando a janela fecha, para quem chama reler o que a pessoa possui.
  */
-export function openRiotPurchase(item: PurchaseItem, doc: Document = document): 'dialog' | 'store' {
+export function openRiotPurchase(item: PurchaseItem, done?: () => void, doc: Document = document): 'dialog' | 'store' {
   if (!paw || item.yourShop) return 'store';
   let restore = () => {};
   let opened = false;
   try {
-    opened = paw.createPAWModal({ itemId: item.itemId, inventoryType: item.inventoryType }, 'store', null, null, null, () => restore());
+    opened = paw.createPAWModal({ itemId: item.itemId, inventoryType: item.inventoryType }, 'store', null, null, done ?? null, () => {
+      restore();
+      done?.();
+    });
   } catch (e) {
     console.error('[rlc] janela de compra', e);
   }
@@ -83,10 +86,13 @@ export async function openRiotRpPurchase(doc: Document = document): Promise<'dia
 
 /**
  * A interface da Riot fica com `visibility: hidden` sob a nossa raiz: o modal (achado por `sel`) volta a ser visível e sobe acima dela.
+ * O contêiner de camadas da Riot (filho do body) também sobe enquanto o modal está aberto: um z-index só no modal
+ * fica preso abaixo da nossa raiz se alguma camada entre eles criar um contexto de empilhamento.
  * Devolve a função que desfaz (também roda sozinha quando o modal sai do DOM).
  */
-function liftModal(doc: Document, sel: string): () => void {
+export function liftModal(doc: Document, sel: string): () => void {
   let lifted: { el: HTMLElement; style: string } | null = null;
+  let layer: { el: HTMLElement; style: string } | null = null;
   const started = Date.now();
   // ponytail: varredura a cada 100 ms enquanto o modal está aberto; troca por MutationObserver se pesar.
   const id = setInterval(() => {
@@ -97,13 +103,22 @@ function liftModal(doc: Document, sel: string): () => void {
         lifted = { el: box, style: box.getAttribute('style') ?? '' };
         Object.assign(box.style, { visibility: 'visible', zIndex: PAW_Z });
         if (getComputedStyle(box).position === 'static') box.style.position = 'relative';
+        // O ancestral direto do body (o gerenciador de camadas da Riot) inteiro acima da nossa raiz.
+        let top: HTMLElement = box;
+        while (top.parentElement && top.parentElement !== doc.body) top = top.parentElement;
+        if (top !== box && top.parentElement === doc.body) {
+          layer = { el: top, style: top.getAttribute('style') ?? '' };
+          if (getComputedStyle(top).position === 'static') top.style.position = 'relative';
+          Object.assign(top.style, { zIndex: PAW_Z, visibility: 'visible' });
+        }
       } else if (Date.now() - started > 5000) clearInterval(id);
     } else if (!lifted.el.isConnected || !(lifted.el.matches(sel) || lifted.el.querySelector(sel))) restore();
   }, 100);
   const restore = () => {
     clearInterval(id);
-    if (lifted?.el.isConnected) lifted.el.setAttribute('style', lifted.style);
+    for (const l of [lifted, layer]) if (l?.el.isConnected) l.el.setAttribute('style', l.style);
     lifted = null;
+    layer = null;
   };
   return restore;
 }

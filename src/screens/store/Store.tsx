@@ -89,17 +89,31 @@ interface Data {
   yourShop: Array<{ offer: Offer; item: StoreItem }> | null;
 }
 
-/** Tudo que a loja mostra, lido uma vez por abertura. */
+/** Espera depois do último aviso do inventário antes de reler a loja (uma compra gera vários). */
+export const STORE_REFRESH_MS = 600;
+
+// skins.json (~17 MB) não muda durante a sessão: lido uma vez; as releituras depois de uma compra só trazem o catálogo.
+let skinMeta: Promise<Record<string, SkinMeta> | null> | null = null;
+function loadSkinMeta(): Promise<Record<string, SkinMeta> | null> {
+  if (!skinMeta) {
+    skinMeta = getJson<Record<string, SkinMeta>>('/lol-game-data/assets/v1/skins.json').then((m) => {
+      if (!m) skinMeta = null;
+      return m;
+    });
+  }
+  return skinMeta;
+}
+
+/** Tudo que a loja mostra: ao abrir e de novo quando o que a pessoa possui muda (compra, presente, espólio). */
 async function load(): Promise<Data> {
   const items = (type: string) => getJson<CatalogItem[]>(`/lol-catalog/v1/items/${type}`);
-  // ponytail: os dois JSONs grandes (catálogo de skins e skins.json, ~17 MB) são lidos a cada abertura; guardar em memória se reabrir pesar.
   const [champions, skinItems, icons, wards, emotes, skins, sales, featured, status, offers] = await Promise.all([
     items('CHAMPION'),
     items('CHAMPION_SKIN'),
     items('SUMMONER_ICON'),
     items('WARD_SKIN'),
     items('EMOTE'),
-    getJson<Record<string, SkinMeta>>('/lol-game-data/assets/v1/skins.json'),
+    loadSkinMeta(),
     getJson<Sale[]>('/lol-store/v1/catalog/sales'),
     getJson<Featured>('/lol-store/v1/featured'),
     getJson<{ hubEnabled?: boolean }>('/lol-yourshop/v1/status'),
@@ -122,16 +136,35 @@ const champHint = (item: StoreItem, champ: string | undefined): string => (champ
  * Loja feita com o catálogo do client: Destaques (vitrine), catálogos com filtros, Espólios e Sua Loja.
  * Comprar e presentear sempre na janela da Riot (`openRiotPurchase`); quando ela não abre, a página da loja da Riot aparece no quadro.
  */
-export function Store({ lcu, purchase = openRiotPurchase, buyRp = openRiotRpPurchase }: { lcu: Lcu; purchase?: (item: PurchaseItem) => 'dialog' | 'store'; buyRp?: () => Promise<'dialog' | 'store'> }) {
+export function Store({ lcu, purchase = openRiotPurchase, buyRp = openRiotRpPurchase }: { lcu: Lcu; purchase?: (item: PurchaseItem, done?: () => void) => 'dialog' | 'store'; buyRp?: () => Promise<'dialog' | 'store'> }) {
   const [tab, setTab] = useState<Tab>('featured');
   const [data, setData] = useState<Data | null>(null);
   const [open, setOpen] = useState<StoreItem | null>(null);
   const [riot, setRiot] = useState(false);
+  const [rev, setRev] = useState(0);
+  const reload = () => setRev((n) => n + 1);
 
   useEffect(() => {
     let live = true;
-    void load().then((d) => live && setData(d));
+    void load().then((d) => {
+      if (!live) return;
+      setData(d);
+      // A gaveta aberta passa a mostrar o item relido (comprado vira "Possuído").
+      setOpen((o) => (o ? (d.items.find((i) => i.key === o.key) ?? o) : o));
+    });
     return () => void (live = false);
+  }, [rev]);
+  // Comprou (aqui, no client da Riot ou pelo espólio): o inventário avisa e a loja relê o que a pessoa possui.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const off = lcu.events.onPrefix('/lol-inventory/', () => {
+      clearTimeout(timer);
+      timer = setTimeout(reload, STORE_REFRESH_MS);
+    });
+    return () => {
+      clearTimeout(timer);
+      off();
+    };
   }, []);
 
   const champions = useMemo(() => (data?.items ?? []).filter((i) => i.kind === 'champion'), [data]);
@@ -139,7 +172,8 @@ export function Store({ lcu, purchase = openRiotPurchase, buyRp = openRiotRpPurc
   const ownedChampions = useMemo(() => new Set(champions.filter((c) => c.owned).map((c) => c.championId)), [champions]);
 
   const buy = (item: StoreItem) => {
-    if (purchase(item) === 'store') setRiot(true);
+    // Ao comprar e ao fechar a janela da Riot, relê: o evento do inventário pode demorar ou nem vir.
+    if (purchase(item, reload) === 'store') setRiot(true);
   };
   // RP também se compra só pela Riot: sem a janela de pagamento, a página da loja da Riot (que tem o botão de RP).
   const topUp = () => void buyRp().then((r) => r === 'store' && setRiot(true));

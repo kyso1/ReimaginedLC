@@ -4,8 +4,8 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../../i18n';
 import { fakeLcu, ready } from '../../test/fixtures';
 import { applyFilters, buildCatalog, discount, NO_FILTERS, type CatalogItem } from './data';
-import { openRiotPurchase, openRiotRpPurchase, setPawApi, setSharedComponentsApi } from './purchase';
-import { Store } from './Store';
+import { liftModal, openRiotPurchase, openRiotRpPurchase, setPawApi, setSharedComponentsApi } from './purchase';
+import { Store, STORE_REFRESH_MS } from './Store';
 
 let root: HTMLElement;
 const settle = () => act(async () => void (await new Promise((r) => setTimeout(r, 0))));
@@ -187,7 +187,7 @@ test('gaveta: Comprar chama openRiotPurchase com o item; item que possui não co
   expect(drawer.querySelector('.rlc-sto-desc')!.textContent).toBe('Fliperama.');
   expect(root.querySelector<HTMLElement>('.rlc-sto-sp .rlc-xfade-layer')!.style.backgroundImage).toContain('/s/103015.jpg');
   act(() => root.querySelector<HTMLButtonElement>('.rlc-sto-cta')!.click());
-  expect(purchase).toHaveBeenCalledWith(expect.objectContaining({ itemId: 103015, inventoryType: 'CHAMPION_SKIN' }));
+  expect(purchase).toHaveBeenCalledWith(expect.objectContaining({ itemId: 103015, inventoryType: 'CHAMPION_SKIN' }), expect.any(Function));
   expect(root.querySelector('.rlc-sto-riot')).toBeNull();
   act(() => root.querySelector<HTMLButtonElement>('.rlc-sto-x')!.click());
   expect(root.querySelector('.rlc-sto-drawer')).toBeNull();
@@ -219,7 +219,7 @@ test('Sua Loja: oferta revelada com desconto e validade; oculta não mostra o it
   expect(cards[1]!.textContent).toBe('Oferta ocultaRevele na loja da Riot');
   act(() => (cards[0] as HTMLButtonElement).click());
   act(() => root.querySelector<HTMLButtonElement>('.rlc-sto-cta')!.click());
-  expect(purchase).toHaveBeenCalledWith(expect.objectContaining({ itemId: 238015, yourShop: true }));
+  expect(purchase).toHaveBeenCalledWith(expect.objectContaining({ itemId: 238015, yourShop: true }), expect.any(Function));
 });
 
 test('openRiotPurchase: sem API vai para a loja; com API abre a janela da Riot (nunca compra)', () => {
@@ -273,3 +273,63 @@ test('openRiotRpPurchase: sem API vai para a loja; com API pede RP_PURCHASE à R
   expect(await openRiotRpPurchase()).toBe('store');
 });
 
+
+test('comprou: ao fechar a janela da Riot a loja relê e o item vira "Você já possui"; skins.json não é baixado de novo', async () => {
+  let done: (() => void) | undefined;
+  const purchase = vi.fn((_item: unknown, cb?: () => void): 'dialog' | 'store' => ((done = cb), 'dialog'));
+  await mount(purchase);
+  act(() => tab('Skins').click());
+  act(() => grid()[0]!.click());
+  act(() => root.querySelector<HTMLButtonElement>('.rlc-sto-cta')!.click());
+  expect(root.querySelector<HTMLButtonElement>('.rlc-sto-cta')!.disabled).toBe(false);
+  // A compra acontece na janela da Riot; o catálogo passa a dizer que possui.
+  routes['/lol-catalog/v1/items/CHAMPION_SKIN'] = skinItems.map((i) => (i.itemId === 103015 ? { ...i, owned: true } : i));
+  act(() => done!());
+  await flush();
+  expect(root.querySelector('.rlc-sto-drawer .rlc-sto-big')!.textContent).toBe('Você já possui');
+  expect(root.querySelector<HTMLButtonElement>('.rlc-sto-cta')!.disabled).toBe(true);
+  const fetches = (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls.filter((c) => c[0] === '/lol-game-data/assets/v1/skins.json');
+  expect(fetches.length).toBeLessThanOrEqual(1);
+});
+
+test('comprou fora da loja (client da Riot, espólio): o aviso do inventário relê o que possui', async () => {
+  vi.useFakeTimers();
+  try {
+    const lcu = fakeLcu();
+    let listener: ((uri: string) => void) | undefined;
+    lcu.events = { onPrefix: (prefix: string, fn: (uri: string) => void) => (prefix === '/lol-inventory/' ? ((listener = fn), () => {}) : () => {}) } as never;
+    act(() => render(<Store lcu={lcu} purchase={vi.fn((): 'dialog' | 'store' => 'dialog')} />, root));
+    for (let i = 0; i < 6; i++) await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+    act(() => tab('Campeões').click());
+    expect(grid().find((g) => g.getAttribute('aria-label')?.startsWith('Aatrox'))!.querySelector('.rlc-sto-own')).toBeNull();
+    routes['/lol-catalog/v1/items/CHAMPION'] = champs.map((c) => ({ ...c, owned: true }));
+    listener!('/lol-inventory/v1/notifications/CHAMPION');
+    listener!('/lol-inventory/v2/inventory/CHAMPION');
+    await act(async () => void (await vi.advanceTimersByTimeAsync(STORE_REFRESH_MS + 20)));
+    for (let i = 0; i < 6; i++) await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+    expect(grid().find((g) => g.getAttribute('aria-label')?.startsWith('Aatrox'))!.querySelector('.rlc-sto-own')).not.toBeNull();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test('janela de compra: o contêiner de camadas da Riot sobe acima da camada enquanto ela está aberta e volta ao fechar', async () => {
+  vi.useFakeTimers();
+  try {
+    const layer = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'lol-uikit-layer-manager' }));
+    const wrap = layer.appendChild(document.createElement('div'));
+    const modal = wrap.appendChild(Object.assign(document.createElement('div'), { className: 'modal' }));
+    modal.appendChild(Object.assign(document.createElement('div'), { className: 'rcp-fe-lol-paw' }));
+    const restore = liftModal(document, '.rcp-fe-lol-paw');
+    vi.advanceTimersByTime(150);
+    expect(layer.style.zIndex).toBe('2147483001');
+    expect(modal.style.zIndex).toBe('2147483001');
+    modal.remove();
+    vi.advanceTimersByTime(150);
+    expect(layer.getAttribute('style')).toBe('');
+    restore();
+    layer.remove();
+  } finally {
+    vi.useRealTimers();
+  }
+});

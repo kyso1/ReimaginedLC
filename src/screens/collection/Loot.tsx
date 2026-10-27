@@ -168,7 +168,8 @@ function Craft({ lcu }: { lcu: Lcu }) {
     // Abrir mostra tudo o que veio (inclusive o resgatado na hora, como ícones e essências); desencantar só confirma.
     if (menu.actionType === 'OPEN' || result?.added?.length || result?.redeemed?.length) setReveal({ items: revealItems(result), chest: menu.actionType === 'OPEN' ? from?.tilePath : undefined });
     // A lista não recebe evento do craft: relê já, para o que saiu sumir e o que entrou aparecer.
-    await Promise.all([lcu.loot.refresh(), lcu.orangeEssence.refresh()]).catch(() => {});
+    // A Essência Azul também (desbloquear campeão ou skin gasta; desencantar devolve).
+    await Promise.all([lcu.loot.refresh(), lcu.orangeEssence.refresh(), lcu.wallet.refresh()]).catch(() => {});
   });
 
   // Bandeja: Essência Laranja (do espólio ou do store próprio), chaves e baús.

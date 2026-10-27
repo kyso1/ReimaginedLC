@@ -112,22 +112,30 @@ export const createNames = (fetcher: Fetcher = (u) => fetch(u)) =>
     return typeof n === 'string' && n ? n : null;
   }, fetcher);
 
+/** Eventos de um mesmo assunto chegam em rajada: uma releitura só, agrupada nesse intervalo. */
+export const REFRESH_BATCH_MS = 300;
+
 /**
- * Espólio: a lista não recebe evento quando algo é criado, aberto ou ganho; os avisos chegam em outras URIs do
- * lol-loot (mapa, item, notificações). Qualquer um deles relê a lista, agrupado em 300 ms.
+ * Relê o store a cada evento de `prefix` (fora o próprio `skip`, que o store já trata), agrupado em REFRESH_BATCH_MS.
+ * Para URIs que não recebem evento próprio ou cujo endereço tem query string (os eventos da LCU nunca trazem query).
  */
-function lootStore(socket: ReturnType<typeof connect>) {
-  const store = createStore<LolLootPlayerLoot[]>('/lol-loot/v1/player-loot', socket);
+export function refreshOnPrefix<S extends { refresh: () => Promise<void> }>(store: S, socket: Pick<ReturnType<typeof connect>, 'subscribePrefix'>, prefix: string, skip?: string): S {
   let timer: ReturnType<typeof setTimeout> | null = null;
-  socket.subscribePrefix('/lol-loot/', (uri) => {
-    if (uri === '/lol-loot/v1/player-loot' || timer) return;
+  socket.subscribePrefix(prefix, (uri) => {
+    if (uri === skip || timer) return;
     timer = setTimeout(() => {
       timer = null;
       void store.refresh();
-    }, 300);
+    }, REFRESH_BATCH_MS);
   });
   return store;
 }
+
+/**
+ * Espólio: a lista não recebe evento quando algo é criado, aberto ou ganho; os avisos chegam em outras URIs do
+ * lol-loot (mapa, item, notificações). Qualquer um deles relê a lista.
+ */
+const lootStore = (socket: ReturnType<typeof connect>) => refreshOnPrefix(createStore<LolLootPlayerLoot[]>('/lol-loot/v1/player-loot', socket), socket, '/lol-loot/', '/lol-loot/v1/player-loot');
 
 /** Abre o único WebSocket do plugin e cria os stores. */
 export function createLcu(doc: Document = document): Lcu {
@@ -171,7 +179,9 @@ export function createLcu(doc: Document = document): Lcu {
     lanes: createStore('/lol-perks/v1/recommended-champion-positions', socket),
     gridChampions: createStore('/lol-champ-select/v1/all-grid-champions', socket),
     chatMe: createStore('/lol-chat/v1/me', socket),
-    wallet: createStore('/lol-inventory/v1/wallet?currencyTypes=' + encodeURIComponent('["RP","lol_blue_essence"]'), socket),
+    // O endereço tem query string e os eventos da LCU não: sem isto o saldo só mudava ao reabrir (compra na loja,
+    // campeão desbloqueado no espólio). Qualquer mudança no inventário relê.
+    wallet: refreshOnPrefix(createStore('/lol-inventory/v1/wallet?currencyTypes=' + encodeURIComponent('["RP","lol_blue_essence"]'), socket), socket, '/lol-inventory/'),
     orangeEssence: createStore('/lol-loot/v1/player-loot/CURRENCY_cosmetic', socket),
     friendRequests: createStore('/lol-chat/v2/friend-requests', socket),
     conversations: createListStore('/lol-chat/v1/conversations', socket),
