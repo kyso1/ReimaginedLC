@@ -26,7 +26,63 @@ const TOWERS = TOWERS_BLUE.map((t) => ({ ...t, side: 'blue' as Side })).concat(T
 /** Alturas das fatias do relevo da selva (px), de baixo para cima. */
 const SLICES = [2, 4, 6, 8, 10, 12, 14, 16];
 const TOP_Z = 17;
+/** Ondas de árvores, da mais perto do rio para a mais longe. */
+const WAVES = 5;
+const TREE_WAVES: Array<typeof TREES> = Array.from({ length: WAVES }, (_, w) => TREES.filter((tr) => Math.min(WAVES - 1, Math.floor((riverDist(tr.p) / 7000) * WAVES)) === w));
 const view = `0 0 ${SIZE} ${SIZE}`;
+
+/** Larguras (unidades do jogo) dos traços do rio e das rotas. */
+const W = { bank: 1650, water: 1250, shallow: 620, lane: 620 } as const;
+type StrokeKind = keyof typeof W;
+/** Pontos de uma metade do rio (a curva amostrada em trechos retos). */
+const riverPoints = (h: (typeof RIVER)[number], steps = 8): Point[] =>
+  Array.from({ length: steps + 1 }, (_, i) => {
+    const t = i / steps;
+    const u = 1 - t;
+    return [u * u * RIVER_CENTER[0] + 2 * u * t * h.ctrl[0] + t * t * h.end[0], u * u * RIVER_CENTER[1] + 2 * u * t * h.ctrl[1] + t * t * h.end[1]];
+  });
+const pctOf = (v: number) => `${(v / SIZE) * 100}%`;
+
+/**
+ * Traço de uma linha (rio ou rota) desenhado aos poucos, como o `stroke-dashoffset`, mas em trechos retos: cada um é
+ * uma barra girada que cresce com `scaleX` (só a GPU anima; o SVG repintava a camada inteira a cada quadro).
+ * Pontas arredondadas como `stroke-linecap: round`; `start`/`dur` em segundos, para a linha toda.
+ */
+function Strokes({ points, kind, start, dur }: { points: Point[]; kind: StrokeKind; start: number; dur: number }) {
+  const w = W[kind];
+  const segs = points.slice(1).map((b, i) => {
+    const [x1, y1] = svgPt(points[i]!);
+    const [x2, y2] = svgPt(b);
+    return { x1, y1, len: Math.hypot(x2 - x1, y2 - y1), ang: (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI };
+  });
+  const total = segs.reduce((n, sg) => n + sg.len, 0) || 1;
+  let done = 0;
+  return (
+    <>
+      {segs.map((sg, i) => {
+        const delay = start + (done / total) * dur;
+        done += sg.len;
+        return (
+          <i
+            key={i}
+            class="rlc-rift-stroke"
+            data-k={kind}
+            style={{
+              left: pctOf(sg.x1 - w / 2),
+              top: pctOf(sg.y1 - w / 2),
+              width: pctOf(sg.len + w),
+              height: pctOf(w),
+              transformOrigin: `${((w / 2 / (sg.len + w)) * 100).toFixed(3)}% 50%`,
+              '--a': `${sg.ang.toFixed(2)}deg`,
+              animationDelay: `${delay.toFixed(3)}s`,
+              animationDuration: `${((sg.len / total) * dur).toFixed(3)}s`,
+            }}
+          />
+        );
+      })}
+    </>
+  );
+}
 
 /** Chão, rio, fossos, acampamentos e relevo da selva. Não depende de quem está escolhendo: monta uma vez por lado. */
 function Terrain({ side }: { side: Side }) {
@@ -79,12 +135,30 @@ function Terrain({ side }: { side: Side }) {
           ))}
           <polygon class="rlc-rift-base" data-team={side === 'blue' ? 'own' : 'foe'} points={pts(arcBase('blue'))} />
           <polygon class="rlc-rift-base" data-team={side === 'red' ? 'own' : 'foe'} points={pts(arcBase('red'))} />
-          {(['bank', 'water', 'shallow'] as const).map((k) => RIVER.map((h, i) => <path key={k + i} class={`rlc-rift-${k}`} pathLength={1} d={riverHalf(h)} />))}
-          <g class="rlc-rift-flows">
+        </svg>
+      </div>
+      {/* Rio: margem, água e faixa clara enchem do centro para as duas pontas. */}
+      <div class="rlc-rift-layer" style={{ '--z': '0.4px' }}>
+        {(
+          [
+            ['bank', 0.95, 0.7],
+            ['water', 1.1, 0.95],
+            ['shallow', 1.1, 0.95],
+          ] as const
+        ).map(([k, start, dur]) => RIVER.map((h, i) => <Strokes key={k + i} points={riverPoints(h)} kind={k} start={start} dur={dur} />))}
+      </div>
+      {/* Correnteza: duas cópias paradas que deslizam ao longo do rio e se alternam no brilho (só GPU, sem repintar). */}
+      {[0, 1].map((n) => (
+        <div key={n} class="rlc-rift-layer rlc-rift-flows" data-phase={n} style={{ '--z': '0.6px' }}>
+          <svg viewBox={view} aria-hidden="true">
             {RIVER.map((h, i) => (
               <path key={i} class="rlc-rift-flow" d={riverHalf(h)} />
             ))}
-          </g>
+          </svg>
+        </div>
+      ))}
+      <div class="rlc-rift-layer" style={{ '--z': '0.8px' }}>
+        <svg viewBox={view} aria-hidden="true">
           {PITS.map((p, i) => (
             <g key={i} class="rlc-rift-pit">
               <circle class="rlc-rift-pit-rim" cx={svgPt(p)[0]} cy={svgPt(p)[1]} r="980" />
@@ -96,38 +170,38 @@ function Terrain({ side }: { side: Side }) {
           ))}
         </svg>
       </div>
-      {SLICES.map((z, i) => {
-        const top = i === SLICES.length - 1;
-        return (
-          <div key={z} class="rlc-rift-layer rlc-rift-slice" style={{ '--z': `${z}px`, '--i': i }}>
-            <svg viewBox={view} aria-hidden="true">
-              <g mask="url(#rlc-rift-cut)">
-                {JUNGLE.map((q, k) => (
-                  <polygon key={k} class={top ? 'rlc-rift-jungle' : 'rlc-rift-jungle-side'} points={pts(q)} />
-                ))}
-              </g>
-              {top
-                ? TREES.map((tr, k) => {
-                    const [x, y] = svgPt(tr.p);
-                    // Brotam em ondas a partir do rio.
-                    return (
-                      <g key={k} class="rlc-rift-tree" data-shade={tr.shade} style={{ '--t': `${(1.05 + (riverDist(tr.p) / 7500) * 0.9).toFixed(2)}s` }}>
-                        <circle cx={x} cy={y} r={tr.r} />
-                        <circle class="rlc-rift-leaf" cx={x - tr.r * 0.28} cy={y - tr.r * 0.3} r={tr.r * 0.5} />
-                      </g>
-                    );
-                  })
-                : null}
-            </svg>
-          </div>
-        );
-      })}
+      {SLICES.map((z, i) => (
+        <div key={z} class="rlc-rift-layer rlc-rift-slice" style={{ '--z': `${z}px`, '--i': i }}>
+          <svg viewBox={view} aria-hidden="true">
+            <g mask="url(#rlc-rift-cut)">
+              {JUNGLE.map((q, k) => (
+                <polygon key={k} class={i === SLICES.length - 1 ? 'rlc-rift-jungle' : 'rlc-rift-jungle-side'} points={pts(q)} />
+              ))}
+            </g>
+          </svg>
+        </div>
+      ))}
+      {/* Árvores em ondas a partir do rio: cada onda é uma camada que sobe inteira (uma animação por onda, não por árvore). */}
+      {TREE_WAVES.map((wave, i) => (
+        <div key={i} class="rlc-rift-layer rlc-rift-trees" style={{ '--z': `${TOP_Z - 0.5}px`, '--t': `${(1.05 + i * 0.22).toFixed(2)}s` }}>
+          <svg viewBox={view} aria-hidden="true">
+            {wave.map((tr, k) => {
+              const [x, y] = svgPt(tr.p);
+              return (
+                <g key={k} class="rlc-rift-tree" data-shade={tr.shade}>
+                  <circle cx={x} cy={y} r={tr.r} />
+                  <circle class="rlc-rift-leaf" cx={x - tr.r * 0.28} cy={y - tr.r * 0.3} r={tr.r * 0.5} />
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      ))}
+      {/* Rotas desenhadas a partir da minha base. */}
       <div class="rlc-rift-layer" style={{ '--z': '1px' }}>
-        <svg viewBox={view} aria-hidden="true">
-          {LANES.map((l, i) => (
-            <path key={i} class="rlc-rift-lane" pathLength={1} style={{ animationDelay: `${1 + i * 0.08}s` }} d={pathOf(side === 'blue' ? l : [...l].reverse())} />
-          ))}
-        </svg>
+        {LANES.map((l, i) => (
+          <Strokes key={i} points={side === 'blue' ? l : [...l].reverse()} kind="lane" start={1 + i * 0.08} dur={0.9} />
+        ))}
       </div>
       <div class="rlc-rift-layer" style={{ '--z': `${TOP_Z}px` }}>
         <svg viewBox={view} aria-hidden="true">

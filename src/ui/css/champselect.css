@@ -252,11 +252,15 @@
 #rlc-root .rlc-rift-base { stroke-width: 90; stroke-opacity: 0.35; }
 #rlc-root .rlc-rift-base[data-team='own'] { fill: var(--rlc-rift-team); fill-opacity: 0.22; stroke: var(--rlc-rift-team); }
 #rlc-root .rlc-rift-base[data-team='foe'] { fill: var(--rlc-rift-foe); fill-opacity: 0.16; stroke: var(--rlc-rift-foe); }
-#rlc-root .rlc-rift-bank, #rlc-root .rlc-rift-water, #rlc-root .rlc-rift-shallow, #rlc-root .rlc-rift-flow { fill: none; stroke-linecap: round; }
-#rlc-root .rlc-rift-bank { stroke: var(--rlc-rift-sand, #6d6648); stroke-width: 1650; }
-#rlc-root .rlc-rift-water { stroke: var(--rlc-rift-water, #1d5878); stroke-width: 1250; }
-#rlc-root .rlc-rift-shallow { stroke: var(--rlc-rift-water-light, #2f86b3); stroke-width: 620; opacity: 0.55; }
-#rlc-root .rlc-rift-flow { stroke: var(--rlc-rift-foam, #a6dcf5); stroke-width: 60; stroke-dasharray: 260 900; opacity: 0.55; animation: rlc-rift-flow 2.6s linear infinite; }
+/* Traços do rio e das rotas: barras giradas com pontas redondas (cores sólidas: trechos se sobrepõem nas juntas). */
+#rlc-root .rlc-rift-stroke { position: absolute; display: block; border-radius: 9999px; transform: rotate(var(--a)); }
+#rlc-root .rlc-rift-stroke[data-k='bank'] { background: var(--rlc-rift-sand, #6d6648); }
+#rlc-root .rlc-rift-stroke[data-k='water'] { background: var(--rlc-rift-water, #1d5878); }
+#rlc-root .rlc-rift-stroke[data-k='shallow'] { background: var(--rlc-rift-water-mid, #277198); }
+#rlc-root .rlc-rift-stroke[data-k='lane'] { background: var(--rlc-rift-lane, #958461); }
+#rlc-root .rlc-rift-flow { fill: none; stroke-linecap: round; }
+#rlc-root .rlc-rift-flow { stroke: var(--rlc-rift-foam, #a6dcf5); stroke-width: 60; stroke-dasharray: 260 900; opacity: 0.55; }
+#rlc-root .rlc-rift-flows[data-phase='1'] .rlc-rift-flow { stroke-dashoffset: -580; }
 #rlc-root .rlc-rift-pit-rim { fill: var(--rlc-rift-sand, #6d6648); }
 #rlc-root .rlc-rift-camp { fill: var(--rlc-rift-camp, #8fb08a); stroke: var(--rlc-rift-camp-edge, #0b1210); stroke-width: 80; }
 #rlc-root .rlc-rift-camp[data-buff='true'] { fill: var(--rlc-color-highlight, #c8a04a); }
@@ -266,7 +270,6 @@
 #rlc-root .rlc-rift-tree[data-shade='1'] circle { fill: var(--rlc-rift-tree-b, #1f4d34); }
 #rlc-root .rlc-rift-tree[data-shade='2'] circle { fill: var(--rlc-rift-tree-c, #2a6142); }
 #rlc-root .rlc-rift-tree circle.rlc-rift-leaf { fill: var(--rlc-rift-leaf, #3d7d55); opacity: 0.7; }
-#rlc-root .rlc-rift-lane { fill: none; stroke: var(--rlc-rift-lane, #9c8a62); stroke-width: 620; stroke-linecap: round; stroke-linejoin: round; opacity: 0.9; }
 
 /* De pé sobre o mapa (torres, nexus, aliados): desfazem a rotação da câmera para olhar para ela. */
 #rlc-root .rlc-rift-stand { position: absolute; width: 0; height: 0; transform-style: preserve-3d; transform: translateZ(var(--z, 1px)); }
@@ -296,17 +299,16 @@
    0,45 s  o relevo da selva sobe em camadas, já com os corredores
    0,95 s  o rio enche do centro para as pontas; 1,05 s as árvores brotam a partir do rio; 1,1 s as rotas
    1,45 s  fossos; 1,75 s acampamentos; 1,8 s torres da sua base para fora; 2,4 s luz do seu lado e névoa
-   3 s     os aliados caem nos pontos (você por último); depois a câmera respira devagar */
-#rlc-root .rlc-rift:not([data-diving]) .rlc-rift-cam { animation: rlc-rift-orbit 1.9s cubic-bezier(0.22, 0.7, 0.18, 1) both, rlc-rift-drift 12s 4.4s ease-in-out infinite; }
+   3 s     os aliados caem nos pontos (você por último)
+   Depois disso nada repinta: a câmera fica parada e só a correnteza brilha, em camadas que a GPU move (os painéis
+   com desfoque por cima não precisam refazer o desfoque a cada quadro). */
+#rlc-root .rlc-rift:not([data-diving]) .rlc-rift-cam { animation: rlc-rift-orbit 1.9s cubic-bezier(0.22, 0.7, 0.18, 1) both; }
 #rlc-root .rlc-rift:not([data-diving]) .rlc-rift-plane { animation: rlc-rift-lift 1.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 #rlc-root .rlc-rift:not([data-diving]) .rlc-rift-shadow, #rlc-root .rlc-rift:not([data-diving]) .rlc-cs-map-side { animation: rlc-fade 1.6s 0.2s both; }
 #rlc-root .rlc-rift:not([data-diving]) .rlc-rift-slice { animation: rlc-rift-rise 0.9s cubic-bezier(0.3, 1.25, 0.5, 1) both; animation-delay: calc(0.45s + var(--i) * 45ms); }
-#rlc-root .rlc-rift:not([data-diving]) .rlc-rift-bank { stroke-dasharray: 1; animation: rlc-rift-draw 0.7s 0.95s cubic-bezier(0.4, 0, 0.2, 1) both; }
-#rlc-root .rlc-rift:not([data-diving]) .rlc-rift-water, #rlc-root .rlc-rift:not([data-diving]) .rlc-rift-shallow { stroke-dasharray: 1; animation: rlc-rift-draw 0.95s 1.1s cubic-bezier(0.3, 0.6, 0.3, 1) both; }
-#rlc-root .rlc-rift:not([data-diving]) .rlc-rift-lane { stroke-dasharray: 1; animation: rlc-rift-draw 0.9s cubic-bezier(0.4, 0, 0.2, 1) both; }
-#rlc-root .rlc-rift:not([data-diving]) .rlc-rift-flows { animation: rlc-fade 0.8s 1.9s both; }
+#rlc-root .rlc-rift:not([data-diving]) .rlc-rift-stroke { animation-name: rlc-rift-stroke; animation-timing-function: linear; animation-fill-mode: both; }
 #rlc-root .rlc-rift:not([data-diving]) .rlc-rift-pit { animation: rlc-rift-grow 0.55s 1.45s cubic-bezier(0.3, 1.4, 0.5, 1) both; transform-box: fill-box; transform-origin: center; }
-#rlc-root .rlc-rift:not([data-diving]) .rlc-rift-tree { animation: rlc-rift-grow 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) both; animation-delay: var(--t); transform-box: fill-box; transform-origin: 50% 100%; }
+#rlc-root .rlc-rift:not([data-diving]) .rlc-rift-trees { animation: rlc-rift-sprout 0.6s cubic-bezier(0.3, 1.4, 0.5, 1) both; animation-delay: var(--t); }
 #rlc-root .rlc-rift:not([data-diving]) .rlc-rift-camp { animation: rlc-rift-grow 0.4s cubic-bezier(0.3, 1.5, 0.5, 1) both; animation-delay: var(--t); transform-box: fill-box; transform-origin: center; }
 #rlc-root .rlc-rift:not([data-diving]) .rlc-rift-tower .rlc-rift-up, #rlc-root .rlc-rift:not([data-diving]) .rlc-rift-nexus .rlc-rift-up { animation: rlc-rift-stand-up 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) both; animation-delay: var(--dl); }
 #rlc-root .rlc-rift:not([data-diving]) .rlc-rift-glow { animation: rlc-fade 1s 2.4s ease-out both; }
@@ -322,11 +324,15 @@
 #rlc-root .rlc-rift[data-diving] .rlc-cs-map-side { opacity: 0; }
 
 @keyframes rlc-rift-orbit { from { transform: translate(-50%, -20%) rotateX(80deg) rotateZ(-125deg) scale(0.7); } to { transform: translate(-50%, -50%) rotateX(var(--rx)) rotateZ(var(--rz)); } }
-@keyframes rlc-rift-drift { 0%, 100% { transform: translate(-50%, -50%) rotateX(var(--rx)) rotateZ(var(--rz)); } 50% { transform: translate(-50%, -51%) rotateX(calc(var(--rx) - 2deg)) rotateZ(calc(var(--rz) + 3deg)); } }
 @keyframes rlc-rift-lift { from { transform: translateZ(-420px); } }
 @keyframes rlc-rift-rise { from { transform: translateZ(0); } }
-@keyframes rlc-rift-draw { 0% { stroke-dashoffset: 1; opacity: 0; } 3% { opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
-@keyframes rlc-rift-flow { to { stroke-dashoffset: -1160; } }
+@keyframes rlc-rift-stroke { from { transform: rotate(var(--a)) scaleX(0); } }
+/* Correnteza: as duas cópias deslizam ao longo do rio (a diagonal do plano) e se revezam no brilho. */
+#rlc-root .rlc-rift-flows { opacity: 0; animation: rlc-rift-shimmer 3.2s linear infinite; animation-delay: 1.9s; }
+#rlc-root .rlc-rift-flows[data-phase='1'] { animation-delay: 3.5s; }
+#rlc-root .rlc-rift[data-diving] .rlc-rift-flows { animation-delay: 0s; }
+@keyframes rlc-rift-shimmer { 0% { transform: translateZ(var(--z)) translate(-0.7%, -0.7%); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateZ(var(--z)) translate(0.7%, 0.7%); opacity: 0; } }
+@keyframes rlc-rift-sprout { from { transform: translateZ(calc(var(--z) - 10px)); opacity: 0; } }
 @keyframes rlc-rift-grow { from { transform: scale(0); } }
 @keyframes rlc-rift-stand-up { from { transform: translateX(-50%) rotateZ(calc(-1 * var(--rz))) rotateX(calc(-1 * var(--rx))) scaleY(0); } }
 @keyframes rlc-rift-drop { from { transform: translateX(-50%) rotateZ(calc(-1 * var(--rz))) rotateX(calc(-1 * var(--rx))) translateY(-80px); opacity: 0; } 60% { opacity: 1; } }
