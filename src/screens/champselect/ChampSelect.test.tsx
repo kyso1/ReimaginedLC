@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { action, cell, fakeLcu, ready, session } from '../../test/fixtures';
-import { ChampSelect, DIVE_MS } from './ChampSelect';
+import { ChampSelect, DIVE_MS, MAP_INTRO_MS } from './ChampSelect';
 import { CHROMA_HIDE_MS } from './Loadout';
 import { BENCH_COOLDOWN_MS } from './Swaps';
 import { DODGE_PATH } from '../../plugins/dodge';
@@ -840,4 +840,48 @@ test('regras do mapa: ARAM Caos sem runas nem sentinela; ARAM normal com runas e
   await settle();
   expect(root.querySelector('.rlc-cs-runes')).not.toBeNull();
   expect(root.querySelector('.rlc-cs-ward')).toBeNull();
+});
+
+const timed = (secondsLeft: number) => ({ phase: 'BAN_PICK', adjustedTimeLeftInPhase: secondsLeft * 1000, totalTimeInPhase: 30000, internalNowInEpochMs: Date.now(), isInfinite: false });
+
+test('com mapa, a seleção começa de grade fechada enquanto ele se forma; depois a minha vez abre a grade', async () => {
+  vi.useFakeTimers();
+  const lcu = fakeLcu();
+  lcu.game = { ...lcu.game, champions: async () => CHAMPS };
+  lcu.gameflowSession.value = ready({ map: { id: 11 }, gameData: { queue: { gameMode: 'CLASSIC' } } }) as never;
+  lcu.champSelect.value = ready(session({ myTeam: [me], timer: timed(30), actions: [[action({ id: 6, type: 'pick', isInProgress: true })]] } as never));
+  lcu.pickable.value = ready([103, 157]);
+  act(() => render(<ChampSelect lcu={lcu} />, root));
+  await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+  expect(root.querySelector('.rlc-cs-drawer')).toBeNull();
+  // Dá para abrir à mão durante a formação.
+  expect(btn('Mostrar campeões')).toBeDefined();
+  await act(async () => void (await vi.advanceTimersByTimeAsync(MAP_INTRO_MS + 50)));
+  expect(root.querySelector('.rlc-cs-drawer')).not.toBeNull();
+});
+
+test('com pouco tempo na vez, a grade abre na hora mesmo com o mapa se formando', async () => {
+  vi.useFakeTimers();
+  const lcu = fakeLcu();
+  lcu.game = { ...lcu.game, champions: async () => CHAMPS };
+  lcu.gameflowSession.value = ready({ map: { id: 11 }, gameData: { queue: { gameMode: 'CLASSIC' } } }) as never;
+  lcu.champSelect.value = ready(session({ myTeam: [me], timer: timed(8), actions: [[action({ id: 6, type: 'pick', isInProgress: true })]] } as never));
+  act(() => render(<ChampSelect lcu={lcu} />, root));
+  await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+  expect(root.querySelector('.rlc-cs-drawer')).not.toBeNull();
+});
+
+test('mapa animado desligado nas configurações: no Summoner’s Rift volta a arte do client', async () => {
+  mapsOk(RIFT);
+  setPrefs({ riftMap: false });
+  try {
+    const lcu = setup(session({ myTeam: [cell({ ...me, team: 2 } as never)], actions: [[action({ actorCellId: 3, type: 'pick', isInProgress: true })]] }));
+    lcu.gameflowSession.value = ready({ map: { id: 11 }, gameData: { queue: { gameMode: 'CLASSIC' } } }) as never;
+    await settle();
+    await settle();
+    expect(root.querySelector('.rlc-rift')).toBeNull();
+    expect(root.querySelector('.rlc-cs-map img')!.getAttribute('src')).toBe('/m/north.png');
+  } finally {
+    setPrefs({ riftMap: true });
+  }
 });

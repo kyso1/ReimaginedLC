@@ -6,6 +6,7 @@ import { getJson } from '../profile/data';
 import { displayedChampion, type Cell } from './logic';
 import { Rift } from './Rift';
 import { RIFT_MAP_ID, sideName } from './riftMap';
+import { prefs } from '../../shell/prefs';
 
 interface MapEntry {
   id: number;
@@ -63,7 +64,8 @@ export function useMapArt(mapId: number | undefined, gameMode: string | undefine
 export function MapSide({ art, mapId, cells, localCellId, champions, diving = false }: { art: { south: string; north: string }; mapId?: number; cells: Cell[]; localCellId: number; champions: Map<number, Champion>; diving?: boolean }) {
   // `team` 1 é o lado azul.
   const blue = (cells[0]?.team ?? 1) === 1;
-  if (mapId === RIFT_MAP_ID) return <Rift side={blue ? 'blue' : 'red'} cells={cells} localCellId={localCellId} champions={champions} diving={diving} />;
+  // Mapa animado desligado nas configurações: fica a arte do client, como antes.
+  if (mapId === RIFT_MAP_ID && prefs.value.riftMap) return <Rift side={blue ? 'blue' : 'red'} cells={cells} localCellId={localCellId} champions={champions} diving={diving} />;
   return (
     <div class="rlc-cs-map" data-side={blue ? 'blue' : 'red'} data-diving={diving ? 'true' : undefined}>
       <img class="rlc-cs-map-art" src={blue ? art.south : art.north} alt="" />

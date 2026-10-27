@@ -49,6 +49,8 @@ export interface Prefs {
   homeBare: boolean;
   /** Barras laterais (trilho e amigos) bem transparentes, deixando o plano de fundo aparecer. */
   sidebarGlass: boolean;
+  /** Mapa 3D animado do Summoner's Rift na seleção de campeões; desligado, a arte do client (o mapa de antes). */
+  riftMap: boolean;
   /** Plugin de papéis de parede (Wallpaper Engine e pasta do usuário, pelo auxiliar de fundos). Desligado, nada consulta o auxiliar. */
   wallpapers: boolean;
   /** Botão (e F11) de tela cheia de verdade, que cobre a barra de tarefas. Opcional, desligado por padrão. */
@@ -87,6 +89,7 @@ export const DEFAULT_PREFS: Prefs = {
   nameReveal: true,
   homeBare: false,
   sidebarGlass: false,
+  riftMap: true,
   wallpapers: false,
   fullscreen: false,
   fullscreenOn: false,
@@ -127,6 +130,7 @@ export function sanitizePrefs(v: unknown): Prefs {
     nameReveal: bool(o.nameReveal, DEFAULT_PREFS.nameReveal),
     homeBare: bool(o.homeBare, DEFAULT_PREFS.homeBare),
     sidebarGlass: bool(o.sidebarGlass, DEFAULT_PREFS.sidebarGlass),
+    riftMap: bool(o.riftMap, DEFAULT_PREFS.riftMap),
     wallpapers: bool(o.wallpapers, DEFAULT_PREFS.wallpapers),
     fullscreen: bool(o.fullscreen, DEFAULT_PREFS.fullscreen),
     fullscreenOn: bool(o.fullscreenOn, DEFAULT_PREFS.fullscreenOn),

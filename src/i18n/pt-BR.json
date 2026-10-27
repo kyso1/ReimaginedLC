@@ -1182,6 +1182,8 @@
   "homeBareDesc": "Esconde destaques, Jogar e notas do patch no Início, para contemplar o plano de fundo. O olho no canto do Início liga e desliga.",
   "sidebarGlass": "Barras laterais transparentes",
   "sidebarGlassDesc": "O trilho de opções e a faixa de amigos ficam quase transparentes, deixando o plano de fundo aparecer.",
+  "riftMapSetting": "Mapa animado na seleção de campeões",
+  "riftMapDesc": "No Summoner's Rift, o mapa em 3D se forma e mostra cada aliado no ponto da rota. Desligado, volta a arte do mapa do client.",
   "wpTitle": "Papéis de parede",
   "wpLoading": "Procurando papéis de parede…",
   "wpAbsent": "Para usar o Wallpaper Engine e a sua pasta de fundos, instale o auxiliar de fundos: abra a pasta de plugins, entre em ReimaginedLC e rode instalar-fundos.cmd (uma vez só; ele inicia com o Windows).",

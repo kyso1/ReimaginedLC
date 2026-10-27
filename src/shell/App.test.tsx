@@ -768,3 +768,23 @@ test('no fim de jogo, Ver perfil de um jogador abre o perfil dele; Início volta
   (root.querySelector('.rlc-rail-item[aria-label="Início"]') as HTMLButtonElement).click();
   await shows('.rlc-postgame');
 });
+
+test('Jogar no trilho, logo abaixo do Início, abre e fecha a escolha de modo (também com o Início só com o fundo)', async () => {
+  enabled.value = true;
+  prefs.value = { ...DEFAULT_PREFS, homeBare: true };
+  lcu.queues.value = ready([queue({ id: 400, name: 'Normal (escolha)' })]);
+  mount();
+  await flush();
+  const items = [...root.querySelectorAll('.rlc-rail-item')].map((b) => b.getAttribute('aria-label'));
+  expect(items.slice(0, 2)).toEqual(['Início', 'Jogar']);
+  const play = root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Jogar"]')!;
+  play.click();
+  await flush();
+  expect(root.querySelector('.rlc-modes')).not.toBeNull();
+  expect(play.getAttribute('aria-current')).toBe('page');
+  // Só o Jogar fica marcado com a escolha de modo aberta.
+  expect(root.querySelector('.rlc-rail-item[aria-label="Início"]')!.getAttribute('aria-current')).toBeNull();
+  play.click();
+  await flush();
+  expect(root.querySelector('.rlc-modes')).toBeNull();
+});

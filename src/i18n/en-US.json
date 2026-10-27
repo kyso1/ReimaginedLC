@@ -1182,6 +1182,8 @@
   "homeBareDesc": "Hides featured content, Play and patch notes on Home so you can enjoy the background. The eye in Home's corner toggles it.",
   "sidebarGlass": "Transparent side bars",
   "sidebarGlassDesc": "The options rail and the friends bar become almost transparent so the background shows through.",
+  "riftMapSetting": "Animated map in champ select",
+  "riftMapDesc": "On Summoner's Rift, the 3D map builds itself and shows each ally on their lane spot. Off, the client's map art is back.",
   "wpTitle": "Wallpapers",
   "wpLoading": "Looking for wallpapers…",
   "wpAbsent": "To use Wallpaper Engine and your own wallpaper folder, install the wallpaper helper: open the plugins folder, go into ReimaginedLC and run instalar-fundos.cmd (only once; it starts with Windows).",

@@ -57,11 +57,19 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   useEffect(() => {
     if (cards) void lcu.subset.refresh();
   }, [cards, session?.id]);
+  // A seleção começa com a grade fechada enquanto o mapa se forma; com o tempo da vez acabando, abre na hora.
+  const [intro, setIntro] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setIntro(false), MAP_INTRO_MS);
+    return () => clearTimeout(timer);
+  }, []);
+  // Só quando há mapa para ver (o id do mapa vem com a sessão; a arte chega depois).
+  const holdGrid = intro && !!lcu.gameflowSession.value.data?.map?.id && seconds > INTRO_MIN_SECONDS;
   // A grade segue o momento: abre na minha vez, fecha ao travar. Abrir ou fechar à mão vale até a próxima mudança.
   useEffect(() => {
-    if (turn) setDrawerOpen(true);
+    if (turn && !holdGrid) setDrawerOpen(true);
     else if (locked) setDrawerOpen(false);
-  }, [turn?.action.id, locked]);
+  }, [turn?.action.id, locked, holdGrid]);
   const gridOpen = drawerOpen && !gridless;
   const previewing = (gridOpen || cardTurn) && preview ? preview : 0;
   // ROSE conectado: o carrossel oferece também skins não possuídas. A escolhida (`pick`) só vai para o palco e para o
@@ -313,6 +321,11 @@ function useSelectClock(session: Session | null): number {
   }, [timer?.isInfinite, !!timer]);
   return remainingSeconds(left, at, Date.now());
 }
+
+/** Tempo da formação do mapa (até o último aliado cair no lugar): a grade espera isso no começo da seleção. */
+export const MAP_INTRO_MS = 3800;
+/** Com menos que isso na vez, a grade abre logo, mesmo durante a formação do mapa. */
+export const INTRO_MIN_SECONDS = 12;
 
 /** Duração do mergulho do mapa ao travar (a mesma das animações `rlc-rift-dive*`). */
 export const DIVE_MS = 1100;

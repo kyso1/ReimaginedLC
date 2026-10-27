@@ -12,6 +12,8 @@ export interface RailItem {
 // Ícones de traço simples (24x24), por id de item. Item sem ícone mostra a inicial.
 const ICONS: Record<string, string> = {
   home: 'M4 11 12 4l8 7v9h-5v-6H9v6H4z',
+  // Jogar: triângulo de play num círculo.
+  play: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM10 8.5v7l6-3.5z',
   // Duas pessoas: a da frente inteira; a de trás só aparece à direita (cabeça menor e o ombro), sem se cruzarem.
   lobby: 'M9 11.4a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zM3 20c0-3.3 2.7-5.6 6-5.6s6 2.3 6 5.6M16.3 10.6a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM17.2 14.4c2.2.4 3.8 2.3 3.8 4.9',
   profile: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 9c0-4 3-6 7-6s7 2 7 6',

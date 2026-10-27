@@ -455,6 +455,9 @@ function Appearance({ lcu, themes, onEdit }: { lcu: Lcu; themes: ThemeEngine; on
         <Row name={t('sidebarGlass')} desc={t('sidebarGlassDesc')}>
           <Switch label={t('sidebarGlass')} checked={prefs.value.sidebarGlass} onChange={(sidebarGlass) => setPrefs({ sidebarGlass })} />
         </Row>
+        <Row name={t('riftMapSetting')} desc={t('riftMapDesc')}>
+          <Switch label={t('riftMapSetting')} checked={prefs.value.riftMap} onChange={(riftMap) => setPrefs({ riftMap })} />
+        </Row>
       </section>
       <BackgroundSection lcu={lcu} />
       <CustomCssSection />

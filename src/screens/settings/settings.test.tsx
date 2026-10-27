@@ -463,3 +463,13 @@ test('geral: atualização pronta aparece com Recarregar (desativado fora das fa
   expect(root.querySelector<HTMLButtonElement>('.rlc-st-update button')!.disabled).toBe(true);
   update.value = null;
 });
+
+test('aparência: interruptor do mapa animado da seleção de campeões grava a preferência', () => {
+  mount();
+  area('look');
+  expect(sw('Mapa animado na seleção de campeões').checked).toBe(true);
+  act(() => sw('Mapa animado na seleção de campeões').click());
+  expect(prefs.value.riftMap).toBe(false);
+  act(() => sw('Mapa animado na seleção de campeões').click());
+  expect(prefs.value.riftMap).toBe(true);
+});

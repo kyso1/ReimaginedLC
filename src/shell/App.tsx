@@ -306,7 +306,9 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
           // Qualquer item do trilho fecha o painel aberto por cima (modos, salas).
           items={withPanelClose([
             // Início e Lobby seguem a fase do gameflow; Perfil, Coleção e Configurações abrem por cima dela, fora da partida.
-            { id: 'home', label: t('home'), active: page === 'home' && !shownView, onSelect: () => (setView(null), setAtHome(true)) },
+            { id: 'home', label: t('home'), active: page === 'home' && !shownView && panel !== 'modes', onSelect: () => (setView(null), setAtHome(true)) },
+            // Jogar sempre à mão fora da partida (o Início só com o fundo esconde o botão grande): abre a escolha de modo.
+            ...(screen === 'home' || screen === 'lobby' ? [{ id: 'play', label: t('play'), active: panel === 'modes', onSelect: () => setPanel(panel === 'modes' ? null : 'modes') }] : []),
             ...(lcu.lobby.value.data ? [{ id: 'lobby', label: t('lobby'), active: page === 'lobby' && !shownView, onSelect: () => (setView(null), setAtHome(false)) }] : []),
             ...(RAIL[screen] ? [{ id: screen, label: t(RAIL[screen]!), active: page === screen && !shownView, onSelect: () => setAtHome(false) }] : []),
             ...(free
