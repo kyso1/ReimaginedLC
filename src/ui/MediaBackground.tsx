@@ -18,7 +18,7 @@ export function fitFor(mediaW: number, mediaH: number, boxW: number, boxH: numbe
 }
 
 /** Fundo de tela do tema. Vídeo só toca enquanto `playing`; mídia que falha vira a cor de fundo. */
-export function MediaBackground({ src, playing, video: forceVideo }: { src: string | null; playing: boolean; video?: boolean }) {
+export function MediaBackground({ src, playing, video: forceVideo, onFail }: { src: string | null; playing: boolean; video?: boolean; onFail?: () => void }) {
   const [failed, setFailed] = useState<string | null>(null);
   const [fit, setFit] = useState<{ src: string; mode: 'cover' | 'contain' } | null>(null);
   const video = useRef<HTMLVideoElement>(null);
@@ -33,7 +33,10 @@ export function MediaBackground({ src, playing, video: forceVideo }: { src: stri
   }, [playing, src, fit?.mode]);
 
   if (!src || failed === src) return <div class="rlc-bg" />;
-  const onError = () => setFailed(src);
+  const onError = () => {
+    setFailed(src);
+    onFail?.();
+  };
   const measure = (w: number, h: number, el: HTMLElement) => {
     const box = el.parentElement?.getBoundingClientRect();
     setFit({ src, mode: fitFor(w, h, box?.width || window.innerWidth, box?.height || window.innerHeight) });
