@@ -276,3 +276,5 @@
 #rlc-root[data-motion='off'] .rlc-ctx, #rlc-root[data-motion='off'] .rlc-ctx-caret { transition: none; }
 @media (prefers-reduced-motion: reduce) { #rlc-root .rlc-ctx, #rlc-root .rlc-ctx-caret { transition: none; } }
 #rlc-root .rlc-ctx[data-hidden='true'] { visibility: hidden; opacity: 0; pointer-events: none; transition: opacity 0.18s ease, visibility 0s linear 0.18s; }
+/* O fundo do mini perfil cobre também o respiro do topo (onde ficam minimizar/tela cheia/fechar): sem faixa cinza. */
+#rlc-root .rlc-rc-banner { top: -32px; }

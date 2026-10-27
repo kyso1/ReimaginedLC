@@ -49,3 +49,13 @@ test('Confirm: confirmar, cancelar e Escape', () => {
   expect(onConfirm).toHaveBeenCalledOnce();
   expect(onCancel).toHaveBeenCalledTimes(2);
 });
+
+test('tela cheia: botão entre minimizar e fechar alterna a tela cheia do documento', () => {
+  const req = vi.fn(async () => {});
+  document.documentElement.requestFullscreen = req as never;
+  act(() => render(<WindowBar onClose={() => {}} />, root));
+  const labels = [...root.querySelectorAll('.rlc-winbtns button')].map((b) => b.getAttribute('aria-label'));
+  expect(labels).toEqual(['Minimizar', 'Tela cheia', 'Fechar']);
+  act(() => button('Tela cheia').click());
+  expect(req).toHaveBeenCalled();
+});
