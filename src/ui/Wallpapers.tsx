@@ -54,7 +54,8 @@ export function Wallpapers({ current, onPick, compact = false }: { current: BgSo
     );
   const base = helperBase.value!;
   const q = query.trim().toLowerCase();
-  const list = state.list.filter((w) => w.source === tab && (!q || w.title.toLowerCase().includes(q)));
+  // Vídeos primeiro: são os que rodam de verdade (cenas entram só pela prévia).
+  const list = state.list.filter((w) => w.source === tab && (!q || w.title.toLowerCase().includes(q))).sort((a, b) => Number(!!a.preview) - Number(!!b.preview));
   const chosen = current.kind === 'local' ? current.id : null;
   return (
     <div class="rlc-wp" data-compact={compact ? 'true' : undefined}>

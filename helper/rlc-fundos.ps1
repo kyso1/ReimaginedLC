@@ -51,6 +51,22 @@ function Get-EngineFolders {
   return $dirs
 }
 
+# Caminho relativo vindo do project.json, aceito só se for um arquivo comum dentro de $dir: sem '..', sem caminho
+# absoluto/UNC e sem atalho (junction/symlink) no caminho que leve para fora.
+function Get-Inside([string]$dir, $rel) {
+  if (-not ($rel -is [string]) -or -not $rel -or $rel.Contains('..') -or [IO.Path]::IsPathRooted($rel) -or $rel.StartsWith('\\') -or $rel.Contains(':')) { return $null }
+  $root = [IO.Path]::GetFullPath($dir).TrimEnd('\') + '\'
+  $full = [IO.Path]::GetFullPath((Join-Path $dir $rel))
+  if (-not $full.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { return $null }
+  if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { return $null }
+  $item = Get-Item -LiteralPath $full -Force
+  if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { return $null }
+  for ($d = $item.Directory; $d -and $d.FullName.TrimEnd('\').Length -ge $root.TrimEnd('\').Length; $d = $d.Parent) {
+    if ($d.Attributes -band [IO.FileAttributes]::ReparsePoint) { return $null }
+  }
+  return $full
+}
+
 function Get-Id([string]$prefix, [string]$path) {
   $sha = [Security.Cryptography.SHA1]::Create()
   $hash = $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($path.ToLowerInvariant()))
@@ -80,9 +96,9 @@ function Update-Index {
       $pj = Join-Path $dir.FullName 'project.json'
       if (-not (Test-Path $pj)) { continue }
       try { $p = Get-Content $pj -Raw -Encoding UTF8 | ConvertFrom-Json } catch { continue }
-      $preview = if ($p.preview) { Join-Path $dir.FullName $p.preview } else { $null }
-      if ($preview -and -not (Test-Path $preview)) { $preview = $null }
-      $file = if ($p.file) { Join-Path $dir.FullName $p.file } else { $null }
+      # project.json é de terceiros (Workshop): só vale arquivo dentro da pasta do próprio wallpaper.
+      $preview = Get-Inside $dir.FullName $p.preview
+      $file = Get-Inside $dir.FullName $p.file
       $ext = if ($file) { [IO.Path]::GetExtension($file).ToLowerInvariant() } else { '' }
       $id = Get-Id 'e' $dir.FullName
       if ($p.type -and $p.type.ToLowerInvariant() -eq 'video' -and $file -and (Test-Path $file) -and ($VideoExt -contains $ext)) {
@@ -152,6 +168,12 @@ function Send-File($req, $res, [string]$path) {
 foreach ($p in $Ports) {
   try { $s = Invoke-RestMethod -Uri "http://127.0.0.1:$p/v1/status" -TimeoutSec 1; if ($s.app -eq 'reimaginedlc-fundos') { exit 0 } } catch {}
 }
+# Token desta execução (32 bytes aleatórios): o client busca em /v1/token e manda em cada arquivo pedido.
+$rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+$tokenBytes = New-Object byte[] 32
+$rng.GetBytes($tokenBytes)
+$Token = ($tokenBytes | ForEach-Object { $_.ToString('x2') }) -join ''
+
 $listener = $null
 foreach ($p in $Ports) {
   $l = New-Object Net.HttpListener
@@ -164,27 +186,37 @@ while ($listener.IsListening) {
   $ctx = $listener.GetContext()
   $req = $ctx.Request; $res = $ctx.Response
   try {
-    # Só o client: a origem do navegador tem de ser https://127.0.0.1:<porta>, e o Host tem de ser o nosso.
+    # Só o client: o Host tem de ser o nosso e a origem do navegador, quando vem, https://127.0.0.1:<porta>.
     $origin = $req.Headers['Origin']
     if ($req.Headers['Host'] -ne "127.0.0.1:$Port") { $res.StatusCode = 403; continue }
-    if ($origin) {
-      if ($origin -notmatch '^https://127\.0\.0\.1:\d+$') { $res.StatusCode = 403; continue }
+    $fromClient = $origin -and $origin -match '^https://127\.0\.0\.1:\d+$'
+    if ($origin -and -not $fromClient) { $res.StatusCode = 403; continue }
+    if ($fromClient) {
       $res.AddHeader('Access-Control-Allow-Origin', $origin)
       $res.AddHeader('Vary', 'Origin')
     }
     if ($req.HttpMethod -eq 'OPTIONS') { $res.AddHeader('Access-Control-Allow-Methods', 'GET, POST'); $res.StatusCode = 204; continue }
     $path = $req.Url.AbsolutePath
     if ($path -eq '/v1/status') {
-      Send-Json $res @{ app = 'reimaginedlc-fundos'; version = $Version; user = (Get-UserFolder); engine = @(Get-EngineFolders) }
+      # Só o necessário para o client (e o instalador) reconhecerem o auxiliar: nada de caminhos.
+      Send-Json $res @{ app = 'reimaginedlc-fundos'; version = $Version }
+    } elseif ($path -eq '/v1/token') {
+      # O token sai só para a origem do client (CORS): um site qualquer não consegue ler a resposta.
+      if (-not $fromClient) { $res.StatusCode = 403; continue }
+      Send-Json $res @{ token = $Token }
     } elseif ($path -eq '/v1/wallpapers') {
+      if (-not $fromClient) { $res.StatusCode = 403; continue }
       Update-Index
       Send-Json $res @($script:List)
     } elseif ($path -match '^/v1/(file|thumb)/([ue][0-9a-f]{16})$') {
+      # <img>/<video> não mandam Origin: quem pede arquivo tem de mostrar o token da execução atual.
+      if ($req.QueryString['k'] -ne $Token) { $res.StatusCode = 403; continue }
       Update-Index
       $entry = $script:Index[$Matches[2]]
       $target = if ($entry) { if ($Matches[1] -eq 'file') { $entry.file } else { $entry.thumb } } else { $null }
       if ($target -and (Test-Path $target)) { Send-File $req $res $target } else { $res.StatusCode = 404 }
     } elseif ($path -eq '/v1/open-user-folder' -and $req.HttpMethod -eq 'POST') {
+      if (-not $fromClient) { $res.StatusCode = 403; continue }
       Start-Process explorer.exe (Get-UserFolder)
       $res.StatusCode = 204
     } else {

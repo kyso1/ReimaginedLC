@@ -66,8 +66,8 @@ test('se abrir falhar, avisa com Toast', () => {
 test('a tela inicial não mostra nome de invocador', () => {
   render(<Home version="16.19.1" locale="pt_BR" onPlay={() => {}} />, host);
   expect(host.textContent).not.toMatch(/Fulano|anon-/);
-  // Jogar, notas do patch, papéis de parede e o olho de só fundo.
-  expect(host.querySelectorAll('button')).toHaveLength(4);
+  // Jogar, notas do patch e o olho de só fundo (papéis de parede só com o plugin ligado).
+  expect(host.querySelectorAll('button')).toHaveLength(3);
 });
 
 test('destaques: abas da Riot, slides da aba, miniatura troca o slide e Ver na loja abre a loja', async () => {
@@ -124,11 +124,19 @@ test('só o fundo: o olho esconde destaques, Jogar e patch; o olho riscado traz 
   act(() => render(<Home version="16.19.1" locale="pt_BR" onPlay={() => {}} />, host));
   act(() => host.querySelector<HTMLButtonElement>('button[aria-label="Mostrar só o fundo"]')!.click());
   expect(prefs.value.homeBare).toBe(true);
-  // Só o olho e o de papéis de parede.
-  expect(host.querySelectorAll('button')).toHaveLength(2);
+  // Só o olho.
+  expect(host.querySelectorAll('button')).toHaveLength(1);
   expect(host.textContent).not.toContain('Jogar');
   act(() => host.querySelector<HTMLButtonElement>('button[aria-label="Mostrar o Início"]')!.click());
   expect(prefs.value.homeBare).toBe(false);
   expect(host.textContent).toContain('Jogar');
+  prefs.value = { ...DEFAULT_PREFS };
+});
+
+test('plugin de papéis de parede ligado: botão de imagem no Início', async () => {
+  const { prefs, DEFAULT_PREFS } = await import('../../shell/prefs');
+  prefs.value = { ...DEFAULT_PREFS, wallpapers: true };
+  render(<Home version="16.19.1" locale="pt_BR" onPlay={() => {}} />, host);
+  expect(host.querySelector('button[aria-label="Papéis de parede"]')).not.toBeNull();
   prefs.value = { ...DEFAULT_PREFS };
 });

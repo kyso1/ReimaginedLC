@@ -1190,5 +1190,7 @@
   "wpVideo": "Video",
   "wpPreviewOnly": "preview only (scenes only run in Wallpaper Engine)",
   "wpUserEmpty": "Your folder is empty. Put images or videos (mp4, webm) in Pictures\\ReimaginedLC and click Refresh.",
-  "wpEngineEmpty": "No Wallpaper Engine wallpapers found."
+  "wpEngineEmpty": "No Wallpaper Engine wallpapers found.",
+  "stWallpapers": "Wallpapers (Wallpaper Engine and your folder)",
+  "stWallpapersDesc": "Uses the wallpaper helper (instalar-fundos.cmd in the plugin folder) to bring in Wallpaper Engine wallpapers and Pictures\\ReimaginedLC. Off, the client never contacts the helper."
 }

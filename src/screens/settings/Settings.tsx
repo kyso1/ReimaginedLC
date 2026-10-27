@@ -287,7 +287,7 @@ function Sound() {
   );
 }
 
-type BoolPref = 'runesAuto' | 'runesMatchup' | 'runesApplyOnLock' | 'allSplashes' | 'dodge' | 'nameReveal';
+type BoolPref = 'runesAuto' | 'runesMatchup' | 'runesApplyOnLock' | 'allSplashes' | 'dodge' | 'nameReveal' | 'wallpapers';
 const PLUGINS: Array<[BoolPref, TextKey, TextKey]> = [
   ['runesAuto', 'stRunesAuto', 'stRunesAutoDesc'],
   ['runesMatchup', 'stRunesMatchup', 'stRunesMatchupDesc'],
@@ -295,6 +295,7 @@ const PLUGINS: Array<[BoolPref, TextKey, TextKey]> = [
   ['allSplashes', 'stAllSplashes', 'stAllSplashesDesc'],
   ['dodge', 'stDodge', 'stDodgeDesc'],
   ['nameReveal', 'stNameReveal', 'stNameRevealDesc'],
+  ['wallpapers', 'stWallpapers', 'stWallpapersDesc'],
 ];
 
 function Plugins() {
@@ -562,16 +563,18 @@ function BackgroundSection({ lcu }: { lcu: Lcu }) {
           <button type="button" class="rlc-queue-chip" aria-pressed={current.kind === 'splash'} onClick={() => setPicking(!picking)}>
             {t('stBgSplash')}
           </button>
-          <button type="button" class="rlc-queue-chip" aria-pressed={current.kind === 'local' || walls} onClick={() => (setWalls(!walls), setPicking(false))}>
-            {t('wpTitle')}
-          </button>
+          {prefs.value.wallpapers ? (
+            <button type="button" class="rlc-queue-chip" aria-pressed={current.kind === 'local' || walls} onClick={() => (setWalls(!walls), setPicking(false))}>
+              {t('wpTitle')}
+            </button>
+          ) : null}
           <label class="rlc-queue-chip" aria-pressed={current.kind === 'file'}>
             {t('stBgFile')}
             <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/webm,video/mp4" hidden onChange={(e) => void onFile(e.currentTarget.files?.[0])} />
           </label>
         </div>
       </Row>
-      {walls ? <Wallpapers current={current} onPick={setSource} /> : null}
+      {walls && prefs.value.wallpapers ? <Wallpapers current={current} onPick={setSource} /> : null}
       {picking ? <SplashPicker lcu={lcu} onPick={(skinId) => (setSource({ kind: 'splash', skinId }), setPicking(false))} /> : null}
       {screen === 'global' ? (
         <Row name={t('stBgRandom')} desc={t('stBgRandomDesc')}>

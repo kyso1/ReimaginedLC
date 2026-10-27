@@ -62,3 +62,12 @@ test('falha ao carregar cai na cor de fundo, e uma mídia nova tenta de novo', a
   await flush();
   expect(host.querySelector('img')!.getAttribute('src')).toBe('/fe/x/outra.jpg');
 });
+
+test('enquadramento: proporção da tela cobre; quadrada ou de dois monitores entra inteira', async () => {
+  const { fitFor } = await import('./MediaBackground');
+  expect(fitFor(1920, 1080, 1280, 720)).toBe('cover');
+  expect(fitFor(2560, 1440, 1600, 900)).toBe('cover');
+  expect(fitFor(900, 900, 1280, 720)).toBe('contain');
+  expect(fitFor(3840, 1080, 1280, 720)).toBe('contain');
+  expect(fitFor(0, 0, 1280, 720)).toBe('cover');
+});

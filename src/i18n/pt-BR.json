@@ -1190,5 +1190,7 @@
   "wpVideo": "Vídeo",
   "wpPreviewOnly": "só a prévia (cenas rodam só no Wallpaper Engine)",
   "wpUserEmpty": "Sua pasta está vazia. Coloque imagens ou vídeos (mp4, webm) em Imagens\\ReimaginedLC e clique em Atualizar.",
-  "wpEngineEmpty": "Nenhum papel de parede do Wallpaper Engine encontrado."
+  "wpEngineEmpty": "Nenhum papel de parede do Wallpaper Engine encontrado.",
+  "stWallpapers": "Papéis de parede (Wallpaper Engine e sua pasta)",
+  "stWallpapersDesc": "Usa o auxiliar de fundos (instalar-fundos.cmd na pasta do plugin) para trazer os papéis de parede do Wallpaper Engine e de Imagens\\ReimaginedLC. Desligado, o client não consulta o auxiliar."
 }

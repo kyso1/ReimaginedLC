@@ -620,3 +620,7 @@
 #rlc-root .rlc-home:not([data-bare]) .rlc-home-wallpanel { top: 80px; bottom: auto; }
 #rlc-root .rlc-home-wallpanel .rlc-wp-grid { max-height: 52vh; }
 #rlc-root .rlc-home-wallpanel { animation-name: rlc-fade; }
+
+/* Fundo com proporção diferente da tela: entra inteiro (contain) e uma cópia desfocada preenche as bordas. */
+#rlc-root .rlc-bg[data-fit='contain'] { object-fit: contain; object-position: center; background: transparent; }
+#rlc-root .rlc-bg-fill { position: absolute; inset: 0; width: 100%; height: 100%; transform: scale(1.12); object-fit: cover; filter: blur(32px) brightness(0.6) saturate(1.2); pointer-events: none; }

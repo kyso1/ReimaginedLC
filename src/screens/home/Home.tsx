@@ -40,7 +40,7 @@ export function Home({ version, locale, onPlay, onStore, onEvents, open = (url) 
   };
   const [walls, setWalls] = useState(false);
   const pickWall = (src: BgSource) => setBackground({ ...background.value, global: src });
-  const wallButton = (
+  const wallButton = !prefs.value.wallpapers ? null : (
     <button type="button" class="rlc-home-bare rlc-home-walls" aria-label={t('wpTitle')} title={t('wpTitle')} aria-expanded={walls} onClick={() => setWalls(!walls)}>
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
         <rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.7" />
@@ -49,7 +49,7 @@ export function Home({ version, locale, onPlay, onStore, onEvents, open = (url) 
       </svg>
     </button>
   );
-  const wallPanel = walls ? (
+  const wallPanel = walls && prefs.value.wallpapers ? (
     <div class="rlc-home-wallpanel" role="dialog" aria-label={t('wpTitle')}>
       <Wallpapers current={background.value.global} onPick={pickWall} compact />
     </div>

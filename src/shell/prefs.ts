@@ -49,6 +49,8 @@ export interface Prefs {
   homeBare: boolean;
   /** Barras laterais (trilho e amigos) bem transparentes, deixando o plano de fundo aparecer. */
   sidebarGlass: boolean;
+  /** Plugin de papéis de parede (Wallpaper Engine e pasta do usuário, pelo auxiliar de fundos). Desligado, nada consulta o auxiliar. */
+  wallpapers: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -79,6 +81,7 @@ export const DEFAULT_PREFS: Prefs = {
   nameReveal: true,
   homeBare: false,
   sidebarGlass: false,
+  wallpapers: false,
 };
 const KEY = 'rlc.prefs';
 const oneOf = <T extends string>(v: unknown, options: readonly T[], def: T): T => (options.includes(v as T) ? (v as T) : def);
@@ -115,6 +118,7 @@ export function sanitizePrefs(v: unknown): Prefs {
     nameReveal: bool(o.nameReveal, DEFAULT_PREFS.nameReveal),
     homeBare: bool(o.homeBare, DEFAULT_PREFS.homeBare),
     sidebarGlass: bool(o.sidebarGlass, DEFAULT_PREFS.sidebarGlass),
+    wallpapers: bool(o.wallpapers, DEFAULT_PREFS.wallpapers),
   };
 }
 

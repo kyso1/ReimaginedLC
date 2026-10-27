@@ -145,7 +145,8 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   // Início é tela livre também com lobby aberto ou em fila: a fase põe no lobby, o trilho leva à tela inicial.
   const [atHome, setAtHome] = useState(false);
   useEffect(() => setAtHome(false), [screen]);
-  const page: Screen | null = screen === 'lobby' && atHome ? 'home' : screen;
+  // Início por cima do lobby e também durante a partida (para ver o plano de fundo); a fase volta pelo item dela.
+  const page: Screen | null = (screen === 'lobby' || screen === 'ingame') && atHome ? 'home' : screen;
   // Recompensas de passe para resgatar: ponto dourado em Eventos. Relido ao voltar às telas livres e a cada 10 min.
   const [claims, setClaims] = useState(0);
   useEffect(() => {
@@ -288,7 +289,8 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
       }}
     >
       <Boundary onError={onError}>
-        <MediaBackground src={custom?.src ?? mediaUrl(theme, page ?? '', base)} video={custom?.video} playing={focused.value && prefs.value.video && !lite} />
+        {/* O modo leve tira os vídeos do tema; o fundo que o usuário escolheu (wallpaper em vídeo) continua tocando. */}
+        <MediaBackground src={custom?.src ?? mediaUrl(theme, page ?? '', base)} video={custom?.video} playing={focused.value && prefs.value.video && (!lite || !!custom)} />
         <div class="rlc-bg-dim" />
         <Rail
           // Qualquer item do trilho fecha o painel aberto por cima (modos, salas).
@@ -296,7 +298,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
             // Início e Lobby seguem a fase do gameflow; Perfil, Coleção e Configurações abrem por cima dela, fora da partida.
             { id: 'home', label: t('home'), active: page === 'home' && !shownView, onSelect: () => (setView(null), setAtHome(true)) },
             ...(lcu.lobby.value.data ? [{ id: 'lobby', label: t('lobby'), active: page === 'lobby' && !shownView, onSelect: () => (setView(null), setAtHome(false)) }] : []),
-            ...(RAIL[screen] ? [{ id: screen, label: t(RAIL[screen]!), active: true, onSelect: () => {} }] : []),
+            ...(RAIL[screen] ? [{ id: screen, label: t(RAIL[screen]!), active: page === screen && !shownView, onSelect: () => setAtHome(false) }] : []),
             ...(free
               ? (Object.keys(VIEW_LABEL) as View[]).map((v) => ({
                   id: v,

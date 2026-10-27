@@ -740,3 +740,18 @@ test('Início só com o fundo: imagem sem escurecer nem desfocar', async () => {
   expect(app().style.getPropertyValue('--rlc-bg-dim')).toBe('0.85');
   background.value = DEFAULT_BG;
 });
+
+test('durante a partida dá para ir ao Início ver o fundo e voltar à partida pelo trilho', async () => {
+  enabled.value = true;
+  mount({ screens: { home: () => <div class="home-stub" />, ingame: () => <div class="ingame-stub" /> } });
+  phase.value = ready('InProgress');
+  await flush();
+  expect(root.querySelector('.ingame-stub')).not.toBeNull();
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Início"]')!.click();
+  await flush();
+  expect(root.querySelector('.home-stub')).not.toBeNull();
+  expect(root.querySelector('.ingame-stub')).toBeNull();
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Partida"]')!.click();
+  await flush();
+  expect(root.querySelector('.ingame-stub')).not.toBeNull();
+});
