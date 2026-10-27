@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { t } from '../../i18n';
 import { prefs, setPrefs } from '../../shell/prefs';
+import { background, setBackground, type BgSource } from '../../theme/background';
+import { Wallpapers } from '../../ui/Wallpapers';
 import { Button } from '../../ui/Button';
 import { Crossfade } from '../../ui/Crossfade';
 import { getJson } from '../profile/data';
@@ -29,13 +31,39 @@ export function Home({ version, locale, onPlay, onStore, onEvents, open = (url) 
       window.Toast?.error(t('openFailed'));
     }
   };
+  const bare = prefs.value.homeBare;
+  const eye = useRef<HTMLButtonElement>(null);
+  useEyeGlide(eye, bare);
+  const toggle = (e: MouseEvent) => {
+    eyeFrom = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setPrefs({ homeBare: !bare });
+  };
+  const [walls, setWalls] = useState(false);
+  const pickWall = (src: BgSource) => setBackground({ ...background.value, global: src });
+  const wallButton = (
+    <button type="button" class="rlc-home-bare rlc-home-walls" aria-label={t('wpTitle')} title={t('wpTitle')} aria-expanded={walls} onClick={() => setWalls(!walls)}>
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.7" />
+        <path d="M3 16l5-5 4 4 3-3 6 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+        <circle cx="16" cy="9" r="1.5" fill="currentColor" />
+      </svg>
+    </button>
+  );
+  const wallPanel = walls ? (
+    <div class="rlc-home-wallpanel" role="dialog" aria-label={t('wpTitle')}>
+      <Wallpapers current={background.value.global} onPick={pickWall} compact />
+    </div>
+  ) : null;
   // Só o fundo: nada por cima além do botão (discreto, aparece no hover) que traz o Início de volta.
-  if (prefs.value.homeBare)
+  if (bare)
     return (
       <section class="rlc-home" data-bare="true">
-        <button type="button" class="rlc-home-bare" aria-label={t('homeBareOff')} title={t('homeBareOff')} onClick={() => setPrefs({ homeBare: false })}>
+        {wallPanel}
+        <div class="rlc-home-corner">{wallButton}
+        <button ref={eye} type="button" class="rlc-home-bare" aria-label={t('homeBareOff')} title={t('homeBareOff')} onClick={toggle}>
           <EyeIcon off />
         </button>
+        </div>
       </section>
     );
   return (
@@ -46,8 +74,10 @@ export function Home({ version, locale, onPlay, onStore, onEvents, open = (url) 
           {t('play')}
         </Button>
       </div>
+      {wallPanel}
       <div class="rlc-home-patch">
-        <button type="button" class="rlc-home-bare" aria-label={t('homeBareOn')} title={t('homeBareOn')} onClick={() => setPrefs({ homeBare: true })}>
+        {wallButton}
+        <button ref={eye} type="button" class="rlc-home-bare" aria-label={t('homeBareOn')} title={t('homeBareOn')} onClick={toggle}>
           <EyeIcon />
         </button>
         <Button variant="pill" onClick={openNotes}>
@@ -166,4 +196,27 @@ function EyeIcon({ off = false }: { off?: boolean }) {
       {off ? <path d="M4 4l16 16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" /> : null}
     </svg>
   );
+}
+
+/** Onde o olho estava no clique; o olho novo sai dali (FLIP) para ficar claro para onde ele foi. */
+let eyeFrom: DOMRect | null = null;
+export const EYE_GLIDE_MS = 560;
+
+/** Desliza o olho da posição antiga até a nova ao alternar o Início só com o fundo (respeita movimento desligado). */
+function useEyeGlide(eye: { current: HTMLButtonElement | null }, bare: boolean): void {
+  useLayoutEffect(() => {
+    const from = eyeFrom;
+    eyeFrom = null;
+    const el = eye.current;
+    if (!from || !el || prefs.value.motion === 'off' || typeof el.animate !== 'function') return;
+    const to = el.getBoundingClientRect();
+    const dx = from.left - to.left;
+    const dy = from.top - to.top;
+    if (!dx && !dy) return;
+    // Durante o deslize o olho fica aceso; depois volta ao jeito discreto do modo.
+    el.animate([{ transform: `translate(${dx}px, ${dy}px)`, opacity: 1 }, { transform: 'none', opacity: 1 }], {
+      duration: prefs.value.motion === 'reduced' ? 200 : EYE_GLIDE_MS,
+      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+    });
+  }, [bare]);
 }

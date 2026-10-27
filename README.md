@@ -105,6 +105,10 @@ All of them are off by default. Turn them on in **Settings › Plugins**.
 | **ROSE** | Integrates with [ROSE](https://github.com/Alban1911/Rose), a separate app for custom skins, so you can pick skins from the champion select carousel. ROSE is a third-party tool with its own risks. |
 | **Spotify** | Shows what is playing in your Spotify and controls it from the client. Controls need Spotify Premium. It can also show the track as your status. It needs a free Spotify developer Client ID; the plugin settings walk you through it. |
 
+## Wallpapers (Wallpaper Engine and your own folder)
+
+The client can't read folders on its own, so this is an optional helper. In the plugin folder, run `instalar-fundos.cmd` once (no admin needed): it starts with Windows, finds your Wallpaper Engine wallpapers through Steam and creates `Pictures\ReimaginedLC` for your own images and videos (mp4, webm). Then pick them in **Settings › Appearance › Wallpapers** or with the picture button on Home. Video wallpapers play; scene and web wallpapers show their preview. It only listens on 127.0.0.1 and only answers the client. `remover-fundos.cmd` removes it.
+
 ## Updates
 
 The `index.js` in the zip is a small loader. It checks GitHub for a new version every 6 hours and downloads it from jsDelivr. It only runs code whose signature it has verified (ECDSA P-256 and SHA-256). If anything fails, it uses the local copy in `app/`.

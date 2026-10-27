@@ -193,6 +193,8 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   useLayoutEffect(() => void (lite ? (root.dataset.lite = '') : delete root.dataset.lite), [root, lite]);
   const motion = lite && prefs.value.motion === 'full' ? 'reduced' : prefs.value.motion;
   useLayoutEffect(() => void (root.dataset.motion = motion), [root, motion]);
+  const glass = prefs.value.sidebarGlass;
+  useLayoutEffect(() => void (glass ? (root.dataset.glass = '') : delete root.dataset.glass), [root, glass]);
 
   /** Elemento da Riot que escondemos e o `visibility` inline que ele tinha; null quando não escondemos nada. */
   const hidden = useRef<{ el: HTMLElement; prev: string } | null>(null);

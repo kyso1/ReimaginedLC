@@ -105,6 +105,10 @@ Todos começam desligados. Ligue em **Configurações › Plugins**.
 | **ROSE** | Integra com o [ROSE](https://github.com/Alban1911/Rose), um app à parte para skins personalizadas, para escolher a skin no carrossel da seleção de campeões. O ROSE é uma ferramenta de terceiros, com riscos próprios. |
 | **Spotify** | Mostra o que está tocando no seu Spotify e controla pelo client. Os controles exigem Spotify Premium. Também pode mostrar a música no seu status. Precisa de um Client ID gratuito de desenvolvedor do Spotify; as configurações do plugin explicam o passo a passo. |
 
+## Papéis de parede (Wallpaper Engine e sua pasta)
+
+O client não enxerga pastas sozinho, então isso usa um auxiliar opcional. Na pasta do plugin, rode `instalar-fundos.cmd` uma vez (não precisa de administrador): ele inicia com o Windows, acha seus papéis de parede do Wallpaper Engine pelo Steam e cria `Imagens\ReimaginedLC` para as suas imagens e vídeos (mp4, webm). Depois é só escolher em **Configurações › Aparência › Papéis de parede** ou no botão de imagem do Início. Papéis de parede em vídeo tocam; cenas e web aparecem pela prévia. Ele só escuta em 127.0.0.1 e só responde ao client. `remover-fundos.cmd` remove.
+
 ## Atualizações
 
 O `index.js` do zip é um carregador pequeno. A cada 6 horas ele procura uma versão nova no GitHub e baixa pelo jsDelivr. Ele só executa código com assinatura verificada (ECDSA P-256 e SHA-256). Se algo falhar, ele usa a cópia local em `app/`.

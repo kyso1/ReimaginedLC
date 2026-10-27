@@ -47,6 +47,8 @@ export interface Prefs {
   nameReveal: boolean;
   /** Início sem nada por cima (destaques, Jogar, patch): só o plano de fundo, para contemplar. */
   homeBare: boolean;
+  /** Barras laterais (trilho e amigos) bem transparentes, deixando o plano de fundo aparecer. */
+  sidebarGlass: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -76,6 +78,7 @@ export const DEFAULT_PREFS: Prefs = {
   dodge: false,
   nameReveal: true,
   homeBare: false,
+  sidebarGlass: false,
 };
 const KEY = 'rlc.prefs';
 const oneOf = <T extends string>(v: unknown, options: readonly T[], def: T): T => (options.includes(v as T) ? (v as T) : def);
@@ -111,6 +114,7 @@ export function sanitizePrefs(v: unknown): Prefs {
     dodge: bool(o.dodge, DEFAULT_PREFS.dodge),
     nameReveal: bool(o.nameReveal, DEFAULT_PREFS.nameReveal),
     homeBare: bool(o.homeBare, DEFAULT_PREFS.homeBare),
+    sidebarGlass: bool(o.sidebarGlass, DEFAULT_PREFS.sidebarGlass),
   };
 }
 

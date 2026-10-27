@@ -1175,5 +1175,20 @@
   "homeBareOn": "Mostrar só o fundo",
   "homeBareOff": "Mostrar o Início",
   "homeBareSetting": "Início só com o fundo",
-  "homeBareDesc": "Esconde destaques, Jogar e notas do patch no Início, para contemplar o plano de fundo. O olho no canto do Início liga e desliga."
+  "homeBareDesc": "Esconde destaques, Jogar e notas do patch no Início, para contemplar o plano de fundo. O olho no canto do Início liga e desliga.",
+  "sidebarGlass": "Barras laterais transparentes",
+  "sidebarGlassDesc": "O trilho de opções e a faixa de amigos ficam quase transparentes, deixando o plano de fundo aparecer.",
+  "wpTitle": "Papéis de parede",
+  "wpLoading": "Procurando papéis de parede…",
+  "wpAbsent": "Para usar o Wallpaper Engine e a sua pasta de fundos, instale o auxiliar de fundos: abra a pasta de plugins, entre em ReimaginedLC e rode instalar-fundos.cmd (uma vez só; ele inicia com o Windows).",
+  "wpOpenPlugins": "Abrir pasta de plugins",
+  "wpRetry": "Atualizar",
+  "wpEngine": "Wallpaper Engine",
+  "wpUser": "Minha pasta",
+  "wpSearch": "Buscar papel de parede",
+  "wpOpenUser": "Abrir minha pasta",
+  "wpVideo": "Vídeo",
+  "wpPreviewOnly": "só a prévia (cenas rodam só no Wallpaper Engine)",
+  "wpUserEmpty": "Sua pasta está vazia. Coloque imagens ou vídeos (mp4, webm) em Imagens\\ReimaginedLC e clique em Atualizar.",
+  "wpEngineEmpty": "Nenhum papel de parede do Wallpaper Engine encontrado."
 }

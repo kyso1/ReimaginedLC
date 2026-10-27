@@ -1,3 +1,4 @@
+import { Wallpapers } from '../../ui/Wallpapers';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
@@ -449,6 +450,9 @@ function Appearance({ lcu, themes, onEdit }: { lcu: Lcu; themes: ThemeEngine; on
         <Row name={t('homeBareSetting')} desc={t('homeBareDesc')}>
           <Switch label={t('homeBareSetting')} checked={prefs.value.homeBare} onChange={(homeBare) => setPrefs({ homeBare })} />
         </Row>
+        <Row name={t('sidebarGlass')} desc={t('sidebarGlassDesc')}>
+          <Switch label={t('sidebarGlass')} checked={prefs.value.sidebarGlass} onChange={(sidebarGlass) => setPrefs({ sidebarGlass })} />
+        </Row>
       </section>
       <BackgroundSection lcu={lcu} />
       <CustomCssSection />
@@ -510,6 +514,7 @@ function BackgroundSection({ lcu }: { lcu: Lcu }) {
   const b = background.value;
   const [screen, setScreen] = useState<BgScreen | 'global'>('global');
   const [picking, setPicking] = useState(false);
+  const [walls, setWalls] = useState(false);
   const current = screen === 'global' ? b.global : (b.screens[screen] ?? { kind: 'none' });
   const setSource = (src: BgSource) => setBackground(screen === 'global' ? { ...b, global: src } : { ...b, scope: 'screens', screens: { ...b.screens, [screen]: src } });
   const onFile = async (file: File | undefined) => {
@@ -557,12 +562,16 @@ function BackgroundSection({ lcu }: { lcu: Lcu }) {
           <button type="button" class="rlc-queue-chip" aria-pressed={current.kind === 'splash'} onClick={() => setPicking(!picking)}>
             {t('stBgSplash')}
           </button>
+          <button type="button" class="rlc-queue-chip" aria-pressed={current.kind === 'local' || walls} onClick={() => (setWalls(!walls), setPicking(false))}>
+            {t('wpTitle')}
+          </button>
           <label class="rlc-queue-chip" aria-pressed={current.kind === 'file'}>
             {t('stBgFile')}
             <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/webm,video/mp4" hidden onChange={(e) => void onFile(e.currentTarget.files?.[0])} />
           </label>
         </div>
       </Row>
+      {walls ? <Wallpapers current={current} onPick={setSource} /> : null}
       {picking ? <SplashPicker lcu={lcu} onPick={(skinId) => (setSource({ kind: 'splash', skinId }), setPicking(false))} /> : null}
       {screen === 'global' ? (
         <Row name={t('stBgRandom')} desc={t('stBgRandomDesc')}>

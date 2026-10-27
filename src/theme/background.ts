@@ -1,8 +1,10 @@
 import { signal } from '@preact/signals';
 import { readSetting, writeSetting } from '../shell/storage';
+import { WALLPAPER_ID } from './wallpapers';
 
 /** Fonte do fundo: splash de uma skin, arquivo do usuário (IndexedDB) ou nenhuma (fica o fundo do tema). */
-export type BgSource = { kind: 'none' } | { kind: 'splash'; skinId: number } | { kind: 'file'; key: string; mime: string };
+/** `local`: wallpaper servido pelo auxiliar de fundos (Wallpaper Engine ou pasta do usuário), pelo id dele. */
+export type BgSource = { kind: 'none' } | { kind: 'splash'; skinId: number } | { kind: 'file'; key: string; mime: string } | { kind: 'local'; id: string; mime: string };
 export const BG_SCREENS = ['home', 'lobby', 'profile', 'collection', 'postgame'] as const;
 export type BgScreen = (typeof BG_SCREENS)[number];
 /** Telas fora da partida: todas recebem o fundo global. Na seleção, a splash do campeão (quando há) fica por cima dele. */
@@ -35,6 +37,7 @@ const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'obj
 function sanitizeSource(v: unknown): BgSource {
   if (!isRecord(v)) return { kind: 'none' };
   if (v.kind === 'splash' && typeof v.skinId === 'number' && Number.isInteger(v.skinId) && v.skinId > 0) return { kind: 'splash', skinId: v.skinId };
+  if (v.kind === 'local' && typeof v.id === 'string' && WALLPAPER_ID.test(v.id) && typeof v.mime === 'string' && MEDIA.test(v.mime)) return { kind: 'local', id: v.id, mime: v.mime };
   if (v.kind === 'file' && typeof v.key === 'string' && /^[\w-]{1,64}$/.test(v.key) && typeof v.mime === 'string' && MEDIA.test(v.mime)) return { kind: 'file', key: v.key, mime: v.mime };
   return { kind: 'none' };
 }

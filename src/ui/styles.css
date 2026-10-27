@@ -585,5 +585,38 @@
 #rlc-root .rlc-home-bare { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 1px solid var(--rlc-color-border); border-radius: 50%; background: var(--rlc-color-glassTop, rgba(10, 12, 20, 0.55)); color: var(--rlc-color-text); backdrop-filter: blur(10px); cursor: pointer; transition: opacity 0.2s ease, border-color 0.15s ease; }
 #rlc-root .rlc-home-bare:hover { border-color: var(--rlc-color-accent); }
 #rlc-root .rlc-home-bare:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 2px; }
-#rlc-root .rlc-home[data-bare] .rlc-home-bare { position: absolute; right: 40px; bottom: 32px; opacity: 0.25; }
+#rlc-root .rlc-home-corner { position: absolute; right: 40px; bottom: 32px; z-index: 2; display: flex; gap: 8px; }
+#rlc-root .rlc-home[data-bare] .rlc-home-bare { opacity: 0.25; }
 #rlc-root .rlc-home[data-bare] .rlc-home-bare:hover, #rlc-root .rlc-home[data-bare] .rlc-home-bare:focus-visible { opacity: 1; }
+
+/* Barras laterais transparentes (preferência): só um véu leve da cor de superfície por cima do fundo. Sem desfoque:
+   no Chromium do client, backdrop-filter por cima de um <video> (fundo em vídeo) sai preto. */
+#rlc-root[data-glass] .rlc-rail, #rlc-root[data-glass] .rlc-rc-drawer, #rlc-root[data-glass] .rlc-rc[data-open='true'] .rlc-rc-drawer { background: transparent; backdrop-filter: none; }
+#rlc-root[data-glass] .rlc-rail-item, #rlc-root[data-glass] .rlc-rc-label { text-shadow: 0 1px 4px var(--rlc-color-textShadow, #000); }
+#rlc-root[data-glass] .rlc-rail::before, #rlc-root[data-glass] .rlc-rc-drawer::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--rlc-color-surface); opacity: 0.28; pointer-events: none; transition: opacity 0.3s ease; }
+#rlc-root[data-glass] .rlc-rc[data-open='true'] .rlc-rc-drawer::before { opacity: 0.5; }
+#rlc-root[data-glass] .rlc-rc-drawer { isolation: isolate; }
+#rlc-root[data-glass] .rlc-rail { isolation: isolate; }
+/* Ao voltar do só fundo, o conteúdo do Início entra suave enquanto o olho volta para o lugar. */
+#rlc-root .rlc-home:not([data-bare]) > :not(.rlc-home-patch) { animation: rlc-fade 0.4s ease both; }
+
+/* Papéis de parede: abas (Wallpaper Engine / minha pasta), busca e grade de miniaturas. */
+#rlc-root .rlc-wp { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+#rlc-root .rlc-wp-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+#rlc-root .rlc-wp-tools .rlc-input { flex: 1; min-width: 160px; max-width: 280px; }
+#rlc-root .rlc-wp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; max-height: 380px; overflow-y: auto; padding-right: 4px; }
+#rlc-root .rlc-wp-item { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 0 0 6px; border: 2px solid transparent; border-radius: var(--rlc-radius-md); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.06)); color: var(--rlc-color-text); font: inherit; font-size: 12px; overflow: hidden; cursor: pointer; content-visibility: auto; contain-intrinsic-size: auto 120px; }
+#rlc-root .rlc-wp-item:hover { background: var(--rlc-color-glassCardHover, rgba(255, 255, 255, 0.12)); }
+#rlc-root .rlc-wp-item[aria-pressed='true'] { border-color: var(--rlc-color-accent); }
+#rlc-root .rlc-wp-item:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 2px; }
+#rlc-root .rlc-wp-item img, #rlc-root .rlc-wp-noart { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: var(--rlc-color-shade, rgba(0, 0, 0, 0.35)); }
+#rlc-root .rlc-wp-item > span { padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-wp-badge { position: absolute; top: 6px; left: 6px; padding: 2px 6px; border-radius: var(--rlc-radius-pill); background: var(--rlc-color-scrim, rgba(0, 0, 0, 0.7)); font-style: normal; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+#rlc-root .rlc-wp-absent { display: flex; flex-direction: column; gap: 10px; font-size: 13px; line-height: 1.5; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-wp-absent p { margin: 0; }
+#rlc-root .rlc-st-bg .rlc-wp { padding: 4px 10px 10px; }
+/* No Início: painel de vidro subindo do canto, acima do botão. */
+#rlc-root .rlc-home-wallpanel { position: absolute; right: 40px; bottom: 84px; z-index: 3; width: min(720px, calc(100% - 80px)); max-height: calc(100% - 140px); display: flex; flex-direction: column; padding: 16px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-lg, 16px); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(8, 10, 18, 0.7)), var(--rlc-color-glassBottom, rgba(8, 10, 18, 0.85))); backdrop-filter: blur(24px) brightness(0.7); box-shadow: 0 24px 60px var(--rlc-color-shade, rgba(0, 0, 0, 0.4)); animation: rlc-drawer-up 0.36s cubic-bezier(0.22, 1, 0.36, 1) both; }
+#rlc-root .rlc-home:not([data-bare]) .rlc-home-wallpanel { top: 80px; bottom: auto; }
+#rlc-root .rlc-home-wallpanel .rlc-wp-grid { max-height: 52vh; }
+#rlc-root .rlc-home-wallpanel { animation-name: rlc-fade; }

@@ -1175,5 +1175,20 @@
   "homeBareOn": "Show only the background",
   "homeBareOff": "Show Home",
   "homeBareSetting": "Background-only Home",
-  "homeBareDesc": "Hides featured content, Play and patch notes on Home so you can enjoy the background. The eye in Home's corner toggles it."
+  "homeBareDesc": "Hides featured content, Play and patch notes on Home so you can enjoy the background. The eye in Home's corner toggles it.",
+  "sidebarGlass": "Transparent side bars",
+  "sidebarGlassDesc": "The options rail and the friends bar become almost transparent so the background shows through.",
+  "wpTitle": "Wallpapers",
+  "wpLoading": "Looking for wallpapers…",
+  "wpAbsent": "To use Wallpaper Engine and your own wallpaper folder, install the wallpaper helper: open the plugins folder, go into ReimaginedLC and run instalar-fundos.cmd (only once; it starts with Windows).",
+  "wpOpenPlugins": "Open plugins folder",
+  "wpRetry": "Refresh",
+  "wpEngine": "Wallpaper Engine",
+  "wpUser": "My folder",
+  "wpSearch": "Search wallpapers",
+  "wpOpenUser": "Open my folder",
+  "wpVideo": "Video",
+  "wpPreviewOnly": "preview only (scenes only run in Wallpaper Engine)",
+  "wpUserEmpty": "Your folder is empty. Put images or videos (mp4, webm) in Pictures\\ReimaginedLC and click Refresh.",
+  "wpEngineEmpty": "No Wallpaper Engine wallpapers found."
 }
