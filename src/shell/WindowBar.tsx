@@ -2,15 +2,9 @@ import { useEffect, useState } from 'preact/hooks';
 import { t } from '../i18n';
 import { request } from '../lcu/request';
 import { useAction } from '../ui/useAction';
+import { toggleFullscreen } from './fullscreen';
 
-/**
- * Tela cheia como nos navegadores (a janela cobre a tela e a interface ganha espaço). O Chromium só aceita a partir de
- * um gesto do usuário (clique ou tecla), então não dá para abrir já em tela cheia.
- */
-export function toggleFullscreen(doc: Document = document): void {
-  if (doc.fullscreenElement) void doc.exitFullscreen().catch(() => {});
-  else void doc.documentElement.requestFullscreen?.().catch(() => window.Toast?.error(t('fullscreenFailed')));
-}
+export { toggleFullscreen };
 
 function useFullscreen(enabled: boolean): boolean {
   const [on, setOn] = useState(!!document.fullscreenElement);
@@ -40,10 +34,6 @@ function useFullscreen(enabled: boolean): boolean {
 export function WindowBar({ onClose, fullscreen = false }: { onClose: () => void; fullscreen?: boolean }) {
   const minimize = useAction(() => request('POST', '/riotclient/ux-minimize'));
   const full = useFullscreen(fullscreen);
-  // Opção desligada com a janela em tela cheia (desligou agora): sai dela, senão não haveria botão para sair.
-  useEffect(() => {
-    if (!fullscreen && document.fullscreenElement) void document.exitFullscreen().catch(() => {});
-  }, [fullscreen]);
   const fullLabel = t(full ? 'fullscreenExit' : 'fullscreenEnter');
   return (
     <>

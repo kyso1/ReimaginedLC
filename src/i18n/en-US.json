@@ -1197,5 +1197,5 @@
   "fullscreenExit": "Exit full screen",
   "fullscreenFailed": "The client didn't allow full screen right now",
   "stFullscreen": "Full screen button",
-  "stFullscreenDesc": "Shows a button between minimize and close (and enables F11) to put the client in full screen, covering the taskbar."
+  "stFullscreenDesc": "Shows a button between minimize and close (and enables F11) to put the client in full screen, covering the taskbar. Full screen is remembered: it comes back on the first click after opening the client. Switching to the Riot client puts the window back to its previous size."
 }

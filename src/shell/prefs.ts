@@ -53,6 +53,8 @@ export interface Prefs {
   wallpapers: boolean;
   /** Botão (e F11) de tela cheia de verdade, que cobre a barra de tarefas. Opcional, desligado por padrão. */
   fullscreen: boolean;
+  /** Estava em tela cheia: volta a ela ao abrir o client ou ao voltar da interface da Riot (no primeiro clique/tecla). */
+  fullscreenOn: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -85,6 +87,7 @@ export const DEFAULT_PREFS: Prefs = {
   sidebarGlass: false,
   wallpapers: false,
   fullscreen: false,
+  fullscreenOn: false,
 };
 const KEY = 'rlc.prefs';
 const oneOf = <T extends string>(v: unknown, options: readonly T[], def: T): T => (options.includes(v as T) ? (v as T) : def);
@@ -123,6 +126,7 @@ export function sanitizePrefs(v: unknown): Prefs {
     sidebarGlass: bool(o.sidebarGlass, DEFAULT_PREFS.sidebarGlass),
     wallpapers: bool(o.wallpapers, DEFAULT_PREFS.wallpapers),
     fullscreen: bool(o.fullscreen, DEFAULT_PREFS.fullscreen),
+    fullscreenOn: bool(o.fullscreenOn, DEFAULT_PREFS.fullscreenOn),
   };
 }
 

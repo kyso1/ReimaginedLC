@@ -12,6 +12,7 @@ import { enabled, syncLayer } from './layer';
 import { probeLite } from './perf';
 import { effectiveLocale, prefs } from './prefs';
 import { watchUpdates } from './update';
+import { startFullscreen } from './fullscreen';
 import type { LoaderState } from '../../loader/shared';
 import { startServices } from '../extensions';
 import { startAppearOffline } from '../plugins/appearOffline';
@@ -106,6 +107,8 @@ export async function start(): Promise<void> {
       window.Toast?.error(t('screenFailed'));
     };
     render(h(Boundary, { onError, children: h(App, { root, lcu, themes, base, focused, dom }) }), root);
+    // Tela cheia lembrada: entra no primeiro gesto; sai ao trocar para o client da Riot (tamanho de antes).
+    startFullscreen();
   } catch (e) {
     observer?.disconnect();
     root.remove();
