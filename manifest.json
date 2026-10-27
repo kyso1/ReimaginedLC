@@ -1,0 +1,12 @@
+{
+  "version": "0.2.11",
+  "files": {
+    "fonts/OFL.txt": "14d28541780d90f6577bb7abcc6f005bf6969614294e75c82abb8758a696ad46",
+    "fonts/quicksand-latin-ext.woff2": "b5a37861949c4489894ff1e76d3657819830e91316b40effa16c5a6923bc0928",
+    "fonts/quicksand-latin.woff2": "2add7d60b1cd2ab84c9967e23d5ec08eb3fc9635c46855b17d59404dec6b410e",
+    "index.js": "bcb6eed00e622950c8f15ba1fc6550b5d59b56a61acae40791fad6ada31c7790",
+    "themes/editorial/theme.json": "5dbfc828088cc5393472bd2875b423719b94ebd0752500b1f904be5326e7b755",
+    "themes/vidro-ludico/theme.json": "202d4dfb8c68d074a921b191ae13562e938a1671e7a9954aa8a2c939d464f89e",
+    "themes/vidro/theme.json": "8186668b5371f0df19862528999770c92b256e04af8d9cdd32573141cd438741"
+  }
+}
