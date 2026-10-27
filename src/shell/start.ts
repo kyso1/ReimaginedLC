@@ -13,6 +13,7 @@ import { probeLite } from './perf';
 import { effectiveLocale, prefs } from './prefs';
 import { watchUpdates } from './update';
 import { startFullscreen } from './fullscreen';
+import { startWindow } from './window';
 import type { LoaderState } from '../../loader/shared';
 import { startServices } from '../extensions';
 import { startAppearOffline } from '../plugins/appearOffline';
@@ -109,6 +110,8 @@ export async function start(): Promise<void> {
     render(h(Boundary, { onError, children: h(App, { root, lcu, themes, base, focused, dom }) }), root);
     // Tela cheia lembrada: entra no primeiro gesto; sai ao trocar para o client da Riot (tamanho de antes).
     startFullscreen();
+    // Maximizada como num navegador (pelo auxiliar): volta sozinha; ao trocar para a Riot, volta ao tamanho de antes.
+    startWindow();
   } catch (e) {
     observer?.disconnect();
     root.remove();

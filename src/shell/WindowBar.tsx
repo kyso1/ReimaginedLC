@@ -3,6 +3,7 @@ import { t } from '../i18n';
 import { request } from '../lcu/request';
 import { useAction } from '../ui/useAction';
 import { toggleFullscreen } from './fullscreen';
+import { canMaximize, isMaximized, toggleMaximize } from './window';
 
 export { toggleFullscreen };
 
@@ -44,6 +45,13 @@ export function WindowBar({ onClose, fullscreen = false }: { onClose: () => void
             <path d="M2 6.5h8" />
           </svg>
         </button>
+        {canMaximize.value ? (
+          <button type="button" class="rlc-winbtn" data-kind="maximize" aria-label={t(isMaximized.value ? 'windowRestore' : 'windowMaximize')} title={t(isMaximized.value ? 'windowRestore' : 'windowMaximize')} aria-pressed={isMaximized.value} onClick={() => toggleMaximize()}>
+            <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+              {isMaximized.value ? <path d="M3.5 3.5V1.5h7v7h-2M1.5 3.5h7v7h-7z" /> : <path d="M1.5 1.5h9v9h-9z" />}
+            </svg>
+          </button>
+        ) : null}
         {fullscreen ? (
           <button type="button" class="rlc-winbtn" data-kind="fullscreen" aria-label={fullLabel} title={`${fullLabel} (F11)`} aria-pressed={full} onClick={() => toggleFullscreen()}>
             <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">

@@ -31,19 +31,21 @@ export const helperBase = signal<string | null>(null);
  * arquivo: `<img>`/`<video>` não mandam Origin, então sem token qualquer site poderia carregar os arquivos.
  */
 let helperToken = '';
+/** Versão do auxiliar que respondeu (2 em diante sabe maximizar a janela). */
+export const helperVersion = signal(0);
 let finding: Promise<string | null> | null = null;
 
-async function probe(port: number, fetcher: typeof fetch): Promise<{ base: string; token: string } | null> {
+async function probe(port: number, fetcher: typeof fetch): Promise<{ base: string; token: string; version: number } | null> {
   const base = `http://127.0.0.1:${port}`;
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), PROBE_MS);
   try {
     const r = await fetcher(`${base}/v1/status`, { signal: ctl.signal });
-    const s = r.ok ? ((await r.json()) as { app?: unknown }) : null;
+    const s = r.ok ? ((await r.json()) as { app?: unknown; version?: unknown }) : null;
     if (s?.app !== APP) return null;
     const k = await fetcher(`${base}/v1/token`, { signal: ctl.signal });
     const token = k.ok ? ((await k.json()) as { token?: unknown }).token : null;
-    return typeof token === 'string' && /^[0-9a-f]{64}$/.test(token) ? { base, token } : null;
+    return typeof token === 'string' && /^[0-9a-f]{64}$/.test(token) ? { base, token, version: Number(s.version) || 1 } : null;
   } catch {
     return null;
   } finally {
@@ -58,6 +60,7 @@ export function findHelper(fetcher: typeof fetch = (u, i) => fetch(u, i)): Promi
     finding = null;
     const hit = found.find(Boolean) ?? null;
     helperToken = hit?.token ?? '';
+    helperVersion.value = hit?.version ?? 0;
     helperBase.value = hit?.base ?? null;
     return helperBase.value;
   });
@@ -67,6 +70,7 @@ export function findHelper(fetcher: typeof fetch = (u, i) => fetch(u, i)): Promi
 export const resetHelper = () => {
   helperBase.value = null;
   helperToken = '';
+  helperVersion.value = 0;
   finding = null;
 };
 

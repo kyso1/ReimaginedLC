@@ -1197,5 +1197,10 @@
   "fullscreenExit": "Sair da tela cheia",
   "fullscreenFailed": "O client não aceitou a tela cheia agora",
   "stFullscreen": "Botão de tela cheia",
-  "stFullscreenDesc": "Mostra um botão entre minimizar e fechar (e libera o F11) para deixar o client em tela cheia, cobrindo a barra de tarefas. A tela cheia fica lembrada: volta no primeiro clique depois de abrir o client. Ao trocar para o client da Riot, a janela volta ao tamanho de antes."
+  "stFullscreenDesc": "Mostra um botão entre minimizar e fechar (e libera o F11) para deixar o client em tela cheia, cobrindo a barra de tarefas. A tela cheia fica lembrada: volta no primeiro clique depois de abrir o client. Ao trocar para o client da Riot, a janela volta ao tamanho de antes.",
+  "windowMaximize": "Maximizar",
+  "windowRestore": "Restaurar tamanho",
+  "stMaximize": "Janela maximizada",
+  "stMaximizeDesc": "Maximiza o client como um navegador: ocupa a tela e a barra de tarefas continua à vista (também pelo botão entre minimizar e fechar). Fica lembrado; ao trocar para o client da Riot, a janela volta ao tamanho de antes.",
+  "stMaximizeNeedsHelper": "Maximizar o client como um navegador precisa do auxiliar do ReimaginedLC: na pasta de plugins, entre em ReimaginedLC e rode instalar-fundos.cmd (uma vez só)."
 }

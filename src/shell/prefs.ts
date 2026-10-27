@@ -55,6 +55,8 @@ export interface Prefs {
   fullscreen: boolean;
   /** Estava em tela cheia: volta a ela ao abrir o client ou ao voltar da interface da Riot (no primeiro clique/tecla). */
   fullscreenOn: boolean;
+  /** Janela maximizada como num navegador (pelo auxiliar): volta assim ao abrir o client. */
+  maximized: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -88,6 +90,7 @@ export const DEFAULT_PREFS: Prefs = {
   wallpapers: false,
   fullscreen: false,
   fullscreenOn: false,
+  maximized: false,
 };
 const KEY = 'rlc.prefs';
 const oneOf = <T extends string>(v: unknown, options: readonly T[], def: T): T => (options.includes(v as T) ? (v as T) : def);
@@ -127,6 +130,7 @@ export function sanitizePrefs(v: unknown): Prefs {
     wallpapers: bool(o.wallpapers, DEFAULT_PREFS.wallpapers),
     fullscreen: bool(o.fullscreen, DEFAULT_PREFS.fullscreen),
     fullscreenOn: bool(o.fullscreenOn, DEFAULT_PREFS.fullscreenOn),
+    maximized: bool(o.maximized, DEFAULT_PREFS.maximized),
   };
 }
 

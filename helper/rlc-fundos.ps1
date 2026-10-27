@@ -7,9 +7,75 @@
     - Minha pasta: Imagens\ReimaginedLC (criada se não existir).
   Escuta só em 127.0.0.1, aceita só pedidos do client (origem https://127.0.0.1:<porta>) e só entrega arquivos que
   estão na lista, por um id opaco (nunca por caminho).
+
+  Também maximiza a janela do client como um navegador (ocupa a área de trabalho, a barra de tarefas continua à vista)
+  e devolve o tamanho de antes: a Riot não tem isso, e a página não consegue mexer na própria janela.
 #>
 $ErrorActionPreference = 'Stop'
-$Version = '1'
+$Version = '2'
+
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type @"
+using System; using System.Text; using System.Runtime.InteropServices;
+public static class RlcWin {
+  delegate bool EnumCb(IntPtr h, IntPtr l);
+  [DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr p, EnumCb cb, IntPtr l);
+  [DllImport("user32.dll")] static extern int GetClassName(IntPtr h, StringBuilder s, int n);
+  [DllImport("user32.dll")] static extern IntPtr GetParent(IntPtr h);
+  [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int w, int hh, uint f);
+  [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
+  [DllImport("user32.dll")] static extern bool IsZoomed(IntPtr h);
+  [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int c);
+  [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
+  const uint NOZORDER_NOACTIVATE = 0x14;
+  public static int[] Rect(IntPtr h) { RECT r; GetWindowRect(h, out r); return new[] { r.L, r.T, r.R - r.L, r.B - r.T }; }
+  // A janela da Riot (RCLIENT) não redimensiona a área do Chromium sozinha: mexe nas duas filhas também.
+  public static void Place(IntPtr main, int x, int y, int w, int h) {
+    if (IsZoomed(main)) ShowWindow(main, 9);
+    SetWindowPos(main, IntPtr.Zero, x, y, w, h, NOZORDER_NOACTIVATE);
+    EnumChildWindows(main, (c, l) => {
+      if (GetParent(c) != main) return true;
+      var s = new StringBuilder(64); GetClassName(c, s, 64);
+      var k = s.ToString();
+      if (k == "Chrome_WidgetWin_0" || k == "CefBrowserWindow") SetWindowPos(c, IntPtr.Zero, 0, 0, w, h, NOZORDER_NOACTIVATE);
+      return true;
+    }, IntPtr.Zero);
+  }
+}
+"@
+
+function Get-ClientWindow {
+  $p = Get-Process LeagueClientUx -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero } | Select-Object -First 1
+  if ($p) { return $p.MainWindowHandle } else { return [IntPtr]::Zero }
+}
+
+# Tamanho de antes de maximizar (para voltar a ele). Só guarda quando a janela ainda não está maximizada por nós.
+$script:Restore = $null
+
+function Get-WorkArea($hwnd) {
+  $wa = [System.Windows.Forms.Screen]::FromHandle($hwnd).WorkingArea
+  return @($wa.X, $wa.Y, $wa.Width, $wa.Height)
+}
+
+function Invoke-Maximize {
+  $hwnd = Get-ClientWindow
+  if ($hwnd -eq [IntPtr]::Zero) { return $false }
+  $wa = Get-WorkArea $hwnd
+  $now = [RlcWin]::Rect($hwnd)
+  $already = ($now[0] -eq $wa[0] -and $now[1] -eq $wa[1] -and $now[2] -eq $wa[2] -and $now[3] -eq $wa[3])
+  if (-not $already) { $script:Restore = $now }
+  [RlcWin]::Place($hwnd, $wa[0], $wa[1], $wa[2], $wa[3])
+  return $true
+}
+
+function Invoke-Restore {
+  $hwnd = Get-ClientWindow
+  if ($hwnd -eq [IntPtr]::Zero -or -not $script:Restore) { return $false }
+  $r = $script:Restore
+  [RlcWin]::Place($hwnd, $r[0], $r[1], $r[2], $r[3])
+  $script:Restore = $null
+  return $true
+}
 # Portas que o client procura, nesta ordem (algumas máquinas têm portas presas pelo sistema).
 $Ports = @(38611, 41847, 45219, 47863)
 $ImageExt = @('.jpg', '.jpeg', '.png', '.webp', '.gif')
@@ -215,6 +281,10 @@ while ($listener.IsListening) {
       $entry = $script:Index[$Matches[2]]
       $target = if ($entry) { if ($Matches[1] -eq 'file') { $entry.file } else { $entry.thumb } } else { $null }
       if ($target -and (Test-Path $target)) { Send-File $req $res $target } else { $res.StatusCode = 404 }
+    } elseif (($path -eq '/v1/window/maximize' -or $path -eq '/v1/window/restore') -and $req.HttpMethod -eq 'POST') {
+      if (-not $fromClient) { $res.StatusCode = 403; continue }
+      $done = if ($path -eq '/v1/window/maximize') { Invoke-Maximize } else { Invoke-Restore }
+      Send-Json $res @{ ok = [bool]$done }
     } elseif ($path -eq '/v1/open-user-folder' -and $req.HttpMethod -eq 'POST') {
       if (-not $fromClient) { $res.StatusCode = 403; continue }
       Start-Process explorer.exe (Get-UserFolder)

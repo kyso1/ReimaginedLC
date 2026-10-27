@@ -1,3 +1,4 @@
+import { canMaximize, isMaximized, toggleMaximize } from '../../shell/window';
 import { Wallpapers } from '../../ui/Wallpapers';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { t, type TextKey } from '../../i18n';
@@ -662,6 +663,15 @@ function General({ lcu, themes }: { lcu: Lcu; themes: ThemeEngine }) {
       </Row>
       <Row name={t('stOpenOnStart')} desc={t('stOpenOnStartDesc')}>
         <Seg label={t('stOpenOnStart')} value={openKey(p.openOnStart)} options={OPEN.map(([o, k]) => [o, t(k)])} onPick={(v) => setPrefs({ openOnStart: v === 'last' ? null : v === 'true' })} />
+      </Row>
+      <Row name={t('stMaximize')} desc={t(canMaximize.value ? 'stMaximizeDesc' : 'stMaximizeNeedsHelper')}>
+        {canMaximize.value ? (
+          <Switch label={t('stMaximize')} checked={p.maximized} onChange={(maximized) => (maximized !== isMaximized.value ? toggleMaximize() : setPrefs({ maximized }))} />
+        ) : (
+          <button type="button" class="rlc-button" data-variant="pill" onClick={() => (window as Window & { openPluginsFolder?: () => void }).openPluginsFolder?.()}>
+            {t('wpOpenPlugins')}
+          </button>
+        )}
       </Row>
       <Row name={t('stFullscreen')} desc={t('stFullscreenDesc')}>
         <Switch label={t('stFullscreen')} checked={p.fullscreen} onChange={(fullscreen) => setPrefs({ fullscreen })} />

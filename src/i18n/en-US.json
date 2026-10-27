@@ -1197,5 +1197,10 @@
   "fullscreenExit": "Exit full screen",
   "fullscreenFailed": "The client didn't allow full screen right now",
   "stFullscreen": "Full screen button",
-  "stFullscreenDesc": "Shows a button between minimize and close (and enables F11) to put the client in full screen, covering the taskbar. Full screen is remembered: it comes back on the first click after opening the client. Switching to the Riot client puts the window back to its previous size."
+  "stFullscreenDesc": "Shows a button between minimize and close (and enables F11) to put the client in full screen, covering the taskbar. Full screen is remembered: it comes back on the first click after opening the client. Switching to the Riot client puts the window back to its previous size.",
+  "windowMaximize": "Maximize",
+  "windowRestore": "Restore size",
+  "stMaximize": "Maximized window",
+  "stMaximizeDesc": "Maximizes the client like a browser: it fills the screen and the taskbar stays visible (also from the button between minimize and close). It's remembered; switching to the Riot client puts the window back to its previous size.",
+  "stMaximizeNeedsHelper": "Maximizing the client like a browser needs the ReimaginedLC helper: in the plugins folder, go into ReimaginedLC and run instalar-fundos.cmd (only once)."
 }
