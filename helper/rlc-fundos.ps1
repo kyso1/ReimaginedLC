@@ -12,7 +12,7 @@
   e devolve o tamanho de antes: a Riot não tem isso, e a página não consegue mexer na própria janela.
 #>
 $ErrorActionPreference = 'Stop'
-$Version = '2'
+$Version = '3'
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type @"
@@ -26,6 +26,9 @@ public static class RlcWin {
   [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
   [DllImport("user32.dll")] static extern bool IsZoomed(IntPtr h);
   [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int c);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindow(string c, string t);
+  // Pela classe da janela da Riot: a DevTools do Pengu também é do LeagueClientUx e pode ser a "janela principal" dele.
+  public static IntPtr Client() { return FindWindow("RCLIENT", null); }
   [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
   const uint NOZORDER_NOACTIVATE = 0x14;
   public static int[] Rect(IntPtr h) { RECT r; GetWindowRect(h, out r); return new[] { r.L, r.T, r.R - r.L, r.B - r.T }; }
@@ -44,10 +47,7 @@ public static class RlcWin {
 }
 "@
 
-function Get-ClientWindow {
-  $p = Get-Process LeagueClientUx -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero } | Select-Object -First 1
-  if ($p) { return $p.MainWindowHandle } else { return [IntPtr]::Zero }
-}
+function Get-ClientWindow { return [RlcWin]::Client() }
 
 # Tamanho de antes de maximizar (para voltar a ele). Só guarda quando a janela ainda não está maximizada por nós.
 $script:Restore = $null
@@ -68,10 +68,19 @@ function Invoke-Maximize {
   return $true
 }
 
-function Invoke-Restore {
+# Sem o tamanho de antes (o auxiliar reiniciou com a janela maximizada, por exemplo): usa o tamanho que o client
+# informa (o da Riot), centralizado. Só aceita valores que cabem na área de trabalho.
+function Invoke-Restore($w, $h) {
   $hwnd = Get-ClientWindow
-  if ($hwnd -eq [IntPtr]::Zero -or -not $script:Restore) { return $false }
+  if ($hwnd -eq [IntPtr]::Zero) { return $false }
   $r = $script:Restore
+  if (-not $r) {
+    $wa = Get-WorkArea $hwnd
+    $iw = 0; $ih = 0
+    if (-not ([int]::TryParse([string]$w, [ref]$iw) -and [int]::TryParse([string]$h, [ref]$ih))) { return $false }
+    if ($iw -lt 640 -or $ih -lt 360 -or $iw -gt $wa[2] -or $ih -gt $wa[3]) { return $false }
+    $r = @(($wa[0] + [int](($wa[2] - $iw) / 2)), ($wa[1] + [int](($wa[3] - $ih) / 2)), $iw, $ih)
+  }
   [RlcWin]::Place($hwnd, $r[0], $r[1], $r[2], $r[3])
   $script:Restore = $null
   return $true
@@ -283,7 +292,7 @@ while ($listener.IsListening) {
       if ($target -and (Test-Path $target)) { Send-File $req $res $target } else { $res.StatusCode = 404 }
     } elseif (($path -eq '/v1/window/maximize' -or $path -eq '/v1/window/restore') -and $req.HttpMethod -eq 'POST') {
       if (-not $fromClient) { $res.StatusCode = 403; continue }
-      $done = if ($path -eq '/v1/window/maximize') { Invoke-Maximize } else { Invoke-Restore }
+      $done = if ($path -eq '/v1/window/maximize') { Invoke-Maximize } else { Invoke-Restore $req.QueryString['w'] $req.QueryString['h'] }
       Send-Json $res @{ ok = [bool]$done }
     } elseif ($path -eq '/v1/open-user-folder' -and $req.HttpMethod -eq 'POST') {
       if (-not $fromClient) { $res.StatusCode = 403; continue }

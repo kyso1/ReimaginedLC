@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { startFullscreen, toggleFullscreen } from './fullscreen';
+import { RESIZE_SETTLE_MS, startFullscreen, toggleFullscreen } from './fullscreen';
 import { shown as enabled } from './layer';
 import { DEFAULT_PREFS, prefs } from './prefs';
 
@@ -88,4 +88,39 @@ test('evento sem ativação do usuário (o próprio atalho simulado, por exemplo
   await settle();
   expect(req).toHaveBeenCalledTimes(1);
   delete (navigator as { userActivation?: unknown }).userActivation;
+});
+
+test('janela encolhida ainda em tela cheia (estado que travava tudo): sai sem esquecer e volta no próximo clique', async () => {
+  vi.useFakeTimers();
+  const size = (w: number, h: number) => {
+    Object.defineProperty(window, 'outerWidth', { configurable: true, value: w });
+    Object.defineProperty(window, 'outerHeight', { configurable: true, value: h });
+  };
+  // O client informa como "tela" o tamanho da própria janela: não dá para comparar com `screen`.
+  Object.defineProperty(window.screen, 'width', { configurable: true, get: () => window.outerWidth });
+  Object.defineProperty(window.screen, 'height', { configurable: true, get: () => window.outerHeight });
+  try {
+    size(1600, 900);
+    stop = startFullscreen();
+    toggleFullscreen();
+    await vi.advanceTimersByTimeAsync(0);
+    // Entrando: a janela cresce em passos; só o tamanho final conta.
+    window.dispatchEvent(new Event('resize'));
+    size(1920, 1080);
+    window.dispatchEvent(new Event('resize'));
+    await vi.advanceTimersByTimeAsync(RESIZE_SETTLE_MS + 50);
+    expect(exit).not.toHaveBeenCalled();
+    // Alguém devolveu a janela a 1600x900 com ela em tela cheia.
+    size(1600, 900);
+    window.dispatchEvent(new Event('resize'));
+    await vi.advanceTimersByTimeAsync(RESIZE_SETTLE_MS + 50);
+    expect(exit).toHaveBeenCalledTimes(1);
+    expect(full).toBeNull();
+    expect(prefs.value.fullscreenOn).toBe(true);
+    click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(req).toHaveBeenCalledTimes(2);
+  } finally {
+    vi.useRealTimers();
+  }
 });
