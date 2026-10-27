@@ -572,9 +572,10 @@
 
 /* Minimizar e fechar: botões de verdade no canto (28 px de altura, ícone em traço), por cima da coluna social,
    que desce o bastante para não ficar embaixo deles. A faixa inteira continua arrastando a janela. */
-#rlc-root .rlc-windowbar { height: 28px; z-index: 9; gap: 2px; padding: 0 4px; align-items: flex-start; }
-#rlc-root .rlc-windowbar .rlc-winbtn { display: grid; place-items: center; width: 36px; height: 26px; border-radius: 0 0 var(--rlc-radius-sm) var(--rlc-radius-sm); color: var(--rlc-color-textMuted); transition: background 0.15s ease, color 0.15s ease; }
-#rlc-root .rlc-windowbar .rlc-winbtn svg { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
-#rlc-root .rlc-windowbar .rlc-winbtn:hover { color: var(--rlc-color-text); background: var(--rlc-color-glassCardHover, rgba(255, 255, 255, 0.12)); }
-#rlc-root .rlc-windowbar .rlc-winbtn[data-kind='close']:hover { background: var(--rlc-color-danger, #c8364a); color: var(--rlc-color-onDanger, #fff); }
+#rlc-root .rlc-windowbar { height: 28px; }
+#rlc-root .rlc-winbtns { position: absolute; top: 0; right: 4px; z-index: 9; display: flex; gap: 2px; -webkit-app-region: no-drag; }
+#rlc-root .rlc-windowbar .rlc-winbtn, #rlc-root .rlc-winbtns .rlc-winbtn { display: grid; place-items: center; width: 36px; height: 26px; border-radius: 0 0 var(--rlc-radius-sm) var(--rlc-radius-sm); color: var(--rlc-color-textMuted); transition: background 0.15s ease, color 0.15s ease; }
+#rlc-root .rlc-winbtns .rlc-winbtn svg { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
+#rlc-root .rlc-winbtns .rlc-winbtn:hover { color: var(--rlc-color-text); background: var(--rlc-color-glassCardHover, rgba(255, 255, 255, 0.12)); }
+#rlc-root .rlc-winbtns .rlc-winbtn[data-kind='close']:hover { background: var(--rlc-color-danger, #c8364a); color: var(--rlc-color-onDanger, #fff); }
 #rlc-root .rlc-rc-inner { padding-top: 32px; }

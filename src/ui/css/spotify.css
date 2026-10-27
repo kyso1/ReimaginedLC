@@ -23,3 +23,5 @@
 #rlc-root .rlc-sp-steps { margin: 0; padding-left: 20px; color: var(--rlc-color-textMuted); font-size: 13px; }
 #rlc-root .rlc-sp-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 #rlc-root .rlc-sp-field .rlc-input { flex: 1; min-width: 0; }
+/* Fora da região de arrastar a janela: a tira de 6 px precisa receber o mouse para descer. */
+#rlc-root .rlc-sp { -webkit-app-region: no-drag; }
