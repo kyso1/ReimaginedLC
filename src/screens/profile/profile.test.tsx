@@ -280,3 +280,23 @@ test('histórico: carregar mais fica desabilitado enquanto a página carrega', a
   await settle();
   await settle();
 });
+
+test('histórico: roda de carregamento enquanto as partidas não chegam', async () => {
+  let release: () => void = () => {};
+  const slow = new Promise<void>((r) => (release = r));
+  const base = fetchMock.getMockImplementation() as (url: string) => Promise<Response>;
+  fetchMock.mockImplementation(async (url: string) => {
+    if (url.includes('/lol-match-history/v1/products/lol/')) await slow;
+    return base(url);
+  });
+  mount();
+  await settle();
+  act(() => tab('Histórico').click());
+  await settle();
+  expect(root.querySelector('.rlc-mh .rlc-loader')).not.toBeNull();
+  release();
+  await settle();
+  await settle();
+  expect(root.querySelector('.rlc-mh .rlc-loader')).toBeNull();
+  expect(root.querySelectorAll('.rlc-mh-row').length).toBeGreaterThan(0);
+});

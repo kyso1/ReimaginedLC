@@ -173,3 +173,24 @@
 #rlc-root .rlc-pg-honors ul li { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 #rlc-root .rlc-pg-honors ul li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #rlc-root .rlc-pg-honors ul li em { grid-column: auto; color: var(--rlc-color-danger); }
+
+/* Fim de jogo: ⋯ por jogador no placar (aparece no hover da linha), menu abaixo dele. */
+#rlc-root .rlc-md-board td.rlc-md-name { position: relative; padding-right: 30px; }
+#rlc-root .rlc-md-board .rlc-col-menu { top: 50%; right: 2px; width: 24px; height: 24px; margin-top: -12px; font-size: 12px; opacity: 0; transition: opacity 0.15s ease; }
+#rlc-root .rlc-md-board tr:hover .rlc-col-menu, #rlc-root .rlc-md-board .rlc-col-menu[aria-expanded='true'], #rlc-root .rlc-md-board .rlc-col-menu:focus-visible { opacity: 1; }
+#rlc-root .rlc-md-board .rlc-menu { top: calc(50% + 16px); right: 0; z-index: 6; }
+
+/* Denúncia: seções com caixas de seleção e o comentário. */
+#rlc-root .rlc-rp { width: min(460px, calc(100vw - 32px)); max-height: 86vh; overflow-y: auto; }
+#rlc-root .rlc-rp h2 { margin: 0; font-family: var(--rlc-font-display); font-size: 22px; }
+#rlc-root .rlc-rp h2 span { color: var(--rlc-color-textMuted); font-size: 16px; }
+#rlc-root .rlc-rp-section { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; border: 0; }
+#rlc-root .rlc-rp-section legend { margin-bottom: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-rp-option { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--rlc-radius-sm); font-size: 14px; cursor: pointer; }
+#rlc-root .rlc-rp-option:hover { background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.06)); }
+#rlc-root .rlc-rp-option input { width: 16px; height: 16px; accent-color: var(--rlc-color-accent); }
+#rlc-root .rlc-rp-comment { min-height: 70px; resize: vertical; font: inherit; }
+#rlc-root .rlc-pg-elim td.rlc-pg-elim-name { position: relative; padding-right: 30px; }
+#rlc-root .rlc-pg-elim .rlc-col-menu { top: 50%; right: 2px; width: 24px; height: 24px; margin-top: -12px; font-size: 12px; opacity: 0; transition: opacity 0.15s ease; }
+#rlc-root .rlc-pg-elim tr:hover .rlc-col-menu, #rlc-root .rlc-pg-elim .rlc-col-menu[aria-expanded='true'], #rlc-root .rlc-pg-elim .rlc-col-menu:focus-visible { opacity: 1; }
+#rlc-root .rlc-pg-elim .rlc-menu { top: calc(50% + 16px); right: 0; z-index: 6; }

@@ -445,6 +445,11 @@ function Appearance({ lcu, themes, onEdit }: { lcu: Lcu; themes: ThemeEngine; on
           </div>
         </section>
       ))}
+      <section class="rlc-st-card">
+        <Row name={t('homeBareSetting')} desc={t('homeBareDesc')}>
+          <Switch label={t('homeBareSetting')} checked={prefs.value.homeBare} onChange={(homeBare) => setPrefs({ homeBare })} />
+        </Row>
+      </section>
       <BackgroundSection lcu={lcu} />
       <CustomCssSection />
       {deleting ? (

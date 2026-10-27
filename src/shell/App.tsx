@@ -226,6 +226,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
 
   if (!visible || screen === null) return null;
 
+  const bare = page === 'home' && !shownView && prefs.value.homeBare;
   const turnOff = () => setEnabled(false);
   const withPanelClose = (items: Array<{ id: string; label: string; active?: boolean; onSelect: () => void }>) =>
     items.map((i) => ({ ...i, onSelect: () => (setPanel(null), i.onSelect()) }));
@@ -277,7 +278,12 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
       data-custom-bg={custom ? 'true' : undefined}
       // Gaveta de amigos fixa: as telas encolhem pela largura dela (social.css); na seleção ela recolhe.
       data-social={prefs.value.socialPinned && phaseName !== 'ChampSelect' ? 'pinned' : undefined}
-      style={{ '--rlc-bg-dim': String(Math.min(background.value.dim, MAX_DIM)), '--rlc-bg-blur': `${background.value.blur}px`, '--rlc-bg-pos': `${background.value.posX}% ${background.value.posY}%` }}
+      // Início só com o fundo: a imagem aparece limpa (sem escurecer nem desfocar), é para ser vista.
+      style={{
+        '--rlc-bg-dim': bare ? '0' : String(Math.min(background.value.dim, MAX_DIM)),
+        '--rlc-bg-blur': bare ? '0px' : `${background.value.blur}px`,
+        '--rlc-bg-pos': `${background.value.posX}% ${background.value.posY}%`,
+      }}
     >
       <Boundary onError={onError}>
         <MediaBackground src={custom?.src ?? mediaUrl(theme, page ?? '', base)} video={custom?.video} playing={focused.value && prefs.value.video && !lite} />

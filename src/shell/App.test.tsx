@@ -723,3 +723,20 @@ test('gaveta de amigos: passar o mouse rápido não abre; parado um instante abr
   await wait(450);
   expect(rc().getAttribute('data-open')).toBeNull();
 });
+
+test('Início só com o fundo: imagem sem escurecer nem desfocar', async () => {
+  enabled.value = true;
+  prefs.value = { ...DEFAULT_PREFS, homeBare: true };
+  mount();
+  await flush();
+  // Depois de montar: o App lê o fundo do DataStore ao subir.
+  background.value = { ...DEFAULT_BG, dim: 0.9, blur: 3 };
+  await flush();
+  const app = () => root.querySelector<HTMLElement>('.rlc-app')!;
+  expect(app().style.getPropertyValue('--rlc-bg-dim')).toBe('0');
+  expect(app().style.getPropertyValue('--rlc-bg-blur')).toBe('0px');
+  prefs.value = { ...DEFAULT_PREFS };
+  await flush();
+  expect(app().style.getPropertyValue('--rlc-bg-dim')).toBe('0.85');
+  background.value = DEFAULT_BG;
+});

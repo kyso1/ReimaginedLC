@@ -1,3 +1,5 @@
+import type { ComponentChildren } from 'preact';
+import { EogPlayerMenu, ReportDialog, useReported, type EogTarget } from './Report';
 import { useEffect, useState } from 'preact/hooks';
 import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
@@ -115,10 +117,22 @@ export function PostGame({ lcu }: { lcu: Lcu }) {
   const where = [queue?.description || lcu.queues.value.data?.find((q) => q.type === eog?.queueType)?.name, typeof length === 'number' ? formatClock(length) : ''].filter(Boolean);
   // A LCU ainda não respondeu o fim de jogo: a animação de carregando, por até GIVE_UP_MS (depois a tela mostra o que tiver, com os botões).
   const [gaveUp, setGaveUp] = useState(false);
+  const [reporting, setReporting] = useState<EogTarget | null>(null);
+  const [reported, markReported] = useReported(eog?.gameId);
   useEffect(() => {
     const id = setTimeout(() => setGaveUp(true), GIVE_UP_MS);
     return () => clearTimeout(id);
   }, []);
+  // Ações por jogador (não eu, não bot): pelo puuid da linha do placar, com o summonerId do fim de jogo.
+  const targets = new Map<string, EogTarget>([
+    ...(eog?.teams ?? []).flatMap((tm) => tm.players ?? []).filter((p) => !p.isLocalPlayer && !p.botPlayer && p.puuid).map((p) => [p.puuid, { puuid: p.puuid, summonerId: p.summonerId, name: p.riotIdGameName || p.summonerName || '' }] as const),
+    ...(tftStats?.players ?? []).filter((p) => !p.isLocalPlayer && p.puuid).map((p) => [p.puuid, { puuid: p.puuid, summonerId: p.summonerId, name: p.riotIdGameName || '' }] as const),
+  ]);
+  const menuForPuuid = (puuid: string | undefined) => {
+    const target = puuid ? targets.get(puuid) : undefined;
+    return target ? <EogPlayerMenu lcu={lcu} target={target} reported={reported.has(target.puuid)} onReport={() => setReporting(target)} /> : null;
+  };
+  const menuFor = (p: Participant) => menuForPuuid(game?.participantIdentities.find((x) => x.participantId === p.participantId)?.player.puuid);
   if (lcu.endOfGame.value.status === 'loading' && !tftStats && !gaveUp) return <section class="rlc-ingame"><Loader label={t('gameWaitingStats')} /></section>;
 
   return (
@@ -156,7 +170,7 @@ export function PostGame({ lcu }: { lcu: Lcu }) {
           </div>
           <Progress eog={eog} lp={lp} mastery={mastery} queueId={queue?.id} puuid={eog?.localPlayer?.puuid} honors={tft ? [] : honorsFrom(lcu.honorRecognition.value.data ?? [], game, me, icons)} />
         </header>
-        {tft && tftStats ? <TftBoard lcu={lcu} stats={tftStats} me={tftMe} lp={lp} /> : null}
+        {tft && tftStats ? <TftBoard lcu={lcu} stats={tftStats} me={tftMe} lp={lp} menuFor={menuForPuuid} /> : null}
         {game && !tft ? (
           <div class="rlc-pg-detail">
             <nav class="rlc-tabs-text">
@@ -173,7 +187,7 @@ export function PostGame({ lcu }: { lcu: Lcu }) {
             </nav>
             {tab === 'board' ? (
               <div class="rlc-pg-board">
-                <Board game={game} me={me} icons={icons} />
+                <Board game={game} me={me} icons={icons} menuFor={menuFor} />
               </div>
             ) : (
               <div class="rlc-md-charts">
@@ -184,6 +198,18 @@ export function PostGame({ lcu }: { lcu: Lcu }) {
           </div>
         ) : null}
       </div>
+      {reporting && eog?.gameId ? (
+        <ReportDialog
+          gameId={eog.gameId}
+          target={reporting}
+          game={tft ? 'tft' : 'lol'}
+          onSent={() => {
+            markReported(reporting.puuid);
+            setReporting(null);
+          }}
+          onClose={() => setReporting(null)}
+        />
+      ) : null}
       <div class="rlc-pg-actions">
         <button type="button" class="rlc-button" data-variant="danger" disabled={leave.pending} onClick={() => leave.run()}>
           {t('leave')}
@@ -353,7 +379,7 @@ function useTftHistory(puuid: string | undefined, gameId: number) {
  * três abas: a classificação dos oito (com os fatos do lobby em cima), a partida (traços, quem caiu quando) e você
  * contra o seu histórico.
  */
-function TftBoard({ lcu, stats, me, lp }: { lcu: Lcu; stats: LolEndOfGameTFTEndOfGameViewModel; me: EogPlayer | undefined; lp: LpChange | null }) {
+function TftBoard({ lcu, stats, me, lp, menuFor }: { lcu: Lcu; stats: LolEndOfGameTFTEndOfGameViewModel; me: EogPlayer | undefined; lp: LpChange | null; menuFor?: (puuid: string | undefined) => ComponentChildren }) {
   const catalog = useTftArt(lcu);
   const [tab, setTab] = useState<TftTab>('standings');
   const players = stats.players ?? [];
@@ -422,7 +448,7 @@ function TftBoard({ lcu, stats, me, lp }: { lcu: Lcu; stats: LolEndOfGameTFTEndO
               <TftStandings m={m} me={mine} a={a} />
             </>
           ) : tab === 'match' ? (
-            <TftMatchTab m={m} mine={mine} played={played} waiting={hist.waiting} a={a} />
+            <TftMatchTab m={m} mine={mine} played={played} waiting={hist.waiting} a={a} menuFor={menuFor} />
           ) : (
             <TftVsHistory m={played ?? m} mine={(mine && played && meIn(played, mine.puuid ?? '')) || mine} matches={hist.matches} gameId={gameId} queueId={stats.queueId} lp={lp} a={a} />
           )}
@@ -486,7 +512,7 @@ function LobbyFacts({ players, me, a }: { players: EogPlayer[]; me: EogPlayer | 
 }
 
 /** A partida: dupla, progresso de cada traço e a linha do tempo de quem caiu (do histórico, que chega depois). */
-function TftMatchTab({ m, mine, played, waiting, a }: { m: TftMatch; mine: TftPlayer | undefined; played: TftMatch | undefined; waiting: boolean; a: Art }) {
+function TftMatchTab({ m, mine, played, waiting, a, menuFor }: { m: TftMatch; mine: TftPlayer | undefined; played: TftMatch | undefined; waiting: boolean; a: Art; menuFor?: (puuid: string | undefined) => ComponentChildren }) {
   const hp = played?.participants ?? [];
   const meH = mine?.puuid ? hp.find((p) => p.puuid === mine.puuid) : undefined;
   const traits = [...((meH ?? mine)?.traits ?? [])].filter((x) => x.num_units > 0).sort((x, y) => y.style - x.style || y.num_units - x.num_units);
@@ -549,9 +575,10 @@ function TftMatchTab({ m, mine, played, waiting, a }: { m: TftMatch; mine: TftPl
                       </>
                     )}
                   </td>
-                  <td>
+                  <td class="rlc-pg-elim-name">
                     <b class="rlc-tft-place">{ordinal(tftPlace(played, p))}</b>
                     {p.riotIdGameName || '—'}
+                    {menuFor?.(p.puuid)}
                   </td>
                   <td>{p.level ?? '—'}</td>
                   <td>{p.gold_left ?? '—'}</td>

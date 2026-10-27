@@ -341,7 +341,7 @@ test('TFT: aba Partida com traços (3/4, falta 1) e quem caiu quando; dano e eli
   expect(head).toEqual(['Caiu', 'Jogador', 'Nível', 'Ouro restante', 'Pontuação Riot']);
   const rows = [...root.querySelectorAll('.rlc-pg-elim tbody tr')].map((tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent));
   expect(rows).toEqual([
-    ['rodada 3631:00', '2ºZeca', '8', '3', '198'],
+    ['rodada 3631:00', '2ºZeca⋯', '8', '3', '198'],
     ['Venceu', '1ºFulano', '8', '3', '199'],
   ]);
   expect(root.textContent).not.toContain('DA_');

@@ -45,6 +45,8 @@ export interface Prefs {
   dodge: boolean;
   /** Revelar os nomes reais dos aliados na seleção (consulta a sala de chat e o histórico deles). */
   nameReveal: boolean;
+  /** Início sem nada por cima (destaques, Jogar, patch): só o plano de fundo, para contemplar. */
+  homeBare: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -73,6 +75,7 @@ export const DEFAULT_PREFS: Prefs = {
   spotifyStatus: false,
   dodge: false,
   nameReveal: true,
+  homeBare: false,
 };
 const KEY = 'rlc.prefs';
 const oneOf = <T extends string>(v: unknown, options: readonly T[], def: T): T => (options.includes(v as T) ? (v as T) : def);
@@ -107,6 +110,7 @@ export function sanitizePrefs(v: unknown): Prefs {
     spotifyStatus: bool(o.spotifyStatus, DEFAULT_PREFS.spotifyStatus),
     dodge: bool(o.dodge, DEFAULT_PREFS.dodge),
     nameReveal: bool(o.nameReveal, DEFAULT_PREFS.nameReveal),
+    homeBare: bool(o.homeBare, DEFAULT_PREFS.homeBare),
   };
 }
 

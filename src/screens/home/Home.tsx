@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { t } from '../../i18n';
-import { prefs } from '../../shell/prefs';
+import { prefs, setPrefs } from '../../shell/prefs';
 import { Button } from '../../ui/Button';
 import { Crossfade } from '../../ui/Crossfade';
 import { getJson } from '../profile/data';
@@ -29,6 +29,15 @@ export function Home({ version, locale, onPlay, onStore, onEvents, open = (url) 
       window.Toast?.error(t('openFailed'));
     }
   };
+  // Só o fundo: nada por cima além do botão (discreto, aparece no hover) que traz o Início de volta.
+  if (prefs.value.homeBare)
+    return (
+      <section class="rlc-home" data-bare="true">
+        <button type="button" class="rlc-home-bare" aria-label={t('homeBareOff')} title={t('homeBareOff')} onClick={() => setPrefs({ homeBare: false })}>
+          <EyeIcon off />
+        </button>
+      </section>
+    );
   return (
     <section class="rlc-home">
       <Featured load={load} locale={locale} onLink={(l) => (l.kind === 'store' ? onStore?.() : l.kind === 'events' ? onEvents?.() : open(l.url))} />
@@ -38,6 +47,9 @@ export function Home({ version, locale, onPlay, onStore, onEvents, open = (url) 
         </Button>
       </div>
       <div class="rlc-home-patch">
+        <button type="button" class="rlc-home-bare" aria-label={t('homeBareOn')} title={t('homeBareOn')} onClick={() => setPrefs({ homeBare: true })}>
+          <EyeIcon />
+        </button>
         <Button variant="pill" onClick={openNotes}>
           {patch ? <strong>Patch {patch}</strong> : null}
           {t('patchNotes')}
@@ -142,5 +154,16 @@ function Featured({ load, locale, onLink }: { load: Load; locale: string | null;
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** Olho (mostrar só o fundo) e olho riscado (trazer o Início de volta). */
+function EyeIcon({ off = false }: { off?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+      <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7" />
+      {off ? <path d="M4 4l16 16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" /> : null}
+    </svg>
   );
 }

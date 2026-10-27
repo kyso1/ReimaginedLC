@@ -1,5 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
+import { Loader } from '../../ui/Loader';
 import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { formatClock } from '../lobby/format';
@@ -149,6 +150,7 @@ export function TftHistory({ lcu, puuid, head, elo }: { lcu: Lcu; puuid: string;
               </div>
             </section>
           ))}
+          {matches ? null : <Loader small label={t('mhLoading')} />}
           {matches && !days.length ? <p class="rlc-muted">{t('pfTftNoGames')}</p> : null}
         </div>
       </div>

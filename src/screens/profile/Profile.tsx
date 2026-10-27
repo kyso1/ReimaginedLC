@@ -1,3 +1,4 @@
+import { Loader } from '../../ui/Loader';
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { locale, t, type TextKey } from '../../i18n';
@@ -285,6 +286,8 @@ function History({ lcu, puuid, ranked }: { lcu: Lcu; puuid: string; ranked: Rank
               </div>
             </section>
           ))}
+          {/* Roda enquanto a página chega (a primeira ou "carregar mais"); a LCU pode levar segundos. */}
+          {loading ? <Loader small label={t('mhLoading')} /> : null}
           {!loading && !days.length ? <p class="rlc-muted">{t('profNoGames')}</p> : null}
         </div>
         {!exhausted && games.length ? (
@@ -490,7 +493,9 @@ function MatchDetail({ lcu, puuid, gameId, originY, onBack }: { lcu: Lcu; puuid:
             </div>
           ) : null}
         </>
-      ) : null}
+      ) : (
+        <Loader label={t('mhLoading')} />
+      )}
     </div>
   );
 }
@@ -507,7 +512,8 @@ const COLS = ['champ', 'loadout', 'name', 'kda', 'cs', 'items', 'gold', 'damage'
 export const icon = (src: string | undefined, cls: string, name = '') => (src ? <img class={cls} src={src} alt={name} title={name || undefined} /> : <span class={cls} />);
 
 /** Placar no padrão do client: campeão com nível, feitiços e runas, jogador, A/M/A, farm, 7 itens (o 7º é o amuleto), ouro e dano. */
-export function Board({ game, me, icons }: { game: Game; me: Participant | undefined; icons: Icons }) {
+/** Placar dos dois times. `menuFor` põe ações por jogador ao lado do nome (fim de jogo: convidar, adicionar, denunciar). */
+export function Board({ game, me, icons, menuFor }: { game: Game; me: Participant | undefined; icons: Icons; menuFor?: (p: Participant) => ComponentChildren }) {
   const n = new Intl.NumberFormat(locale());
   const dec = new Intl.NumberFormat(locale(), { maximumFractionDigits: 1, minimumFractionDigits: 1 });
   const minutes = Math.max(1, game.gameDuration / 60);
@@ -562,6 +568,7 @@ export function Board({ game, me, icons }: { game: Game; me: Participant | undef
                     <td class="rlc-md-name">
                       <span>{playerName(game, p.participantId)}</span>
                       <small>{ch?.name ?? ''}</small>
+                      {menuFor?.(p)}
                     </td>
                     <td>{kda(p)}</td>
                     <td class="rlc-md-cs">
