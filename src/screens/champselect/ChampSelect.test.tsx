@@ -4,7 +4,9 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { action, cell, fakeLcu, ready, session } from '../../test/fixtures';
-import { ChampSelect } from './ChampSelect';
+import { ChampSelect, DIVE_MS } from './ChampSelect';
+import { CHROMA_HIDE_MS } from './Loadout';
+import { BENCH_COOLDOWN_MS } from './Swaps';
 import { DODGE_PATH } from '../../plugins/dodge';
 import { setPrefs } from '../../shell/prefs';
 
@@ -363,6 +365,36 @@ test('skins: só as desbloqueadas; clique aplica; cromas da skin selecionada apa
   expect(JSON.parse(call('/lol-champ-select/v1/session/my-selection')[1]![1].body)).toEqual({ selectedSkinId: 103010 });
 });
 
+test('mouse na skin mostra as cromas dela com prévia; não possuída fica bloqueada; clique aplica a croma', async () => {
+  setup(lockedMe({ selectedSkinId: 103000 }), {
+    skins: ready([
+      skin(103000, { isBase: true }),
+      skin(103001, { childSkins: [{ id: 103010, name: 'Rubi', unlocked: true, colors: ['#f00'], chromaPreviewPath: '/c/103010.png' }, { id: 103011, name: 'Safira', unlocked: false, colors: ['#00f'], chromaPreviewPath: '/c/103011.png' }] }),
+    ]),
+  });
+  await settle();
+  const tile = btn('Skin 103001')!;
+  expect(tile.dataset.chromas).toBe('true');
+  expect(btn('Skin 103000')!.dataset.chromas).toBeUndefined();
+  act(() => void tile.dispatchEvent(new MouseEvent('mouseenter')));
+  const pop = root.querySelector('.rlc-cs-chroma-pop')!;
+  expect(pop.getAttribute('aria-label')).toBe('Cromas · Skin 103001');
+  const locked = btn('Safira · não possuída', pop)!;
+  expect(locked.disabled).toBe(true);
+  act(() => void locked.dispatchEvent(new MouseEvent('mouseenter')));
+  expect(pop.querySelector('.rlc-cs-chroma-preview img')!.getAttribute('src')).toBe('/c/103011.png');
+  act(() => void btn('Rubi', pop)!.dispatchEvent(new MouseEvent('mouseenter')));
+  expect(pop.querySelector('.rlc-cs-chroma-preview img')!.getAttribute('src')).toBe('/c/103010.png');
+  act(() => btn('Rubi', pop)!.click());
+  expect(JSON.parse(call('/lol-champ-select/v1/session/my-selection')[0]![1].body)).toEqual({ selectedSkinId: 103010 });
+  // Sai da skin: o painel some depois de um instante (dá tempo de chegar até ele).
+  vi.useFakeTimers();
+  act(() => void tile.dispatchEvent(new MouseEvent('mouseleave')));
+  expect(root.querySelector('.rlc-cs-chroma-pop')).not.toBeNull();
+  await act(async () => void (await vi.advanceTimersByTimeAsync(CHROMA_HIDE_MS + 10)));
+  expect(root.querySelector('.rlc-cs-chroma-pop')).toBeNull();
+});
+
 test('croma selecionada mantém a skin mãe marcada', async () => {
   setup(lockedMe({ selectedSkinId: 103010 }), { skins: ready([skin(103001, { childSkins: [{ id: 103010, name: 'Rubi', unlocked: true, colors: [] }] })]) });
   await settle();
@@ -471,6 +503,54 @@ test('ARAM: banco troca pelo clique; rolagem mostra o restante e desabilita sem 
     lcu.champSelect.value = ready(session({ myTeam: [me], benchEnabled: true, benchChampions: [] as never, allowRerolling: true, rerollsRemaining: 0 }));
   });
   expect(btn('Rolar (0)')!.disabled).toBe(true);
+});
+
+test('ARAM: campeão do banco fora dos que posso jogar fica em cinza e não troca, como no client', async () => {
+  const bench = [{ championId: 157, isPriority: false }, { championId: 266, isPriority: false }];
+  setup(session({ myTeam: [me], benchEnabled: true, benchChampions: bench as never }), { pickable: ready([103, 157]) });
+  await settle();
+  const scope = root.querySelector('.rlc-cs-bench')!;
+  const locked = btn('Aatrox · Indisponível para você', scope)!;
+  expect(locked.disabled).toBe(true);
+  expect(locked.dataset.locked).toBe('true');
+  expect(btn('Yasuo', scope)!.dataset.locked).toBeUndefined();
+  act(() => locked.click());
+  expect(call('/lol-champ-select/v1/session/bench/swap/266')).toHaveLength(0);
+});
+
+test('ARAM: depois de trocar, o banco espera 3 s; quem acabou de chegar ao banco também', async () => {
+  const bench = [{ championId: 157, isPriority: false }, { championId: 266, isPriority: false }];
+  const lcu = setup(session({ myTeam: [me], benchEnabled: true, benchChampions: bench as never }));
+  await settle();
+  vi.useFakeTimers();
+  act(() => btn('Yasuo', root.querySelector('.rlc-cs-bench')!)!.click());
+  await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+  const aatrox = () => btn('Aatrox', root.querySelector('.rlc-cs-bench')!)!;
+  expect(aatrox().disabled).toBe(true);
+  expect(aatrox().dataset.cooldown).toBe('true');
+  await act(async () => void (await vi.advanceTimersByTimeAsync(BENCH_COOLDOWN_MS + 10)));
+  expect(aatrox().disabled).toBe(false);
+  // Um aliado trocou: Ahri chega ao banco e espera; Aatrox continua livre.
+  act(() => void (lcu.champSelect.value = ready(session({ myTeam: [me], benchEnabled: true, benchChampions: [...bench, { championId: 103, isPriority: false }] as never }))));
+  await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+  const ahri = () => btn('Ahri', root.querySelector('.rlc-cs-bench')!)!;
+  expect(ahri().disabled).toBe(true);
+  expect(aatrox().disabled).toBe(false);
+  await act(async () => void (await vi.advanceTimersByTimeAsync(BENCH_COOLDOWN_MS + 10)));
+  expect(ahri().disabled).toBe(false);
+});
+
+test('mouse na grade não mexe no tamanho do cabeçalho (a grade pulava para cima e para baixo na primeira linha)', async () => {
+  setup(pickTurn());
+  await settle();
+  const head = root.querySelector('.rlc-cs-head')!;
+  const shape = () => [...head.children].map((e) => e.tagName + e.className).join('|');
+  const before = shape();
+  expect(root.querySelector('.rlc-cs-champ-name')!.getAttribute('data-empty')).toBe('true');
+  act(() => void root.querySelector('.rlc-cs-grid .rlc-cs-champ')!.dispatchEvent(new MouseEvent('mouseenter')));
+  await settle();
+  expect(root.querySelector('.rlc-cs-champ-name')!.getAttribute('data-empty')).toBeNull();
+  expect(shape()).toBe(before);
 });
 
 test('tempo ao montar no meio da fase desconta o que já passou desde o valor da LCU', () => {
@@ -667,21 +747,72 @@ test('editor de runas na seleção: fundo com a skin escolhida', async () => {
   });
 });
 
-test('antes de escolher: palco mostra o mapa do lado do time com as escolhas dos aliados', async () => {
-  fetchMock.mockImplementation(async (url: string) =>
-    url === '/lol-maps/v2/maps'
-      ? new Response(JSON.stringify([{ id: 11, gameMode: 'CLASSIC', assets: { 'map-south': 'm/south.png', 'map-north': 'm/north.png' } }]), { status: 200 })
-      : new Response(null, { status: 204 }),
-  );
-  const lcu = setup(session({ myTeam: [cell({ ...me, team: 2 } as never), cell({ cellId: 1, championPickIntent: 103, assignedPosition: 'middle' } as never)], actions: [[action({ actorCellId: 3, type: 'pick', isInProgress: true })]] }));
+const mapsOk = (maps: unknown[]) =>
+  fetchMock.mockImplementation(async (url: string) => (url === '/lol-maps/v2/maps' ? new Response(JSON.stringify(maps), { status: 200 }) : new Response(null, { status: 204 })));
+const RIFT = [{ id: 11, gameMode: 'CLASSIC', assets: { 'map-south': 'm/south.png', 'map-north': 'm/north.png' } }];
+const pinAt = (el: Element) => [(el as HTMLElement).style.left, (el as HTMLElement).style.top];
+
+test('antes de escolher, no Summoner’s Rift: mapa 3D do lado do time com cada aliado no ponto real da rota', async () => {
+  mapsOk(RIFT);
+  const lcu = setup(session({ myTeam: [cell({ ...me, team: 2, assignedPosition: 'top' } as never), cell({ cellId: 1, team: 2, championPickIntent: 103, assignedPosition: 'middle' } as never)], actions: [[action({ actorCellId: 3, type: 'pick', isInProgress: true })]] }));
   lcu.gameflowSession.value = ready({ map: { id: 11 }, gameData: { queue: { gameMode: 'CLASSIC' } } }) as never;
   await settle();
   await settle();
-  const map = root.querySelector('.rlc-cs-map')!;
+  const map = root.querySelector('.rlc-rift')!;
   expect(map.getAttribute('data-side')).toBe('red');
-  expect(map.querySelector('img')!.getAttribute('src')).toBe('/m/north.png');
+  expect(map.querySelector('.rlc-cs-map-side')!.textContent).toBe('Lado vermelho');
+  // Sem a linha de texto embaixo do lado.
+  expect(map.querySelectorAll('p')).toHaveLength(1);
+  const pins = [...map.querySelectorAll('.rlc-rift-pin')];
+  expect(pins).toHaveLength(2);
+  // Vermelho: topo à frente da torre externa do topo vermelha (4318, 13875); meio à frente da do meio (8955, 8510).
+  const ally = pins.find((p) => !p.hasAttribute('data-me'))!;
+  const mine = pins.find((p) => p.hasAttribute('data-me'))!;
+  expect(pinAt(mine)).toEqual([`${(3400 / 15000) * 100}%`, `${(1 - 14100 / 15000) * 100}%`]);
+  expect(pinAt(ally)).toEqual([`${(8300 / 15000) * 100}%`, `${(1 - 7900 / 15000) * 100}%`]);
+  expect(ally.querySelector('img')!.getAttribute('alt')).toBe('Ahri');
+  // O meu marcador cai por último.
+  expect(pins.at(-1)).toBe(mine);
+});
+
+test('antes de escolher, nos outros mapas: arte do client do lado do time com as escolhas dos aliados', async () => {
+  mapsOk([{ id: 12, gameMode: 'ARAM', assets: { 'map-south': 'a/south.png', 'map-north': 'a/north.png' } }]);
+  const lcu = setup(session({ myTeam: [cell({ ...me, team: 2 } as never), cell({ cellId: 1, championPickIntent: 103, assignedPosition: 'middle' } as never)], actions: [[action({ actorCellId: 3, type: 'pick', isInProgress: true })]] }));
+  lcu.gameflowSession.value = ready({ map: { id: 12 }, gameData: { queue: { gameMode: 'ARAM' } } }) as never;
+  await settle();
+  await settle();
+  const map = root.querySelector('.rlc-cs-map')!;
+  expect(map.classList.contains('rlc-rift')).toBe(false);
+  expect(map.querySelector('img')!.getAttribute('src')).toBe('/a/north.png');
   expect(map.textContent).toContain('Lado vermelho');
   expect(map.querySelectorAll('.rlc-cs-map-pick')).toHaveLength(2);
+});
+
+test('ao travar: o mapa mergulha na minha rota sobre a splash do campeão e some; aberto já travado, não', async () => {
+  mapsOk(RIFT);
+  const before = session({ myTeam: [cell({ ...me })], actions: [[action({ id: 6, type: 'pick', isInProgress: false })]] });
+  const lcu = setup(before);
+  lcu.gameflowSession.value = ready({ map: { id: 11 }, gameData: { queue: { gameMode: 'CLASSIC' } } }) as never;
+  await settle();
+  await settle();
+  expect(root.querySelector('.rlc-rift:not([data-diving])')).not.toBeNull();
+  vi.useFakeTimers();
+  act(() => void (lcu.champSelect.value = ready(lockedMe({ assignedPosition: 'middle' }))));
+  await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+  const diving = root.querySelector('.rlc-rift[data-diving]') as HTMLElement;
+  expect(diving).not.toBeNull();
+  // Mergulha no ponto da minha rota (meio, lado azul).
+  expect(diving.style.getPropertyValue('--fx')).toBe(`${(6500 / 15000) * 100}%`);
+  expect(root.querySelector('.rlc-cs-splash')).not.toBeNull();
+  await act(async () => void (await vi.advanceTimersByTimeAsync(DIVE_MS + 20)));
+  expect(root.querySelector('.rlc-rift')).toBeNull();
+  vi.useRealTimers();
+  render(null, root);
+  const again = setup(lockedMe());
+  again.gameflowSession.value = ready({ map: { id: 11 }, gameData: { queue: { gameMode: 'CLASSIC' } } }) as never;
+  await settle();
+  await settle();
+  expect(root.querySelector('.rlc-rift')).toBeNull();
 });
 
 test('Arena: sem runas, feitiços fixos e os outros times agrupados por subtime', async () => {

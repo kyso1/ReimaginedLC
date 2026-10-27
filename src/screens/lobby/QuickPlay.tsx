@@ -7,6 +7,7 @@ import type { Champion, Spell } from '../../data/gamedata';
 import { RoleIcon } from '../../ui/RoleIcon';
 import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
+import { lazyView } from '../../shell/lazy';
 import { getJson } from '../profile/data';
 import { POSITIONS, positionKey, type Position } from './format';
 
@@ -70,14 +71,28 @@ const perksFor = (championId: number, position: string) =>
 
 const save = (slots: Slot[]) => request('PUT', SLOTS, slots);
 
+// O editor de runas é o da seleção de campeões (outro pedaço do código): só baixa quando o lápis abre.
+const RuneEditor = lazyView(() => import('../champselect/RuneEditor').then((m) => m.RuneEditor));
+
 interface RunePage {
   id: number;
   name: string;
   isValid: boolean;
+  lastModified?: number;
   selectedPerkIds: number[];
   primaryStyleId: number;
   subStyleId: number;
 }
+/**
+ * Depois do editor: a página criada ou alterada lá (a mais recente entre as que mudaram), para a vaga passar a usá-la.
+ * Nada mudou: null (a vaga fica como estava).
+ */
+export function editedPage(before: RunePage[], after: RunePage[]): RunePage | null {
+  const old = new Map(before.map((p) => [p.id, p.lastModified ?? 0]));
+  const changed = after.filter((p) => p.isValid && p.selectedPerkIds?.length && old.get(p.id) !== (p.lastModified ?? 0));
+  return changed.sort((a, b) => (b.lastModified ?? 0) - (a.lastModified ?? 0))[0] ?? null;
+}
+
 /** Página de runas no formato que a vaga guarda (o mesmo texto JSON que o client monta). */
 export const pagePerks = (p: Pick<RunePage, 'selectedPerkIds' | 'primaryStyleId' | 'subStyleId'>) =>
   JSON.stringify({ perkIds: p.selectedPerkIds, perkStyle: p.primaryStyleId, perkSubStyle: p.subStyleId });
@@ -148,7 +163,9 @@ export function SlotStrip({ slots, champions, onEdit }: { slots: Slot[] | undefi
  * campeões depois. As runas vêm da recomendação do client para o campeão e a rota. Cada mudança manda as duas vagas.
  */
 export function QuickPlayEditor({ lcu, slots: current, queueId, summonerId, initial, scarce = [], onClose }: { lcu: Lcu; slots: Slot[] | undefined; queueId: number; summonerId: number; initial: 0 | 1; scarce?: string[]; onClose: () => void }) {
-  useEscape(onClose);
+  const [editing, setEditing] = useState<RunePage[] | null>(null);
+  // Com o editor de runas aberto, o Escape fecha só ele.
+  useEscape(() => !editing && onClose());
   const [tab, setTab] = useState<0 | 1>(initial);
   const [query, setQuery] = useState('');
   const [champions, setChampions] = useState<Map<number, Champion>>(new Map());
@@ -169,11 +186,20 @@ export function QuickPlayEditor({ lcu, slots: current, queueId, summonerId, init
   const pickChampion = useAction(async (id: number) => save(withChampion(slots, tab, id, await perksFor(id, slot.positionPreference))));
   const skins = useOwnedSkins(summonerId, slot.championId);
   const [pages, setPages] = useState<RunePage[]>([]);
-  useEffect(() => {
-    let live = true;
-    void getJson<RunePage[]>('/lol-perks/v1/pages').then((l) => live && setPages((l ?? []).filter((p) => p.isValid && p.selectedPerkIds?.length)));
-    return () => void (live = false);
-  }, []);
+  const [allPages, setAllPages] = useState<RunePage[]>([]);
+  const loadPages = () =>
+    getJson<RunePage[]>('/lol-perks/v1/pages').then((l) => {
+      setAllPages(l ?? []);
+      setPages((l ?? []).filter((p) => p.isValid && p.selectedPerkIds?.length));
+      return l ?? [];
+    });
+  useEffect(() => void loadPages(), []);
+  const closeRunes = async () => {
+    const before = editing ?? [];
+    setEditing(null);
+    const page = editedPage(before, await loadPages());
+    if (page) put.run(withSlot({ perks: pagePerks(page) }));
+  };
   const withSlot = (patch: Partial<Slot>): [Slot, Slot] => (tab === 0 ? [{ ...slots[0], ...patch }, slots[1]] : [slots[0], { ...slots[1], ...patch }]);
   const recommended = useAction(async () => save(withSlot({ perks: await perksFor(slot.championId, slot.positionPreference) })));
   const currentPage = pages.find((p) => pagePerks(p) === slot.perks);
@@ -254,6 +280,7 @@ export function QuickPlayEditor({ lcu, slots: current, queueId, summonerId, init
         {slot.championId ? (
           <label class="rlc-qp-runes">
             <span>{t('runeOpen')}</span>
+            <span class="rlc-qp-runes-row">
             <select
               class="rlc-input"
               value={currentPage ? String(currentPage.id) : 'reco'}
@@ -272,6 +299,12 @@ export function QuickPlayEditor({ lcu, slots: current, queueId, summonerId, init
                 </option>
               ))}
             </select>
+            <button type="button" class="rlc-qp-runes-edit" aria-label={t('qpRunesEdit')} title={t('qpRunesEdit')} disabled={busy} onClick={() => setEditing(allPages)}>
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.21a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+              </svg>
+            </button>
+            </span>
           </label>
         ) : null}
         <p class="rlc-tft-desc">{t('qpRunesNote')}</p>
@@ -291,6 +324,7 @@ export function QuickPlayEditor({ lcu, slots: current, queueId, summonerId, init
           </div>
         </div>
       </div>
+      {editing ? <RuneEditor lcu={lcu} mode="full" initialPageId={currentPage?.id ?? null} onClose={() => void closeRunes()} /> : null}
     </section>
   );
 }

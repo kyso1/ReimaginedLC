@@ -3,7 +3,7 @@ import type { Champion } from '../../data/gamedata';
 import { request } from '../../lcu/request';
 import type { TeamBuilderDirect_ChampSelectSwapContract } from '../../lcu/types';
 import { MemberMenu } from '../lobby/MemberMenu';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { useAction } from '../../ui/useAction';
 import type { Cell, Session } from './logic';
 
@@ -78,14 +78,55 @@ function SwapCard({ route, incoming, contract, who }: { route: string; incoming:
  * Banco do ARAM. Com os cartões (ARAM atual) o banco aparece já na escolha, mas durante ela só os campeões dos meus
  * cartões podem ser pegos; os outros esperam a finalização, como no client. Sem cartões (ARAM antigo) há rolagem.
  */
-export function Bench({ session, champions, subset }: { session: Session; champions: Map<number, Champion>; subset: number[] }) {
-  const swap = useAction((id: number) => request('POST', `${BASE}/bench/swap/${id}`));
+/** Espera depois de uma troca, e num campeão que acabou de chegar ao banco (a mesma do client). */
+export const BENCH_COOLDOWN_MS = 3000;
+
+/** Campeões que chegaram ao banco há menos de `BENCH_COOLDOWN_MS` (um aliado acabou de trocar). */
+function useArrivals(ids: number[]): Set<number> {
+  const seen = useRef<Set<number> | null>(null);
+  const timers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const [fresh, setFresh] = useState<Set<number>>(new Set());
+  const key = ids.join(',');
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  useEffect(() => {
+    const before = seen.current;
+    seen.current = new Set(ids);
+    // O banco que já estava lá ao abrir não conta como chegada.
+    const arrived = before ? ids.filter((id) => !before.has(id)) : [];
+    if (!arrived.length) return;
+    setFresh((f) => new Set([...f, ...arrived]));
+    // Cada chegada tem a própria espera: outra troca logo depois não pode cancelar esta.
+    timers.current.push(setTimeout(() => setFresh((f) => new Set([...f].filter((id) => !arrived.includes(id)))), BENCH_COOLDOWN_MS));
+  }, [key]);
+  return fresh;
+}
+
+/**
+ * Banco do ARAM, com as regras do client: campeão fora dos que você pode jogar (`pickable`) fica em cinza e não troca;
+ * depois de trocar, todos esperam um pouco; quem acabou de chegar também.
+ */
+export function Bench({ session, champions, subset, pickable }: { session: Session; champions: Map<number, Champion>; subset: number[]; pickable: number[] | null }) {
+  const [cooldown, setCooldown] = useState(false);
+  const cooling = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(cooling.current), []);
+  const swap = useAction(async (id: number) => {
+    try {
+      await request('POST', `${BASE}/bench/swap/${id}`);
+    } finally {
+      setCooldown(true);
+      clearTimeout(cooling.current);
+      cooling.current = setTimeout(() => setCooldown(false), BENCH_COOLDOWN_MS);
+    }
+  });
   const reroll = useAction(() => request('POST', `${BASE}/my-selection/reroll`));
   const cards = session.allowSubsetChampionPicks === true;
   const phase = session.timer?.phase;
   const show = cards ? session.benchEnabled && (phase === 'BAN_PICK' || phase === 'FINALIZATION') : session.benchEnabled || session.allowRerolling;
   if (!show) return null;
   const bench = (session.benchChampions ?? []) as Array<{ championId: number }>;
+  const fresh = useArrivals(bench.map((b) => b.championId));
+  // Lista ainda carregando: ninguém fica bloqueado antes da hora.
+  const canPlay = (id: number) => !pickable || pickable.includes(id);
   return (
     <div class="rlc-cs-bench" role="group" aria-label={t('csBench')}>
       {session.benchEnabled ? <span class="rlc-cs-bench-label">{t('csBench')}</span> : null}
@@ -93,9 +134,20 @@ export function Bench({ session, champions, subset }: { session: Session; champi
         const champ = champions.get(championId);
         const name = champ?.name ?? String(championId);
         const wait = cards && phase === 'BAN_PICK' && !subset.includes(championId);
-        const label = wait ? `${name} · ${t('csBenchWait')}` : name;
+        const locked = !canPlay(championId);
+        const label = locked ? `${name} · ${t('csBenchLocked')}` : wait ? `${name} · ${t('csBenchWait')}` : name;
         return (
-          <button type="button" key={championId} class="rlc-cs-champ" aria-label={label} title={label} disabled={swap.pending || wait} onClick={() => swap.run(championId)}>
+          <button
+            type="button"
+            key={championId}
+            class="rlc-cs-champ"
+            data-locked={locked || wait ? 'true' : undefined}
+            data-cooldown={!locked && !wait && (cooldown || fresh.has(championId)) ? 'true' : undefined}
+            aria-label={label}
+            title={label}
+            disabled={swap.pending || cooldown || fresh.has(championId) || wait || locked}
+            onClick={() => swap.run(championId)}
+          >
             {champ?.icon ? <img src={champ.icon} alt="" /> : <span>{name}</span>}
           </button>
         );

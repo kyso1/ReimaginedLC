@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
@@ -76,6 +76,9 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   const splash = useDecoded(splashUrl);
   const flow = lcu.gameflowSession.value.data;
   const mapArt = useMapArt(flow?.map?.id, flow?.gameData?.queue?.gameMode);
+  // Ao travar: o mapa mergulha na minha rota e some na splash do campeão (só na passagem, não ao abrir já travado).
+  // Segue só a passagem para travado: a arte do mapa chega depois ao abrir a tela já travado, e isso não é escolher.
+  const diving = useDive(locked) && !!mapArt;
 
   const hover = useAction((id: number, championId: number) => request('PATCH', `/lol-champ-select/v1/session/actions/${id}`, { championId }));
   const commit = useAction((id: number, championId: number) => request('PATCH', `/lol-champ-select/v1/session/actions/${id}`, { championId, completed: true }));
@@ -162,7 +165,8 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
 
   return (
     <section class="rlc-champselect" data-phase={phase} data-grid={gridOpen || cardTurn ? 'open' : undefined}>
-      {stageSkin ? <Crossfade src={splash} class="rlc-cs-splash" position="center 15%" /> : mapArt && !gridOpen && !cardTurn ? <MapSide art={mapArt} cells={session.myTeam} champions={champions} /> : null}
+      {stageSkin ? <Crossfade src={splash} class="rlc-cs-splash" position="center 15%" /> : null}
+      {mapArt && (diving || (!stageSkin && !gridOpen && !cardTurn)) ? <MapSide art={mapArt} mapId={flow?.map?.id} cells={session.myTeam} localCellId={session.localPlayerCellId} champions={champions} diving={diving} /> : null}
       {/* Ponte para o ROSE-SkinMonitor, que lê o nome da skin no DOM (`.skin-name-text`) e fica com o último visível. */}
       {rose && chosen ? (
         <span class="skin-name-text rlc-rose-mirror" aria-hidden="true">
@@ -181,13 +185,21 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
               <span class="rlc-cs-timer">{seconds}</span> s
             </span>
           </p>
-          {stageId ? <h1 class="rlc-cs-champ-name">{champions.get(stageId)?.name ?? ''}</h1> : null}
-          {skin && !skin.isBase ? <p class="rlc-cs-skin-name">{skin.name}</p> : null}
+          {/* As duas linhas ficam sempre no lugar (só somem da vista): o nome que aparece no mouse sobre a grade empurrava a
+              grade para baixo, o mouse saía do campeão, o nome sumia e a grade subia de novo, sem parar. */}
+          <h1 class="rlc-cs-champ-name" data-empty={stageId ? undefined : 'true'} aria-hidden={stageId ? undefined : 'true'}>
+            {(stageId && champions.get(stageId)?.name) || ' '}
+          </h1>
+          {chosen && !chosen.isBase ? (
+            <p class="rlc-cs-skin-name" data-empty={skin ? undefined : 'true'} aria-hidden={skin ? undefined : 'true'}>
+              {chosen.name}
+            </p>
+          ) : null}
         </header>
         {cardTurn ? (
           <SubsetCards ids={subset} champions={champions} splash={lcu.game.splash} disabled={commit.pending} onHover={setPreview} onPick={(id) => commit.run(turn.action.id, id)} />
         ) : (
-          <Bench session={session} champions={champions} subset={subset} />
+          <Bench session={session} champions={champions} subset={subset} pickable={lcu.pickable.value.data ?? null} />
         )}
         {cardTurn ? null : gridOpen ? (
           <Drawer onClose={() => setDrawerOpen(false)}>
@@ -300,4 +312,26 @@ function useSelectClock(session: Session | null): number {
     return () => clearInterval(id);
   }, [timer?.isInfinite, !!timer]);
   return remainingSeconds(left, at, Date.now());
+}
+
+/** Duração do mergulho do mapa ao travar (a mesma das animações `rlc-rift-dive*`). */
+export const DIVE_MS = 1100;
+
+/** `true` durante o mergulho: só quando `on` passa de falso para verdadeiro com a tela já aberta. */
+function useDive(on: boolean): boolean {
+  const [diving, setDiving] = useState(false);
+  const was = useRef(on);
+  useEffect(() => {
+    const start = on && !was.current;
+    was.current = on;
+    if (!start) {
+      // O mapa sumiu no meio (o timer foi cancelado): encerra aqui.
+      if (!on) setDiving(false);
+      return;
+    }
+    setDiving(true);
+    const timer = setTimeout(() => setDiving(false), DIVE_MS);
+    return () => clearTimeout(timer);
+  }, [on]);
+  return diving;
 }

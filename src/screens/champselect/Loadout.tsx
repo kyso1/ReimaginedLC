@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { t } from '../../i18n';
 import type { Spell } from '../../data/gamedata';
 import { request } from '../../lcu/request';
@@ -16,7 +16,11 @@ interface Chroma {
   name: string;
   unlocked: boolean;
   colors?: string[];
+  chromaPreviewPath?: string;
 }
+
+/** Espera antes de fechar as cromas ao tirar o mouse (dá tempo de ir da skin até o painel). */
+export const CHROMA_HIDE_MS = 160;
 
 /**
  * Carrossel de skins desbloqueadas do campeão sob a splash; cromas desbloqueadas da skin selecionada ao lado.
@@ -57,11 +61,77 @@ export function SkinCarousel({ skins, me, rose = false, pick = null, onPick }: {
   };
   const chromas = parent ? chromasOf(parent, rose) : [];
   const mods = rose && roseMods.value?.skinId === modSkin ? roseMods.value.mods : [];
+  // Mouse sobre uma skin com cromas: painel com a prévia de cada uma (as não possuídas aparecem bloqueadas, como no
+  // client; com o ROSE, todas valem).
+  const [hovered, setHovered] = useState<{ skin: Skin; x: number } | null>(null);
+  const [peek, setPeek] = useState<number | null>(null);
+  const hide = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const carousel = useRef<HTMLDivElement>(null);
+  useEffect(() => () => clearTimeout(hide.current), []);
+  const keep = () => clearTimeout(hide.current);
+  const hideSoon = () => {
+    clearTimeout(hide.current);
+    hide.current = setTimeout(() => setHovered(null), CHROMA_HIDE_MS);
+  };
+  const showChromas = (s: Skin, el: HTMLElement) => {
+    if (!chromasOf(s, true).length) return hideSoon();
+    keep();
+    const box = carousel.current?.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    setHovered({ skin: s, x: r.left + r.width / 2 - (box?.left ?? 0) });
+    setPeek(null);
+  };
+  const popList = hovered ? chromasOf(hovered.skin, true) : [];
+  const popCurrent = popList.find((c) => c.id === peek) ?? popList.find((c) => c.id === (chroma?.id ?? me.selectedSkinId)) ?? popList[0];
   return (
-    <div class="rlc-cs-carousel">
+    <div class="rlc-cs-carousel" ref={carousel}>
+      {hovered && popCurrent ? (
+        <div class="rlc-cs-chroma-pop" style={{ left: `${hovered.x}px` }} role="group" aria-label={`${t('csChromas')} · ${hovered.skin.name}`} onMouseEnter={keep} onMouseLeave={hideSoon}>
+          <div class="rlc-cs-chroma-preview">{popCurrent.chromaPreviewPath ? <img src={popCurrent.chromaPreviewPath} alt="" /> : null}</div>
+          <p class="rlc-cs-chroma-name">{popCurrent.name}</p>
+          <div class="rlc-cs-chroma-list">
+            {popList.map((c) => {
+              const usable = rose || (c.unlocked && hovered.skin.unlocked);
+              const label = usable ? c.name : `${c.name} · ${t('csChromaLocked')}`;
+              return (
+                <button
+                  type="button"
+                  key={c.id}
+                  class="rlc-cs-chroma"
+                  data-locked={usable ? undefined : 'true'}
+                  data-rose={rose && !(c.unlocked && hovered.skin.unlocked) ? '' : undefined}
+                  aria-label={label}
+                  title={label}
+                  aria-pressed={chroma ? chroma.id === c.id : c.id === me.selectedSkinId}
+                  disabled={!usable || apply.pending}
+                  style={c.colors?.[0] ? { background: c.colors[0] } : undefined}
+                  onMouseEnter={() => setPeek(c.id)}
+                  onFocus={() => setPeek(c.id)}
+                  onClick={() => chooseChroma(hovered.skin, c)}
+                />
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
       <div class="rlc-cs-skins">
         {shown.map((s) => (
-          <button type="button" key={s.id} class="rlc-cs-skin" data-rose={s.unlocked ? undefined : ''} aria-label={s.name} title={s.name} aria-pressed={s === parent} disabled={apply.pending} onClick={() => chooseSkin(s)}>
+          <button
+            type="button"
+            key={s.id}
+            class="rlc-cs-skin"
+            data-rose={s.unlocked ? undefined : ''}
+            data-chromas={chromasOf(s, true).length ? 'true' : undefined}
+            aria-label={s.name}
+            title={s.name}
+            aria-pressed={s === parent}
+            disabled={apply.pending}
+            onMouseEnter={(e) => showChromas(s, e.currentTarget)}
+            onMouseLeave={hideSoon}
+            onFocus={(e) => showChromas(s, e.currentTarget)}
+            onBlur={hideSoon}
+            onClick={() => chooseSkin(s)}
+          >
             {s.tilePath ? <img src={s.tilePath} alt="" /> : null}
             {s.unlocked ? null : <span class="rlc-cs-rose-badge">ROSE</span>}
           </button>

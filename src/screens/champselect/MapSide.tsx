@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'preact/hooks';
-import { t } from '../../i18n';
+import { clientLocale } from '../../i18n';
 import type { Champion } from '../../data/gamedata';
 import { RoleIcon } from '../../ui/RoleIcon';
 import { getJson } from '../profile/data';
 import { displayedChampion, type Cell } from './logic';
+import { Rift } from './Rift';
+import { RIFT_MAP_ID, sideName } from './riftMap';
 
 interface MapEntry {
   id: number;
@@ -54,16 +56,18 @@ export function useMapArt(mapId: number | undefined, gameMode: string | undefine
 }
 
 /**
- * Antes de escolher: o mapa do lado do meu time (azul embaixo, vermelho em cima) e, por cima, o que cada aliado está
- * escolhendo por rota, como o client mostra até a vez do jogador.
+ * Antes de escolher: o lado do meu time. No Summoner's Rift, o mapa em 3D com cada aliado no ponto da própria rota
+ * (`Rift`); nos outros mapas, a arte do client (azul embaixo, vermelho em cima) com o que cada aliado está escolhendo.
+ * `diving`: ao travar, o mapa mergulha e some na splash do campeão.
  */
-export function MapSide({ art, cells, champions }: { art: { south: string; north: string }; cells: Cell[]; champions: Map<number, Champion> }) {
+export function MapSide({ art, mapId, cells, localCellId, champions, diving = false }: { art: { south: string; north: string }; mapId?: number; cells: Cell[]; localCellId: number; champions: Map<number, Champion>; diving?: boolean }) {
   // `team` 1 é o lado azul.
   const blue = (cells[0]?.team ?? 1) === 1;
+  if (mapId === RIFT_MAP_ID) return <Rift side={blue ? 'blue' : 'red'} cells={cells} localCellId={localCellId} champions={champions} diving={diving} />;
   return (
-    <div class="rlc-cs-map" data-side={blue ? 'blue' : 'red'}>
+    <div class="rlc-cs-map" data-side={blue ? 'blue' : 'red'} data-diving={diving ? 'true' : undefined}>
       <img class="rlc-cs-map-art" src={blue ? art.south : art.north} alt="" />
-      <p class="rlc-cs-map-side">{t(blue ? 'csBlueSide' : 'csRedSide')}</p>
+      <p class="rlc-cs-map-side">{sideName(blue ? 'blue' : 'red', clientLocale())}</p>
       <div class="rlc-cs-map-picks">
         {cells.map((c) => {
           const shown = displayedChampion(c);
