@@ -51,6 +51,8 @@ export interface Prefs {
   sidebarGlass: boolean;
   /** Plugin de papéis de parede (Wallpaper Engine e pasta do usuário, pelo auxiliar de fundos). Desligado, nada consulta o auxiliar. */
   wallpapers: boolean;
+  /** Botão (e F11) de tela cheia de verdade, que cobre a barra de tarefas. Opcional, desligado por padrão. */
+  fullscreen: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -82,6 +84,7 @@ export const DEFAULT_PREFS: Prefs = {
   homeBare: false,
   sidebarGlass: false,
   wallpapers: false,
+  fullscreen: false,
 };
 const KEY = 'rlc.prefs';
 const oneOf = <T extends string>(v: unknown, options: readonly T[], def: T): T => (options.includes(v as T) ? (v as T) : def);
@@ -119,6 +122,7 @@ export function sanitizePrefs(v: unknown): Prefs {
     homeBare: bool(o.homeBare, DEFAULT_PREFS.homeBare),
     sidebarGlass: bool(o.sidebarGlass, DEFAULT_PREFS.sidebarGlass),
     wallpapers: bool(o.wallpapers, DEFAULT_PREFS.wallpapers),
+    fullscreen: bool(o.fullscreen, DEFAULT_PREFS.fullscreen),
   };
 }
 

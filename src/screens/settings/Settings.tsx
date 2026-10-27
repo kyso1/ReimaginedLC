@@ -663,6 +663,9 @@ function General({ lcu, themes }: { lcu: Lcu; themes: ThemeEngine }) {
       <Row name={t('stOpenOnStart')} desc={t('stOpenOnStartDesc')}>
         <Seg label={t('stOpenOnStart')} value={openKey(p.openOnStart)} options={OPEN.map(([o, k]) => [o, t(k)])} onPick={(v) => setPrefs({ openOnStart: v === 'last' ? null : v === 'true' })} />
       </Row>
+      <Row name={t('stFullscreen')} desc={t('stFullscreenDesc')}>
+        <Switch label={t('stFullscreen')} checked={p.fullscreen} onChange={(fullscreen) => setPrefs({ fullscreen })} />
+      </Row>
       <Row name={t('perfLite')} desc={t(p.lite === 'auto' ? (isLite('auto', liteAuto.value) ? 'perfLiteDescAutoOn' : 'perfLiteDescAutoOff') : 'perfLiteDesc')}>
         <Seg label={t('perfLite')} value={p.lite} options={LITE.map(([v, k]) => [v, t(k)])} onPick={(lite) => setPrefs({ lite })} />
       </Row>

@@ -387,7 +387,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
         <InvitationCards invitations={lcu.invitations.value.data ?? []} queues={lcu.queues.value.data ?? []} name={lcu.name} />
         {readyVisible ? <ReadyCheck rc={lcu.readyCheck.value.data!} mode={currentQueue ? queueGroup(currentQueue) : 'sr'} queueName={currentQueue?.name} /> : null}
         <SpotifyWidget />
-        <WindowBar onClose={() => setConfirmClose(true)} />
+        <WindowBar onClose={() => setConfirmClose(true)} fullscreen={prefs.value.fullscreen} />
         {confirmClose ? (
           <Confirm
             message={t('quitConfirm')}

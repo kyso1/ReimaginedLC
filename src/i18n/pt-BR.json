@@ -1195,5 +1195,7 @@
   "stWallpapersDesc": "Usa o auxiliar de fundos (instalar-fundos.cmd na pasta do plugin) para trazer os papéis de parede do Wallpaper Engine e de Imagens\\ReimaginedLC. Desligado, o client não consulta o auxiliar.",
   "fullscreenEnter": "Tela cheia",
   "fullscreenExit": "Sair da tela cheia",
-  "fullscreenFailed": "O client não aceitou a tela cheia agora"
+  "fullscreenFailed": "O client não aceitou a tela cheia agora",
+  "stFullscreen": "Botão de tela cheia",
+  "stFullscreenDesc": "Mostra um botão entre minimizar e fechar (e libera o F11) para deixar o client em tela cheia, cobrindo a barra de tarefas."
 }

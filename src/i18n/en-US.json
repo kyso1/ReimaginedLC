@@ -1195,5 +1195,7 @@
   "stWallpapersDesc": "Uses the wallpaper helper (instalar-fundos.cmd in the plugin folder) to bring in Wallpaper Engine wallpapers and Pictures\\ReimaginedLC. Off, the client never contacts the helper.",
   "fullscreenEnter": "Full screen",
   "fullscreenExit": "Exit full screen",
-  "fullscreenFailed": "The client didn't allow full screen right now"
+  "fullscreenFailed": "The client didn't allow full screen right now",
+  "stFullscreen": "Full screen button",
+  "stFullscreenDesc": "Shows a button between minimize and close (and enables F11) to put the client in full screen, covering the taskbar."
 }
