@@ -82,7 +82,8 @@ test('líder: Encontrar partida, fila abre a tela de modos, Sair', async () => {
   const onModes = mount(withSignals({}));
   act(() => btn('Encontrar partida')!.click());
   expect(call('/lol-lobby/v2/lobby/matchmaking/search')![1]).toEqual({ method: 'POST' });
-  act(() => btn('Normal (escolha)')!.click());
+  // O seletor de modo é só o emblema; o nome da fila vai no rótulo.
+  act(() => btn('Trocar modo: Normal (escolha)')!.click());
   expect(onModes).toHaveBeenCalledOnce();
   await settle();
   act(() => btn('Sair')!.click());

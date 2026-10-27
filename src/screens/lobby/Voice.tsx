@@ -60,9 +60,8 @@ export function Voice({ lcu }: { lcu: Lcu }) {
   if (!inside) {
     const can = v.availability.voiceChannelAvailable;
     return (
-      <button type="button" class="rlc-button rlc-voice" data-variant="pill" disabled={!can || join.pending} title={can ? t('voiceJoin') : t('voiceAlone')} onClick={() => join.run()}>
+      <button type="button" class="rlc-button rlc-voice" data-variant="pill" aria-label={t('voiceJoin')} disabled={!can || join.pending} title={can ? t('voiceJoin') : t('voiceAlone')} onClick={() => join.run()}>
         <MicIcon />
-        {t('voiceJoin')}
       </button>
     );
   }

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { normalizeSlots, quickPlayProblem, spellsFor, withChampion, withPosition, type Slot } from './QuickPlay';
+import { normalizeSlots, pagePerks, quickPlayProblem, spellsFor, withChampion, withPosition, type Slot } from './QuickPlay';
 
 const slot = (o: Partial<Slot>): Slot => ({ championId: 0, skinId: 0, positionPreference: 'UNSELECTED', perks: '', spell1: 4, spell2: 14, ...o });
 
@@ -35,4 +35,8 @@ test('restrição do Jogo Rápido vira texto; rota em falta lista as rotas', asy
   expect(quickPlayProblem([], [])).toBeNull();
   expect(quickPlayProblem([{ restrictionCode: 'PlayerLevelRestriction' }], [])).toBeNull();
   expect(quickPlayProblem([{ restrictionCode: 'QPPlayerScarcePositionCoverageRestriction' }], ['UTILITY'])).toBe('Uma das vagas precisa de uma rota em falta: Suporte');
+});
+
+test('página de runas vira o mesmo texto JSON que o client guarda na vaga', () => {
+  expect(pagePerks({ selectedPerkIds: [8112, 8126], primaryStyleId: 8100, subStyleId: 8300 })).toBe('{"perkIds":[8112,8126],"perkStyle":8100,"perkSubStyle":8300}');
 });

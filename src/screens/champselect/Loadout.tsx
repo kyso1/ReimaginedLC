@@ -174,7 +174,7 @@ export function WardPicker({ summonerId }: { summonerId: number | null | undefin
  * o botão que abre o editor de runas e a sentinela.
  * Escolher no slot o feitiço do outro slot troca os dois, como no client da Riot.
  */
-export function Loadout({ me, spells, gameMode, pageName, onRunes, summonerId }: { me: Cell; spells: Map<number, Spell>; gameMode: string | null; pageName: string | null; onRunes: () => void; summonerId?: number | null }) {
+export function Loadout({ me, spells, gameMode, pageName, onRunes, summonerId, runes = true, ward = true }: { me: Cell; spells: Map<number, Spell>; gameMode: string | null; pageName: string | null; onRunes: () => void; summonerId?: number | null; runes?: boolean; ward?: boolean }) {
   const [open, setOpen] = useState<1 | 2 | null>(null);
   const setSpells = useAction((body: { spell1Id?: number; spell2Id?: number }) => request('PATCH', MY_SELECTION, body));
   const available = [...spells.values()].filter((s) => !gameMode || s.gameModes.includes(gameMode)).sort((a, b) => a.name.localeCompare(b.name));
@@ -214,7 +214,7 @@ export function Loadout({ me, spells, gameMode, pageName, onRunes, summonerId }:
           </div>
         ) : null}
       </div>
-      {arena ? null : (
+      {!runes ? null : (
         <div class="rlc-cs-runes">
           <span class="rlc-cs-page-name">{pageName ?? t('runeNoPage')}</span>
           <button type="button" class="rlc-button" data-variant="pill" onClick={onRunes}>
@@ -222,7 +222,7 @@ export function Loadout({ me, spells, gameMode, pageName, onRunes, summonerId }:
           </button>
         </div>
       )}
-      <WardPicker summonerId={summonerId} />
+      {ward ? <WardPicker summonerId={summonerId} /> : null}
     </div>
   );
 }

@@ -263,3 +263,16 @@
 #rlc-root[data-motion='reduced'] .rlc-rc-label, #rlc-root[data-motion='off'] .rlc-rc-label, #rlc-root[data-motion='reduced'] .rlc-rc-banner, #rlc-root[data-motion='off'] .rlc-rc-banner { transform: none; }
 #rlc-root[data-motion='off'] .rlc-rc, #rlc-root[data-motion='off'] .rlc-rc-drawer, #rlc-root[data-motion='off'] .rlc-rc-label, #rlc-root[data-motion='off'] .rlc-rc-banner { transition: none; }
 @media (prefers-reduced-motion: reduce) { #rlc-root .rlc-rc-label, #rlc-root .rlc-rc-banner { transform: none; transition: none; } }
+
+/* Chat da sala: abre e fecha deslizando a altura (o corpo entra com fade); no lobby fica na mesma linha de base da tray. */
+#rlc-root .rlc-ctx { height: 36px; overflow: hidden; transition: height 0.34s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.34s ease; }
+#rlc-root .rlc-ctx[data-open='true'] { box-shadow: 0 18px 40px -18px var(--rlc-color-shade, rgba(0, 0, 0, 0.6)); }
+#rlc-root .rlc-ctx-toggle { flex: none; min-height: 34px; }
+#rlc-root .rlc-ctx .rlc-chat-body { animation: rlc-fade 0.28s ease 0.06s both; }
+#rlc-root .rlc-ctx:not([data-open='true']) .rlc-chat-body { opacity: 0; transition: opacity 0.18s ease; animation: none; }
+#rlc-root .rlc-ctx-caret { width: 7px; height: 7px; margin-left: auto; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-135deg) translate(-2px, -2px); transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1); opacity: 0.7; }
+#rlc-root .rlc-ctx[data-open='true'] .rlc-ctx-caret { transform: rotate(45deg) translate(-2px, -2px); }
+#rlc-root .rlc-app[data-screen='lobby'] .rlc-ctx { bottom: 28px; }
+#rlc-root[data-motion='off'] .rlc-ctx, #rlc-root[data-motion='off'] .rlc-ctx-caret { transition: none; }
+@media (prefers-reduced-motion: reduce) { #rlc-root .rlc-ctx, #rlc-root .rlc-ctx-caret { transition: none; } }
+#rlc-root .rlc-ctx[data-hidden='true'] { visibility: hidden; opacity: 0; pointer-events: none; transition: opacity 0.18s ease, visibility 0s linear 0.18s; }

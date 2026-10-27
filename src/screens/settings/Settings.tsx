@@ -111,6 +111,13 @@ function peeks(area: Area, themes: ThemeEngine, data: GameData): string[] {
 }
 
 /** Configurações em painéis: um por área com o resumo do estado; o clique abre a área. */
+/** Sombra sob o cabeçalho fixo só depois que o conteúdo passou por baixo dele. */
+const markScrolled = (e: Event) => {
+  const el = e.currentTarget as HTMLElement;
+  if (el.scrollTop > 4) el.dataset.scrolled = '';
+  else delete el.dataset.scrolled;
+};
+
 export function Settings({ lcu, themes }: { lcu: Lcu; themes: ThemeEngine }) {
   const [area, setArea] = useState<string | null>(null);
   const [focus, setFocus] = useState<string | null>(null);
@@ -138,7 +145,7 @@ export function Settings({ lcu, themes }: { lcu: Lcu; themes: ThemeEngine }) {
     const own = AREAS.find(([a]) => a === area);
     const ext = extra.find((x) => x.id === area);
     return (
-      <section class="rlc-settings rlc-st-panels" data-area={area}>
+      <section class="rlc-settings rlc-st-panels" data-area={area} onScroll={markScrolled}>
         <header class="rlc-st-head">
           <button type="button" class="rlc-st-back" aria-label={t('back')} onClick={() => open(null)}>
             {`‹ ${t('stTitle')}`}
@@ -185,7 +192,7 @@ export function Settings({ lcu, themes }: { lcu: Lcu; themes: ThemeEngine }) {
   const hits = q ? names.filter(([, n]) => fold(n).includes(q)) : [];
   const shown = q ? AREAS.filter(([a, name, purpose]) => fold(t(name)).includes(q) || fold(t(purpose)).includes(q) || hits.some(([h]) => h === a)) : AREAS;
   return (
-    <section class="rlc-settings rlc-st-panels">
+    <section class="rlc-settings rlc-st-panels" onScroll={markScrolled}>
       <header class="rlc-st-head">
         <h2>{t('stTitle')}</h2>
         <input class="rlc-input rlc-st-search" type="search" placeholder={t('stSearch')} aria-label={t('stSearch')} value={query} onInput={(e) => setQuery(e.currentTarget.value)} />

@@ -1144,10 +1144,14 @@
   "qpTitle": "Swiftplay champions",
   "qpPickChampion": "Pick a champion",
   "qpPosition": "Position",
-  "qpRunesNote": "Runes follow the client's recommendation for the champion and position. There's no champion select after the queue.",
+  "qpRunesNote": "With no page picked, runes follow the client's recommendation for the champion and position. There's no champion select after the queue.",
   "qpNeedChampion": "Pick your champions to queue",
   "qpNeedScarce": "One slot needs a position in short supply:",
   "qpNotUnique": "Both slots need different positions and champions",
   "qpInvalid": "Check your slots' positions and champions",
-  "qpScarce": "in short supply"
+  "qpScarce": "in short supply",
+  "changeMode": "Change mode",
+  "qpRunesReco": "Client recommendation",
+  "bootClient": "Connecting to the client…",
+  "bootProfile": "Loading your profile…"
 }

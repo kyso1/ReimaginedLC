@@ -1,5 +1,8 @@
 import { Voice } from './Voice';
+import { ModeEmblem } from '../modes/Emblems';
+import { queueGroup, type ModeGroupId } from '../modes/queues';
 import type { ComponentChildren } from 'preact';
+import { signal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 import { prefs } from '../../shell/prefs';
 import { t } from '../../i18n';
@@ -19,11 +22,21 @@ import type { Champion } from '../../data/gamedata';
 
 const MEMBERS = '/lol-lobby/v2/lobby/members';
 
+/**
+ * Gaveta do lobby aberta (Jogo Rápido, Personalizar, convidar, bot). A gaveta fica dentro da tela e o chat da sala
+ * fora, por cima: com ela aberta o App esconde o chat para não cobrir a gaveta.
+ */
+export const lobbyPanelOpen = signal(false);
+
 /** Lobby no layout Palco: uma coluna por vaga e a barra flutuante com fila e busca. */
 export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
   const [panel, setPanel] = useState<null | 'invite' | 'tft' | { botTeam: number } | { qp: 0 | 1 }>(null);
   const [champions, setChampions] = useState<Map<number, Champion>>(new Map());
   const quickPlay = lcu.lobby.value.data?.gameConfig.showQuickPlaySlotSelection === true;
+  useEffect(() => {
+    lobbyPanelOpen.value = panel !== null;
+    return () => void (lobbyPanelOpen.value = false);
+  }, [panel !== null]);
   useEffect(() => {
     if (!quickPlay) return;
     let live = true;
@@ -184,6 +197,15 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
   );
 }
 
+/** Emblema do modo do lobby: pelo grupo da fila; sem a fila na lista (ainda carregando), pelo `gameMode`. */
+export function lobbyEmblem(lcu: Lcu): ModeGroupId {
+  const config = lcu.lobby.value.data?.gameConfig;
+  const q = lcu.queues.value.data?.find((x) => x.id === config?.queueId);
+  if (q) return queueGroup(q);
+  const mode = config?.gameMode ?? '';
+  return mode === 'TFT' ? 'tft' : mode === 'ARAM' || mode.startsWith('KIWI') ? 'aram' : mode === 'CLASSIC' || mode === 'SWIFTPLAY' ? 'sr' : 'other';
+}
+
 interface BarProps {
   lcu: Lcu;
   title: string;
@@ -218,28 +240,36 @@ export function LobbyBar({ lcu, title, subtitle, onTitle, leader, partyType, sta
         </div>
       ) : null}
       <div class="rlc-bar">
-        <div class="rlc-bar-title">
-          {onTitle && !searching ? (
-            <button type="button" class="rlc-bar-queue" onClick={onTitle}>
-              {title} ▾
-            </button>
-          ) : (
-            <span class="rlc-bar-queue">{title}</span>
-          )}
-          {subtitle ? <small>{subtitle}</small> : null}
-        </div>
+        {/* Seletor de modo só com o emblema (o nome fica no balão): não encolhe até sumir com a barra cheia. */}
+        {onTitle && !searching ? (
+          <button type="button" class="rlc-bar-mode" aria-label={`${t('changeMode')}: ${title}`} title={title} onClick={onTitle}>
+            <ModeEmblem id={lobbyEmblem(lcu)} />
+            <span class="rlc-bar-caret" aria-hidden="true">▾</span>
+          </button>
+        ) : (
+          // Sem trocar (não líder, sala personalizada, na fila): o nome fica escrito ao lado.
+          <span class="rlc-bar-mode" aria-hidden="true">
+            <ModeEmblem id={lobbyEmblem(lcu)} />
+          </span>
+        )}
+        {subtitle || !onTitle || searching ? (
+          <div class="rlc-bar-title">
+            {!onTitle || searching ? <span class="rlc-bar-queue">{title}</span> : null}
+            {subtitle ? <small>{subtitle}</small> : null}
+          </div>
+        ) : null}
         {leader && partyType && !searching ? (
           <button type="button" class="rlc-button" data-variant="pill" disabled={party.pending} onClick={() => party.run(partyType === 'open' ? 'closed' : 'open')}>
             {partyType === 'open' ? t('openLobby') : t('closedLobby')}
           </button>
         ) : null}
         {children}
-        <Voice lcu={lcu} />
         {!searching ? (
           <button type="button" class="rlc-button" data-variant="danger" disabled={leave.pending} onClick={() => leave.run()}>
             {t('leave')}
           </button>
         ) : null}
+        <Voice lcu={lcu} />
         <div class="rlc-bar-end">
           {searching ? (
             <>

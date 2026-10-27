@@ -13,17 +13,27 @@ export interface RoomJoin {
 
 /** Salas que o usuário recolheu à mão: continuam recolhidas se o chat sair e voltar (ir ao perfil e voltar). */
 const collapsed = new Set<string>();
+/** Duração da animação de fechar (a mesma do CSS de `.rlc-ctx`). */
+const CLOSE_MS = 340;
 
 /**
  * Chat da sala (lobby, seleção de campeões, pós-jogo): painel no canto inferior esquerdo, aberto em cada sala nova.
  * A conversa é a que começa com o `multiUserChatId` da sala. Quem entra na sala é a tela da Riot; escondida,
  * às vezes ela não entra (lobby aberto por nós), então com `join` entramos uma vez.
  */
-export function ContextChat({ lcu, roomId, join }: { lcu: Lcu; roomId: string | null | undefined; join?: RoomJoin }) {
+export function ContextChat({ lcu, roomId, join, hidden = false }: { lcu: Lcu; roomId: string | null | undefined; join?: RoomJoin; hidden?: boolean }) {
   const [open, setOpen] = useState(() => !roomId || !collapsed.has(roomId));
+  // A conversa continua montada enquanto o painel encolhe, para a animação de fechar não esvaziar de uma vez.
+  const [closing, setClosing] = useState(false);
+  useEffect(() => {
+    if (!closing) return;
+    const id = setTimeout(() => setClosing(false), CLOSE_MS);
+    return () => clearTimeout(id);
+  }, [closing]);
   const toggle = () => {
     if (roomId && open) collapsed.add(roomId);
     else if (roomId) collapsed.delete(roomId);
+    setClosing(open);
     setOpen(!open);
   };
   const conversation = roomId ? lcu.conversations.value.data?.find((c) => c.id.startsWith(roomId)) : undefined;
@@ -37,12 +47,13 @@ export function ContextChat({ lcu, roomId, join }: { lcu: Lcu; roomId: string | 
   if (!conversation) return null;
   const unread = conversation.unreadMessageCount ?? 0;
   return (
-    <section class="rlc-ctx" data-open={open ? 'true' : undefined}>
+    <section class="rlc-ctx" data-open={open ? 'true' : undefined} data-hidden={hidden ? 'true' : undefined} aria-hidden={hidden ? 'true' : undefined}>
       <button type="button" class="rlc-ctx-toggle" aria-expanded={open} onClick={toggle}>
         {t('roomChat')}
         {!open && unread > 0 ? <span class="rlc-ctx-count">{unread}</span> : null}
+        <span class="rlc-ctx-caret" aria-hidden="true" />
       </button>
-      {open ? <ChatBody lcu={lcu} conversationId={conversation.id} /> : null}
+      {open || closing ? <ChatBody lcu={lcu} conversationId={conversation.id} /> : null}
     </section>
   );
 }

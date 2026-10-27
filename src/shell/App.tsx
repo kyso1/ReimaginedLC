@@ -8,7 +8,7 @@ import { request } from '../lcu/request';
 import { Honor } from '../screens/honor/Honor';
 import { Home } from '../screens/home/Home';
 import { InGame } from '../screens/ingame/InGame';
-import { Lobby } from '../screens/lobby/Lobby';
+import { Lobby, lobbyPanelOpen } from '../screens/lobby/Lobby';
 import { Unknown } from '../screens/unknown/Unknown';
 import { CustomBrowser } from '../screens/modes/CustomBrowser';
 import { LAST_QUEUE_KEY, Modes } from '../screens/modes/Modes';
@@ -40,6 +40,7 @@ import { idle, lazyView } from './lazy';
 import { useBackground } from './useBackground';
 import { useSound } from './sound';
 import { WindowBar } from './WindowBar';
+import { bootStatus, hideBoot } from './boot';
 
 /** Item do trilho para as telas do fluxo da partida. */
 // Telas fora da abertura: chunks sob demanda, resolvidos relativos ao index.js (import.meta.url).
@@ -108,6 +109,12 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   const isTft = lcu.lobby.value.data?.gameConfig.gameMode === 'TFT' || lcu.gameflowSession.value.data?.gameData?.queue?.gameMode === 'TFT';
   const theme = isTft ? themes.forGame.tft.value : themes.active.value;
   const hide = visible && hideRiot.value;
+  // Tela de carregamento (posta no `init`): sai quando a camada desliga ou quando a tela e o perfil chegaram.
+  const profileReady = lcu.currentSummoner.value.status !== 'loading';
+  useEffect(() => {
+    if (!enabled.value || (visible && profileReady)) hideBoot();
+    else bootStatus(t(visible ? 'bootProfile' : 'bootClient'));
+  }, [enabled.value, visible, profileReady]);
   const [confirmClose, setConfirmClose] = useState(false);
   const [view, setView] = useState<View | null>(null);
   const [rightOpen, setRightOpen] = useState(false);
@@ -342,7 +349,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
           }}
         />
         {/* O chat é da sala da tela de fase; com perfil, coleção ou loja por cima, sai do caminho. */}
-        {roomId && !shownView ? <ContextChat key={roomId} lcu={lcu} roomId={roomId} join={join} /> : null}
+        {roomId && !shownView ? <ContextChat key={roomId} lcu={lcu} roomId={roomId} join={join} hidden={lobbyPanelOpen.value} /> : null}
         <ChatDock lcu={lcu} open={chat.open} active={chat.active} onActivate={(id) => setChat({ open: true, active: id })} onClose={() => setChat((c) => ({ ...c, open: false }))} />
         {removing ? (
           <Confirm

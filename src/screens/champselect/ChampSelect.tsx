@@ -12,7 +12,7 @@ import { Bench, SubsetCards, SwapCards, swapMenu } from './Swaps';
 import { actingCells, allyWants, bansByTeam, displayedChampion, laneOpponent, myTurn, remainingSeconds, selectPhase, unavailable, type SelectPhase, type Session } from './logic';
 import { useRealNames } from './names';
 import { ArenaTeams, Team } from './Teams';
-import { MapSide, useMapArt } from './MapSide';
+import { MapSide, useMapArt, useMapRules } from './MapSide';
 import { rankedQueueOf } from '../../ui/Rank';
 import { useEscape } from '../../ui/useEscape';
 import { prefs } from '../../shell/prefs';
@@ -97,9 +97,10 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   const lanes = lcu.lanes.value.data ?? {};
   const position = local ? local.assignedPosition || (lanes[String(shown?.championId ?? 0)]?.recommendedPositions?.[0] ?? '') : '';
   const gameMode = lcu.gameflowSession.value.data?.gameData?.queue?.gameMode ?? null;
-  // Arena não tem runas: nada de recomendação nem de aplicar ao travar.
+  const rules = useMapRules(flow?.map?.id, gameMode);
+  // Mapa sem runas (ARAM Caos, Arena): nada de recomendação nem de aplicar ao travar.
   const reco: RecoContext | null =
-    session && local && gameMode !== 'CHERRY'
+    session && local && rules.runes
       ? {
           championId: shown?.championId ?? 0,
           position,
@@ -233,6 +234,8 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
             pageName={lcu.currentPerkPage.value.data?.name ?? null}
             onRunes={() => setRunesOpen(true)}
             summonerId={lcu.chatMe.value.data?.summonerId}
+            runes={rules.runes}
+            ward={rules.ward}
           />
         ) : null}
         {local && locked && skins.some((s) => s.unlocked) ? (

@@ -215,3 +215,16 @@
 #rlc-root .rlc-cs-subteam-pick { width: 40px; height: 40px; border: 1px solid var(--rlc-color-border); border-radius: 50%; overflow: hidden; background: var(--rlc-color-shade, rgba(0, 0, 0, 0.35)); }
 #rlc-root .rlc-cs-subteam-pick[data-locked='true'] { border-color: var(--rlc-color-highlight, #c8a04a); }
 #rlc-root .rlc-cs-subteam-pick img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Nome dos campeões mais visível: o do palco maior e com contorno de sombra; nos cartões e na grade, maior e claro. */
+/* O brilho cabe no respiro interno: com `overflow: hidden` (reticências) um brilho maior que o respiro vira borda reta. */
+#rlc-root .rlc-cs-champ-name { padding: 6px 20px; font-size: clamp(40px, 5.4vw, 72px); letter-spacing: 0.02em; text-shadow: 0 2px 4px var(--rlc-color-textShadow, #000), 0 0 14px var(--rlc-color-shade, rgba(0, 0, 0, 0.75)); }
+#rlc-root .rlc-cs-skin-name { font-size: 16px; color: var(--rlc-color-text); opacity: 0.85; }
+#rlc-root .rlc-cs-status[data-champ='true'] { font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 16px; color: var(--rlc-color-text); text-shadow: 0 1px 6px var(--rlc-color-textShadow, #000); }
+#rlc-root .rlc-cs-side[data-side='theirs'] .rlc-cs-status { font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 16px; text-shadow: 0 1px 6px var(--rlc-color-textShadow, #000); }
+#rlc-root .rlc-cs-tile-name { font-size: 12px; font-weight: 600; color: var(--rlc-color-text); opacity: 0.8; }
+#rlc-root .rlc-cs-champ[aria-pressed='true'] + .rlc-cs-tile-name { opacity: 1; }
+
+/* Barra do pé: feitiços, runas, sentinela e as ações centralizados. */
+#rlc-root .rlc-cs-bar { justify-content: center; flex-wrap: wrap; }
+#rlc-root .rlc-cs-action { margin-left: 0; }

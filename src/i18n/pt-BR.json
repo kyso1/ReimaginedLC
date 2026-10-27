@@ -1144,10 +1144,14 @@
   "qpTitle": "Campeões do Jogo Rápido",
   "qpPickChampion": "Escolha um campeão",
   "qpPosition": "Rota",
-  "qpRunesNote": "As runas seguem a recomendação do client para o campeão e a rota. Não há seleção de campeões depois da fila.",
+  "qpRunesNote": "Sem página escolhida, as runas seguem a recomendação do client para o campeão e a rota. Não há seleção de campeões depois da fila.",
   "qpNeedChampion": "Escolha seus campeões para entrar na fila",
   "qpNeedScarce": "Uma das vagas precisa de uma rota em falta:",
   "qpNotUnique": "As duas vagas precisam de rotas e campeões diferentes",
   "qpInvalid": "Confira as rotas e os campeões das vagas",
-  "qpScarce": "em falta"
+  "qpScarce": "em falta",
+  "changeMode": "Trocar modo",
+  "qpRunesReco": "Recomendadas pelo client",
+  "bootClient": "Conectando ao client…",
+  "bootProfile": "Carregando seu perfil…"
 }

@@ -2,6 +2,8 @@ import { t } from './i18n';
 import { RIOT_ROOT_ID } from './shell/App';
 import { registerHotkey } from './shell/hotkey';
 import { start } from './shell/start';
+import { enabled, syncLayer } from './shell/layer';
+import { hideBoot, showBoot } from './shell/boot';
 import { setPawApi, setSharedComponentsApi } from './screens/store/purchase';
 import { loadInstalled } from './plugins/market';
 
@@ -16,6 +18,13 @@ interface PenguContext {
  */
 export function init(context?: PenguContext): void {
   registerHotkey();
+  // Tela de carregamento nossa no lugar do fundo vazio da Riot, só com a camada ligada.
+  try {
+    syncLayer();
+    if (enabled.value) showBoot();
+  } catch (e) {
+    console.error('[rlc]', e);
+  }
   try {
     context?.rcp?.postInit?.('rcp-fe-lol-paw', (api) => setPawApi(api as Parameters<typeof setPawApi>[0]));
     // Compra de RP (o "+" da carteira da loja).
@@ -33,6 +42,7 @@ export async function load(): Promise<void> {
     await start();
   } catch (e) {
     console.error('[rlc]', e);
+    hideBoot();
     document.getElementById('rlc-root')?.remove();
     const riot = document.getElementById(RIOT_ROOT_ID);
     if (riot) riot.style.visibility = '';

@@ -70,6 +70,40 @@ const perksFor = (championId: number, position: string) =>
 
 const save = (slots: Slot[]) => request('PUT', SLOTS, slots);
 
+interface RunePage {
+  id: number;
+  name: string;
+  isValid: boolean;
+  selectedPerkIds: number[];
+  primaryStyleId: number;
+  subStyleId: number;
+}
+/** Página de runas no formato que a vaga guarda (o mesmo texto JSON que o client monta). */
+export const pagePerks = (p: Pick<RunePage, 'selectedPerkIds' | 'primaryStyleId' | 'subStyleId'>) =>
+  JSON.stringify({ perkIds: p.selectedPerkIds, perkStyle: p.primaryStyleId, perkSubStyle: p.subStyleId });
+
+interface SkinEntry {
+  id: number;
+  name: string;
+  tilePath?: string;
+  ownership?: { owned?: boolean };
+}
+
+/** Skins possuídas do campeão da vaga (a padrão sempre entra). */
+function useOwnedSkins(summonerId: number, championId: number): SkinEntry[] {
+  const [skins, setSkins] = useState<SkinEntry[]>([]);
+  useEffect(() => {
+    setSkins([]);
+    if (!championId) return;
+    let live = true;
+    void getJson<SkinEntry[]>(`/lol-champions/v1/inventories/${summonerId}/champions/${championId}/skins`).then(
+      (l) => live && setSkins((l ?? []).filter((s) => s.ownership?.owned || s.id === championId * 1000)),
+    );
+    return () => void (live = false);
+  }, [summonerId, championId]);
+  return skins;
+}
+
 /** Restrição do Jogo Rápido que impede a fila, em texto; as rotas em falta entram na mensagem. Null sem restrição QP. */
 export function quickPlayProblem(restrictions: Array<{ restrictionCode: string }> | undefined, scarce: string[] | undefined): string | null {
   const r = restrictions?.find((x) => x.restrictionCode.startsWith('QP'));
@@ -133,12 +167,22 @@ export function QuickPlayEditor({ lcu, slots: current, queueId, summonerId, init
   const slot = slots[tab];
   const hidden = secondaryHidden(slots[0].positionPreference);
   const pickChampion = useAction(async (id: number) => save(withChampion(slots, tab, id, await perksFor(id, slot.positionPreference))));
+  const skins = useOwnedSkins(summonerId, slot.championId);
+  const [pages, setPages] = useState<RunePage[]>([]);
+  useEffect(() => {
+    let live = true;
+    void getJson<RunePage[]>('/lol-perks/v1/pages').then((l) => live && setPages((l ?? []).filter((p) => p.isValid && p.selectedPerkIds?.length)));
+    return () => void (live = false);
+  }, []);
+  const withSlot = (patch: Partial<Slot>): [Slot, Slot] => (tab === 0 ? [{ ...slots[0], ...patch }, slots[1]] : [slots[0], { ...slots[1], ...patch }]);
+  const recommended = useAction(async () => save(withSlot({ perks: await perksFor(slot.championId, slot.positionPreference) })));
+  const currentPage = pages.find((p) => pagePerks(p) === slot.perks);
   const q = query.trim().toLowerCase();
   const list = (playable ?? [])
     .map((id) => champions.get(id))
     .filter((c): c is Champion => !!c && (!q || c.name.toLowerCase().includes(q)))
     .sort((a, b) => a.name.localeCompare(b.name));
-  const busy = put.pending || pickChampion.pending;
+  const busy = put.pending || pickChampion.pending || recommended.pending;
   const spellOf = (id: number) => spells.find((s) => s.id === id);
   const setSpell = (which: 1 | 2, id: number) => {
     setSpellOpen(null);
@@ -198,6 +242,38 @@ export function QuickPlayEditor({ lcu, slots: current, queueId, summonerId, init
             </div>
           ) : null}
         </div>
+        {skins.length > 1 ? (
+          <div class="rlc-qp-skins" role="radiogroup" aria-label={t('tabSkins')}>
+            {skins.map((s) => (
+              <button type="button" key={s.id} role="radio" aria-checked={(slot.skinId || slot.championId * 1000) === s.id} aria-label={s.name} title={s.name} disabled={busy} onClick={() => put.run(withSlot({ skinId: s.id }))}>
+                {s.tilePath ? <img src={s.tilePath} alt="" loading="lazy" /> : s.name}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {slot.championId ? (
+          <label class="rlc-qp-runes">
+            <span>{t('runeOpen')}</span>
+            <select
+              class="rlc-input"
+              value={currentPage ? String(currentPage.id) : 'reco'}
+              disabled={busy}
+              onChange={(e) => {
+                const v = e.currentTarget.value;
+                const page = pages.find((p) => String(p.id) === v);
+                if (page) put.run(withSlot({ perks: pagePerks(page) }));
+                else recommended.run();
+              }}
+            >
+              <option value="reco">{t('qpRunesReco')}</option>
+              {pages.map((p) => (
+                <option key={p.id} value={String(p.id)}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <p class="rlc-tft-desc">{t('qpRunesNote')}</p>
       </aside>
       <div class="rlc-tft-main">

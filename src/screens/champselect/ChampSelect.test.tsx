@@ -694,3 +694,19 @@ test('Arena: sem runas, feitiços fixos e os outros times agrupados por subtime'
   const groups = [...root.querySelectorAll('.rlc-cs-subteam')].map((g) => [g.getAttribute('aria-label'), g.querySelectorAll('.rlc-cs-subteam-pick').length]);
   expect(groups).toEqual([['Minion', 3], ['Scuttle', 1]]);
 });
+
+test('regras do mapa: ARAM Caos sem runas nem sentinela; ARAM normal com runas e sem sentinela', async () => {
+  const maps = [{ id: 12, gameMode: 'ARAM', properties: { suppressRunesMasteriesPerks: false } }, { id: 12, gameMode: 'KIWI', properties: { suppressRunesMasteriesPerks: true } }];
+  fetchMock.mockImplementation(async (url: string) => (url === '/lol-maps/v2/maps' ? new Response(JSON.stringify(maps), { status: 200 }) : new Response(null, { status: 204 })));
+  setupLoadout({ gameflowSession: ready({ map: { id: 12 }, gameData: { queue: { gameMode: 'KIWI' } } }) });
+  await settle();
+  await settle();
+  expect(root.querySelector('.rlc-cs-runes')).toBeNull();
+  expect(root.querySelector('.rlc-cs-ward')).toBeNull();
+  render(null, root);
+  setupLoadout({ gameflowSession: ready({ map: { id: 12 }, gameData: { queue: { gameMode: 'ARAM' } } }) });
+  await settle();
+  await settle();
+  expect(root.querySelector('.rlc-cs-runes')).not.toBeNull();
+  expect(root.querySelector('.rlc-cs-ward')).toBeNull();
+});

@@ -158,7 +158,11 @@ function Slot({ cell, acting, local, champions, spells, name, splash, menu, rank
         </span>
         <Rank puuid={puuid} queue={rankQueue} />
         {puuid ? <PlayerLine puuid={puuid} queue={rankQueue} /> : null}
-        {status ? <span class="rlc-cs-status">{status}</span> : null}
+        {status ? (
+          <span class="rlc-cs-status" data-champ={!acting && champ ? 'true' : undefined}>
+            {status}
+          </span>
+        ) : null}
       </div>
       <span class="rlc-cs-sub">
         {[cell.spell1Id, cell.spell2Id].map((id, i) => {
