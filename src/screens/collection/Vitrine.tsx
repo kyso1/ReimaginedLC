@@ -61,8 +61,10 @@ function Drawer({ detail, onClose }: { detail: VitrineDetail; onClose: () => voi
   const splash = useDecoded(detail.splash);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    // A limpeza usa a mesma janela: pode rodar depois que o global já saiu (fim de teste, camada desligando).
+    const win = window;
+    win.addEventListener('keydown', onKey);
+    return () => win.removeEventListener('keydown', onKey);
   }, [onClose]);
   return (
     <div class="rlc-vt-drawer" role="dialog" aria-label={detail.name}>
