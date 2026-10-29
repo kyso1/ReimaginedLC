@@ -4,6 +4,7 @@ import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
 import type { LolPremadeVoicePremadeVoiceParticipantDto, LolPremadeVoiceSessionResource, LolPremadeVoiceVoiceAvailability } from '../../lcu/types';
 import { useAction } from '../../ui/useAction';
+import { useEscape } from '../../ui/useEscape';
 import { getJson } from '../profile/data';
 
 const VOICE = '/lol-premade-voice/v1';
@@ -48,13 +49,19 @@ function useVoice(lcu: Lcu): VoiceState {
 
 /**
  * Voz do grupo, como no lobby do client: entrar e sair do canal, e mutar o microfone. Em aperte-para-falar o mudo
- * não vale (o client também desliga) e o botão mostra a tecla. Só aparece com a voz ligada na conta.
+ * não vale (o client também desliga) e o botão mostra a tecla. O botão com o número abre (mouse ou clique) a lista de
+ * quem está no canal, com quem fala e quem está mudo. Só aparece com a voz ligada na conta.
  */
 export function Voice({ lcu }: { lcu: Lcu }) {
   const v = useVoice(lcu);
   const join = useAction(() => request('POST', `${VOICE}/session`));
   const leave = useAction(() => request('DELETE', `${VOICE}/session`));
   const mute = useAction((muted: boolean) => request('PUT', `${VOICE}/self/mute`, muted ? 1 : 0));
+  // Lista aberta pelo mouse (some ao sair) ou presa pelo clique (fecha no clique de novo ou no Esc).
+  const [hover, setHover] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  useEscape(() => setPinned(false));
+  const me = lcu.chatMe.value.data?.puuid;
   if (!v.availability?.enabled || !v.availability.showUI) return null;
   const inside = !!v.session?.id;
   if (!inside) {
@@ -68,8 +75,32 @@ export function Voice({ lcu }: { lcu: Lcu }) {
   const ptt = v.settings?.inputMode === 'pushToTalk';
   const muted = v.settings?.localMicMuted ?? v.session?.isMuted ?? false;
   const speaking = v.participants.filter((p) => p.isSpeaking).map((p) => p.displayName);
+  const open = hover || pinned;
   return (
-    <div class="rlc-voice-group" role="group" aria-label={t('voiceName')}>
+    <div class="rlc-voice-group" role="group" aria-label={t('voiceName')} onMouseLeave={() => setHover(false)}>
+      {open ? (
+        <div class="rlc-voice-pop" role="list" aria-label={t('voiceInChannel')}>
+          <p class="rlc-voice-pop-title">{t('voiceInChannel')}</p>
+          {v.participants.length ? (
+            v.participants.map((p) => (
+              <div key={p.puuid || p.participantId} class="rlc-voice-person" role="listitem" aria-label={[p.displayName, p.isSpeaking ? t('voiceSpeaking') : '', p.isMuted ? t('voiceMuted') : ''].filter(Boolean).join(' · ')} data-speaking={p.isSpeaking ? 'true' : undefined} data-muted={p.isMuted ? 'true' : undefined}>
+                <i class="rlc-voice-dot" aria-hidden="true" />
+                <span class="rlc-voice-name">
+                  {p.displayName}
+                  {p.puuid && p.puuid === me ? <small class="rlc-muted"> ({t('voiceYou')})</small> : null}
+                </span>
+                {p.isMuted ? (
+                  <span class="rlc-voice-state" role="img" aria-label={t('voiceMuted')} title={t('voiceMuted')}>
+                    <MicIcon off />
+                  </span>
+                ) : null}
+              </div>
+            ))
+          ) : (
+            <p class="rlc-muted">{t('voiceEmpty')}</p>
+          )}
+        </div>
+      ) : null}
       <button
         type="button"
         class="rlc-button rlc-voice"
@@ -81,7 +112,20 @@ export function Voice({ lcu }: { lcu: Lcu }) {
         onClick={() => mute.run(!muted)}
       >
         <MicIcon off={muted && !ptt} />
-        <span class="rlc-voice-count" title={speaking.join(', ') || undefined} data-speaking={speaking.length ? 'true' : undefined}>
+      </button>
+      <button
+        type="button"
+        class="rlc-button rlc-voice-people"
+        data-variant="pill"
+        aria-expanded={open}
+        aria-label={`${t('voiceInChannel')}: ${v.participants.length}`}
+        onMouseEnter={() => setHover(true)}
+        onFocus={() => setHover(true)}
+        onBlur={() => setHover(false)}
+        onClick={() => setPinned(!pinned)}
+      >
+        <PeopleIcon />
+        <span class="rlc-voice-count" data-speaking={speaking.length ? 'true' : undefined}>
           {v.participants.length}
         </span>
       </button>
@@ -91,6 +135,14 @@ export function Voice({ lcu }: { lcu: Lcu }) {
         </svg>
       </button>
     </div>
+  );
+}
+
+function PeopleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 19c0-3 2.7-5 6-5s6 2 6 5M16 5.5a3 3 0 0 1 0 5.5M18 14c2 .6 3 2.3 3 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
   );
 }
 

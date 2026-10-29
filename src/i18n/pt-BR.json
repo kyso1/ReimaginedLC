@@ -1253,5 +1253,10 @@
   "stDodgeMissing": "A versão atual do client não deixa sair da seleção sem fechá-lo (testado): o botão fica escondido até a Riot devolver isso.",
   "screenError": "Esta tela teve um erro (provavelmente algo mudou no client). O resto continua funcionando.",
   "unknownPhaseHint": "O client entrou numa etapa nova. Esta tela troca sozinha quando a etapa mudar; o menu ao lado continua funcionando.",
-  "pvNoVideo": "O vídeo desta habilidade ainda não está disponível."
+  "pvNoVideo": "O vídeo desta habilidade ainda não está disponível.",
+  "voiceInChannel": "No canal de voz",
+  "voiceYou": "você",
+  "voiceMuted": "Microfone mudo",
+  "voiceSpeaking": "falando",
+  "voiceEmpty": "Ninguém no canal ainda."
 }

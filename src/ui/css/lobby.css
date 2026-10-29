@@ -67,6 +67,18 @@
 #rlc-root .rlc-voice-leave { display: inline-grid; place-items: center; padding-left: 10px; padding-right: 10px; color: var(--rlc-color-dangerText, #f08a94); }
 #rlc-root .rlc-voice-count { min-width: 16px; font-variant-numeric: tabular-nums; }
 #rlc-root .rlc-voice-count[data-speaking='true'] { color: var(--rlc-color-online, #5fd18a); }
+/* Quem está no canal de voz: lista acima do botão com o número; o ponto acende em quem fala. */
+#rlc-root .rlc-voice-group { position: relative; }
+#rlc-root .rlc-voice-people { display: inline-flex; align-items: center; gap: 6px; padding-left: 12px; padding-right: 12px; }
+#rlc-root .rlc-voice-pop { position: absolute; bottom: calc(100% + 10px); left: 50%; z-index: 8; display: flex; flex-direction: column; gap: 6px; min-width: 220px; max-width: 320px; padding: 10px 12px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(14, 16, 26, 0.9)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.96))); box-shadow: 0 14px 32px var(--rlc-color-shade, rgba(0, 0, 0, 0.5)); transform: translateX(-50%); animation: rlc-fade 0.16s ease both; }
+#rlc-root .rlc-voice-pop-title { margin: 0 0 2px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-voice-pop p { margin: 0; font-size: 13px; }
+#rlc-root .rlc-voice-person { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+#rlc-root .rlc-voice-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-voice-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--rlc-color-textMuted); opacity: 0.5; transition: background-color 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease; }
+#rlc-root .rlc-voice-person[data-speaking='true'] .rlc-voice-dot { background: var(--rlc-color-online, #5fd18a); opacity: 1; box-shadow: 0 0 0 3px var(--rlc-color-shade, rgba(0, 0, 0, 0.3)); }
+#rlc-root .rlc-voice-person[data-muted='true'] .rlc-voice-name { opacity: 0.6; }
+#rlc-root .rlc-voice-state { display: inline-grid; color: var(--rlc-color-dangerText, #f08a94); }
 
 /* Jogo Rápido: vagas (campeão com a rota no canto) sob o nome; o editor reaproveita a gaveta do TFT. */
 #rlc-root .rlc-qp-strip { display: flex; justify-content: center; gap: 8px; margin-top: 6px; }
