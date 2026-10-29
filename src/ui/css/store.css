@@ -104,3 +104,12 @@
 #rlc-root .rlc-cur-add { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: 2px; padding: 0; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.3)); border-radius: 50%; background: transparent; color: var(--rlc-color-text, #fff); font: inherit; font-size: 15px; font-weight: 700; line-height: 1; cursor: pointer; transition: background-color var(--rlc-motion-duration, 200ms) var(--rlc-motion-easing, ease); }
 #rlc-root .rlc-cur-add:hover { background: var(--rlc-color-surface, rgba(255, 255, 255, 0.12)); }
 #rlc-root .rlc-cur-add:focus-visible { outline: 2px solid var(--rlc-color-accent, #fff); outline-offset: 2px; }
+
+/* Gaveta: modelo da croma sobre a splash da skin-mãe e o botão de prévia no canto do banner. */
+#rlc-root .rlc-sto-model { position: absolute; z-index: 1; right: 8%; bottom: 6%; height: 70%; max-width: 50%; object-fit: contain; filter: drop-shadow(0 12px 24px var(--rlc-color-shade, rgba(0, 0, 0, 0.6))); animation: rlc-fade 0.3s ease both; }
+#rlc-root .rlc-sto-preview { position: absolute; z-index: 2; left: 16px; top: 14px; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.3)); border-radius: var(--rlc-radius-pill, 99px); background: var(--rlc-color-scrim, rgba(6, 8, 14, 0.6)); color: var(--rlc-color-text, #fff); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; backdrop-filter: blur(6px); }
+#rlc-root .rlc-sto-preview::before { content: ''; width: 0; height: 0; border-style: solid; border-width: 5px 0 5px 8px; border-color: transparent transparent transparent currentColor; }
+#rlc-root .rlc-sto-preview:hover { border-color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-sto-preview:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 2px; }
+#rlc-root .rlc-pv-actions .rlc-sto-big { display: flex; align-items: center; }
+#rlc-root .rlc-pv-actions .rlc-sto-cta { padding: 10px 28px; border-radius: var(--rlc-radius-pill, 99px); font: inherit; font-weight: 700; cursor: pointer; }

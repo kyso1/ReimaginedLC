@@ -54,16 +54,24 @@ test('ao abrir atualiza a lista; mostra nome literal, jogadores e cadeado', () =
   expect(root.querySelector('b')).toBeNull();
 });
 
-test('entrar em sala sem senha envia corpo vazio; com senha pede e envia a senha', async () => {
+test('entrar: sala antiga pelo id da sala; com senha pede e envia a senha', async () => {
   setup([game({ id: 7 }), game({ id: 8, hasPassword: true })]);
   act(() => root.querySelectorAll<HTMLButtonElement>('.rlc-room')[0]!.click());
   act(() => btn('Entrar').click());
-  expect(fetchMock).toHaveBeenCalledWith('/lol-lobby/v1/custom-games/7/join', expect.objectContaining({ method: 'POST', body: '{}' }));
+  expect(fetchMock).toHaveBeenCalledWith('/lol-lobby/v1/custom-games/7/join', expect.objectContaining({ method: 'POST', body: '{"asSpectator":false}' }));
   await settle();
   act(() => root.querySelectorAll<HTMLButtonElement>('.rlc-room')[1]!.click());
   type(input('Senha da sala') as HTMLInputElement, 'abc');
   act(() => btn('Entrar').click());
-  expect(fetchMock).toHaveBeenCalledWith('/lol-lobby/v1/custom-games/8/join', expect.objectContaining({ body: '{"password":"abc"}' }));
+  expect(fetchMock).toHaveBeenCalledWith('/lol-lobby/v1/custom-games/8/join', expect.objectContaining({ body: '{"asSpectator":false,"password":"abc"}' }));
+});
+
+test('entrar: sala com partyId (client atual) entra pelo grupo, senha como lobbyPassword', async () => {
+  setup([game({ id: 9, hasPassword: true, partyId: 'p-9' } as never)]);
+  act(() => root.querySelectorAll<HTMLButtonElement>('.rlc-room')[0]!.click());
+  type(input('Senha da sala') as HTMLInputElement, 'xyz');
+  act(() => btn('Entrar').click());
+  expect(fetchMock).toHaveBeenCalledWith('/lol-lobby/v2/party/p-9/join', expect.objectContaining({ method: 'POST', body: '{"asSpectator":false,"lobbyPassword":"xyz"}' }));
 });
 
 test('sem salas mostra o aviso', () => {

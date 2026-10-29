@@ -7,6 +7,7 @@ import { createThemeEngine } from '../theme/engine';
 import css from '../ui/styles.css?inline';
 import { App, RIOT_ROOT_ID } from './App';
 import { Boundary } from './Boundary';
+import { loadEndpoints } from '../lcu/capabilities';
 import { registerCommands } from './commands';
 import { enabled, syncLayer } from './layer';
 import { probeLite } from './perf';
@@ -83,6 +84,8 @@ export async function start(): Promise<void> {
     guard();
 
     const lcu = createLcu();
+    // Quais endpoints este client tem (muda com as atualizações da Riot): as ações opcionais se adaptam a isso.
+    void loadEndpoints();
     startServices(lcu);
     // Plugins embutidos: rodam com a camada ligada ou não.
     startAutoAccept(lcu);

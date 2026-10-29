@@ -93,6 +93,7 @@ export function fakeLcu(over: Partial<Lcu> = {}): Lcu {
     pickable: signal(ready([])),
     bannable: signal(ready([])),
     subset: Object.assign(signal(ready<number[]>(null)), { refresh: async () => {} }),
+    crowdFavorites: signal(ready<number[]>(null)),
     perkPages: signal(ready([])),
     currentPerkPage: signal(ready<Lcu['currentPerkPage']['value']['data'] & object>(null)),
     gameflowSession: signal(ready<Lcu['gameflowSession']['value']['data'] & object>(null)),

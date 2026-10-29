@@ -1,4 +1,4 @@
-import type { Signal } from '@preact/signals';
+import { computed, type Signal } from '@preact/signals';
 import { createGameData, type GameData } from '../data/gamedata';
 import { request } from './request';
 import { connect } from './socket';
@@ -61,6 +61,8 @@ export interface Lcu {
   bannable: Signal<StoreState<number[]>>;
   /** Cartões do ARAM (2 ou 3 campeões para escolher um); 404 fora dele. O terceiro, quando há, é a carta da sorte. */
   subset: Signal<StoreState<number[]>> & { refresh: () => Promise<void> };
+  /** Favoritos da torcida da Arena (bigorna na grade: escolher um dá bônus); 404 ou vazio fora dela. */
+  crowdFavorites: Signal<StoreState<number[]>>;
   perkPages: Signal<StoreState<LolPerksPerkPageResource[]>>;
   currentPerkPage: Signal<StoreState<LolPerksPerkPageResource>>;
   gameflowSession: Signal<StoreState<LolGameflowGameflowSession>>;
@@ -135,6 +137,11 @@ export function refreshOnPrefix<S extends { refresh: () => Promise<void> }>(stor
  * Espólio: a lista não recebe evento quando algo é criado, aberto ou ganho; os avisos chegam em outras URIs do
  * lol-loot (mapa, item, notificações). Qualquer um deles relê a lista.
  */
+/** O primeiro estado com dados entre leituras equivalentes (o mesmo recurso por caminhos que mudam entre versões do client). */
+function firstWithData<T>(stores: Array<Signal<StoreState<T>>>): Signal<StoreState<T>> {
+  return computed(() => stores.find((s) => s.value.data != null)?.value ?? stores[0]!.value) as Signal<StoreState<T>>;
+}
+
 const lootStore = (socket: ReturnType<typeof connect>) => refreshOnPrefix(createStore<LolLootPlayerLoot[]>('/lol-loot/v1/player-loot', socket), socket, '/lol-loot/', '/lol-loot/v1/player-loot');
 
 /** Abre o único WebSocket do plugin e cria os stores. */
@@ -170,6 +177,12 @@ export function createLcu(doc: Document = document): Lcu {
     pickable: createStore('/lol-champ-select/v1/pickable-champion-ids', socket),
     bannable: createStore('/lol-champ-select/v1/bannable-champion-ids', socket),
     subset: createStore('/lol-lobby-team-builder/champ-select/v1/subset-champion-list', socket),
+    crowdFavorites: firstWithData([
+      // A LCU registra o caminho com a grafia "favorte"; o client da Riot pede "favorite". Lê os dois: se a Riot corrigir,
+      // continua funcionando sem atualização nossa.
+      createStore<number[]>('/lol-lobby-team-builder/champ-select/v1/crowd-favorte-champion-list', socket),
+      createStore<number[]>('/lol-lobby-team-builder/champ-select/v1/crowd-favorite-champion-list', socket),
+    ]),
     perkPages: createStore('/lol-perks/v1/pages', socket),
     currentPerkPage: createStore('/lol-perks/v1/currentpage', socket),
     gameflowSession: createStore('/lol-gameflow/v1/session', socket),

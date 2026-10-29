@@ -88,3 +88,4 @@
 #rlc-root .rlc-col-name { display: inline-flex; align-items: center; gap: 8px; }
 #rlc-root .rlc-col-nick { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 #rlc-root .rlc-col-icon { flex: none; width: 28px; height: 28px; border: 1px solid var(--rlc-color-border); border-radius: 50%; object-fit: cover; }
+#rlc-root .rlc-tft-favorite { align-self: flex-start; margin-top: 8px; }

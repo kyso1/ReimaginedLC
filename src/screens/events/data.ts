@@ -1,5 +1,6 @@
 import type { TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
+import { supports } from '../../lcu/capabilities';
 import { request } from '../../lcu/request';
 import { choiceOf, selectChoice, type Choice, type RewardGrant as Grant } from '../../shell/overlays/Rewards';
 
@@ -46,6 +47,8 @@ export interface Pass {
   xp: number;
   xpTotal: number;
   levels: Level[];
+  /** Ícone da moeda da trilha (Fama no ARAM Caos); sem ele, a trilha conta em XP. */
+  xpIcon?: string;
   purchased: boolean;
   /** Há pacote de passe à venda. */
   buyable: boolean;
@@ -92,7 +95,7 @@ export function pendingChoices(grants: Grant[]): Map<string, Choice> {
  * extras escondidos, como bênçãos do ARAM). `headerType` diz a fila. Estados da LCU (os mesmos do client oficial):
  * Selected = resgatado, Unselected = liberado esperando resgate, Unlocked = nível futuro, Locked = precisa do passe.
  */
-export function eventPass(e: HubEvent, items: TrackItem[], progress: TrackProgress | null, background: string | null, choices = new Map<string, Choice>()): Pass {
+export function eventPass(e: HubEvent, items: TrackItem[], progress: TrackProgress | null, background: string | null, choices = new Map<string, Choice>(), extra: { unclaimed?: number | null; xpIcon?: string } = {}): Pass {
   const purchased = e.eventInfo.isPassPurchased;
   const levels = items.map((it): Level => {
     const level: Level = { level: Number(it.threshold) };
@@ -115,7 +118,8 @@ export function eventPass(e: HubEvent, items: TrackItem[], progress: TrackProgre
     id: e.eventId, game: 'lol', name: e.eventInfo.localizedShortName || e.eventInfo.eventName,
     endsAt: Date.parse(e.eventInfo.progressEndDate || e.eventInfo.endDate) || null, background,
     level: progress?.level ?? 0, xp: progress?.currentLevelXP ?? 0, xpTotal: progress?.totalLevelXP ?? 0,
-    levels, purchased, buyable: !purchased && !!e.eventInfo.eventPassBundles?.length, unclaimed: e.eventInfo.unclaimedRewardCount,
+    // A contagem do `eventInfo` fica velha (o ARAM Caos dizia 7 com nada a resgatar): vale a da trilha quando vem.
+    levels, purchased, buyable: !purchased && !!e.eventInfo.eventPassBundles?.length, unclaimed: extra.unclaimed ?? e.eventInfo.unclaimedRewardCount, xpIcon: extra.xpIcon || undefined,
   };
 }
 
@@ -194,7 +198,7 @@ export async function pendingClaims(lcu: Lcu): Promise<number> {
 // ---- Missões ----
 
 interface Mission {
-  title: string; status: string; startTime: number; endTime: number;
+  title: string; description?: string; status: string; startTime: number; endTime: number;
   objectives: Array<{ description: string; progress: { currentProgress: number; totalCount: number } }>;
   rewards: Array<{ description: string; iconUrl?: string }>;
 }
@@ -204,10 +208,16 @@ export interface MissionCard { group: string; title: string; lines: Array<{ text
 // A Riot põe HTML (links) e marcas internas "(DNT)" nas descrições.
 const clean = (s: string) => s.replace(/<[^>]*>/g, '').replace(/\(DNT\)\s*/g, '').trim();
 
-/** Missões vigentes do evento, pendentes primeiro. */
-export function missionCards(categories: ObjectiveCategory[], eventId: string, now = Date.now()): MissionCard[] {
+/**
+ * Missões vigentes do evento, pendentes primeiro. Entram também as de outras categorias que levam o nome do evento no
+ * título ou na descrição (num grupo com o nome dele): as do "Journey to Stardom" (ARAM Caos) moram na categoria da temporada.
+ * ponytail: casa pelo nome do evento; se a Riot passar a ligar missão a evento por id, trocar por ele.
+ */
+export function missionCards(categories: ObjectiveCategory[], eventId: string, now = Date.now(), eventName = ''): MissionCard[] {
   const cat = categories.find((c) => c.id === eventId);
-  const cards = (cat?.objectives ?? []).flatMap((g) =>
+  const named = (m: Mission) => !!eventName && `${m.title} ${m.description ?? ''}`.includes(eventName);
+  const borrowed = categories.filter((c) => c !== cat).flatMap((c) => c.objectives.map((g) => ({ localizedTitle: [eventName], missions: g.missions.filter(named) }))).filter((g) => g.missions.length);
+  const cards = [...(cat?.objectives ?? []), ...borrowed].flatMap((g) =>
     g.missions
       .filter((m) => m.startTime <= now && (m.endTime <= 0 || now < m.endTime))
       .map((m): MissionCard => {
@@ -223,7 +233,39 @@ export function missionCards(categories: ObjectiveCategory[], eventId: string, n
 
 // ---- Reinos dos Tesouros e Clash ----
 
-export interface Trove { id: string; name: string; backgroundTexture: string; thumbnailTexture: string; startDate: string; endDate: string; pullCost: number }
+export interface Trove {
+  id: string; name: string; backgroundTexture: string; thumbnailTexture: string; startDate: string; endDate: string; pullCost: number;
+  /** Compra pela loja (giro v2, o atual do client); sem eles, o giro antigo pela oferta e tabela de sorteio. */
+  storeId?: string; catalogEntryId?: string; paymentOptionsKeys?: string[]; rollOffer?: string; status?: { dropTableId?: string };
+}
+
+/** Moeda dos giros dos Reinos na carteira. */
+export const TROVE_TOKEN = 'TFT_TREASURE_TROVE_TOKEN';
+
+const ROLL_V2 = '/lol-tft-troves/v2/roll';
+const ROLL_V1 = '/lol-tft-troves/v1/roll';
+/** Giro que este client aceita para o banner: v2 (pela oferta da loja) quando há os dois, v1 como reserva; null sem nenhum. */
+export const trovesRoll = (b: Trove): 'v2' | 'v1' | null => (b.storeId && b.catalogEntryId && supports('POST', ROLL_V2) ? 'v2' : supports('POST', ROLL_V1) ? 'v1' : null);
+
+/** Gira um Reino `count` vezes, gastando fichas: o mesmo pedido do client. */
+export function rollTrove(b: Trove, count: number) {
+  if (trovesRoll(b) === 'v2') return request('POST', ROLL_V2, { storeId: b.storeId, catalogEntryId: b.catalogEntryId, paymentOptionsKeys: b.paymentOptionsKeys ?? [], quantity: count });
+  return request('POST', ROLL_V1, { offerId: b.rollOffer || b.id, numberOfRolls: count, dropTableId: b.status?.dropTableId || b.id });
+}
+
+/** Nomes do que saiu no giro (`roll-rewards` chega depois do pedido); vazio se não vier a tempo. Limpa depois de ler, como o client. */
+export async function trovesRewards(wait: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)), tries = 8): Promise<Array<{ name: string; icon: string }>> {
+  for (let i = 0; i < tries; i++) {
+    const got = await getJson<unknown>('/lol-tft-troves/v1/roll-rewards');
+    const list = (Array.isArray(got) ? got : ((got as { rewards?: unknown[] } | null)?.rewards ?? [])) as Array<Record<string, unknown>>;
+    if (list.length) {
+      void request('DELETE', '/lol-tft-troves/v1/roll-rewards').catch(() => {});
+      return list.map((r) => ({ name: String(r.name ?? r.itemName ?? r.rewardName ?? r.localizedName ?? ''), icon: String(r.iconPath ?? r.loadoutsIcon ?? r.imagePath ?? '') })).filter((r) => r.name);
+    }
+    await wait(1000);
+  }
+  return [];
+}
 export interface ClashPlayer { tier: number; tickets?: Record<string, number>; isClashBanned?: boolean }
 /** Torneio de `/lol-clash/v1/all-tournaments` (formato do dump; lista vazia quando não há torneio). */
 export interface ClashTournament { id: number; startTimeMs?: number; phases?: Array<{ id: number; cancelled?: boolean; lockinStartTime?: number }> }

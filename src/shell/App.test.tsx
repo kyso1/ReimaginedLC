@@ -127,28 +127,24 @@ test('trocar de tema muda variáveis, transição e fundo sem remontar', async (
   expect(root.querySelector('img.rlc-bg')).toBeNull();
 });
 
-test('"Client original" desliga a camada', async () => {
-  for (const label of ['Client original']) {
-    enabled.value = true;
-    mount();
-    await flush();
-    const button = Array.from(root.querySelectorAll('button')).find((b) => b.textContent?.includes(label) || b.getAttribute('aria-label') === label)!;
-    button.click();
-    await flush();
-    expect(enabled.value, label).toBe(false);
-    expect(root.dataset.visible).toBe('false');
-  }
+test('sem botão "Client original" no menu: a camada só desliga pelo atalho', async () => {
+  enabled.value = true;
+  mount();
+  await flush();
+  expect(Array.from(root.querySelectorAll('button')).some((b) => b.textContent?.includes('Client original') || b.getAttribute('aria-label') === 'Client original')).toBe(false);
+  expect(enabled.value).toBe(true);
 });
 
-test('tela que lança ao renderizar desliga a camada e avisa', async () => {
+test('tela que lança ao renderizar mostra o aviso nela; menu e camada continuam', async () => {
   enabled.value = true;
   const noise = vi.spyOn(console, 'error').mockImplementation(() => {});
   mount({ screens: { home: () => { throw new Error('quebrou'); } } });
   await flush();
-  expect(enabled.value).toBe(false);
-  expect(root.dataset.visible).toBe('false');
-  expect(riot.style.visibility).toBe('');
-  expect(window.Toast!.error).toHaveBeenCalledTimes(1);
+  expect(enabled.value).toBe(true);
+  expect(root.dataset.visible).toBe('true');
+  expect(root.querySelector('.rlc-screen .rlc-lazy[data-failed="true"]')).not.toBeNull();
+  expect(root.querySelector('.rlc-rail')).not.toBeNull();
+  expect(window.Toast!.error).not.toHaveBeenCalled();
   noise.mockRestore();
 });
 
@@ -180,10 +176,11 @@ test('desligar a camada enquanto aparece devolve a Riot na hora', async () => {
   expect(riot.style.visibility).toBe('');
 });
 
-test('tela que lança devolve a Riot na hora e remove também a barra e o fundo', async () => {
+test('seleção que lança devolve a Riot na hora e remove também a barra e o fundo', async () => {
   enabled.value = true;
+  phase.value = ready('ChampSelect');
   const noise = vi.spyOn(console, 'error').mockImplementation(() => {});
-  mount({ screens: { home: () => { throw new Error('quebrou'); } } });
+  mount({ screens: { home: () => <div />, champselect: () => { throw new Error('quebrou'); } } });
   await short();
   expect(root.dataset.visible).toBe('false');
   expect(riot.style.visibility).toBe('');
@@ -374,16 +371,15 @@ test('tela de modos aberta na tela inicial fecha quando a rota vai para o lobby 
   expect(root.querySelector('.rlc-modes')).toBeNull();
 });
 
-test('fase desconhecida mostra o nome legível da fase e o botão Client original', async () => {
+test('fase desconhecida mostra o nome legível da fase e a camada continua ligada', async () => {
   enabled.value = true;
   phase.value = ready('FaseNova' as never);
   mount();
   await flush();
   const screen = root.querySelector('.rlc-unknown')!;
   expect(screen.textContent).toContain('Fase nova');
-  [...screen.querySelectorAll('button')].find((b) => b.textContent === 'Client original')!.click();
-  await flush();
-  expect(enabled.value).toBe(false);
+  expect(screen.querySelector('button')).toBeNull();
+  expect(enabled.value).toBe(true);
 });
 
 test('TerminatedInError mostra a tela inicial e avisa uma vez', async () => {
@@ -813,4 +809,26 @@ test('versão nova pronta: aviso fica na tela, leva a Configurações › Geral 
   } finally {
     update.value = null;
   }
+});
+
+test('erro dentro de uma tela fica nela (aviso e Tentar de novo); a camada continua ligada', async () => {
+  const { ScreenBoundary } = await import('./Boundary');
+  const { render: r, h } = await import('preact');
+  let boom = true;
+  const Bad = () => {
+    if (boom) throw new Error('campo novo da Riot');
+    return h('p', { class: 'ok' }, 'voltou');
+  };
+  const box = document.body.appendChild(document.createElement('div'));
+  const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  r(h(ScreenBoundary, null, h(Bad, null)), box);
+  await flush();
+  expect(box.querySelector('.rlc-lazy[data-failed="true"]')!.textContent).toContain('Tentar de novo');
+  boom = false;
+  box.querySelector<HTMLButtonElement>('.rlc-lazy button')!.click();
+  await flush();
+  expect(box.querySelector('.ok')!.textContent).toBe('voltou');
+  spy.mockRestore();
+  r(null, box);
+  box.remove();
 });

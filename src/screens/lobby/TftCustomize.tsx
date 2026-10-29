@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { t, type TextKey } from '../../i18n';
+import { supports } from '../../lcu/capabilities';
 import { request } from '../../lcu/request';
 import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
@@ -7,6 +8,8 @@ import { getJson } from '../profile/data';
 
 interface Item {
   itemId: number;
+  /** Chave dos favoritos (`/lol-cosmetics/v1/favorites/tft/{aba}/{contentId}`). */
+  contentId?: string;
   name: string;
   owned: boolean;
   loadoutsIcon?: string;
@@ -66,10 +69,19 @@ export function TftCustomize({ onClose }: { onClose: () => void }) {
     setFavorites(new Set());
     setFocus(null);
     void load(tab);
-    void getJson<{ favoriteItems?: Item[] }>(`/lol-cosmetics/v1/favorites/tft/${tab.key}`).then(
-      (f) => current.current === tab && setFavorites(new Set((f?.favoriteItems ?? []).map((i) => i.itemId))),
-    );
+    void loadFavorites(tab);
   }, [tab]);
+  function loadFavorites(from: Tab) {
+    return getJson<{ favoriteItems?: Item[] }>(`/lol-cosmetics/v1/favorites/tft/${from.key}`).then(
+      (f) => current.current === from && setFavorites(new Set((f?.favoriteItems ?? []).map((i) => i.itemId))),
+    );
+  }
+  // Favoritar como no client: PUT marca, DELETE desmarca; a marca só muda com os favoritos relidos.
+  const favorite = useAction(async (it: Item) => {
+    const from = tab;
+    await request(favorites.has(it.itemId) ? 'DELETE' : 'PUT', `/lol-cosmetics/v1/favorites/tft/${from.key}/${encodeURIComponent(it.contentId!)}`);
+    await loadFavorites(from);
+  });
   // Sem UI otimista: a marca de equipado vem do inventário relido depois do PUT.
   const equip = useAction(async (itemId: number) => {
     const from = tab;
@@ -122,6 +134,11 @@ export function TftCustomize({ onClose }: { onClose: () => void }) {
             <p class="rlc-tft-state" data-state={shown.selected ? 'on' : shown.owned ? undefined : 'locked'}>
               {shown.selected ? t('tftEquipped') : shown.owned ? t('clickToEquip') : t('tftNotOwned')}
             </p>
+            {shown.owned && shown.contentId && supports('PUT', '/lol-cosmetics/v1/favorites/tft/{cosmeticType}/{contentId}') ? (
+              <button type="button" class="rlc-button rlc-tft-favorite" data-variant="pill" aria-pressed={favorites.has(shown.itemId)} disabled={favorite.pending} onClick={() => favorite.run(shown)}>
+                {favorites.has(shown.itemId) ? `♥ ${t('tftUnfavorite')}` : `♡ ${t('tftFavorite')}`}
+              </button>
+            ) : null}
           </>
         ) : null}
       </aside>

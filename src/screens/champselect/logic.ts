@@ -118,3 +118,42 @@ export function laneOpponent(enemies: Cell[], position: string, lanes: Record<st
   const guess = enemies.filter((c) => c.championId > 0 && !c.assignedPosition && lanes[String(c.championId)]?.recommendedPositions?.[0] === pos);
   return guess.length === 1 ? guess[0]!.championId : 0;
 }
+
+/** Ousadia da Arena: campeão aleatório (com bônus) que se escolhe e trava como um campeão, pelo id -3 (o do client). */
+export const BRAVERY = -3;
+
+/** Filas da Arena em trios (3x6): as mesmas que o client trata assim; as outras são duplas. */
+const ARENA_TRIO_QUEUES = [1740, 1750, 1751, 1753, 1756, 1759, 1762, 1765];
+export const arenaTeamSize = (queueId: number | null | undefined) => (ARENA_TRIO_QUEUES.includes(queueId ?? 0) ? 3 : 2);
+
+export interface Subteam {
+  /** Ordem do subtime (0 = Poro, 1 = Lacaio...), pelas vagas: as `size` primeiras são o primeiro. */
+  index: number;
+  cells: Cell[];
+  mine: boolean;
+}
+
+/**
+ * Subtimes da Arena pelas vagas, como o client: a LCU não separa os times da Arena em "meu" e "deles" do jeito do
+ * Rift, então junta as duas listas, agrupa pelo `cellId` e marca o subtime de quem joga.
+ */
+export function arenaSubteams(session: Session, size: number): Subteam[] {
+  const byCell = new Map<number, Cell>();
+  for (const c of [...session.myTeam, ...session.theirTeam]) if (!byCell.has(c.cellId)) byCell.set(c.cellId, c);
+  const groups = new Map<number, Cell[]>();
+  for (const c of [...byCell.values()].sort((a, b) => a.cellId - b.cellId)) {
+    const g = Math.floor(c.cellId / size);
+    groups.set(g, [...(groups.get(g) ?? []), c]);
+  }
+  const mine = Math.floor(session.localPlayerCellId / size);
+  return [...groups].map(([index, cells]) => ({ index, cells, mine: index === mine }));
+}
+
+/** Banimentos da Arena pelo subtime de quem baniu (a LCU não marca `isAllyAction` por subtime). */
+export function arenaBans(session: Session, size: number): { mine: number[]; theirs: number[] } {
+  const mine: number[] = [];
+  const theirs: number[] = [];
+  const team = Math.floor(session.localPlayerCellId / size);
+  for (const a of flatActions(session)) if (a.type === 'ban' && a.completed) (Math.floor(a.actorCellId / size) === team ? mine : theirs).push(a.championId > 0 ? a.championId : 0);
+  return { mine, theirs };
+}

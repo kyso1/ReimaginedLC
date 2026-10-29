@@ -6,7 +6,7 @@ import type { Lcu } from '../../lcu';
 import { DEFAULT_PREFS, prefs } from '../../shell/prefs';
 import { fakeLcu, friend, ready } from '../../test/fixtures';
 import { ChatDock, ChatWindow, messageTime } from './Chat';
-import { ContextChat } from './ContextChat';
+import { ContextChat, roomChatOpen } from './ContextChat';
 import { AddFriend, FriendRequests, StatusEditor } from './FriendTools';
 
 let root: HTMLElement;
@@ -108,6 +108,23 @@ test('chat de contexto: acha a conversa pelo id da sala e começa aberto; recolh
   expect(root.querySelector('.rlc-ctx')!.getAttribute('data-open')).toBeNull();
   act(() => render(<ContextChat key="nova-9" lcu={lcu} roomId="nova-9" />, root));
   expect(root.querySelector('.rlc-ctx')!.getAttribute('data-open')).toBe('true');
+});
+
+test('chat de contexto: roomChatOpen acompanha abrir, recolher, esconder e sair da sala (o lobby sobe o nome da vaga 1 por ele)', async () => {
+  const lcu = withValues({ conversations: ready([{ id: 'sala-7@lol-lobby.pvp.net', unreadMessageCount: 0, type: 'customGame' }]) });
+  act(() => render(<ContextChat key="sala-7" lcu={lcu} roomId="sala-7" />, root));
+  await settle();
+  expect(roomChatOpen.value).toBe(true);
+  act(() => root.querySelector<HTMLButtonElement>('.rlc-ctx-toggle')!.click());
+  expect(roomChatOpen.value).toBe(false);
+  act(() => root.querySelector<HTMLButtonElement>('.rlc-ctx-toggle')!.click());
+  expect(roomChatOpen.value).toBe(true);
+  act(() => render(<ContextChat key="sala-7" lcu={lcu} roomId="sala-7" hidden />, root));
+  expect(roomChatOpen.value).toBe(false);
+  act(() => render(<ContextChat key="sala-7" lcu={lcu} roomId="sala-7" />, root));
+  expect(roomChatOpen.value).toBe(true);
+  act(() => render(null, root));
+  expect(roomChatOpen.value).toBe(false);
 });
 
 test('som de mensagem: só mensagem nova de outra pessoa; nem minha, nem de sistema, nem histórico, nem da conversa à vista com foco', () => {

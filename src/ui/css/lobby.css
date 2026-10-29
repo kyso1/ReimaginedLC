@@ -48,10 +48,17 @@
 #rlc-root[data-motion='off'] .rlc-col-wait i { animation: none; opacity: 0.7; }
 
 /* Chat da sala (social.css: 260px de altura a 16px do fundo, no canto esquerdo) cobria o nome e o elo da primeira vaga:
-   a vaga da esquerda da faixa de baixo sobe o conteúdo acima dele. */
-#rlc-root .rlc-app[data-screen='lobby'] .rlc-stage:not([data-band='blue']) > .rlc-col:first-child:not([data-empty='true']) { padding-bottom: 292px; }
+   com ele aberto, a vaga da esquerda da faixa de baixo sobe o conteúdo acima dele; fechado, volta à altura das outras.
+   A subida e a descida seguem a curva do painel do chat. */
+#rlc-root .rlc-app[data-screen='lobby'] .rlc-stage > .rlc-col:first-child, #rlc-root .rlc-app[data-screen='lobby'] .rlc-stage > .rlc-col:first-child > .rlc-col-legend { transition: padding-bottom 0.34s cubic-bezier(0.22, 1, 0.36, 1); }
+#rlc-root[data-motion='off'] .rlc-app[data-screen='lobby'] .rlc-stage > .rlc-col:first-child, #rlc-root[data-motion='off'] .rlc-app[data-screen='lobby'] .rlc-stage > .rlc-col:first-child > .rlc-col-legend { transition: none; }
+@media (prefers-reduced-motion: reduce) { #rlc-root .rlc-app[data-screen='lobby'] .rlc-stage > .rlc-col:first-child, #rlc-root .rlc-app[data-screen='lobby'] .rlc-stage > .rlc-col:first-child > .rlc-col-legend { transition: none; } }
+#rlc-root .rlc-app[data-screen='lobby'][data-room-chat='open'] .rlc-stage:not([data-band='blue']) > .rlc-col:first-child:not([data-empty='true']) { padding-bottom: 292px; }
+/* Sala personalizada: a primeira vaga vazia da faixa vermelha fica centrada; com o chat aberto, "Trocar de time" e
+   "+ robô" sobem para fora dele. */
+#rlc-root .rlc-app[data-screen='lobby'][data-room-chat='open'] .rlc-stage[data-band='red'] > .rlc-col:first-child[data-empty='true'] { padding-bottom: 320px; }
 /* A arte central (tático do TFT) sobe junto, para o nome não ficar por cima dela. */
-#rlc-root .rlc-app[data-screen='lobby'] .rlc-stage:not([data-band='blue']) > .rlc-col:first-child:not([data-empty='true']) > .rlc-col-legend { padding-bottom: calc(20% + 180px); }
+#rlc-root .rlc-app[data-screen='lobby'][data-room-chat='open'] .rlc-stage:not([data-band='blue']) > .rlc-col:first-child:not([data-empty='true']) > .rlc-col-legend { padding-bottom: calc(20% + 180px); }
 
 /* Voz do grupo na barra: microfone (riscado quando mudo), quantos estão no canal e sair. */
 #rlc-root .rlc-voice { display: inline-flex; align-items: center; gap: 6px; }

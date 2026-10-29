@@ -32,15 +32,15 @@
 
 ## 功能
 
-ReimaginedLC 在原版客户端之上绘制自己的界面。原版客户端在底层继续运行，作为后备：某个界面出错时，ReimaginedLC 会自动关闭，原版客户端随即恢复。
+ReimaginedLC 在原版客户端之上绘制自己的界面。原版客户端在底层继续运行。某个界面出错时，只有该界面显示提示和“重试”，其余功能照常；在英雄选择中（计时进行中）会恢复原版客户端的英雄选择。依赖接口的功能会先确认已安装的客户端提供该接口，客户端更新时会隐藏或切换功能，而不是出错。
 
 - **主页、房间和排队：** 客户端风格的位置选择器。排队时，角落里的胶囊会显示队列和时间；回到房间时，它会伸展回房间栏。
-- **英雄选择：** 舞台上显示大幅原画，并显示队友的真实名称。每张队友卡片显示段位、胜点、胜率和 KDA。另有皮肤轮播、守卫皮肤、按位置收藏英雄（右键）和按对位配置符文。
+- **英雄选择：** 舞台上显示大幅原画，并显示队友的真实名称。每张队友卡片显示段位、胜点、胜率和 KDA。另有可预览每款皮肤（无论是否有炫彩）的皮肤轮播、守卫皮肤、按位置收藏英雄（右键）和按对位配置符文。斗魂竞技场中显示所有小队的选择、勇气选项以及观众最爱（铁砧）。
 - **赛后：** 显示比赛结果、你的各项数据在本局中的排名、图表、胜点和成就点数进度，以及谁给了你荣誉。云顶之弈显示排名、每位玩家的阵容与羁绊，以及与你历史战绩的对比。
 - **荣誉：** 可以给队友和对手点荣誉，与当前客户端一致。
 - **个人资料：** 你的背景、徽章和横幅。点击"比赛历史"会滑出一张毛玻璃面板，显示英雄联盟或云顶之弈的战绩。
 - **收藏与战利品：** 筛选与分页、战利品合成与重铸、神话商店和圣所。所有购买都会先要求确认。
-- **商店与活动：** 精选皮肤显示名称，原画之间平滑过渡。活动通行证中尚未解锁的奖励显示为禁用状态。
+- **商店与活动：** 精选皮肤显示名称，原画之间平滑过渡。皮肤、炫彩和英雄可打开全屏预览（原画、动态原画、加载画面、炫彩模型、技能视频）并直接购买。可在此揭晓“你的商店”优惠。活动通行证中尚未解锁的奖励显示为禁用状态，活动会带上其他分类中的任务（大乱斗的 Journey to Stardom），宝藏领域可在确认后抽取。
 - **好友与聊天：** 抽屉可固定展开，分组记住展开状态，悬停显示资料卡，房间聊天默认打开，并有提示音。
 - **设置：** 主题编辑器、背景（图片或视频）、低配电脑的轻量模式，以及语言。
 
@@ -48,12 +48,20 @@ ReimaginedLC 在原版客户端之上绘制自己的界面。原版客户端在�
 
 | | |
 |---|---|
-| ![房间](docs/screenshots/lobby.png) | ![收藏](docs/screenshots/collection.png) |
-| 房间 | 收藏 |
-| ![个人资料](docs/screenshots/profile.png) | ![设置](docs/screenshots/settings.png) |
-| 个人资料 | 设置与插件 |
-| ![商店](docs/screenshots/store.png) | ![活动](docs/screenshots/events.png) |
-| 商店 | 活动 |
+| ![开始游戏：选择模式](docs/screenshots/modes.png) | ![房间（云顶之弈）](docs/screenshots/lobby.png) |
+| 开始游戏：选择模式 | 房间（云顶之弈） |
+| ![自定义房间](docs/screenshots/custom.png) | ![云顶之弈自定义（含收藏）](docs/screenshots/tft.png) |
+| 自定义房间 | 云顶之弈自定义（含收藏） |
+| ![英雄选择](docs/screenshots/champselect.png) | ![个人资料](docs/screenshots/profile.png) |
+| 英雄选择 | 个人资料 |
+| ![收藏](docs/screenshots/collection.png) | ![战利品](docs/screenshots/loot.png) |
+| 收藏 | 战利品 |
+| ![商店](docs/screenshots/store.png) | ![皮肤预览（原画、加载画面、炫彩、技能）](docs/screenshots/preview.png) |
+| 商店 | 皮肤预览（原画、加载画面、炫彩、技能） |
+| ![活动：大乱斗通行证与任务](docs/screenshots/events.png) | ![宝藏领域](docs/screenshots/troves.png) |
+| 活动：大乱斗通行证与任务 | 宝藏领域 |
+| ![冠军杯赛](docs/screenshots/clash.png) | ![设置与插件](docs/screenshots/settings.png) |
+| 冠军杯赛 | 设置与插件 |
 
 ## 安装
 
@@ -90,7 +98,7 @@ Pengu Loader/
 ## 入门
 
 - **左侧导航栏**是主菜单：主页、开始游戏、个人资料、收藏、战利品、商店、活动和设置。
-- 导航栏底部的 **Original client** 可切回 Riot 原版界面。随时按 **Ctrl+Shift+F12** 效果相同。
+- 随时按 **Ctrl+Shift+F12** 可切回 Riot 原版界面，再按一次返回。
 - 在 **Settings › General** 中可以设置语言、轻量模式，以及是否随客户端启动时打开新界面。
 - 在 **Settings › Appearance** 中可以选择主题和背景。
 
@@ -116,7 +124,7 @@ Pengu Loader/
 
 ## 关闭与卸载
 
-- **关闭：** 按 **Ctrl+Shift+F12**，或点击导航栏中的 **Original client**。
+- **关闭：** 按 **Ctrl+Shift+F12**。
 - **卸载：** 删除 `Pengu Loader/plugins/ReimaginedLC` 文件夹，然后重新加载客户端。
 - **移除 Pengu Loader：** 打开 Pengu Loader 并点击 **Deactivate**。
 
@@ -125,7 +133,7 @@ Pengu Loader/
 | 问题 | 解决方法 |
 |---|---|
 | 安装后没有任何变化 | 确认文件位于 `plugins/ReimaginedLC/index.js`，并且 Pengu Loader 已激活。然后按 **Ctrl+Shift+R** 重新加载客户端。 |
-| 提示"某个界面出错"，随后原版客户端恢复 | 按 **Ctrl+Shift+R** 重新加载。如果反复出现，请在 **Settings › General › Error report** 中复制报告，粘贴到 [issue](https://github.com/kyso1/ReimaginedLC/issues) 或 AI 中。 |
+| 某个界面提示出错（或英雄选择切回原版） | 按 **Ctrl+Shift+R** 重新加载。如果反复出现，请在 **Settings › General › Error report** 中复制报告，粘贴到 [issue](https://github.com/kyso1/ReimaginedLC/issues) 或 AI 中。 |
 | 客户端卡顿 | 在 **Settings › General** 中开启 **Lite mode**（关闭毛玻璃模糊，暂停背景视频）。 |
 | 对局结束后卡在"等待"界面 | 更新到最新版本；赛后步骤会自动完成。 |
 

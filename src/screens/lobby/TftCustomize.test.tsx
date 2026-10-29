@@ -136,3 +136,36 @@ test('resposta atrasada da aba anterior não substitui a aba atual', async () =>
   await settle();
   expect(sections()).toEqual([['Arena', ['Arena Base']]]);
 });
+
+test('Favoritar: PUT/DELETE pelo contentId do item em foco; o coração só muda com os favoritos relidos', async () => {
+  let favs = [3];
+  const base = fetchMock.getMockImplementation() as (url: string, init?: RequestInit) => Promise<Response>;
+  fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+    if (url === '/lol-cosmetics/v1/favorites/tft/companions') return new Response(JSON.stringify({ favoriteItems: favs.map((id) => item(id, `I${id}`)) }), { status: 200 });
+    if (url.startsWith('/lol-cosmetics/v1/favorites/tft/companions/')) {
+      favs = init?.method === 'PUT' ? [...favs, 2] : favs.filter((id) => id !== 2);
+      return new Response(null, { status: 204 });
+    }
+    if (url === '/lol-cosmetics/v1/inventories/tft/companions') {
+      const r = await base(url, init);
+      const inv = await r.json();
+      for (const g of inv.groups) for (const it of g.items) it.contentId = `c-${it.itemId}`;
+      return new Response(JSON.stringify(inv), { status: 200 });
+    }
+    return base(url, init);
+  });
+  act(() => render(<TftCustomize onClose={() => {}} />, root));
+  await settle();
+  const favBtn = () => root.querySelector<HTMLButtonElement>('.rlc-tft-favorite')!;
+  expect(favBtn().getAttribute('aria-pressed')).toBe('false');
+  act(() => favBtn().click());
+  await settle();
+  await settle();
+  expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-cosmetics/v1/favorites/tft/companions/c-2' && (c[1] as RequestInit)?.method === 'PUT')).toBe(true);
+  expect(favBtn().getAttribute('aria-pressed')).toBe('true');
+  act(() => favBtn().click());
+  await settle();
+  await settle();
+  expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-cosmetics/v1/favorites/tft/companions/c-2' && (c[1] as RequestInit)?.method === 'DELETE')).toBe(true);
+  expect(favBtn().getAttribute('aria-pressed')).toBe('false');
+});

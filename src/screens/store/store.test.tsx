@@ -51,6 +51,8 @@ let routes: Record<string, unknown>;
 beforeEach(() => {
   setLocale('pt_BR');
   root = document.body.appendChild(document.createElement('div'));
+  // A prévia abre por portal em #rlc-root.
+  root.id = 'rlc-root';
   routes = {
     '/lol-catalog/v1/items/CHAMPION': champs,
     '/lol-catalog/v1/items/CHAMPION_SKIN': skinItems,
@@ -196,6 +198,26 @@ test('gaveta: Comprar chama openRiotPurchase com o item; item que possui não co
   expect(root.querySelector<HTMLButtonElement>('.rlc-sto-cta')!.disabled).toBe(true);
 });
 
+test('gaveta: Prévia abre a skin em tela cheia com Comprar; croma mostra o modelo sobre a splash da mãe; ícone não tem prévia', async () => {
+  routes['/lol-game-data/assets/v1/champions/103.json'] = { id: 103, name: 'Ahri', skins: [{ id: 103000, name: 'Ahri', isBase: true, splashPath: '/s/103000.jpg' }, { id: 103015, name: 'Ahri do Arcade', splashPath: '/s/103015.jpg', chromaPath: '/c/103015.png', chromas: [{ id: 103016, name: 'Ahri do Arcade (Rubi)', chromaPath: '/c/103016.png' }] }] };
+  const purchase = await mount();
+  act(() => tab('Skins').click());
+  act(() => check('Croma').click());
+  act(() => grid().find((c) => c.getAttribute('aria-label') === 'Ahri do Arcade (Rubi)')!.click());
+  expect(root.querySelector('.rlc-sto-sp')!.getAttribute('data-contain')).toBeNull();
+  expect(root.querySelector('.rlc-sto-sp .rlc-sto-model')!.getAttribute('src')).toBe('/c/103016.png');
+  act(() => root.querySelector<HTMLButtonElement>('.rlc-sto-preview')!.click());
+  await flush();
+  expect(root.querySelector('.rlc-sto-drawer')).toBeNull();
+  expect(root.querySelector('.rlc-pv-model img')!.getAttribute('src')).toBe('/c/103016.png');
+  act(() => root.querySelector<HTMLButtonElement>('.rlc-pv-actions .rlc-sto-cta')!.click());
+  expect(purchase).toHaveBeenCalledWith(expect.objectContaining({ itemId: 103016 }), expect.any(Function));
+  expect(root.querySelector('.rlc-pv')).toBeNull();
+  act(() => tab('Acessórios').click());
+  act(() => grid()[0]!.click());
+  expect(root.querySelector('.rlc-sto-preview')).toBeNull();
+});
+
 test('sem janela da Riot, Comprar e Presentear mostram a página da loja da Riot, e Voltar retorna', async () => {
   await mount(vi.fn((): 'dialog' | 'store' => 'store'));
   act(() => tab('Skins').click());
@@ -216,10 +238,24 @@ test('Sua Loja: oferta revelada com desconto e validade; oculta não mostra o it
   expect(cards[0]!.getAttribute('aria-label')).toBe('Zed PsyOps');
   expect(cards[0]!.querySelector('.rlc-sto-off')!.textContent).toBe('-60%');
   expect(cards[0]!.textContent).toContain('Expira em');
-  expect(cards[1]!.textContent).toBe('Oferta ocultaRevele na loja da Riot');
+  expect(cards[1]!.textContent).toBe('Oferta ocultaClique para revelar');
   act(() => (cards[0] as HTMLButtonElement).click());
   act(() => root.querySelector<HTMLButtonElement>('.rlc-sto-cta')!.click());
   expect(purchase).toHaveBeenCalledWith(expect.objectContaining({ itemId: 238015, yourShop: true }), expect.any(Function));
+});
+
+test('Sua Loja: clicar na oferta oculta revela pela LCU e a loja relê; só mostra o item depois da resposta', async () => {
+  const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+  await mount();
+  act(() => tab('Sua Loja').click());
+  const revealUrl = '/lol-yourshop/v1/offers/o2/reveal';
+  routes[revealUrl] = [];
+  routes['/lol-yourshop/v1/offers'] = [offers[0], { ...offers[1], revealed: true }];
+  act(() => root.querySelectorAll<HTMLButtonElement>('.rlc-sto-offer')[1]!.click());
+  await flush();
+  expect(fetchMock.mock.calls.some((c) => c[0] === revealUrl && (c[1] as RequestInit | undefined)?.method === 'POST')).toBe(true);
+  expect(root.querySelectorAll('.rlc-sto-offer')[1]!.getAttribute('data-hidden')).toBeNull();
+  expect(root.querySelector('.rlc-sto-riot')).toBeNull();
 });
 
 test('openRiotPurchase: sem API vai para a loja; com API abre a janela da Riot (nunca compra)', () => {

@@ -15,6 +15,8 @@ let fetchMock: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   setLocale('pt_BR');
   root = document.body.appendChild(document.createElement('div'));
+  // A prévia abre por portal em #rlc-root.
+  root.id = 'rlc-root';
   fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
   vi.stubGlobal('fetch', fetchMock);
   vi.stubGlobal('Image', LoadedImage);
@@ -392,6 +394,22 @@ test('mouse na skin mostra as cromas dela com prévia; não possuída fica bloqu
   act(() => void tile.dispatchEvent(new MouseEvent('mouseleave')));
   expect(root.querySelector('.rlc-cs-chroma-pop')).not.toBeNull();
   await act(async () => void (await vi.advanceTimersByTimeAsync(CHROMA_HIDE_MS + 10)));
+  expect(root.querySelector('.rlc-cs-chroma-pop')).toBeNull();
+});
+
+test('skin sem cromas também mostra prévia no mouse (splash, animada quando tem); Prévia abre em tela cheia', async () => {
+  setup(lockedMe({ selectedSkinId: 103000 }), { skins: ready([skin(103000, { isBase: true, splashPath: '/s/103000.jpg' }), skin(103001, { splashPath: '/s/103001.jpg', splashVideoPath: '/v/103001.webm' })]) });
+  await settle();
+  act(() => void btn('Skin 103000')!.dispatchEvent(new MouseEvent('mouseenter')));
+  let pop = root.querySelector('.rlc-cs-chroma-pop')!;
+  expect(pop.getAttribute('data-solo')).toBe('true');
+  expect(pop.querySelector('.rlc-cs-skin-preview img')!.getAttribute('src')).toBe('/s/103000.jpg');
+  expect(pop.querySelector('.rlc-cs-chroma-name')!.textContent).toBe('Skin 103000');
+  act(() => void btn('Skin 103001')!.dispatchEvent(new MouseEvent('mouseenter')));
+  pop = root.querySelector('.rlc-cs-chroma-pop')!;
+  expect(pop.querySelector('.rlc-cs-skin-preview video')!.getAttribute('src')).toBe('/v/103001.webm');
+  act(() => btn('Prévia', pop)!.click());
+  expect(root.querySelector('.rlc-pv')).not.toBeNull();
   expect(root.querySelector('.rlc-cs-chroma-pop')).toBeNull();
 });
 
@@ -820,15 +838,59 @@ test('ao travar: o mapa mergulha na minha rota sobre a splash do campeão e some
   expect(root.querySelector('.rlc-rift')).toBeNull();
 });
 
-test('Arena: sem runas, feitiços fixos e os outros times agrupados por subtime', async () => {
-  const lcu = setupLoadout({ gameflowSession: ready({ gameData: { queue: { gameMode: 'CHERRY' } } }), champSelect: ready({ ...lockedMe(), myTeam: [...lockedMe().myTeam, cell({ cellId: 1 }), cell({ cellId: 2 })], theirTeam: [3, 4, 5, 6].map((id) => cell({ cellId: id, team: 2 })) }) });
-  void lcu;
+test('Arena em trios: sem runas, feitiços fixos; todos os outros subtimes com ícone, nome e o campeão de cada um', async () => {
+  const theirs = [3, 4, 5, 6, 7, 8].map((id) => cell({ cellId: id, team: 2, championId: id === 4 ? 157 : 0, championPickIntent: id === 6 ? 266 : 0 }));
+  setupLoadout({
+    gameflowSession: ready({ gameData: { queue: { id: 1740, gameMode: 'CHERRY' } } }),
+    champSelect: ready({ ...lockedMe(), myTeam: [...lockedMe().myTeam, cell({ cellId: 1 }), cell({ cellId: 2 })], theirTeam: theirs, actions: [[action({ id: 6, type: 'pick', completed: true, championId: 103 }), action({ id: 9, actorCellId: 7, type: 'pick', isInProgress: true })]] }),
+  });
   await settle();
   await settle();
   expect(root.querySelector('.rlc-cs-runes')).toBeNull();
   expect([...root.querySelectorAll<HTMLButtonElement>('.rlc-cs-spell-slots .rlc-cs-spell-slot')].every((b) => b.disabled)).toBe(true);
-  const groups = [...root.querySelectorAll('.rlc-cs-subteam')].map((g) => [g.getAttribute('aria-label'), g.querySelectorAll('.rlc-cs-subteam-pick').length]);
-  expect(groups).toEqual([['Minion', 3], ['Scuttle', 1]]);
+  expect(root.querySelectorAll('.rlc-cs-side[data-side="mine"] .rlc-cs-cell')).toHaveLength(3);
+  const groups = [...root.querySelectorAll('.rlc-cs-subteam')].map((g) => [g.getAttribute('aria-label'), [...g.querySelectorAll('.rlc-cs-subteam-name')].map((n) => n.textContent)]);
+  expect(groups).toEqual([
+    ['Tropa', ['Aguardando', 'Yasuo', 'Aguardando']],
+    ['Caranguejo', ['Aatrox', 'Escolhendo…', 'Aguardando']],
+  ]);
+  expect(root.querySelector('.rlc-cs-subteam-icon')!.getAttribute('src')).toBe('/fe/lol-champ-select/images/subteams/Minion.png');
+  expect(root.querySelectorAll('.rlc-cs-subteam')[1]!.getAttribute('data-acting')).toBe('true');
+});
+
+test('Arena em duplas: a LCU mistura os times; o meu subtime é o das minhas vagas, os outros vão para a direita', async () => {
+  setupLoadout({
+    gameflowSession: ready({ gameData: { queue: { id: 1700, gameMode: 'CHERRY' } } }),
+    champSelect: ready({ ...lockedMe(), localPlayerCellId: 2, myTeam: [0, 1, 2, 3].map((id) => cell({ cellId: id })), theirTeam: [4, 5, 14, 15].map((id) => cell({ cellId: id, team: 2 })) }),
+  });
+  await settle();
+  expect(root.querySelectorAll('.rlc-cs-side[data-side="mine"] .rlc-cs-cell')).toHaveLength(2);
+  expect([...root.querySelectorAll('.rlc-cs-subteam')].map((g) => g.getAttribute('aria-label'))).toEqual(['Poro', 'Caranguejo', 'Gromp']);
+});
+
+test('Arena: Ousadia no começo da grade (destaca -3 e trava), bigorna nos favoritos da torcida, palco com a arte da Ousadia', async () => {
+  const arena = (championId: number) => session({ myTeam: [me, ally], theirTeam: [enemy], actions: [[action({ id: 6, type: 'pick', isInProgress: true, championId })]] });
+  const lcu = setup(arena(0), { gameflowSession: ready({ gameData: { queue: { id: 1700, gameMode: 'CHERRY' } } }), crowdFavorites: ready([157]) });
+  await settle();
+  const tiles = [...root.querySelectorAll('.rlc-cs-tile')];
+  expect(tiles[0]!.getAttribute('data-bravery')).toBe('true');
+  expect(tiles.find((t) => t.querySelector('.rlc-cs-crowd'))!.querySelector('button')!.getAttribute('aria-label')).toBe('Yasuo · favorito da torcida (bônus ao escolher)');
+  act(() => btn('Ousadia')!.click());
+  expect(JSON.parse(call('/lol-champ-select/v1/session/actions/6')[0]![1].body)).toEqual({ championId: -3 });
+  act(() => void (lcu.champSelect.value = ready(arena(-3))));
+  await settle();
+  expect(btn('Ousadia')!.getAttribute('aria-pressed')).toBe('true');
+  expect(stage()).toContain('bravery-splash-background.png');
+  expect(root.querySelector('.rlc-cs-champ-name')!.textContent).toBe('Ousadia');
+  act(() => btn('Travar')!.click());
+  expect(JSON.parse(call('/lol-champ-select/v1/session/actions/6')[1]![1].body)).toEqual({ championId: -3, completed: true });
+});
+
+test('fora da Arena: sem Ousadia nem bigorna', async () => {
+  setup(pickTurn(), { crowdFavorites: ready([157]) });
+  await settle();
+  expect(root.querySelector('.rlc-cs-tile[data-bravery]')).toBeNull();
+  expect(root.querySelector('.rlc-cs-crowd')).toBeNull();
 });
 
 test('regras do mapa: ARAM Caos sem runas nem sentinela; ARAM normal com runas e sem sentinela', async () => {

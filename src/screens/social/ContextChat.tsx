@@ -1,3 +1,4 @@
+import { signal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 import { t } from '../../i18n';
 import type { Lcu } from '../../lcu';
@@ -13,6 +14,8 @@ export interface RoomJoin {
 
 /** Salas que o usuário recolheu à mão: continuam recolhidas se o chat sair e voltar (ir ao perfil e voltar). */
 const collapsed = new Set<string>();
+/** Chat da sala aberto e à vista: o lobby sobe o nome da primeira vaga só enquanto ele ocupa o canto (lobby.css). */
+export const roomChatOpen = signal(false);
 /** Duração da animação de fechar (a mesma do CSS de `.rlc-ctx`). */
 const CLOSE_MS = 340;
 
@@ -44,6 +47,11 @@ export function ContextChat({ lcu, roomId, join, hidden = false }: { lcu: Lcu; r
       .then(() => lcu.conversations.refresh())
       .catch(() => {});
   }, [missing, roomId]);
+  const shown = !!conversation && open && !hidden;
+  useEffect(() => {
+    roomChatOpen.value = shown;
+    return () => void (roomChatOpen.value = false);
+  }, [shown]);
   if (!conversation) return null;
   const unread = conversation.unreadMessageCount ?? 0;
   return (

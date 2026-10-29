@@ -1,0 +1,40 @@
+/* preview: prévia de skin, croma e campeão em tela cheia (ui/SkinPreview.tsx), carregado por @import em styles.css. */
+
+/*
+ * A splash da skin cobre a tela, escurecida e desfocada; no centro, o palco da aba (splash nítida, tela de carregamento,
+ * modelo da croma, vídeo da habilidade). Nome no alto à esquerda, abas e ações no pé.
+ */
+#rlc-root .rlc-pv { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; padding: 28px 40px 24px; background: var(--rlc-color-bg, #0b1020); color: var(--rlc-color-text, #fff); animation: rlc-fade 0.24s ease both; }
+#rlc-root .rlc-pv-bg { position: absolute; inset: -24px; background-size: cover; background-position: center; filter: blur(22px) brightness(0.45); transform: scale(1.06); }
+#rlc-root .rlc-pv > :not(.rlc-pv-bg):not(.rlc-pv-x) { position: relative; }
+#rlc-root .rlc-pv-x { position: absolute; z-index: 2; top: 16px; right: 20px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: var(--rlc-color-scrim, rgba(6, 8, 14, 0.6)); color: var(--rlc-color-text, #fff); font: inherit; cursor: pointer; }
+#rlc-root .rlc-pv-x:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 2px; }
+#rlc-root .rlc-pv-wait { margin: auto; }
+#rlc-root .rlc-pv-head { flex: none; display: flex; flex-direction: column; gap: 2px; padding-right: 60px; }
+#rlc-root .rlc-pv-head h2 { margin: 0; font-family: var(--rlc-font-display); font-size: 30px; line-height: 1.1; text-shadow: 0 2px 12px var(--rlc-color-textShadow, #000); }
+#rlc-root .rlc-pv-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 18px 0; }
+#rlc-root .rlc-pv-splash, #rlc-root .rlc-pv-load { max-width: 100%; max-height: 100%; border-radius: var(--rlc-radius-md); box-shadow: 0 24px 60px -20px var(--rlc-color-shade, rgba(0, 0, 0, 0.7)); animation: rlc-fade 0.3s ease both; }
+#rlc-root .rlc-pv-splash { width: 100%; height: 100%; object-fit: contain; box-shadow: none; }
+#rlc-root .rlc-pv-load { height: 100%; object-fit: contain; }
+#rlc-root .rlc-pv-chromas, #rlc-root .rlc-pv-videos { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; height: 100%; min-height: 0; }
+#rlc-root .rlc-pv-model { flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; }
+#rlc-root .rlc-pv-model img { height: min(100%, 560px); max-width: 100%; object-fit: contain; filter: drop-shadow(0 20px 40px var(--rlc-color-shade, rgba(0, 0, 0, 0.6))); animation: rlc-fade 0.2s ease both; }
+#rlc-root .rlc-pv-caption { display: flex; flex-direction: column; align-items: center; gap: 4px; max-width: 720px; margin: 0; text-align: center; font-size: 14px; }
+#rlc-root .rlc-pv-caption span { color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.75)); font-size: 13px; }
+#rlc-root .rlc-pv-swatches { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+#rlc-root .rlc-pv-swatch { width: 26px; height: 26px; padding: 0; border: 2px solid var(--rlc-color-border, rgba(255, 255, 255, 0.3)); border-radius: 50%; background: var(--rlc-color-surface, rgba(255, 255, 255, 0.2)); cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease; }
+#rlc-root .rlc-pv-swatch[aria-pressed='true'], #rlc-root .rlc-pv-swatch:hover { border-color: var(--rlc-color-text, #fff); transform: scale(1.12); }
+#rlc-root .rlc-pv-video { flex: 1; min-height: 0; max-width: 100%; border-radius: var(--rlc-radius-md); background: var(--rlc-color-scrim, rgba(0, 0, 0, 0.5)); object-fit: contain; }
+#rlc-root .rlc-pv-novideo { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; width: min(100%, 960px); }
+#rlc-root .rlc-pv-novideo img { width: 96px; height: 96px; border-radius: var(--rlc-radius-md); object-fit: cover; }
+#rlc-root .rlc-pv-abilities { display: flex; gap: 8px; }
+#rlc-root .rlc-pv-ability { position: relative; width: 48px; height: 48px; padding: 0; border: 2px solid var(--rlc-color-border, rgba(255, 255, 255, 0.25)); border-radius: var(--rlc-radius-sm); background: var(--rlc-color-surface, rgba(255, 255, 255, 0.06)); overflow: hidden; opacity: 0.7; cursor: pointer; transition: opacity 0.15s ease, border-color 0.15s ease; }
+#rlc-root .rlc-pv-ability img { width: 100%; height: 100%; object-fit: cover; }
+#rlc-root .rlc-pv-ability i { position: absolute; right: 2px; bottom: 1px; font-style: normal; font-size: 11px; font-weight: 700; text-shadow: 0 1px 3px var(--rlc-color-textShadow, #000); }
+#rlc-root .rlc-pv-ability[aria-pressed='true'], #rlc-root .rlc-pv-ability:hover { opacity: 1; border-color: var(--rlc-color-accent, #fff); }
+#rlc-root .rlc-pv-swatch:focus-visible, #rlc-root .rlc-pv-ability:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 2px; }
+#rlc-root .rlc-pv-foot { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+#rlc-root .rlc-pv-tabs { margin: 0; }
+#rlc-root .rlc-pv-actions { display: flex; gap: 8px; margin-left: auto; }
+#rlc-root[data-motion='off'] .rlc-pv, #rlc-root[data-motion='off'] .rlc-pv * { animation: none; transition: none; }
+@media (prefers-reduced-motion: reduce) { #rlc-root .rlc-pv, #rlc-root .rlc-pv * { animation: none; transition: none; } }

@@ -29,15 +29,15 @@ English · [Português](README.pt-BR.md) · [简体中文](README.zh-CN.md)
 
 ## What it does
 
-ReimaginedLC draws its own screens over the original client. The original client keeps running underneath. It is the fallback: if a screen fails, ReimaginedLC turns itself off and the original client comes back.
+ReimaginedLC draws its own screens over the original client. The original client keeps running underneath. If a screen hits an error, only that screen shows a notice with "Try again" and everything else keeps working; in champion select, where the timer runs, the original client's champion select comes back. Features that depend on an endpoint check that the installed client has it, so a client update hides or swaps them instead of breaking.
 
 - **Home, lobby and queue.** A lane picker in the client's style. While you are in queue, a pill in the corner shows the queue and the time; it stretches back into the lobby bar when you return.
-- **Champion select.** Large splash on stage and the real names of your allies. Each ally card shows rank, LP, win rate and KDA. Also: a skin carousel, ward skins, favorites per role (right-click), and runes per matchup.
+- **Champion select.** Large splash on stage and the real names of your allies. Each ally card shows rank, LP, win rate and KDA. Also: a skin carousel with a preview of every skin (with or without chromas), ward skins, favorites per role (right-click), and runes per matchup. In Arena, every subteam's picks, Bravery and the crowd favorites (anvil).
 - **Post-game.** Result, your numbers ranked within the match, charts, LP and mastery progress, and who honored you. TFT gets standings, every player's board and comp, and a comparison with your own history.
 - **Honor.** Honor allies and enemies, like the current client.
 - **Profile.** Your background, crest and banner. "Match history" opens a glass sheet with the feed, LoL or TFT.
 - **Collection and loot.** Filters and tabs, loot crafting and rerolls, the Mythic Shop and the Sanctum. Purchases always ask for confirmation.
-- **Store and events.** Featured skins with names and splash crossfades. The event pass shows locked rewards as disabled.
+- **Store and events.** Featured skins with names and splash crossfades. Skins, chromas and champions open a full-screen preview (splash, animated splash, loading screen, chroma models, ability videos) with Buy. Your Shop offers are revealed right there. The event pass shows locked rewards as disabled, events borrow their missions from other categories (ARAM Mayhem's Journey to Stardom), and Treasure Realms can be rolled after a confirmation.
 - **Friends and chat.** A drawer that can stay pinned open, folders that remember their state, hover cards, the room chat open by default, and sounds.
 - **Settings.** A theme editor, background (image or video), lite mode for weaker PCs, and language.
 
@@ -45,12 +45,20 @@ ReimaginedLC draws its own screens over the original client. The original client
 
 | | |
 |---|---|
-| ![Lobby](docs/screenshots/lobby.png) | ![Collection](docs/screenshots/collection.png) |
-| Lobby | Collection |
-| ![Profile](docs/screenshots/profile.png) | ![Settings](docs/screenshots/settings.png) |
-| Profile | Settings and plugins |
-| ![Store](docs/screenshots/store.png) | ![Events](docs/screenshots/events.png) |
-| Store | Events |
+| ![Play: choose a mode](docs/screenshots/modes.png) | ![Lobby (TFT)](docs/screenshots/lobby.png) |
+| Play: choose a mode | Lobby (TFT) |
+| ![Custom game lobby](docs/screenshots/custom.png) | ![TFT customize, with favorites](docs/screenshots/tft.png) |
+| Custom game lobby | TFT customize, with favorites |
+| ![Champion select](docs/screenshots/champselect.png) | ![Profile](docs/screenshots/profile.png) |
+| Champion select | Profile |
+| ![Collection](docs/screenshots/collection.png) | ![Loot](docs/screenshots/loot.png) |
+| Collection | Loot |
+| ![Store](docs/screenshots/store.png) | ![Skin preview (splash, loading screen, chromas, abilities)](docs/screenshots/preview.png) |
+| Store | Skin preview (splash, loading screen, chromas, abilities) |
+| ![Events: ARAM Mayhem pass and missions](docs/screenshots/events.png) | ![Treasure Realms](docs/screenshots/troves.png) |
+| Events: ARAM Mayhem pass and missions | Treasure Realms |
+| ![Clash](docs/screenshots/clash.png) | ![Settings and plugins](docs/screenshots/settings.png) |
+| Clash | Settings and plugins |
 
 ## Installation
 
@@ -87,7 +95,7 @@ Pengu Loader/
 ## First steps
 
 - The **left rail** is the main menu: home, play, profile, collection, loot, store, events and settings.
-- **Original client**, at the bottom of the rail, switches back to Riot's interface. **Ctrl+Shift+F12** does the same at any time.
+- **Ctrl+Shift+F12** switches back to Riot's interface at any time, and again to return.
 - In **Settings › General** you choose the language, lite mode and whether the interface opens with the client.
 - In **Settings › Appearance** you choose the theme and the background.
 
@@ -117,7 +125,7 @@ When an update is ready, a notice with a **Reload** button appears in **Settings
 
 ## Turning it off and uninstalling
 
-- **Turn off:** press **Ctrl+Shift+F12**, or click **Original client** in the rail.
+- **Turn off:** press **Ctrl+Shift+F12**.
 - **Uninstall:** delete the `Pengu Loader/plugins/ReimaginedLC` folder and reload the client.
 - **Remove Pengu Loader:** open it and click **Deactivate**.
 
@@ -126,7 +134,7 @@ When an update is ready, a notice with a **Reload** button appears in **Settings
 | Problem | Fix |
 |---|---|
 | Nothing changes after installing | Make sure the file is at `plugins/ReimaginedLC/index.js`, that Pengu Loader is activated, then reload the client with **Ctrl+Shift+R**. |
-| "A screen failed" message, then the original client comes back | Reload with **Ctrl+Shift+R**. If it repeats, copy the report in **Settings › General › Error report** and paste it into an [issue](https://github.com/kyso1/ReimaginedLC/issues) or an AI. |
+| A screen shows "This screen hit an error" (or champion select goes back to the original one) | Reload with **Ctrl+Shift+R**. If it repeats, copy the report in **Settings › General › Error report** and paste it into an [issue](https://github.com/kyso1/ReimaginedLC/issues) or an AI. |
 | Client feels slow | Turn on **Lite mode** in **Settings › General** (no glass blur, paused background videos). |
 | Stuck on "Waiting" after a match | Update to the latest version; the post-game steps are completed automatically. |
 

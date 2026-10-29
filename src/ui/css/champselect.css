@@ -348,13 +348,28 @@
 #rlc-root .rlc-cs-map[data-diving] .rlc-cs-map-side, #rlc-root .rlc-cs-map[data-diving] .rlc-cs-map-picks { opacity: 0; }
 @keyframes rlc-rift-art-dive { to { transform: scale(2.6); } }
 
-/* Arena: outros times em grupos de subtime (ícone e campeões), compactos na coluna da direita. */
+/* Arena: todos os outros subtimes na coluna da direita, como no client: cabeçalho com ícone e nome do subtime e,
+   por jogador, retrato e nome do campeão. Quem está agindo pulsa; travado ganha a borda de destaque. */
 #rlc-root .rlc-cs-arena { gap: 6px; overflow-y: auto; }
-#rlc-root .rlc-cs-subteam { display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding: 6px 8px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-glassTop, rgba(10, 12, 20, 0.55)); backdrop-filter: blur(12px); }
-#rlc-root .rlc-cs-subteam-icon { width: 28px; height: 28px; margin-right: auto; object-fit: contain; }
-#rlc-root .rlc-cs-subteam-pick { width: 40px; height: 40px; border: 1px solid var(--rlc-color-border); border-radius: 50%; overflow: hidden; background: var(--rlc-color-shade, rgba(0, 0, 0, 0.35)); }
-#rlc-root .rlc-cs-subteam-pick[data-locked='true'] { border-color: var(--rlc-color-highlight, #c8a04a); }
-#rlc-root .rlc-cs-subteam-pick img { width: 100%; height: 100%; object-fit: cover; }
+#rlc-root .rlc-cs-subteam { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-glassTop, rgba(10, 12, 20, 0.55)); backdrop-filter: blur(12px); transition: border-color var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-cs-subteam[data-acting='true'] { border-color: var(--rlc-color-accent); }
+#rlc-root .rlc-cs-subteam-head { display: flex; align-items: center; gap: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-cs-subteam-icon { width: 20px; height: 20px; object-fit: contain; }
+#rlc-root .rlc-cs-subteam-pick { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#rlc-root .rlc-cs-subteam-face { flex: none; width: 34px; height: 34px; border: 1px solid var(--rlc-color-border); border-radius: 50%; overflow: hidden; background: var(--rlc-color-shade, rgba(0, 0, 0, 0.35)); }
+#rlc-root .rlc-cs-subteam-pick[data-locked='true'] .rlc-cs-subteam-face { border-color: var(--rlc-color-highlight, #c8a04a); }
+#rlc-root .rlc-cs-subteam-pick:not([data-locked='true']) .rlc-cs-subteam-face img { opacity: 0.6; }
+#rlc-root .rlc-cs-subteam-pick[data-acting] .rlc-cs-subteam-face { border-color: var(--rlc-color-accent); animation: rlc-loader-breathe 1.6s ease-in-out infinite; }
+#rlc-root .rlc-cs-subteam-face img { width: 100%; height: 100%; object-fit: cover; }
+#rlc-root .rlc-cs-subteam-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+#rlc-root .rlc-cs-subteam-pick:not([data-locked='true']) .rlc-cs-subteam-name { color: var(--rlc-color-textMuted); }
+#rlc-root[data-motion='off'] .rlc-cs-subteam-pick[data-acting] .rlc-cs-subteam-face { animation: none; }
+@media (prefers-reduced-motion: reduce) { #rlc-root .rlc-cs-subteam-pick[data-acting] .rlc-cs-subteam-face { animation: none; } }
+/* Grade da Arena: bigorna dos favoritos da torcida no canto do retrato; a Ousadia com borda dourada. */
+#rlc-root .rlc-cs-champ { position: relative; }
+#rlc-root .rlc-cs-champ img.rlc-cs-crowd { position: absolute; left: 2px; bottom: 2px; width: 20px; height: 20px; object-fit: contain; pointer-events: none; }
+#rlc-root .rlc-cs-tile[data-bravery='true'] .rlc-cs-champ { border-color: var(--rlc-color-highlight, #c8a04a); }
+#rlc-root .rlc-cs-tile[data-bravery='true'] .rlc-cs-champ[aria-pressed='true'] { border-color: var(--rlc-color-accent); }
 
 /* Nome dos campeões mais visível: o do palco maior e com contorno de sombra; nos cartões e na grade, maior e claro. */
 /* O brilho cabe no respiro interno: com `overflow: hidden` (reticências) um brilho maior que o respiro vira borda reta. */
@@ -368,3 +383,11 @@
 /* Barra do pé: feitiços, runas, sentinela e as ações centralizados. */
 #rlc-root .rlc-cs-bar { justify-content: center; flex-wrap: wrap; }
 #rlc-root .rlc-cs-action { margin-left: 0; }
+
+/* Painel da skin sem cromas: a splash em 16:9 no lugar do modelo; "Prévia" abre a skin em tela cheia. */
+#rlc-root .rlc-cs-chroma-pop[data-solo='true'] { width: 260px; }
+#rlc-root .rlc-cs-skin-preview { width: 236px; aspect-ratio: 16 / 9; border-radius: var(--rlc-radius-sm); background: var(--rlc-color-surface); overflow: hidden; }
+#rlc-root .rlc-cs-skin-preview img, #rlc-root .rlc-cs-skin-preview video { width: 100%; height: 100%; object-fit: cover; object-position: center 25%; animation: rlc-fade 0.2s ease both; }
+#rlc-root .rlc-cs-pv-open { padding: 5px 14px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-pill, 99px); background: transparent; color: var(--rlc-color-text); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+#rlc-root .rlc-cs-pv-open:hover { border-color: var(--rlc-color-text); }
+#rlc-root .rlc-cs-pv-open:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 2px; }

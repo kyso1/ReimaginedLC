@@ -3,6 +3,7 @@ import { t } from '../../i18n';
 import type { Spell } from '../../data/gamedata';
 import { request } from '../../lcu/request';
 import type { TeamBuilderDirect_SkinSelectorSkin } from '../../lcu/types';
+import { SkinPreview } from '../../ui/SkinPreview';
 import { useAction } from '../../ui/useAction';
 import { getJson } from '../profile/data';
 import { chooseRoseChroma, chooseRoseSkin, requestRoseMods, roseChoice, roseMods, roseModSelected, selectRoseMod } from '../../plugins/rose';
@@ -61,10 +62,11 @@ export function SkinCarousel({ skins, me, rose = false, pick = null, onPick }: {
   };
   const chromas = parent ? chromasOf(parent, rose) : [];
   const mods = rose && roseMods.value?.skinId === modSkin ? roseMods.value.mods : [];
-  // Mouse sobre uma skin com cromas: painel com a prévia de cada uma (as não possuídas aparecem bloqueadas, como no
-  // client; com o ROSE, todas valem).
+  // Mouse sobre uma skin: painel com a prévia dela; com cromas, a prévia de cada uma (as não possuídas aparecem
+  // bloqueadas, como no client; com o ROSE, todas valem). "Prévia" abre a skin em tela cheia (SkinPreview).
   const [hovered, setHovered] = useState<{ skin: Skin; x: number } | null>(null);
   const [peek, setPeek] = useState<number | null>(null);
+  const [previewing, setPreviewing] = useState<number | null>(null);
   const hide = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const carousel = useRef<HTMLDivElement>(null);
   useEffect(() => () => clearTimeout(hide.current), []);
@@ -74,7 +76,6 @@ export function SkinCarousel({ skins, me, rose = false, pick = null, onPick }: {
     hide.current = setTimeout(() => setHovered(null), CHROMA_HIDE_MS);
   };
   const showChromas = (s: Skin, el: HTMLElement) => {
-    if (!chromasOf(s, true).length) return hideSoon();
     keep();
     const box = carousel.current?.getBoundingClientRect();
     const r = el.getBoundingClientRect();
@@ -85,35 +86,51 @@ export function SkinCarousel({ skins, me, rose = false, pick = null, onPick }: {
   const popCurrent = popList.find((c) => c.id === peek) ?? popList.find((c) => c.id === (chroma?.id ?? me.selectedSkinId)) ?? popList[0];
   return (
     <div class="rlc-cs-carousel" ref={carousel}>
-      {hovered && popCurrent ? (
-        <div class="rlc-cs-chroma-pop" style={{ left: `${hovered.x}px` }} role="group" aria-label={`${t('csChromas')} · ${hovered.skin.name}`} onMouseEnter={keep} onMouseLeave={hideSoon}>
-          <div class="rlc-cs-chroma-preview">{popCurrent.chromaPreviewPath ? <img src={popCurrent.chromaPreviewPath} alt="" /> : null}</div>
-          <p class="rlc-cs-chroma-name">{popCurrent.name}</p>
-          <div class="rlc-cs-chroma-list">
-            {popList.map((c) => {
-              const usable = rose || (c.unlocked && hovered.skin.unlocked);
-              const label = usable ? c.name : `${c.name} · ${t('csChromaLocked')}`;
-              return (
-                <button
-                  type="button"
-                  key={c.id}
-                  class="rlc-cs-chroma"
-                  data-locked={usable ? undefined : 'true'}
-                  data-rose={rose && !(c.unlocked && hovered.skin.unlocked) ? '' : undefined}
-                  aria-label={label}
-                  title={label}
-                  aria-pressed={chroma ? chroma.id === c.id : c.id === me.selectedSkinId}
-                  disabled={!usable || apply.pending}
-                  style={c.colors?.[0] ? { background: c.colors[0] } : undefined}
-                  onMouseEnter={() => setPeek(c.id)}
-                  onFocus={() => setPeek(c.id)}
-                  onClick={() => chooseChroma(hovered.skin, c)}
-                />
-              );
-            })}
-          </div>
+      {hovered ? (
+        <div class="rlc-cs-chroma-pop" data-solo={popCurrent ? undefined : 'true'} style={{ left: `${hovered.x}px` }} role="group" aria-label={popCurrent ? `${t('csChromas')} · ${hovered.skin.name}` : hovered.skin.name} onMouseEnter={keep} onMouseLeave={hideSoon}>
+          {popCurrent ? (
+            <>
+              <div class="rlc-cs-chroma-preview">{popCurrent.chromaPreviewPath ? <img src={popCurrent.chromaPreviewPath} alt="" /> : null}</div>
+              <p class="rlc-cs-chroma-name">{popCurrent.name}</p>
+              <div class="rlc-cs-chroma-list">
+                {popList.map((c) => {
+                  const usable = rose || (c.unlocked && hovered.skin.unlocked);
+                  const label = usable ? c.name : `${c.name} · ${t('csChromaLocked')}`;
+                  return (
+                    <button
+                      type="button"
+                      key={c.id}
+                      class="rlc-cs-chroma"
+                      data-locked={usable ? undefined : 'true'}
+                      data-rose={rose && !(c.unlocked && hovered.skin.unlocked) ? '' : undefined}
+                      aria-label={label}
+                      title={label}
+                      aria-pressed={chroma ? chroma.id === c.id : c.id === me.selectedSkinId}
+                      disabled={!usable || apply.pending}
+                      style={c.colors?.[0] ? { background: c.colors[0] } : undefined}
+                      onMouseEnter={() => setPeek(c.id)}
+                      onFocus={() => setPeek(c.id)}
+                      onClick={() => chooseChroma(hovered.skin, c)}
+                    />
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            // Skin sem cromas: a splash dela (animada quando tem) no lugar das cromas.
+            <>
+              <div class="rlc-cs-skin-preview">
+                {hovered.skin.splashVideoPath ? <video key={hovered.skin.id} src={hovered.skin.splashVideoPath} poster={hovered.skin.splashPath} autoplay loop muted playsInline /> : hovered.skin.splashPath ? <img key={hovered.skin.id} src={hovered.skin.splashPath} alt="" /> : null}
+              </div>
+              <p class="rlc-cs-chroma-name">{hovered.skin.name}</p>
+            </>
+          )}
+          <button type="button" class="rlc-cs-pv-open" onClick={() => (setPreviewing(peek ?? hovered.skin.id), setHovered(null))}>
+            {t('pvPreview')}
+          </button>
         </div>
       ) : null}
+      {previewing ? <SkinPreview championId={me.championId} skinId={previewing} onClose={() => setPreviewing(null)} /> : null}
       <div class="rlc-cs-skins">
         {shown.map((s) => (
           <button

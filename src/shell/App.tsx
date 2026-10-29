@@ -18,8 +18,8 @@ import type { ThemeEngine } from '../theme/engine';
 import { MediaBackground } from '../ui/MediaBackground';
 import { profileRequest } from './nav';
 import { Rail } from '../ui/Rail';
-import { Boundary } from './Boundary';
-import { enabled, hideRiot, setEnabled, shown as layerShown } from './layer';
+import { Boundary, ScreenBoundary } from './Boundary';
+import { enabled, hideRiot, shown as layerShown } from './layer';
 import { Confirm } from './overlays/Confirm';
 import { InvitationCards } from './overlays/Invitations';
 import { QueuePill } from './QueuePill';
@@ -32,7 +32,7 @@ import { readSetting } from './storage';
 import { prefs } from './prefs';
 import { freezeRiot, isLite, liteAuto } from './perf';
 import { ChatDock } from '../screens/social/Chat';
-import { ContextChat, type RoomJoin } from '../screens/social/ContextChat';
+import { ContextChat, roomChatOpen, type RoomJoin } from '../screens/social/ContextChat';
 import { MemberMenu } from '../screens/lobby/MemberMenu';
 import type { LolChatFriendResource } from '../lcu/types';
 import { background, loadBg } from '../theme/background';
@@ -244,7 +244,6 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   if (!visible || screen === null) return null;
 
   const bare = page === 'home' && !shownView && prefs.value.homeBare;
-  const turnOff = () => setEnabled(false);
   const withPanelClose = (items: Array<{ id: string; label: string; active?: boolean; onSelect: () => void }>) =>
     items.map((i) => ({ ...i, onSelect: () => (setPanel(null), i.onSelect()) }));
   const openChat = async (f: LolChatFriendResource) => {
@@ -293,6 +292,8 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
       data-screen={shownView ?? page ?? undefined}
       // Com fundo do usuário, as telas tiram a arte própria de tela cheia (styles.css) para ele aparecer.
       data-custom-bg={custom ? 'true' : undefined}
+      // Chat da sala aberto no canto inferior esquerdo: o lobby sobe o nome da primeira vaga (lobby.css).
+      data-room-chat={roomId && !shownView && roomChatOpen.value ? 'open' : undefined}
       // Gaveta de amigos fixa: as telas encolhem pela largura dela (social.css); na seleção ela recolhe.
       data-social={prefs.value.socialPinned && phaseName !== 'ChampSelect' ? 'pinned' : undefined}
       // Início só com o fundo: a imagem aparece limpa (sem escurecer nem desfocar), é para ser vista.
@@ -329,10 +330,10 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
                   },
                 }))
               : []),
-            { id: 'original', label: t('originalClient'), onSelect: turnOff },
           ])}
         />
         <main class="rlc-screen">
+          <ScreenBoundary key={shownView ?? page ?? screen} escalate={screen === 'champselect' && !shownView ? onError : undefined}>
           {shownView
             ? views[shownView]
               ? h(views[shownView]!, { lcu })
@@ -358,7 +359,8 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
               : screen !== 'home' && screen !== 'lobby' && screen !== 'unknown' && screens[screen]
                 ? h(screens[screen]!, { lcu })
                 : // Fase desconhecida ou tela não fornecida (testes): tela de fase desconhecida, nunca o client original.
-                  <Unknown phase={phaseName} onOriginal={turnOff} />}
+                  <Unknown phase={phaseName} />}
+          </ScreenBoundary>
         </main>
         <RightColumn
           lcu={lcu}

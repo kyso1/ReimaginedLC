@@ -11,6 +11,7 @@
 @import "./css/champselect.css";
 @import "./css/postgame.css";
 @import "./css/spotify.css";
+@import "./css/preview.css";
 #rlc-root {
   position: fixed;
   inset: 0;
@@ -555,6 +556,7 @@
 #rlc-root .rlc-loader-label { font-size: 14px; letter-spacing: 0.04em; animation: rlc-loader-breathe 2.2s ease-in-out infinite; }
 #rlc-root .rlc-loader[data-size='sm'] .rlc-loader-label { font-size: inherit; letter-spacing: 0; }
 #rlc-root .rlc-lazy { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+#rlc-root .rlc-lazy[data-failed="true"] { flex-direction: column; gap: 12px; text-align: center; }
 @keyframes rlc-spin { to { transform: rotate(360deg); } }
 @keyframes rlc-loader-pulse { 0%, 100% { transform: scale(0.55); opacity: 0.5; } 50% { transform: scale(1); opacity: 1; } }
 @keyframes rlc-loader-breathe { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }

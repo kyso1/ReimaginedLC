@@ -1,6 +1,8 @@
 import type { ComponentType, JSX } from 'preact';
+import { t } from '../i18n';
 import { Loader } from '../ui/Loader';
 import { useEffect, useState } from 'preact/hooks';
+import { canReload, reloadForUpdate } from './update';
 
 /** Tela carregada sob demanda (chunk ao lado do index.js). `preload` baixa antes, sem renderizar. */
 export function lazyView<P extends object>(load: () => Promise<ComponentType<P>>) {
@@ -20,8 +22,17 @@ export function lazyView<P extends object>(load: () => Promise<ComponentType<P>>
     useEffect(() => {
       if (!Loaded) preload().then(() => setReady(true), setFailed);
     }, []);
-    // Falha no download vai para o Boundary, que devolve o client original.
-    if (failed) throw failed;
+    // Falha no download (quase sempre o arquivo trocado por uma atualização com o client aberto): avisa só nesta tela.
+    // Jogar para o Boundary desligava a camada inteira, com tema e tela cheia, até recarregar.
+    if (failed)
+      return (
+        <div class="rlc-lazy" data-failed="true">
+          <p>{t('lazyFailed')}</p>
+          <button type="button" class="rlc-button" data-variant="primary" disabled={!canReload.value} title={canReload.value ? undefined : t('updReloadLater')} onClick={() => reloadForUpdate()}>
+            {t('mkReload')}
+          </button>
+        </div>
+      );
     return Loaded ? <Loaded {...props} /> : <div class="rlc-lazy" aria-busy="true"><Loader /></div>;
   }
   return Object.assign(Lazy, { preload });

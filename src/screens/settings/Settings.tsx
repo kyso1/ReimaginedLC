@@ -19,6 +19,7 @@ import { errorReport, ISSUES_URL, lastError } from '../../shell/report';
 import { extensions } from '../../extensions';
 import { BuiltIns, Marketplace } from '../../plugins/Marketplace';
 import { roseStatus, startRose, useRose } from '../../plugins/rose';
+import { dodgeAvailable } from '../../plugins/dodge';
 import { SpotifySettings } from '../../plugins/SpotifyWidget';
 import { request } from '../../lcu/request';
 import { getJson } from '../profile/data';
@@ -306,7 +307,7 @@ function Plugins() {
     <>
       <section class="rlc-st-card">
         {PLUGINS.map(([key, name, desc]) => (
-          <Row key={key} name={t(name)} desc={t(desc)}>
+          <Row key={key} name={t(name)} desc={key === 'dodge' && !dodgeAvailable() ? `${t(desc)} ${t('stDodgeMissing')}` : t(desc)}>
             <Switch label={t(name)} checked={p[key]} onChange={(on) => setPrefs({ [key]: on })} />
           </Row>
         ))}

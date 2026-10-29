@@ -44,7 +44,10 @@ function RoomList({ games, refresh, onJoined }: { games: LolLobbyLobbyCustomGame
   const [password, setPassword] = useState('');
   const room = games.find((g) => g.id === selected) ?? null;
   const join = useAction(async () => {
-    await request('POST', `/lol-lobby/v1/custom-games/${room!.id}/join`, room!.hasPassword ? { password } : {});
+    // Salas novas entram pelo grupo (`partyId`), como no client atual; as antigas, pelo id da sala.
+    const party = (room as LolLobbyLobbyCustomGame & { partyId?: string }).partyId;
+    if (party) await request('POST', `/lol-lobby/v2/party/${encodeURIComponent(party)}/join`, { asSpectator: false, ...(room!.hasPassword ? { lobbyPassword: password } : {}) });
+    else await request('POST', `/lol-lobby/v1/custom-games/${room!.id}/join`, { asSpectator: false, ...(room!.hasPassword ? { password } : {}) });
     onJoined();
   });
   const reload = useAction(refresh);

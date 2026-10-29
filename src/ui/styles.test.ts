@@ -29,3 +29,17 @@ test('editor de runas: o topo (com a lista de páginas) fica acima das colunas d
 test('cartão da seleção: nenhuma regra própria do menu dentro dele (ele abre solto na tela)', () => {
   expect(ALL()).not.toContain('.rlc-cs-cell .rlc-menu');
 });
+
+test('pós-jogo: Sair e Replay ficam à direita, fora do canto do chat da sala', () => {
+  const rule = /#rlc-root \.rlc-pg-actions \{([^}]*)\}/.exec(ALL())?.[1] ?? '';
+  expect(rule).toContain('right: 32px');
+  expect(rule).not.toMatch(/left:/);
+  expect(rule).toContain('justify-content: flex-end');
+});
+
+test('lobby: com o chat da sala aberto, a primeira vaga sobe (com animação); a vazia da sala personalizada também', () => {
+  const css = ALL();
+  expect(css).toContain(".rlc-app[data-screen='lobby'][data-room-chat='open'] .rlc-stage:not([data-band='blue']) > .rlc-col:first-child:not([data-empty='true']) { padding-bottom: 292px; }");
+  expect(css).toContain(".rlc-app[data-screen='lobby'][data-room-chat='open'] .rlc-stage[data-band='red'] > .rlc-col:first-child[data-empty='true'] { padding-bottom: 320px; }");
+  expect(css).toMatch(/\.rlc-stage > \.rlc-col:first-child, #rlc-root \.rlc-app\[data-screen='lobby'\] \.rlc-stage > \.rlc-col:first-child > \.rlc-col-legend \{ transition: padding-bottom/);
+});

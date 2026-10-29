@@ -4,6 +4,7 @@ import { t } from '../../i18n';
 import type { Champion } from '../../data/gamedata';
 import { RoleIcon } from '../../ui/RoleIcon';
 import { positionKey } from '../lobby/format';
+import { BRAVERY_ICON } from './Teams';
 
 /** Grade de campeões por cima do palco, com título e o botão de fechar (Esc também fecha). */
 export function Drawer({ onClose, children }: { onClose: () => void; children: ComponentChildren }) {
@@ -40,10 +41,17 @@ interface GridProps {
   blocked?: Map<number, 'banned' | 'picked'>;
   /** Campeões que um aliado quer jogar (marcados na vez de banir). */
   wanted?: Set<number>;
+  /** Favoritos da torcida da Arena: bigorna no canto do retrato, como no client. */
+  crowd?: Set<number>;
+  /** Ousadia da Arena: retrato próprio no começo da grade; escolher funciona como um campeão (`BRAVERY`). */
+  bravery?: { selected: boolean; onPick: () => void };
 }
 
+/** Bigorna dos favoritos da torcida (arte do client). */
+export const CROWD_ICON = '/fe/lol-champ-select/images/config/champ-crowd-favorite.png';
+
 /** Grade de campeões permitidos: busca por nome, separador por rota e favoritos da rota na frente. */
-export function ChampionGrid({ ids, champions, selected, onPick, lanes, favorites, initialLane, onFavorite, onHover, blocked, wanted }: GridProps) {
+export function ChampionGrid({ ids, champions, selected, onPick, lanes, favorites, initialLane, onFavorite, onHover, blocked, wanted, crowd, bravery }: GridProps) {
   const [query, setQuery] = useState('');
   const [lane, setLane] = useState<Lane | null>(initialLane);
   // Menu do clique direito (ou tecla de menu / Shift+F10): ponto de abertura e o botão para devolver o foco.
@@ -80,10 +88,21 @@ export function ChampionGrid({ ids, champions, selected, onPick, lanes, favorite
         ))}
       </div>
       <div class="rlc-cs-grid" onMouseLeave={() => onHover?.(null)}>
+        {bravery && !q ? (
+          <div key="bravery" class="rlc-cs-tile" data-bravery="true">
+            <button type="button" class="rlc-cs-champ" aria-label={t('csBravery')} title={t('csBraveryHint')} aria-pressed={bravery.selected} onMouseEnter={() => onHover?.(null)} onClick={bravery.onPick}>
+              <img src={BRAVERY_ICON} alt="" />
+            </button>
+            <span class="rlc-cs-tile-name" aria-hidden="true">
+              {t('csBravery')}
+            </span>
+          </div>
+        ) : null}
         {list.map((c) => {
           const state = blocked?.get(c.id);
           const want = !state && wanted?.has(c.id);
-          const note = state ? t(state === 'banned' ? 'csBanned' : 'csPicked') : want ? t('csAllyWants') : '';
+          const fan = !state && crowd?.has(c.id);
+          const note = state ? t(state === 'banned' ? 'csBanned' : 'csPicked') : want ? t('csAllyWants') : fan ? t('csCrowdFavorite') : '';
           const label = note ? `${c.name} · ${note}` : c.name;
           return (
           <div key={c.id} class="rlc-cs-tile" data-state={state} data-wanted={want ? 'true' : undefined}>
@@ -92,6 +111,7 @@ export function ChampionGrid({ ids, champions, selected, onPick, lanes, favorite
               onKeyDown={(e) => (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) && openMenu(e, c.id)}
             >
               {c.icon ? <img src={c.icon} alt="" loading="lazy" decoding="async" /> : null}
+              {fan ? <img class="rlc-cs-crowd" src={CROWD_ICON} alt="" /> : null}
             </button>
             <span class="rlc-cs-tile-name" aria-hidden="true">
               {c.name}

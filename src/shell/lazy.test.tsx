@@ -30,3 +30,15 @@ test('preload baixa uma vez só e falha deixa tentar de novo', async () => {
   await View.preload();
   expect(calls).toBe(2);
 });
+
+test('download que falha (chunk apagado por uma atualização) mostra aviso na tela em vez de derrubar a camada', async () => {
+  const View = lazyView(() => Promise.reject(new TypeError('Failed to fetch dynamically imported module')));
+  const root = document.body.appendChild(document.createElement('div'));
+  render(<View />, root);
+  await tick();
+  await tick();
+  expect(root.querySelector('.rlc-lazy[data-failed="true"]')).not.toBeNull();
+  expect(root.querySelector('.rlc-lazy button')).not.toBeNull();
+  render(null, root);
+  root.remove();
+});

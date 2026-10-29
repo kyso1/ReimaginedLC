@@ -1,12 +1,12 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-import { locale, t } from '../../i18n';
+import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import type { Champion, Spell } from '../../data/gamedata';
 import { Rank, statsOf } from '../../ui/Rank';
 import { RoleIcon } from '../../ui/RoleIcon';
 import { positionKey } from '../lobby/format';
-import { displayedChampion, type Cell } from './logic';
+import { BRAVERY, displayedChampion, type Cell, type Subteam } from './logic';
 import { recentOf, type RealName, type Recent } from './names';
 import { useDecoded } from '../../ui/useDecoded';
 
@@ -74,36 +74,56 @@ export function Team({ cells, side, bans, active, localCellId, champions, spells
   );
 }
 
-/** Subtimes da Arena na ordem das vagas (o client usa os mesmos nomes e ícones). */
-const SUBTEAMS = ['Poro', 'Minion', 'Scuttle', 'Krug', 'Raptor', 'Sentinel'];
+/** Subtimes da Arena na ordem das vagas (o client usa os mesmos ícones, em `/fe/lol-champ-select/images/subteams`). */
+export const SUBTEAMS = ['Poro', 'Minion', 'Scuttle', 'Krug', 'Raptor', 'Sentinel', 'Wolf', 'Gromp'] as const;
+const SUBTEAM_NAME: Record<(typeof SUBTEAMS)[number], TextKey> = {
+  Poro: 'csSubPoro',
+  Minion: 'csSubMinion',
+  Scuttle: 'csSubScuttle',
+  Krug: 'csSubKrug',
+  Raptor: 'csSubRaptor',
+  Sentinel: 'csSubSentinel',
+  Wolf: 'csSubWolf',
+  Gromp: 'csSubGromp',
+};
+/** Retrato da Ousadia na grade e nas vagas e o fundo dela no palco (artes do client). */
+export const BRAVERY_ICON = '/fe/lol-champ-select/images/champion-grid/bravery-champion.png';
+export const BRAVERY_BG = '/fe/lol-champ-select/images/background/bravery-splash-background.png';
 
 /**
- * Arena: os outros times em grupos pequenos (um por subtime, pela vaga), cada um com o ícone do subtime e os
- * campeões escolhidos. Os banimentos de todos ficam juntos embaixo, como no client.
+ * Arena: todos os outros subtimes numa coluna, como no client, cada um com o ícone e o nome do subtime e, por jogador,
+ * o campeão (travado, em destaque ou a Ousadia), o nome do campeão e quem está agindo agora. Os banimentos dos outros
+ * ficam juntos embaixo.
  */
-export function ArenaTeams({ cells, size, champions, bans }: { cells: Cell[]; size: number; champions: Map<number, Champion>; bans: number[] }) {
-  const groups = new Map<number, Cell[]>();
-  for (const c of [...cells].sort((a, b) => a.cellId - b.cellId)) {
-    const g = Math.floor(c.cellId / size);
-    groups.set(g, [...(groups.get(g) ?? []), c]);
-  }
+export function ArenaTeams({ subteams, champions, bans, active }: { subteams: Subteam[]; champions: Map<number, Champion>; bans: number[]; active: Map<number, 'ban' | 'pick'> }) {
   return (
     <div class="rlc-cs-side rlc-cs-arena" data-side="theirs">
-      {[...groups].map(([g, list]) => {
-        const name = SUBTEAMS[g] ?? '';
+      {subteams.map((team) => {
+        const key = SUBTEAMS[team.index];
+        const label = key ? t(SUBTEAM_NAME[key]) : String(team.index + 1);
         return (
-          <div key={g} class="rlc-cs-subteam" aria-label={name}>
-            {name ? <img class="rlc-cs-subteam-icon" src={`/fe/lol-champ-select/images/subteams/${name}.png`} alt={name} title={name} /> : null}
-            {list.map((c) => {
+          <section key={team.index} class="rlc-cs-subteam" aria-label={label} data-acting={team.cells.some((c) => active.has(c.cellId)) ? 'true' : undefined}>
+            <header class="rlc-cs-subteam-head">
+              {key ? <img class="rlc-cs-subteam-icon" src={`/fe/lol-champ-select/images/subteams/${key}.png`} alt="" /> : null}
+              <span>{label}</span>
+            </header>
+            {team.cells.map((c) => {
+              const brave = c.championId === BRAVERY;
               const shown = displayedChampion(c);
               const champ = shown ? champions.get(shown.championId) : undefined;
+              const acting = active.get(c.cellId);
+              const text = brave ? t('csBravery') : (champ?.name ?? (acting === 'ban' ? t('cellBanning') : acting === 'pick' ? t('cellPicking') : t('csSubWaiting')));
+              const icon = brave ? BRAVERY_ICON : champ?.icon;
               return (
-                <span key={c.cellId} class="rlc-cs-subteam-pick" data-locked={shown?.locked ? 'true' : undefined} title={champ?.name ?? t('cellPicking')}>
-                  {champ?.icon ? <img src={champ.icon} alt={champ.name} /> : null}
-                </span>
+                <div key={c.cellId} class="rlc-cs-subteam-pick" data-locked={brave || shown?.locked ? 'true' : undefined} data-acting={acting}>
+                  <span class="rlc-cs-subteam-face">{icon ? <img src={icon} alt="" /> : null}</span>
+                  <span class="rlc-cs-subteam-name" title={text}>
+                    {text}
+                  </span>
+                </div>
               );
             })}
-          </div>
+          </section>
         );
       })}
       {bans.length ? (
@@ -142,10 +162,12 @@ function Slot({ cell, acting, local, champions, spells, name, splash, menu, rank
   const art = useCellArt(cell, splash);
   const puuid = real?.puuid || cell.puuid || undefined;
   const pos = positionKey((cell.assignedPosition ?? '').toUpperCase());
-  const status = acting === 'ban' ? t('cellBanning') : acting === 'pick' ? t('cellPicking') : (champ?.name ?? '');
+  // Ousadia travada (Arena): o campeão só aparece no jogo; a vaga mostra a arte da Ousadia.
+  const brave = cell.championId === BRAVERY;
+  const status = acting === 'ban' ? t('cellBanning') : acting === 'pick' ? t('cellPicking') : brave ? t('csBravery') : (champ?.name ?? '');
   return (
     <div class="rlc-cs-cell" data-active={acting ? 'true' : undefined} data-local={local ? 'true' : undefined}>
-      <Art url={art} locked={shown?.locked === true} />
+      <Art url={brave ? BRAVERY_BG : art} locked={brave || shown?.locked === true} />
       {pos ? (
         <span class="rlc-cs-pos" role="img" aria-label={t(pos)} title={t(pos)}>
           <RoleIcon role={cell.assignedPosition} />
@@ -159,7 +181,7 @@ function Slot({ cell, acting, local, champions, spells, name, splash, menu, rank
         <Rank puuid={puuid} queue={rankQueue} />
         {puuid ? <PlayerLine puuid={puuid} queue={rankQueue} /> : null}
         {status ? (
-          <span class="rlc-cs-status" data-champ={!acting && champ ? 'true' : undefined}>
+          <span class="rlc-cs-status" data-champ={!acting && (champ || brave) ? 'true' : undefined}>
             {status}
           </span>
         ) : null}

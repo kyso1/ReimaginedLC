@@ -3,6 +3,7 @@ import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { Wallet } from '../../shell/Wallet';
 import { Crossfade } from '../../ui/Crossfade';
+import { SkinPreview } from '../../ui/SkinPreview';
 import { useEscape } from '../../ui/useEscape';
 import { getJson } from '../profile/data';
 import {
@@ -29,6 +30,9 @@ import {
   type Sort,
   type StoreItem,
 } from './data';
+import { supports } from '../../lcu/capabilities';
+import { request } from '../../lcu/request';
+import { useAction } from '../../ui/useAction';
 import { openRiotPurchase, openRiotRpPurchase, type PurchaseItem } from './purchase';
 import { RiotStorePage } from './RiotStore';
 
@@ -140,6 +144,7 @@ export function Store({ lcu, purchase = openRiotPurchase, buyRp = openRiotRpPurc
   const [tab, setTab] = useState<Tab>('featured');
   const [data, setData] = useState<Data | null>(null);
   const [open, setOpen] = useState<StoreItem | null>(null);
+  const [preview, setPreview] = useState<StoreItem | null>(null);
   const [riot, setRiot] = useState(false);
   const [rev, setRev] = useState(0);
   const reload = () => setRev((n) => n + 1);
@@ -209,11 +214,22 @@ export function Store({ lcu, purchase = openRiotPurchase, buyRp = openRiotRpPurc
       ) : tab === 'featured' ? (
         <Showcase data={data} championName={championName} onOpen={setOpen} />
       ) : tab === 'yourshop' ? (
-        <YourShop offers={data.yourShop ?? []} onOpen={setOpen} onHidden={() => setRiot(true)} />
+        <YourShop offers={data.yourShop ?? []} onOpen={setOpen} onRevealed={reload} onRiot={() => setRiot(true)} />
       ) : (
         <Catalog key={tab} items={data.items} config={CATALOG[tab]} ownedChampions={ownedChampions} championName={championName} onOpen={setOpen} />
       )}
-      {open ? <Drawer item={open} championName={championName.get(open.championId)} onClose={() => setOpen(null)} onBuy={() => buy(open)} onGift={() => setRiot(true)} /> : null}
+      {open && !preview ? <Drawer item={open} championName={championName.get(open.championId)} onClose={() => setOpen(null)} onBuy={() => buy(open)} onGift={() => setRiot(true)} onPreview={() => setPreview(open)} /> : null}
+      {preview ? (
+        <SkinPreview championId={preview.championId} skinId={preview.kind === 'champion' ? undefined : preview.itemId} start={preview.kind === 'champion' ? 'abilities' : undefined} onClose={() => setPreview(null)}>
+          <span class="rlc-sto-big">
+            <Price item={preview} />
+          </span>
+          {/* Comprar fecha a prévia: a janela de compra da Riot abre por cima da gaveta. */}
+          <button type="button" class="rlc-sto-cta" disabled={preview.owned} onClick={() => (setPreview(null), buy(preview))}>
+            {t('storeBuy')}
+          </button>
+        </SkinPreview>
+      ) : null}
     </section>
   );
 }
@@ -376,7 +392,14 @@ function Check({ on, onClick, label }: { on: boolean; onClick: () => void; label
 
 // --- Sua Loja -----------------------------------------------------------------------------------------
 
-function YourShop({ offers, onOpen, onHidden }: { offers: Array<{ offer: Offer; item: StoreItem }>; onOpen: (i: StoreItem) => void; onHidden: () => void }) {
+function YourShop({ offers, onOpen, onRevealed, onRiot }: { offers: Array<{ offer: Offer; item: StoreItem }>; onOpen: (i: StoreItem) => void; onRevealed: () => void; onRiot: () => void }) {
+  // Client sem o endpoint de revelar (atualização da Riot): revela na página da loja da Riot, como antes.
+  const canReveal = supports('POST', '/lol-yourshop/v1/offers/{id}/reveal');
+  // Revelar é de graça e não compra nada: a oferta só aparece revelada depois que a loja relê (sem UI otimista).
+  const reveal = useAction(async (id: string) => {
+    await request('POST', `/lol-yourshop/v1/offers/${encodeURIComponent(id)}/reveal`);
+    onRevealed();
+  });
   return (
     <div class="rlc-sto-ys">
       {offers.map(({ offer, item }) =>
@@ -392,8 +415,7 @@ function YourShop({ offers, onOpen, onHidden }: { offers: Array<{ offer: Offer; 
             </span>
           </button>
         ) : (
-          // Revelar é uma ação da Riot (POST /reveal): fica na página dela.
-          <button type="button" key={offer.id} class="rlc-sto-offer" data-hidden="true" onClick={onHidden}>
+          <button type="button" key={offer.id} class="rlc-sto-offer" data-hidden="true" disabled={reveal.pending} onClick={() => (canReveal ? reveal.run(offer.id) : onRiot())}>
             <span class="rlc-sto-info">
               <b>{t('storeHidden')}</b>
               <small>{t('storeHiddenHint')}</small>
@@ -446,7 +468,10 @@ function Price({ item }: { item: StoreItem }) {
   );
 }
 
-function Drawer({ item, championName, onClose, onBuy, onGift }: { item: StoreItem; championName: string | undefined; onClose: () => void; onBuy: () => void; onGift: () => void }) {
+/** Itens com prévia: os de campeão (skin, croma e o próprio campeão). */
+export const hasPreview = (item: StoreItem) => item.championId > 0 && (item.kind === 'skin' || item.kind === 'chroma' || item.kind === 'champion');
+
+function Drawer({ item, championName, onClose, onBuy, onGift, onPreview }: { item: StoreItem; championName: string | undefined; onClose: () => void; onBuy: () => void; onGift: () => void; onPreview: () => void }) {
   useEscape(onClose);
   const kicker = [t(KIND_LABEL[item.kind]), item.rarity ? t(RARITY_LABEL[item.rarity]) : '', item.kind !== 'champion' ? (championName ?? '') : ''].filter(Boolean).join(' · ');
   const off = item.owned ? 0 : discount(item.rp, item.rpFull);
@@ -456,8 +481,15 @@ function Drawer({ item, championName, onClose, onBuy, onGift }: { item: StoreIte
         ✕
       </button>
       {/* Sem `key` na gaveta: trocar de item mantém a gaveta e funde uma splash na outra. */}
-      <div class="rlc-sto-sp" data-contain={item.contain ? 'true' : undefined}>
+      {/* Croma: a splash da skin-mãe de banner, com o modelo da croma por cima. */}
+      <div class="rlc-sto-sp" data-contain={item.contain && !(item.kind === 'chroma' && item.splash !== item.portrait) ? 'true' : undefined}>
         {item.splash ? <Crossfade src={item.splash} /> : null}
+        {item.kind === 'chroma' && item.portrait && item.splash !== item.portrait ? <img class="rlc-sto-model" key={item.key} src={item.portrait} alt="" /> : null}
+        {hasPreview(item) ? (
+          <button type="button" class="rlc-sto-preview" onClick={onPreview}>
+            {t('pvPreview')}
+          </button>
+        ) : null}
       </div>
       <div class="rlc-sto-in">
         <small class="rlc-muted">{kicker}</small>

@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../../i18n';
 import { fakeLcu } from '../../test/fixtures';
-import { eventPass, tftPass, type HubEvent, type TftPass } from './data';
+import { eventPass, missionCards, tftPass, type HubEvent, type TftPass } from './data';
 import { Events, PassView, pendingClaims } from './Events';
 
 // Dados no formato das respostas reais da LCU (GET), com nomes neutros.
@@ -248,7 +248,7 @@ test('passe do TFT vira aba; Resgatar usa a rota do TFT', async () => {
   expect(call[1].method).toBe('PUT');
 });
 
-test('Reinos dos Tesouros: só ativos, com moedas da carteira e aviso do client original', async () => {
+test('Reinos dos Tesouros: só ativos, com moedas da carteira; giro sem fichas suficientes fica desligado', async () => {
   routes['/lol-tft-troves/v1/banners'] = [
     { id: 'b1', name: 'Reino Ativo ', backgroundTexture: '/b1.png', thumbnailTexture: '', startDate: iso(-DAY), endDate: iso(2 * DAY), pullCost: 50 },
     { id: 'b2', name: 'Reino Velho', backgroundTexture: '/b2.png', thumbnailTexture: '', startDate: iso(-9 * DAY), endDate: iso(-DAY), pullCost: 50 },
@@ -261,7 +261,27 @@ test('Reinos dos Tesouros: só ativos, com moedas da carteira e aviso do client 
   expect(wallet).toContain('100 Fichas do Tesouro');
   expect(wallet).toContain('2.300 Fragmentos Estelares');
   expect(wallet).not.toContain('RP');
-  expect(root.textContent).toContain('client original');
+  const roll = (n: string) => [...root.querySelectorAll<HTMLButtonElement>('.rlc-ev-trove-rolls button')].find((b) => b.textContent === n)!;
+  expect(roll('Girar 1x').disabled).toBe(false);
+  expect(roll('Girar 10x').disabled).toBe(true);
+});
+
+test('Reinos: girar pede confirmação, manda o giro v2 com a oferta da loja e mostra o que saiu', async () => {
+  routes['/lol-tft-troves/v1/banners'] = [{ id: 'b1', name: 'Reino Ativo', backgroundTexture: '/b1.png', thumbnailTexture: '', startDate: iso(-DAY), endDate: iso(2 * DAY), pullCost: 50, storeId: 's1', catalogEntryId: 'c1', paymentOptionsKeys: ['0-TFT_TREASURE_TROVE_TOKEN'] }];
+  routes['/lol-inventory/v1/wallet/0'] = { TFT_TREASURE_TROVE_TOKEN: 100 };
+  routes['/lol-tft-troves/v1/roll-rewards'] = [{ name: 'Pequena Lenda Fulana', iconPath: '/r/1.png' }];
+  await mount();
+  act(() => tab('Reinos dos Tesouros').click());
+  act(() => [...root.querySelectorAll<HTMLButtonElement>('.rlc-ev-trove-rolls button')][0]!.click());
+  expect(root.querySelector('.rlc-veil')!.textContent).toContain('Gastar 50 Fichas do Tesouro em Reino Ativo?');
+  // Nada é enviado antes de confirmar.
+  expect(fetchMock.mock.calls.some((c) => String(c[0]).includes('/roll'))).toBe(false);
+  act(() => [...root.querySelectorAll<HTMLButtonElement>('.rlc-veil button')].find((b) => b.textContent === 'Girar 1x')!.click());
+  for (let i = 0; i < 4; i++) await settle();
+  const post = fetchMock.mock.calls.find((c) => c[0] === '/lol-tft-troves/v2/roll')!;
+  expect(JSON.parse(post[1].body)).toEqual({ storeId: 's1', catalogEntryId: 'c1', paymentOptionsKeys: ['0-TFT_TREASURE_TROVE_TOKEN'], quantity: 1 });
+  expect(root.querySelector('.rlc-ev-trove-got')!.textContent).toContain('Pequena Lenda Fulana');
+  expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-tft-troves/v1/roll-rewards' && c[1]?.method === 'DELETE')).toBe(true);
 });
 
 test('pendingClaims soma o pendente dos eventos ativos e do TFT', async () => {
@@ -273,4 +293,50 @@ test('sem nada ativo mostra o estado vazio', async () => {
   routes = {};
   await mount();
   expect(root.textContent).toContain('Nenhum evento ativo');
+});
+
+test('ARAM Caos: missões de outra categoria com o nome do evento entram num grupo dele; expiradas ficam de fora', () => {
+  const now = Date.now();
+  const mission = (title: string, over: Record<string, unknown> = {}) => ({ title, description: '', status: 'PENDING', startTime: now - DAY, endTime: now + DAY, objectives: [{ description: '(DNT) Desbloqueie um Aumento', progress: { currentProgress: 0, totalCount: 1 } }], rewards: [{ description: '300 BXP' }], ...over });
+  const cats = [
+    { id: 'caos', objectives: [{ localizedTitle: ['Diária'], missions: [mission(''), mission('Velha', { endTime: now - 1 })] }] },
+    { id: 'temporada', objectives: [{ localizedTitle: ['Eventos'], missions: [mission('Rumo ao Estrelato (1 de 2)'), mission('Outra coisa')] }] },
+  ];
+  const cards = missionCards(cats, 'caos', now, 'Rumo ao Estrelato');
+  expect(cards.map((c) => [c.group, c.title])).toEqual([['Diária', ''], ['Rumo ao Estrelato', 'Rumo ao Estrelato (1 de 2)']]);
+  expect(cards[1]!.lines[0]!.text).toBe('Desbloqueie um Aumento');
+});
+
+test('passe: contagem a resgatar da trilha vence a do eventInfo; moeda da trilha com ícone no lugar de XP', async () => {
+  routes[`/lol-event-hub/v1/events/${EV}/reward-track/unclaimed-rewards`] = { rewardsCount: 0 };
+  routes[`/lol-event-hub/v1/events/${EV}/info`] = { battleExpIcon: '/i/fama.svg' };
+  await mount();
+  // O eventInfo diz 2; a trilha diz 0 e só a recompensa pronta conta.
+  expect(root.textContent).toContain('1 para resgatar');
+  expect(root.querySelector('.rlc-ev-xpnum img')!.getAttribute('src')).toBe('/i/fama.svg');
+  expect(eventPass(event(), ITEMS, null, null, undefined, { unclaimed: 0 }).unclaimed).toBe(0);
+  expect(eventPass(event(), ITEMS, null, null).unclaimed).toBe(2);
+});
+
+test('Reinos: client só com o giro v1 usa a oferta e a tabela do banner; sem nenhum giro, banner só para consulta', async () => {
+  const { endpoints } = await import('../../lcu/capabilities');
+  routes['/lol-tft-troves/v1/banners'] = [{ id: 'b1', name: 'Reino', backgroundTexture: '/b1.png', thumbnailTexture: '', startDate: iso(-DAY), endDate: iso(2 * DAY), pullCost: 50, storeId: 's1', catalogEntryId: 'c1', rollOffer: 'o1', status: { dropTableId: 'd1' } }];
+  routes['/lol-inventory/v1/wallet/0'] = { TFT_TREASURE_TROVE_TOKEN: 100 };
+  endpoints.value = new Set(['PostLolTftTrovesV1Roll']);
+  try {
+    await mount();
+    act(() => tab('Reinos dos Tesouros').click());
+    act(() => root.querySelector<HTMLButtonElement>('.rlc-ev-trove-rolls button')!.click());
+    act(() => [...root.querySelectorAll<HTMLButtonElement>('.rlc-veil button')].find((b) => b.textContent === 'Girar 1x')!.click());
+    await settle();
+    const post = fetchMock.mock.calls.find((c) => c[0] === '/lol-tft-troves/v1/roll')!;
+    expect(JSON.parse(post[1].body)).toEqual({ offerId: 'o1', numberOfRolls: 1, dropTableId: 'd1' });
+    render(null, root);
+    endpoints.value = new Set();
+    await mount();
+    act(() => tab('Reinos dos Tesouros').click());
+    expect(root.querySelector('.rlc-ev-trove-rolls')).toBeNull();
+  } finally {
+    endpoints.value = null;
+  }
 });

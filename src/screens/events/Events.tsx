@@ -5,8 +5,9 @@ import type { Lcu } from '../../lcu';
 import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
 import { ChoicePicker } from '../../shell/overlays/Rewards';
+import { Confirm } from '../../shell/overlays/Confirm';
 import {
-  activeEvents, claimAll, daysLeft, eventPass, getJson, loadTftPasses, missionCards, openPassPurchase, pendingChoices, rewardState, selectChoice,
+  activeEvents, claimAll, daysLeft, eventPass, getJson, loadTftPasses, missionCards, openPassPurchase, pendingChoices, rewardState, rollTrove, selectChoice, TROVE_TOKEN, trovesRewards, trovesRoll,
   type Choice, type Grant, type HubEvent, type Level, type MissionCard, type ObjectiveCategory, type Pass,
   type Reward, type TrackItem, type TrackProgress, type Trove,
 } from './data';
@@ -23,18 +24,21 @@ interface Loaded {
 const base = (id: string) => `/lol-event-hub/v1/events/${encodeURIComponent(id)}`;
 
 async function loadLolEvent(e: HubEvent, categories: ObjectiveCategory[], choices: Map<string, Choice>) {
-  const [items, bonus, progress, details, chapters] = await Promise.all([
+  const [items, bonus, progress, details, chapters, unclaimed, info] = await Promise.all([
     getJson<TrackItem[]>(`${base(e.eventId)}/reward-track/items`),
     getJson<TrackItem[]>(`${base(e.eventId)}/reward-track/bonus-items`),
     getJson<TrackProgress>(`${base(e.eventId)}/reward-track/progress`),
     getJson<{ actBackgroundImage?: string }>(`${base(e.eventId)}/event-details-data`),
     getJson<{ chapters?: Array<{ backgroundImage?: string; chapterStart: number; chapterEnd: number }> }>(`${base(e.eventId)}/chapters`),
+    getJson<{ rewardsCount?: number }>(`${base(e.eventId)}/reward-track/unclaimed-rewards`),
+    getJson<{ battleExpIcon?: string }>(`${base(e.eventId)}/info`),
   ]);
   const level = progress?.level ?? 0;
   // Arte do capítulo em que o jogador está; sem capítulo, a do ato; sem nenhuma, fica o fundo do tema.
   const chapter = chapters?.chapters?.find((c) => c.chapterStart <= Math.max(1, level) && Math.max(1, level) <= c.chapterEnd);
   const background = chapter?.backgroundImage || details?.actBackgroundImage || null;
-  return { pass: eventPass(e, [...(items ?? []), ...(bonus ?? [])], progress, background, choices), missions: missionCards(categories, e.eventId) };
+  const pass = eventPass(e, [...(items ?? []), ...(bonus ?? [])], progress, background, choices, { unclaimed: unclaimed?.rewardsCount, xpIcon: info?.battleExpIcon });
+  return { pass, missions: missionCards(categories, e.eventId, Date.now(), e.eventInfo.eventName) };
 }
 
 async function loadAll(): Promise<Loaded> {
@@ -71,7 +75,7 @@ export function Events({ lcu }: { lcu: Lcu }) {
   const tabs: Array<{ key: string; label: string; body: () => ComponentChildren }> = [
     ...data.lol.map(({ pass, missions }) => ({ key: pass.id, label: pass.name, body: () => <PassView key={pass.id} pass={pass} missions={missions} onChanged={reload} /> })),
     ...data.tft.map((pass) => ({ key: pass.id, label: data.tft.length > 1 ? pass.name : t('evPassTft'), body: () => <PassView key={pass.id} pass={pass} missions={[]} onChanged={reload} /> })),
-    ...(data.troves.length ? [{ key: 'troves', label: t('evTroves'), body: () => <Troves troves={data.troves} wallet={data.wallet} /> }] : []),
+    ...(data.troves.length ? [{ key: 'troves', label: t('evTroves'), body: () => <Troves troves={data.troves} wallet={data.wallet} onRolled={reload} /> }] : []),
   ];
   if (!tabs.length) return <section class="rlc-events"><p class="rlc-ev-empty">{t('evNone')}</p></section>;
   const current = tabs.find((x) => x.key === tab) ?? tabs[0]!;
@@ -223,7 +227,10 @@ export function PassView({ pass, missions, onChanged }: { pass: Pass; missions: 
         <div class="rlc-ev-xp" role="progressbar" aria-valuemin={0} aria-valuemax={pass.xpTotal} aria-valuenow={pass.xp}>
           <i style={{ width: `${pct}%` }} />
         </div>
-        <span class="rlc-ev-muted">{n.format(pass.xp)}/{n.format(pass.xpTotal)} XP</span>
+        <span class="rlc-ev-muted rlc-ev-xpnum">
+          {n.format(pass.xp)}/{n.format(pass.xpTotal)}
+          {pass.xpIcon ? <img src={pass.xpIcon} alt="" /> : ' XP'}
+        </span>
       </footer>
 
       {picking ? <ChoicePicker choice={picking} pending={choose.pending} onPick={(ids) => choose.run(picking, ids)} onCancel={() => setPicking(null)} /> : null}
@@ -289,11 +296,22 @@ function Missions({ missions }: { missions: MissionCard[] }) {
 }
 
 // Moedas dos reinos na carteira (`/lol-inventory/v1/wallet/0`).
-const TROVE_CURRENCIES: Array<[string, TextKey]> = [['TFT_TREASURE_TROVE_TOKEN', 'evTreasureTokens'], ['tft_star_fragments', 'evStarShards'], ['tft_standard_coin', 'evRealmCrystals']];
+const TROVE_CURRENCIES: Array<[string, TextKey]> = [[TROVE_TOKEN, 'evTreasureTokens'], ['tft_star_fragments', 'evStarShards'], ['tft_standard_coin', 'evRealmCrystals']];
 
-/** Reinos dos Tesouros: só consulta. Abrir é no client original. */
-function Troves({ troves, wallet }: { troves: Trove[]; wallet: Record<string, number> }) {
+/** Giros de um Reino: 1 ou 10, como no client. */
+const ROLLS = [1, 10];
+
+/** Reinos dos Tesouros: cada banner com o custo e os giros; girar gasta fichas e pede confirmação antes. */
+function Troves({ troves, wallet, onRolled }: { troves: Trove[]; wallet: Record<string, number>; onRolled: () => void }) {
   const n = new Intl.NumberFormat(locale());
+  const [asking, setAsking] = useState<{ trove: Trove; count: number } | null>(null);
+  const [got, setGot] = useState<{ name: string; items: Array<{ name: string; icon: string }> } | null>(null);
+  const roll = useAction(async (b: Trove, count: number) => {
+    await rollTrove(b, count);
+    setGot({ name: b.name.trim(), items: await trovesRewards() });
+    onRolled();
+  });
+  const tokens = wallet[TROVE_TOKEN] ?? 0;
   return (
     <div class="rlc-ev-page-body">
       <div class="rlc-ev-wallet">
@@ -311,11 +329,46 @@ function Troves({ troves, wallet }: { troves: Trove[]; wallet: Record<string, nu
               <b>{b.name.trim()}</b>
               <span class="rlc-ev-muted">{endsIn(Date.parse(b.endDate))}</span>
               <span class="rlc-ev-muted">{n.format(b.pullCost)} {t('evTreasureTokens')} {t('evTroveCost')}</span>
+              {/* Sem endpoint de giro neste client (atualização da Riot): o banner fica só para consulta. */}
+              {trovesRoll(b) ? <div class="rlc-ev-trove-rolls">
+                {ROLLS.map((count) => (
+                  <button type="button" key={count} class="rlc-button" data-variant={count === 1 ? 'primary' : undefined} disabled={roll.pending || !b.pullCost || tokens < b.pullCost * count} onClick={() => setAsking({ trove: b, count })}>
+                    {t('evTroveRoll').replace('{n}', String(count))}
+                  </button>
+                ))}
+              </div> : null}
             </div>
           </article>
         ))}
       </div>
-      <p class="rlc-ev-note">{t('evTroveNote')}</p>
+      {roll.pending ? <p class="rlc-ev-note" aria-live="polite">{t('evTroveRolling')}</p> : null}
+      {got ? (
+        <div class="rlc-ev-trove-got" aria-live="polite">
+          <b>{got.items.length ? t('evTroveGot') : t('evTroveDone')}</b>
+          {got.items.length ? (
+            <ul>
+              {got.items.map((r, i) => (
+                <li key={i}>
+                  {r.icon ? <img src={r.icon} alt="" /> : null}
+                  <span>{r.name}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+      {asking ? (
+        <Confirm
+          message={t('evTroveConfirm').replace('{cost}', n.format(asking.trove.pullCost * asking.count)).replace('{name}', asking.trove.name.trim())}
+          confirmLabel={t('evTroveRoll').replace('{n}', String(asking.count))}
+          onConfirm={() => {
+            setAsking(null);
+            setGot(null);
+            roll.run(asking.trove, asking.count);
+          }}
+          onCancel={() => setAsking(null)}
+        />
+      ) : null}
     </div>
   );
 }

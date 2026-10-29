@@ -111,3 +111,11 @@
 #rlc-root .rlc-clash-hero p { margin: 0; text-transform: capitalize; }
 #rlc-root .rlc-clash-trophy { flex: none; width: 112px; height: 112px; filter: drop-shadow(0 6px 18px var(--rlc-color-shade, rgba(0, 0, 0, 0.45))); }
 #rlc-root .rlc-clash h3 { margin: 8px 0 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; }
+/* Giros dos Reinos e o que saiu. */
+#rlc-root .rlc-ev-trove-rolls { display: flex; gap: 8px; margin-top: 6px; }
+#rlc-root .rlc-ev-trove-got { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-glassTop, rgba(10, 12, 20, 0.55)); }
+#rlc-root .rlc-ev-trove-got ul { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; list-style: none; }
+#rlc-root .rlc-ev-trove-got li { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+#rlc-root .rlc-ev-trove-got img { width: 40px; height: 40px; object-fit: contain; }
+#rlc-root .rlc-ev-xpnum { display: inline-flex; align-items: center; gap: 4px; }
+#rlc-root .rlc-ev-xpnum img { width: 18px; height: 18px; object-fit: contain; }

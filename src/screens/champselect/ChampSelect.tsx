@@ -9,15 +9,15 @@ import { ChampionGrid, Drawer, LANES, type Lane } from './Drawer';
 import { Loadout, SkinCarousel, skinOf } from './Loadout';
 import { RuneEditor, useApplyOnLock, type RecoContext } from './RuneEditor';
 import { Bench, SubsetCards, SwapCards, swapMenu } from './Swaps';
-import { actingCells, allyWants, bansByTeam, displayedChampion, laneOpponent, myTurn, remainingSeconds, selectPhase, unavailable, type SelectPhase, type Session } from './logic';
+import { actingCells, allyWants, arenaBans, arenaSubteams, arenaTeamSize, bansByTeam, BRAVERY, displayedChampion, laneOpponent, myTurn, remainingSeconds, selectPhase, unavailable, type SelectPhase, type Session } from './logic';
 import { useRealNames } from './names';
-import { ArenaTeams, Team } from './Teams';
+import { ArenaTeams, BRAVERY_BG, Team } from './Teams';
 import { MapSide, useMapArt, useMapRules } from './MapSide';
 import { rankedQueueOf } from '../../ui/Rank';
 import { useEscape } from '../../ui/useEscape';
 import { prefs } from '../../shell/prefs';
 import { roseStatus, useRose } from '../../plugins/rose';
-import { dodge } from '../../plugins/dodge';
+import { dodge, dodgeAvailable } from '../../plugins/dodge';
 import { Confirm } from '../../shell/overlays/Confirm';
 
 const PHASE_TEXT: Record<SelectPhase, TextKey | null> = {
@@ -79,7 +79,10 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   const [rosePick, setRosePick] = useState<number | null>(null);
   useEffect(() => setRosePick(null), [shown?.championId]);
   const pick = rose ? rosePick : null;
-  const stageSkin = previewing ? previewing * 1000 : shown ? (shown.locked && (pick ?? local!.selectedSkinId) > 0 ? (pick ?? local!.selectedSkinId) : shown.championId * 1000) : undefined;
+  // Arena: Ousadia em destaque (minha vez) ou travada: o palco mostra a arte dela no lugar de uma splash.
+  const arenaMode = lcu.gameflowSession.value.data?.gameData?.queue?.gameMode === 'CHERRY';
+  const brave = arenaMode && !!local && (local.championId === BRAVERY || (turn?.kind === 'pick' && turn.action.championId === BRAVERY));
+  const stageSkin = brave && !previewing ? undefined : previewing ? previewing * 1000 : shown ? (shown.locked && (pick ?? local!.selectedSkinId) > 0 ? (pick ?? local!.selectedSkinId) : shown.championId * 1000) : undefined;
   const splashUrl = useLoaded(() => lcu.game.splash(stageSkin), null, [stageSkin]);
   const splash = useDecoded(splashUrl);
   const flow = lcu.gameflowSession.value.data;
@@ -127,12 +130,17 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   if (!session) return <section class="rlc-champselect" />;
 
   const phase = selectPhase(session);
+  // Arena: subtimes pelas vagas (tamanho pela fila); à esquerda o meu, à direita todos os outros com os picks.
+  const arenaSize = arenaTeamSize(flow?.gameData?.queue?.id);
+  const subteams = arenaMode ? arenaSubteams(session, arenaSize) : [];
+  const myCells = arenaMode ? (subteams.find((g) => g.mine)?.cells ?? session.myTeam) : session.myTeam;
   const allowed = (turn?.kind === 'ban' ? lcu.bannable.value.data : lcu.pickable.value.data) ?? [];
-  const bans = bansByTeam(session);
+  const bans = arenaMode ? arenaBans(session, arenaSize) : bansByTeam(session);
   const active = actingCells(session);
   // Banidos e escolhidos por outro ficam na grade, cinza e sem clique (a LCU pode mandá-los ainda como disponíveis).
   const blocked = unavailable(session);
-  const highlighted = turn && allowed.includes(turn.action.championId) && !blocked.has(turn.action.championId) ? turn.action.championId : 0;
+  const braveryOn = arenaMode && turn?.kind === 'pick';
+  const highlighted = turn && ((allowed.includes(turn.action.championId) && !blocked.has(turn.action.championId)) || (braveryOn && turn.action.championId === BRAVERY)) ? turn.action.championId : 0;
   const wants = allyWants(session);
   // Fora da vez de banir os indisponíveis só entram se forem meus (a grade é das minhas escolhas).
   const owned = new Set((lcu.gridChampions.value.data ?? []).filter((c) => c.owned || c.rented || c.freeToPlayForQueue).map((c) => c.id));
@@ -152,7 +160,7 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
 
   // Plugin de dodge: sai da seleção sem fechar o client, depois de confirmar. Some quando a partida já vai começar.
   const dodgeButton =
-    prefs.value.dodge && session.timer?.phase !== 'GAME_STARTING' ? (
+    prefs.value.dodge && dodgeAvailable() && session.timer?.phase !== 'GAME_STARTING' ? (
       <button type="button" class="rlc-button" data-variant="danger" disabled={leave.pending} onClick={() => setDodging(true)}>
         {t('csDodge')}
       </button>
@@ -167,13 +175,14 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
     ) : null;
 
   const stageId = previewing || shown?.championId || 0;
+  const crowd = arenaMode ? new Set(lcu.crowdFavorites.value.data ?? []) : undefined;
   const skins = lcu.skins.value.data ?? [];
   const chosen = locked && local ? skinOf(skins, pick ?? local.selectedSkinId) : undefined;
   const skin = previewing ? undefined : chosen;
 
   return (
     <section class="rlc-champselect" data-phase={phase} data-grid={gridOpen || cardTurn ? 'open' : undefined}>
-      {stageSkin ? <Crossfade src={splash} class="rlc-cs-splash" position="center 15%" /> : null}
+      {stageSkin ? <Crossfade src={splash} class="rlc-cs-splash" position="center 15%" /> : brave ? <Crossfade src={BRAVERY_BG} class="rlc-cs-splash" position="center 15%" /> : null}
       {mapArt && (diving || (!stageSkin && !gridOpen && !cardTurn)) ? <MapSide art={mapArt} mapId={flow?.map?.id} cells={session.myTeam} localCellId={session.localPlayerCellId} champions={champions} diving={diving} /> : null}
       {/* Ponte para o ROSE-SkinMonitor, que lê o nome da skin no DOM (`.skin-name-text`) e fica com o último visível. */}
       {rose && chosen ? (
@@ -184,7 +193,7 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
       <span class="rlc-cs-timebar" aria-hidden="true">
         <i style={{ width: `${Math.min(100, (seconds / total) * 100)}%` }} />
       </span>
-      <Team cells={session.myTeam} side="mine" bans={bans.mine} active={active} localCellId={session.localPlayerCellId} champions={champions} spells={spells} name={lcu.name} splash={lcu.game.splash} real={real.byCell} extra={real.extra} rankQueue={rankedQueueOf(lcu.gameflowSession.value.data?.gameData?.queue?.id) ?? 'RANKED_SOLO_5x5'} menuFor={(c) => (c.cellId === session.localPlayerCellId ? null : swapMenu(session, c))} />
+      <Team cells={myCells} side="mine" bans={bans.mine} active={active} localCellId={session.localPlayerCellId} champions={champions} spells={spells} name={lcu.name} splash={lcu.game.splash} real={real.byCell} extra={real.extra} rankQueue={rankedQueueOf(lcu.gameflowSession.value.data?.gameData?.queue?.id) ?? 'RANKED_SOLO_5x5'} menuFor={(c) => (c.cellId === session.localPlayerCellId ? null : swapMenu(session, c))} />
       <div class="rlc-cs-center">
         <header class="rlc-cs-head">
           <p class="rlc-cs-clock">
@@ -196,7 +205,7 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
           {/* As duas linhas ficam sempre no lugar (só somem da vista): o nome que aparece no mouse sobre a grade empurrava a
               grade para baixo, o mouse saía do campeão, o nome sumia e a grade subia de novo, sem parar. */}
           <h1 class="rlc-cs-champ-name" data-empty={stageId ? undefined : 'true'} aria-hidden={stageId ? undefined : 'true'}>
-            {(stageId && champions.get(stageId)?.name) || ' '}
+            {(brave && !previewing ? t('csBravery') : stageId && champions.get(stageId)?.name) || ' '}
           </h1>
           {chosen && !chosen.isBase ? (
             <p class="rlc-cs-skin-name" data-empty={skin ? undefined : 'true'} aria-hidden={skin ? undefined : 'true'}>
@@ -215,6 +224,8 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
               ids={gridIds}
               blocked={blocked}
               wanted={turn?.kind === 'ban' ? wants : undefined}
+              crowd={crowd}
+              bravery={braveryOn ? { selected: highlighted === BRAVERY, onPick: () => hover.run(turn!.action.id, BRAVERY) } : undefined}
               champions={champions}
               selected={highlighted}
               lanes={lanes}
@@ -239,8 +250,8 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
           </>
         )}
       </div>
-      {gameMode === 'CHERRY' ? (
-        <ArenaTeams cells={session.theirTeam} size={Math.max(1, session.myTeam.length)} champions={champions} bans={bans.theirs} />
+      {arenaMode ? (
+        <ArenaTeams subteams={subteams.filter((g) => !g.mine)} champions={champions} bans={bans.theirs} active={active} />
       ) : (
         <Team cells={session.theirTeam} side="theirs" bans={bans.theirs} active={active} localCellId={-1} champions={champions} spells={spells} name={lcu.name} splash={lcu.game.splash} />
       )}

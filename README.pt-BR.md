@@ -29,15 +29,15 @@
 
 ## O que ele faz
 
-O ReimaginedLC desenha as próprias telas por cima do client original. O client original continua rodando por baixo. Ele é a rede de segurança: se uma tela falhar, o ReimaginedLC se desliga e o client original volta.
+O ReimaginedLC desenha as próprias telas por cima do client original. O client original continua rodando por baixo. Se uma tela der erro, só ela mostra um aviso com "Tentar de novo" e o resto continua; na seleção de campeões, onde o tempo corre, volta a seleção do client original. Funções que dependem de um endpoint conferem se o client instalado o tem: uma atualização do client esconde ou troca a função em vez de quebrar.
 
 - **Início, lobby e fila.** Seletor de rotas no estilo do client. Na fila, uma pílula no canto mostra a fila e o tempo; ela estica de volta para a barra do lobby quando você volta.
-- **Seleção de campeões.** Splash grande no palco e os nomes reais dos aliados. Cada cartão de aliado mostra elo, PDL, taxa de vitória e KDA. Também: carrossel de skins, skins de sentinela, favoritos por rota (botão direito) e runas por confronto.
+- **Seleção de campeões.** Splash grande no palco e os nomes reais dos aliados. Cada cartão de aliado mostra elo, PDL, taxa de vitória e KDA. Também: carrossel de skins com prévia de cada skin (com ou sem cromas), skins de sentinela, favoritos por rota (botão direito) e runas por confronto. Na Arena, os picks de todos os subtimes, a Ousadia e os favoritos da torcida (bigorna).
 - **Pós-jogo.** Resultado, seus números com a posição na partida, gráficos, progresso de PDL e maestria, e quem te honrou. O TFT tem classificação, tabuleiro e comp de cada jogador e comparação com o seu histórico.
 - **Honra.** Honre aliados e inimigos, como no client atual.
 - **Perfil.** Seu fundo, brasão e banner. "Histórico de partidas" abre uma folha de vidro com o feed, de LoL ou TFT.
 - **Coleção e espólios.** Filtros e abas, criação e rerrolagem de espólios, Loja Mítica e o Santuário. Compras sempre pedem confirmação.
-- **Loja e eventos.** Skins em destaque com nome e transição entre splashes. O passe do evento mostra desabilitadas as recompensas bloqueadas.
+- **Loja e eventos.** Skins em destaque com nome e transição entre splashes. Skins, cromas e campeões abrem uma prévia em tela cheia (splash, splash animada, tela de carregamento, modelos das cromas, vídeos das habilidades) com Comprar. As ofertas da Sua Loja são reveladas ali mesmo. O passe do evento mostra desabilitadas as recompensas bloqueadas, os eventos trazem as missões de outras categorias (Journey to Stardom do ARAM Caos) e os Reinos dos Tesouros podem ser girados depois de confirmar.
 - **Amigos e chat.** Gaveta que pode ficar fixa aberta, pastas que lembram o estado, cartão ao passar o mouse, chat da sala aberto por padrão e sons.
 - **Configurações.** Editor de tema, fundo (imagem ou vídeo), modo leve para PCs fracos e idioma.
 
@@ -45,12 +45,20 @@ O ReimaginedLC desenha as próprias telas por cima do client original. O client 
 
 | | |
 |---|---|
-| ![Lobby](docs/screenshots/lobby.png) | ![Coleção](docs/screenshots/collection.png) |
-| Lobby | Coleção |
-| ![Perfil](docs/screenshots/profile.png) | ![Configurações](docs/screenshots/settings.png) |
-| Perfil | Configurações e plugins |
-| ![Loja](docs/screenshots/store.png) | ![Eventos](docs/screenshots/events.png) |
-| Loja | Eventos |
+| ![Jogar: escolha do modo](docs/screenshots/modes.png) | ![Lobby (TFT)](docs/screenshots/lobby.png) |
+| Jogar: escolha do modo | Lobby (TFT) |
+| ![Sala personalizada](docs/screenshots/custom.png) | ![Personalizar do TFT, com favoritos](docs/screenshots/tft.png) |
+| Sala personalizada | Personalizar do TFT, com favoritos |
+| ![Seleção de campeões](docs/screenshots/champselect.png) | ![Perfil](docs/screenshots/profile.png) |
+| Seleção de campeões | Perfil |
+| ![Coleção](docs/screenshots/collection.png) | ![Espólios](docs/screenshots/loot.png) |
+| Coleção | Espólios |
+| ![Loja](docs/screenshots/store.png) | ![Prévia de skin (splash, tela de carregamento, cromas, habilidades)](docs/screenshots/preview.png) |
+| Loja | Prévia de skin (splash, tela de carregamento, cromas, habilidades) |
+| ![Eventos: passe e missões do ARAM Caos](docs/screenshots/events.png) | ![Reinos dos Tesouros](docs/screenshots/troves.png) |
+| Eventos: passe e missões do ARAM Caos | Reinos dos Tesouros |
+| ![Clash](docs/screenshots/clash.png) | ![Configurações e plugins](docs/screenshots/settings.png) |
+| Clash | Configurações e plugins |
 
 ## Instalação
 
@@ -87,7 +95,7 @@ Pengu Loader/
 ## Primeiros passos
 
 - O **trilho da esquerda** é o menu principal: início, jogar, perfil, coleção, espólios, loja, eventos e configurações.
-- **Client original**, no fim do trilho, volta para a interface da Riot. **Ctrl+Shift+F12** faz o mesmo a qualquer momento.
+- **Ctrl+Shift+F12** volta para a interface da Riot a qualquer momento, e de novo para voltar.
 - Em **Configurações › Geral** você escolhe o idioma, o modo leve e se a interface abre junto com o client.
 - Em **Configurações › Aparência** você escolhe o tema e o fundo.
 
@@ -117,7 +125,7 @@ Quando uma atualização fica pronta, aparece um aviso com o botão **Recarregar
 
 ## Desligar e desinstalar
 
-- **Desligar:** aperte **Ctrl+Shift+F12** ou clique em **Client original** no trilho.
+- **Desligar:** aperte **Ctrl+Shift+F12**.
 - **Desinstalar:** apague a pasta `Pengu Loader/plugins/ReimaginedLC` e recarregue o client.
 - **Remover o Pengu Loader:** abra o Pengu Loader e clique em **Deactivate**.
 
@@ -126,7 +134,7 @@ Quando uma atualização fica pronta, aparece um aviso com o botão **Recarregar
 | Problema | Solução |
 |---|---|
 | Nada muda depois de instalar | Confira se o arquivo está em `plugins/ReimaginedLC/index.js` e se o Pengu Loader está ativado. Depois recarregue o client com **Ctrl+Shift+R**. |
-| Aviso "uma tela falhou" e o client original volta | Recarregue com **Ctrl+Shift+R**. Se repetir, copie o relatório em **Configurações › Geral › Relatório de erro** e cole numa [issue](https://github.com/kyso1/ReimaginedLC/issues) ou numa IA. |
+| Uma tela mostra "Esta tela teve um erro" (ou a seleção volta para a original) | Recarregue com **Ctrl+Shift+R**. Se repetir, copie o relatório em **Configurações › Geral › Relatório de erro** e cole numa [issue](https://github.com/kyso1/ReimaginedLC/issues) ou numa IA. |
 | Client lento | Ligue o **Modo leve** em **Configurações › Geral** (sem desfoque de vidro e com vídeos de fundo pausados). |
 | Preso em "Aguardando" depois da partida | Atualize para a última versão; as etapas do pós-jogo são concluídas sozinhas. |
 
