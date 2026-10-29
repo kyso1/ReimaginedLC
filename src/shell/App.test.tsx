@@ -615,7 +615,7 @@ test('trilho tem Espólios entre Coleção e Eventos e abre a vista própria; po
   vi.unstubAllGlobals();
 });
 
-test('fundo global vale em todas as telas e vistas fora da partida', async () => {
+test('fundo global vale em todas as telas e vistas, inclusive a da partida', async () => {
   enabled.value = true;
   lcu.game = { ...lcu.game, splash: async (id) => (id === 7 ? '/s/meu.jpg' : null) };
   const stub = () => <div class="stub" />;
@@ -641,10 +641,12 @@ test('fundo global vale em todas as telas e vistas fora da partida', async () =>
     await flush();
     expect(bg(), p).toBe('/s/meu.jpg');
   }
-  phase.value = ready('InProgress');
-  await flush();
-  expect(bg()).toBe('/fe/x/a.jpg');
-  expect(root.querySelector('.rlc-app')!.getAttribute('data-custom-bg')).toBeNull();
+  for (const p of ['GameStart', 'InProgress', 'WaitingForStats'] as const) {
+    phase.value = ready(p);
+    await flush();
+    expect(bg(), p).toBe('/s/meu.jpg');
+    expect(root.querySelector('.rlc-app')!.getAttribute('data-custom-bg'), p).toBe('true');
+  }
   background.value = DEFAULT_BG;
 });
 
@@ -831,4 +833,20 @@ test('erro dentro de uma tela fica nela (aviso e Tentar de novo); a camada conti
   spy.mockRestore();
   r(null, box);
   box.remove();
+});
+
+test('tela da partida: fundo em vídeo fica parado durante a partida e volta a tocar ao esperar os resultados', async () => {
+  enabled.value = true;
+  themes.active.value = { ...vidro, backgrounds: { default: { theme: 'vidro', path: '/fe/x/v.webm' } } };
+  phase.value = ready('InProgress');
+  const play = vi.mocked(HTMLMediaElement.prototype.play);
+  const pause = vi.mocked(HTMLMediaElement.prototype.pause);
+  mount();
+  await flush();
+  expect(root.querySelector('video.rlc-bg')!.getAttribute('src')).toBe('/fe/x/v.webm');
+  expect(pause).toHaveBeenCalled();
+  expect(play).not.toHaveBeenCalled();
+  phase.value = ready('WaitingForStats');
+  await flush();
+  expect(play).toHaveBeenCalled();
 });

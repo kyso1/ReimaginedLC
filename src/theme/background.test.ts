@@ -18,12 +18,11 @@ test('sourceFor: global vale para todas; por tela usa a da tela e cai no global'
   expect(sourceFor(DEFAULT_BG, 'home')).toBeNull();
 });
 
-test('sourceFor: o fundo global vale em todas as telas e vistas fora da partida, nunca na partida', () => {
+test('sourceFor: o fundo global vale em todas as telas e vistas, inclusive a da partida', () => {
   const f = { kind: 'file', key: 'meu', mime: 'image/jpeg' } as const;
   const b = { ...DEFAULT_BG, global: f, dim: 0.9, blur: 3 };
-  for (const s of ['home', 'lobby', 'profile', 'collection', 'loot', 'events', 'store', 'settings', 'postgame', 'champselect', 'honor']) expect(sourceFor(b, s), s).toEqual(f);
-  expect(GLOBAL_SCREENS).not.toContain('ingame');
-  expect(sourceFor(b, 'ingame')).toBeNull();
+  for (const s of ['home', 'lobby', 'profile', 'collection', 'loot', 'events', 'store', 'settings', 'postgame', 'champselect', 'honor', 'ingame']) expect(sourceFor(b, s), s).toEqual(f);
+  expect(GLOBAL_SCREENS).toContain('ingame');
   expect(sourceFor(b, 'unknown')).toBeNull();
 });
 
@@ -39,7 +38,7 @@ test('wantsRandom: só nas telas com fundo personalizado; tela com fonte própri
   expect(wantsRandom(b, 'home')).toBe(true);
   expect(wantsRandom(b, 'champselect')).toBe(true);
   expect(wantsRandom(b, 'store')).toBe(true);
-  expect(wantsRandom(b, 'ingame')).toBe(false);
+  expect(wantsRandom(b, 'ingame')).toBe(true);
   expect(wantsRandom({ ...b, scope: 'screens', screens: { lobby: { kind: 'splash', skinId: 1 } } }, 'lobby')).toBe(false);
   expect(wantsRandom({ ...b, scope: 'screens' }, 'profile')).toBe(true);
   expect(wantsRandom({ ...b, random: false }, 'home')).toBe(false);

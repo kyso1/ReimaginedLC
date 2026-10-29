@@ -1250,7 +1250,7 @@
   "evTroveRolling": "Rolling…",
   "evTroveGot": "You got",
   "evTroveDone": "Roll done. Your rewards are in your inventory.",
-  "stDodgeMissing": "This client version doesn't offer the leave-select request: the button stays hidden until Riot brings it back.",
+  "stDodgeMissing": "The current client version doesn't allow leaving champ select without closing it (tested): the button stays hidden until Riot brings that back.",
   "screenError": "This screen hit an error (probably something changed in the client). Everything else keeps working.",
   "unknownPhaseHint": "The client entered a new step. This screen switches on its own when the step changes; the side menu keeps working.",
   "pvNoVideo": "This ability's video isn't available yet."

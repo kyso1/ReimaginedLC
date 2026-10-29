@@ -305,7 +305,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
     >
       <Boundary onError={onError}>
         {/* O modo leve tira os vídeos do tema; o fundo que o usuário escolheu (wallpaper em vídeo) continua tocando. */}
-        <MediaBackground src={custom?.src ?? mediaUrl(theme, page ?? '', base)} video={custom?.video} poster={custom?.poster} onFail={custom?.retry} playing={focused.value && prefs.value.video && (!lite || !!custom)} />
+        <MediaBackground src={custom?.src ?? mediaUrl(theme, page ?? '', base)} video={custom?.video} poster={custom?.poster} onFail={custom?.retry} playing={focused.value && prefs.value.video && (!lite || !!custom) && phaseName !== 'InProgress'} />
         <div class="rlc-bg-dim" />
         <Rail
           // Qualquer item do trilho fecha o painel aberto por cima (modos, salas).

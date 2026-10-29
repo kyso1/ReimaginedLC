@@ -1250,7 +1250,7 @@
   "evTroveRolling": "Girando…",
   "evTroveGot": "Você recebeu",
   "evTroveDone": "Giro feito. O que saiu já está no seu inventário.",
-  "stDodgeMissing": "Esta versão do client não tem o pedido de sair da seleção: o botão fica escondido até a Riot devolvê-lo.",
+  "stDodgeMissing": "A versão atual do client não deixa sair da seleção sem fechá-lo (testado): o botão fica escondido até a Riot devolver isso.",
   "screenError": "Esta tela teve um erro (provavelmente algo mudou no client). O resto continua funcionando.",
   "unknownPhaseHint": "O client entrou numa etapa nova. Esta tela troca sozinha quando a etapa mudar; o menu ao lado continua funcionando.",
   "pvNoVideo": "O vídeo desta habilidade ainda não está disponível."

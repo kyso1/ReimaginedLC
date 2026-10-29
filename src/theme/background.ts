@@ -7,8 +7,12 @@ import { WALLPAPER_ID } from './wallpapers';
 export type BgSource = { kind: 'none' } | { kind: 'splash'; skinId: number } | { kind: 'file'; key: string; mime: string } | { kind: 'local'; id: string; mime: string };
 export const BG_SCREENS = ['home', 'lobby', 'profile', 'collection', 'postgame'] as const;
 export type BgScreen = (typeof BG_SCREENS)[number];
-/** Telas fora da partida: todas recebem o fundo global. Na seleção, a splash do campeão (quando há) fica por cima dele. */
-export const GLOBAL_SCREENS: readonly string[] = [...BG_SCREENS, 'loot', 'events', 'store', 'settings', 'champselect', 'honor'];
+/**
+ * Telas que recebem o fundo global. Na seleção, a splash do campeão (quando há) fica por cima dele. A tela da partida
+ * (carregando, em partida, esperando os resultados) também: sem ele ficava só o fundo do tema, que nos temas com fundo
+ * vazio é preto. Durante a partida o vídeo fica parado no quadro atual (App.tsx), para não disputar a GPU com o jogo.
+ */
+export const GLOBAL_SCREENS: readonly string[] = [...BG_SCREENS, 'loot', 'events', 'store', 'settings', 'champselect', 'honor', 'ingame'];
 
 export interface BgSettings {
   scope: 'global' | 'screens';
@@ -70,7 +74,7 @@ export function setBackground(b: BgSettings): void {
 /** Semente da escolha aleatória: uma por abertura do client. */
 export const SESSION_SEED = Math.random();
 
-/** Fonte da tela, ou null quando a tela fica com o fundo do tema (partida e telas sem configuração). */
+/** Fonte da tela, ou null quando a tela fica com o fundo do tema (telas sem configuração). */
 export function sourceFor(b: BgSettings, screen: string): BgSource | null {
   if (!GLOBAL_SCREENS.includes(screen)) return null;
   const own = b.scope === 'screens' ? b.screens[screen as BgScreen] : undefined;
