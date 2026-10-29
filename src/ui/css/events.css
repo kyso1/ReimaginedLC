@@ -119,3 +119,19 @@
 #rlc-root .rlc-ev-trove-got img { width: 40px; height: 40px; object-fit: contain; }
 #rlc-root .rlc-ev-xpnum { display: inline-flex; align-items: center; gap: 4px; }
 #rlc-root .rlc-ev-xpnum img { width: 18px; height: 18px; object-fit: contain; }
+
+/* Loja de Cristais do Reino: uma grade de cartões por loja, preço com o ícone do cristal. */
+#rlc-root .rlc-rs { gap: 18px; }
+#rlc-root .rlc-rs-cost { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-rs-cost img { width: 20px; height: 20px; object-fit: contain; }
+#rlc-root .rlc-rs-section { display: flex; flex-direction: column; gap: 10px; }
+#rlc-root .rlc-rs-head { display: flex; align-items: baseline; gap: 12px; }
+#rlc-root .rlc-rs-head h3 { margin: 0; font-size: 18px; }
+#rlc-root .rlc-rs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+#rlc-root .rlc-rs-item { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-glassTop, rgba(10, 12, 20, 0.55)); }
+#rlc-root .rlc-rs-item[data-owned='true'] { opacity: 0.65; }
+#rlc-root .rlc-rs-art { aspect-ratio: 1; border-radius: var(--rlc-radius-sm); background: var(--rlc-color-surface); overflow: hidden; }
+#rlc-root .rlc-rs-art img { width: 100%; height: 100%; object-fit: cover; }
+#rlc-root .rlc-rs-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 13px; }
+#rlc-root .rlc-rs-info b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+#rlc-root .rlc-ev-note[data-ok='false'] { color: var(--rlc-color-dangerText, #f08a94); }

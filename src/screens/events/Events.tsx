@@ -6,6 +6,8 @@ import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
 import { ChoicePicker } from '../../shell/overlays/Rewards';
 import { Confirm } from '../../shell/overlays/Confirm';
+import { buyRealmItem, loadRealmShop, REALM_CRYSTAL_WALLET, type RealmItem, type RealmSection } from './realmShop';
+import { REALM_CRYSTAL_ICON, STAR_SHARDS_ICON, TROVE_TOKEN_ICON } from '../../ui/currency';
 import {
   activeEvents, claimAll, daysLeft, eventPass, getJson, loadTftPasses, missionCards, openPassPurchase, pendingChoices, rewardState, rollTrove, selectChoice, TROVE_TOKEN, trovesRewards, trovesRoll,
   type Choice, type Grant, type HubEvent, type Level, type MissionCard, type ObjectiveCategory, type Pass,
@@ -76,6 +78,8 @@ export function Events({ lcu }: { lcu: Lcu }) {
     ...data.lol.map(({ pass, missions }) => ({ key: pass.id, label: pass.name, body: () => <PassView key={pass.id} pass={pass} missions={missions} onChanged={reload} /> })),
     ...data.tft.map((pass) => ({ key: pass.id, label: data.tft.length > 1 ? pass.name : t('evPassTft'), body: () => <PassView key={pass.id} pass={pass} missions={[]} onChanged={reload} /> })),
     ...(data.troves.length ? [{ key: 'troves', label: t('evTroves'), body: () => <Troves troves={data.troves} wallet={data.wallet} onRolled={reload} /> }] : []),
+    // A carteira só traz os Cristais do Reino para quem joga TFT: sem eles, a aba não aparece.
+    ...(REALM_CRYSTAL_WALLET in data.wallet ? [{ key: 'realm', label: t('evRealmShop'), body: () => <RealmShop wallet={data.wallet} onBought={reload} /> }] : []),
   ];
   if (!tabs.length) return <section class="rlc-events"><p class="rlc-ev-empty">{t('evNone')}</p></section>;
   const current = tabs.find((x) => x.key === tab) ?? tabs[0]!;
@@ -296,7 +300,11 @@ function Missions({ missions }: { missions: MissionCard[] }) {
 }
 
 // Moedas dos reinos na carteira (`/lol-inventory/v1/wallet/0`).
-const TROVE_CURRENCIES: Array<[string, TextKey]> = [[TROVE_TOKEN, 'evTreasureTokens'], ['tft_star_fragments', 'evStarShards'], ['tft_standard_coin', 'evRealmCrystals']];
+const TROVE_CURRENCIES: Array<[string, TextKey, string]> = [
+  [TROVE_TOKEN, 'evTreasureTokens', TROVE_TOKEN_ICON],
+  ['tft_star_fragments', 'evStarShards', STAR_SHARDS_ICON],
+  [REALM_CRYSTAL_WALLET, 'evRealmCrystals', REALM_CRYSTAL_ICON],
+];
 
 /** Giros de um Reino: 1 ou 10, como no client. */
 const ROLLS = [1, 10];
@@ -315,8 +323,9 @@ function Troves({ troves, wallet, onRolled }: { troves: Trove[]; wallet: Record<
   return (
     <div class="rlc-ev-page-body">
       <div class="rlc-ev-wallet">
-        {TROVE_CURRENCIES.filter(([k]) => wallet[k] !== undefined).map(([k, label]) => (
-          <span key={k}>
+        {TROVE_CURRENCIES.filter(([k]) => wallet[k] !== undefined).map(([k, label, icon]) => (
+          <span key={k} class="rlc-rs-cost">
+            <img src={icon} alt="" />
             <b>{n.format(wallet[k]!)}</b> {t(label)}
           </span>
         ))}
@@ -328,7 +337,10 @@ function Troves({ troves, wallet, onRolled }: { troves: Trove[]; wallet: Record<
             <div class="rlc-ev-trove-info">
               <b>{b.name.trim()}</b>
               <span class="rlc-ev-muted">{endsIn(Date.parse(b.endDate))}</span>
-              <span class="rlc-ev-muted">{n.format(b.pullCost)} {t('evTreasureTokens')} {t('evTroveCost')}</span>
+              <span class="rlc-ev-muted rlc-rs-cost">
+                <img src={TROVE_TOKEN_ICON} alt={t('evTreasureTokens')} />
+                {n.format(b.pullCost)} {t('evTroveCost')}
+              </span>
               {/* Sem endpoint de giro neste client (atualização da Riot): o banner fica só para consulta. */}
               {trovesRoll(b) ? <div class="rlc-ev-trove-rolls">
                 {ROLLS.map((count) => (
@@ -373,3 +385,90 @@ function Troves({ troves, wallet, onRolled }: { troves: Trove[]; wallet: Record<
   );
 }
 
+/**
+ * Loja de Cristais do Reino: os itens do TFT à venda por Cristais, uma seção por loja (com o prazo dela). Comprar pede
+ * confirmação; o item só vira "Possui" com a loja relida depois da compra (sem UI otimista).
+ */
+function RealmShop({ wallet, onBought }: { wallet: Record<string, number>; onBought: () => void }) {
+  const n = new Intl.NumberFormat(locale());
+  const [sections, setSections] = useState<RealmSection[] | null>(null);
+  const [rev, setRev] = useState(0);
+  useEffect(() => {
+    let live = true;
+    void loadRealmShop().then((s) => live && setSections(s));
+    return () => void (live = false);
+  }, [rev]);
+  const [asking, setAsking] = useState<RealmItem | null>(null);
+  const [result, setResult] = useState<{ name: string; ok: boolean } | null>(null);
+  const buy = useAction(async (item: RealmItem) => {
+    const ok = await buyRealmItem(item);
+    setResult({ name: item.name, ok });
+    setRev((r) => r + 1);
+    onBought();
+  });
+  const crystals = wallet[REALM_CRYSTAL_WALLET] ?? 0;
+  if (!sections) return <div class="rlc-ev-page-body"><p class="rlc-ev-empty">{t('evLoading')}</p></div>;
+  return (
+    <div class="rlc-ev-page-body rlc-rs">
+      <div class="rlc-ev-wallet">
+        <span class="rlc-rs-cost">
+          <img src={REALM_CRYSTAL_ICON} alt="" />
+          <b>{n.format(crystals)}</b> {t('evRealmCrystals')}
+        </span>
+      </div>
+      {result ? (
+        <p class="rlc-ev-note" role="status" data-ok={result.ok ? 'true' : 'false'}>
+          {t(result.ok ? 'evRealmBought' : 'evRealmFailed').replace('{name}', result.name)}
+        </p>
+      ) : null}
+      {buy.pending ? <p class="rlc-ev-note" aria-live="polite">{t('evRealmBuying')}</p> : null}
+      {sections.length ? null : <p class="rlc-ev-empty">{t('evRealmEmpty')}</p>}
+      {sections.map((s) => (
+        <section key={s.id} class="rlc-rs-section">
+          <header class="rlc-rs-head">
+            <h3>{s.name}</h3>
+            {s.endsAt ? <span class="rlc-ev-muted">{endsIn(s.endsAt)}</span> : null}
+          </header>
+          <div class="rlc-rs-grid">
+            {s.items.map((it) => {
+              const short = !it.owned && crystals < it.price;
+              return (
+                <article key={it.entryId} class="rlc-rs-item" data-owned={it.owned ? 'true' : undefined}>
+                  <div class="rlc-rs-art">{it.image ? <img src={it.image} alt="" loading="lazy" decoding="async" /> : null}</div>
+                  <div class="rlc-rs-info">
+                    <b title={it.description || undefined}>{it.name}</b>
+                    {it.owned ? (
+                      <span class="rlc-ev-muted">{t('storeOwned')}</span>
+                    ) : (
+                      <span class="rlc-rs-cost">
+                        <img src={REALM_CRYSTAL_ICON} alt={t('evRealmCrystals')} />
+                        {n.format(it.price)}
+                      </span>
+                    )}
+                  </div>
+                  {it.owned ? null : (
+                    <button type="button" class="rlc-button" data-variant="primary" disabled={buy.pending || short} title={short ? t('evRealmShort') : undefined} onClick={() => setAsking(it)}>
+                      {t('storeBuy')}
+                    </button>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+      {asking ? (
+        <Confirm
+          message={t('evRealmConfirm').replace('{cost}', n.format(asking.price)).replace('{name}', asking.name)}
+          confirmLabel={t('storeBuy')}
+          onConfirm={() => {
+            setAsking(null);
+            setResult(null);
+            buy.run(asking);
+          }}
+          onCancel={() => setAsking(null)}
+        />
+      ) : null}
+    </div>
+  );
+}

@@ -1258,5 +1258,19 @@
   "voiceYou": "você",
   "voiceMuted": "Microfone mudo",
   "voiceSpeaking": "falando",
-  "voiceEmpty": "Ninguém no canal ainda."
+  "voiceEmpty": "Ninguém no canal ainda.",
+  "evRealmShop": "Loja de Cristais",
+  "evRealmConfirm": "Comprar {name} por {cost} Cristais do Reino?",
+  "evRealmBuying": "Comprando…",
+  "evRealmBought": "{name} comprado. Já está na sua coleção.",
+  "evRealmFailed": "A compra de {name} não foi confirmada. Nada foi cobrado se o item não aparecer como possuído.",
+  "evRealmShort": "Cristais do Reino insuficientes",
+  "evRealmEmpty": "Nenhum item à venda por Cristais do Reino agora.",
+  "tftStars": "Estrelas",
+  "tftEquip": "Equipar",
+  "tftUpgrade": "Upar para {n}★",
+  "tftUpgradeConfirm": "Upar {name} para {n}★ por {cost} Fragmentos Estelares?",
+  "tftUpgradeShort": "Fragmentos Estelares insuficientes",
+  "tftUpgradeDone": "Upgrade feito. A estrela nova já pode ser equipada.",
+  "tftUpgradeFailed": "O upgrade não foi confirmado. Nada foi cobrado se a estrela não aparecer."
 }

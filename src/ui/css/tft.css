@@ -89,3 +89,14 @@
 #rlc-root .rlc-col-nick { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 #rlc-root .rlc-col-icon { flex: none; width: 28px; height: 28px; border: 1px solid var(--rlc-color-border); border-radius: 50%; object-fit: cover; }
 #rlc-root .rlc-tft-favorite { align-self: flex-start; margin-top: 8px; }
+
+/* Estrelas da Pequena Lenda: equipar o nível possuído; upar o próximo com Fragmentos Estelares. */
+#rlc-root .rlc-tft-stars { display: flex; gap: 6px; margin-top: 8px; }
+#rlc-root .rlc-tft-star { padding: 4px 10px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-pill, 99px); background: transparent; color: var(--rlc-color-highlight, #f0b63c); font: inherit; font-size: 13px; letter-spacing: 1px; cursor: pointer; }
+#rlc-root .rlc-tft-star[aria-pressed='true'] { border-color: var(--rlc-color-accent); background: var(--rlc-color-surface); }
+#rlc-root .rlc-tft-star:disabled { cursor: default; }
+#rlc-root .rlc-tft-star[data-locked='true'] { opacity: 0.35; cursor: default; }
+#rlc-root .rlc-tft-upgrade { align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; margin-top: 8px; }
+#rlc-root .rlc-tft-cost { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-tft-cost img { width: 18px; height: 18px; object-fit: contain; }
+#rlc-root .rlc-tft-wallet { margin-left: auto; margin-right: 12px; font-size: 13px; color: var(--rlc-color-textMuted); }

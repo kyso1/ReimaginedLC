@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { t, type TextKey } from '../../i18n';
+import { locale, t, type TextKey } from '../../i18n';
 import { supports } from '../../lcu/capabilities';
+import { marketPurchase } from '../../lcu/marketplace';
+import { STAR_SHARDS_ICON } from '../../ui/currency';
+import { Confirm } from '../../shell/overlays/Confirm';
 import { request } from '../../lcu/request';
 import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
@@ -19,7 +22,23 @@ interface Item {
   TFTRarity?: string;
   /** Espécie da Pequena Lenda. */
   species?: string;
+  /** Estrelas da Pequena Lenda (1 a 3). */
+  level?: number;
+  /** Níveis seguintes (2 e 3 estrelas), cada um com o preço em Fragmentos Estelares e a oferta da loja de upgrades. */
+  upgrades?: Item[];
+  starShardsPrice?: { chemtechUpgradeStoreId?: string; offerId?: string; price?: number };
 }
+
+
+/** Níveis da Pequena Lenda: o item da grade (1 estrela) e os upgrades, na ordem. */
+export const starLevels = (it: Item): Item[] => [it, ...(it.upgrades ?? [])].sort((a, b) => (a.level ?? 1) - (b.level ?? 1));
+/** Próximo nível a comprar: o primeiro não possuído, só com o anterior possuído e a oferta da loja de upgrades. */
+export const nextStar = (it: Item): Item | null => {
+  const levels = starLevels(it);
+  const i = levels.findIndex((l) => !l.owned);
+  const next = i > 0 ? levels[i]! : null;
+  return next?.starShardsPrice?.chemtechUpgradeStoreId && next.starShardsPrice.offerId ? next : null;
+};
 interface Inventory {
   groups?: Array<{ groupName?: string; items?: Item[] }>;
 }
@@ -53,7 +72,8 @@ const RARITY: Record<string, [string, TextKey]> = {
 
 /** Personalizar do lobby de TFT: abas por tipo, prévia grande à esquerda e grade com busca e filtro. */
 export function TftCustomize({ onClose }: { onClose: () => void }) {
-  useEscape(onClose);
+  // Com a confirmação de upgrade aberta, o Esc é dela (não fecha a gaveta junto).
+  useEscape(() => !upgrading && onClose());
   const [tab, setTab] = useState(TABS[0]!);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('owned');
@@ -82,6 +102,19 @@ export function TftCustomize({ onClose }: { onClose: () => void }) {
     await request(favorites.has(it.itemId) ? 'DELETE' : 'PUT', `/lol-cosmetics/v1/favorites/tft/${from.key}/${encodeURIComponent(it.contentId!)}`);
     await loadFavorites(from);
   });
+  // Fragmentos Estelares para upar Pequenas Lendas; relidos depois de cada upgrade.
+  const [shards, setShards] = useState<number | null>(null);
+  const loadShards = () => getJson<Record<string, number>>('/lol-inventory/v1/wallet/0').then((w) => setShards(w?.tft_star_fragments ?? 0));
+  useEffect(() => void loadShards(), []);
+  const [upgrading, setUpgrading] = useState<Item | null>(null);
+  const [upgradeResult, setUpgradeResult] = useState<boolean | null>(null);
+  // Upar compra o nível na loja de upgrades (como o client); a estrela nova só aparece com o inventário relido.
+  const upgrade = useAction(async (level: Item) => {
+    const from = tab;
+    const ok = await marketPurchase({ storeId: level.starShardsPrice!.chemtechUpgradeStoreId!, catalogEntryId: level.starShardsPrice!.offerId! });
+    setUpgradeResult(ok);
+    await Promise.all([load(from), loadShards()]);
+  });
   // Sem UI otimista: a marca de equipado vem do inventário relido depois do PUT.
   const equip = useAction(async (itemId: number) => {
     const from = tab;
@@ -92,7 +125,8 @@ export function TftCustomize({ onClose }: { onClose: () => void }) {
   const q = query.trim().toLowerCase();
   const groups = inventory?.groups ?? [];
   const every = groups.flatMap((g) => g.items ?? []);
-  const equipped = every.find((i) => i.selected) ?? null;
+  // Com uma estrela a mais equipada, a marca de selecionado está no upgrade, não no item da grade.
+  const equipped = every.find((i) => i.selected || i.upgrades?.some((u) => u.selected)) ?? null;
   const shown = every.find((i) => i.itemId === focus) ?? equipped;
   const keep = (items: Item[]) =>
     items.filter((i) => (filter === 'all' || (filter === 'owned' ? i.owned : favorites.has(i.itemId))) && (!q || i.name.toLowerCase().includes(q)));
@@ -107,7 +141,25 @@ export function TftCustomize({ onClose }: { onClose: () => void }) {
 
   return (
     <div class="rlc-tft-drawer" role="dialog" aria-label={t('tftCustomize')}>
+      {upgrading ? (
+        <Confirm
+          message={t('tftUpgradeConfirm').replace('{name}', upgrading.name.trim()).replace('{n}', String(upgrading.level ?? 2)).replace('{cost}', String(upgrading.starShardsPrice?.price ?? 0))}
+          confirmLabel={t('tftUpgrade').replace('{n}', String(upgrading.level ?? 2))}
+          onConfirm={() => {
+            const level = upgrading;
+            setUpgrading(null);
+            upgrade.run(level);
+          }}
+          onCancel={() => setUpgrading(null)}
+        />
+      ) : null}
       <header class="rlc-tft-head">
+        {shards !== null && tab.key === 'companions' ? (
+          <span class="rlc-tft-cost rlc-tft-wallet" title={t('evStarShards')}>
+            <img src={STAR_SHARDS_ICON} alt="" />
+            {new Intl.NumberFormat(locale()).format(shards)} {t('evStarShards')}
+          </span>
+        ) : null}
         <div class="rlc-tft-tabs" role="tablist">
           {TABS.map((tb) => (
             <button type="button" role="tab" key={tb.key} aria-selected={tb === tab} onClick={() => setTab(tb)}>
@@ -134,6 +186,42 @@ export function TftCustomize({ onClose }: { onClose: () => void }) {
             <p class="rlc-tft-state" data-state={shown.selected ? 'on' : shown.owned ? undefined : 'locked'}>
               {shown.selected ? t('tftEquipped') : shown.owned ? t('clickToEquip') : t('tftNotOwned')}
             </p>
+            {shown.owned && shown.upgrades?.length ? (
+              <div class="rlc-tft-stars" role="group" aria-label={t('tftStars')}>
+                {starLevels(shown).map((l) => {
+                  const stars = l.level ?? 1;
+                  const label = `${stars}★`;
+                  return l.owned ? (
+                    <button type="button" key={l.itemId} class="rlc-tft-star" aria-pressed={l.selected === true} aria-label={`${t('tftEquip')} ${label}`} title={`${t('tftEquip')} ${label}`} disabled={equip.pending || l.selected} onClick={() => equip.run(l.itemId)}>
+                      {'★'.repeat(stars)}
+                    </button>
+                  ) : (
+                    <span key={l.itemId} class="rlc-tft-star" data-locked="true" title={t('tftNotOwned')}>
+                      {'★'.repeat(stars)}
+                    </span>
+                  );
+                })}
+              </div>
+            ) : null}
+            {shown.owned && nextStar(shown) ? (() => {
+              const next = nextStar(shown)!;
+              const price = next.starShardsPrice?.price ?? 0;
+              const short = shards !== null && shards < price;
+              return (
+                <button type="button" class="rlc-button rlc-tft-upgrade" data-variant="primary" disabled={upgrade.pending || short} title={short ? t('tftUpgradeShort') : undefined} onClick={() => (setUpgradeResult(null), setUpgrading(next))}>
+                  {t('tftUpgrade').replace('{n}', String(next.level ?? 2))}
+                  <span class="rlc-tft-cost">
+                    <img src={STAR_SHARDS_ICON} alt={t('evStarShards')} />
+                    {price}
+                  </span>
+                </button>
+              );
+            })() : null}
+            {upgradeResult !== null ? (
+              <p class="rlc-tft-state" role="status" data-state={upgradeResult ? 'on' : 'locked'}>
+                {t(upgradeResult ? 'tftUpgradeDone' : 'tftUpgradeFailed')}
+              </p>
+            ) : null}
             {shown.owned && shown.contentId && supports('PUT', '/lol-cosmetics/v1/favorites/tft/{cosmeticType}/{contentId}') ? (
               <button type="button" class="rlc-button rlc-tft-favorite" data-variant="pill" aria-pressed={favorites.has(shown.itemId)} disabled={favorite.pending} onClick={() => favorite.run(shown)}>
                 {favorites.has(shown.itemId) ? `♥ ${t('tftUnfavorite')}` : `♡ ${t('tftFavorite')}`}

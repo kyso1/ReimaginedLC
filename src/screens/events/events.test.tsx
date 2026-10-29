@@ -340,3 +340,21 @@ test('Reinos: client só com o giro v1 usa a oferta e a tabela do banner; sem ne
     endpoints.value = null;
   }
 });
+
+test('Loja de Cristais: aba só com Cristais na carteira; comprar pede confirmação e relê a loja', async () => {
+  const shop = { data: [{ id: 's1', name: 'Sazonal', startTime: iso(-DAY), endTime: iso(3 * DAY), catalogEntries: [{ id: 'a', name: 'Chibi Fulana', displayMetadata: { tft: { pc: 'ASSETS/a.png' } }, purchaseUnits: [{ fulfillment: { ownedQuantity: 0, maxQuantity: 1 }, paymentOptions: [{ key: '0-tft_standard_coin', payments: [{ currencyId: 'db40bd66-f3ac-5bca-a104-2eebca8cc1d2', finalDelta: 3000 }] }] }] }] }] };
+  routes['/lol-inventory/v1/wallet/0'] = { tft_standard_coin: 3650 };
+  routes['/lol-marketplace/v1/products/tft/stores'] = shop;
+  await mount();
+  act(() => tab('Loja de Cristais').click());
+  await settle();
+  expect(root.querySelector('.rlc-rs-head h3')!.textContent).toBe('Sazonal');
+  expect(root.querySelector('.rlc-rs-item .rlc-rs-cost')!.textContent).toBe('3.000');
+  act(() => root.querySelector<HTMLButtonElement>('.rlc-rs-item button')!.click());
+  expect(root.querySelector('.rlc-veil')!.textContent).toContain('Comprar Chibi Fulana por 3.000 Cristais do Reino?');
+  expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-marketplace/v1/products/tft/purchases')).toBe(false);
+  render(null, root);
+  routes['/lol-inventory/v1/wallet/0'] = { RP: 5 };
+  await mount();
+  expect(tabs()).not.toContain('Loja de Cristais');
+});

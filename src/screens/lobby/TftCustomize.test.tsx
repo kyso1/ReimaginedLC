@@ -169,3 +169,39 @@ test('Favoritar: PUT/DELETE pelo contentId do item em foco; o coração só muda
   expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-cosmetics/v1/favorites/tft/companions/c-2' && (c[1] as RequestInit)?.method === 'DELETE')).toBe(true);
   expect(favBtn().getAttribute('aria-pressed')).toBe('false');
 });
+
+test('estrelas: equipa o nível possuído; Upar compra o próximo na loja de upgrades depois de confirmar e relê', async () => {
+  const lvl = (itemId: number, level: number, owned: boolean, selected = false) => ({ ...item(itemId, 'Sprite Azul', { owned, selected }), level, starShardsPrice: { chemtechUpgradeStoreId: 'up-store', offerId: `offer-${level}`, price: 150 } });
+  let ownedTwo = false;
+  const base = fetchMock.getMockImplementation() as (url: string, init?: RequestInit) => Promise<Response>;
+  fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+    if (url === '/lol-cosmetics/v1/inventories/tft/companions')
+      return new Response(JSON.stringify({ groups: [{ groupName: 'River Sprite', items: [{ ...item(2, 'Sprite Azul', { selected: true }), level: 1, upgrades: [lvl(20, 2, ownedTwo), lvl(30, 3, false)] }] }] }), { status: 200 });
+    if (url === '/lol-inventory/v1/wallet/0') return new Response(JSON.stringify({ tft_star_fragments: 400 }), { status: 200 });
+    if (url === '/lol-marketplace/v1/products/tft/purchases') {
+      ownedTwo = true;
+      return new Response(JSON.stringify({ data: { id: 'p9' } }), { status: 200 });
+    }
+    if (url === '/lol-marketplace/v1/purchases/p9') return new Response(JSON.stringify({ purchaseState: 'COMPLETE' }), { status: 200 });
+    return base(url, init);
+  });
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  await open();
+  expect(root.querySelector('.rlc-tft-wallet')!.textContent).toContain('400');
+  expect([...root.querySelectorAll('.rlc-tft-star')].map((s) => [s.textContent, s.getAttribute('data-locked')])).toEqual([['★', null], ['★★', 'true'], ['★★★', 'true']]);
+  const up = root.querySelector<HTMLButtonElement>('.rlc-tft-upgrade')!;
+  expect(up.textContent).toContain('Upar para 2★');
+  act(() => up.click());
+  expect(root.querySelector('.rlc-veil')!.textContent).toContain('Upar Sprite Azul para 2★ por 150 Fragmentos Estelares?');
+  expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-marketplace/v1/products/tft/purchases')).toBe(false);
+  act(() => [...root.querySelectorAll<HTMLButtonElement>('.rlc-veil button')].find((b) => b.textContent === 'Upar para 2★')!.click());
+  await act(async () => void (await vi.advanceTimersByTimeAsync(2000)));
+  await settle();
+  const post = fetchMock.mock.calls.find((c) => c[0] === '/lol-marketplace/v1/products/tft/purchases')!;
+  expect(JSON.parse(post[1]!.body as string)).toEqual({ storeId: 'up-store', catalogEntryId: 'offer-2' });
+  expect(root.querySelector('.rlc-tft-upgrade')!.textContent).toContain('Upar para 3★');
+  act(() => root.querySelector<HTMLButtonElement>('.rlc-tft-star[aria-label="Equipar 2★"]')!.click());
+  await settle();
+  expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-cosmetics/v1/selection/companion' && c[1]?.body === '20')).toBe(true);
+  vi.useRealTimers();
+});

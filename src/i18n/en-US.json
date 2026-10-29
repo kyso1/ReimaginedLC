@@ -1258,5 +1258,19 @@
   "voiceYou": "you",
   "voiceMuted": "Mic muted",
   "voiceSpeaking": "speaking",
-  "voiceEmpty": "No one in the channel yet."
+  "voiceEmpty": "No one in the channel yet.",
+  "evRealmShop": "Realm Crystal Shop",
+  "evRealmConfirm": "Buy {name} for {cost} Realm Crystals?",
+  "evRealmBuying": "Buying…",
+  "evRealmBought": "{name} bought. It is in your collection.",
+  "evRealmFailed": "The purchase of {name} wasn't confirmed. Nothing was charged if the item doesn't show as owned.",
+  "evRealmShort": "Not enough Realm Crystals",
+  "evRealmEmpty": "Nothing on sale for Realm Crystals right now.",
+  "tftStars": "Stars",
+  "tftEquip": "Equip",
+  "tftUpgrade": "Upgrade to {n}★",
+  "tftUpgradeConfirm": "Upgrade {name} to {n}★ for {cost} Star Shards?",
+  "tftUpgradeShort": "Not enough Star Shards",
+  "tftUpgradeDone": "Upgrade done. The new star level can be equipped.",
+  "tftUpgradeFailed": "The upgrade wasn't confirmed. Nothing was charged if the star doesn't show up."
 }
