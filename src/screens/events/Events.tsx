@@ -1,5 +1,5 @@
 import type { ComponentChildren } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { useAction } from '../../ui/useAction';
@@ -7,9 +7,10 @@ import { useEscape } from '../../ui/useEscape';
 import { ChoicePicker } from '../../shell/overlays/Rewards';
 import { Confirm } from '../../shell/overlays/Confirm';
 import { buyRealmItem, loadRealmShop, REALM_CRYSTAL_WALLET, type RealmItem, type RealmSection } from './realmShop';
+import { mountKiwiHub } from './kiwiHub';
 import { REALM_CRYSTAL_ICON, STAR_SHARDS_ICON, TROVE_TOKEN_ICON } from '../../ui/currency';
 import {
-  activeEvents, claimAll, daysLeft, eventPass, getJson, loadTftPasses, missionCards, openPassPurchase, pendingChoices, rewardState, rollTrove, selectChoice, TROVE_TOKEN, trovesRewards, trovesRoll,
+  claimAll, isKiwiHub, loadMenuEvents, daysLeft, eventPass, getJson, loadTftPasses, missionCards, openPassPurchase, pendingChoices, rewardState, rollTrove, selectChoice, TROVE_TOKEN, trovesRewards, trovesRoll,
   type Choice, type Grant, type HubEvent, type Level, type MissionCard, type ObjectiveCategory, type Pass,
   type Reward, type TrackItem, type TrackProgress, type Trove,
 } from './data';
@@ -17,7 +18,7 @@ import {
 export { pendingClaims, openPassPurchase } from './data';
 
 interface Loaded {
-  lol: Array<{ pass: Pass; missions: MissionCard[] }>;
+  lol: Array<{ pass: Pass; missions: MissionCard[]; kiwi: boolean }>;
   tft: Pass[];
   troves: Trove[];
   wallet: Record<string, number>;
@@ -40,12 +41,12 @@ async function loadLolEvent(e: HubEvent, categories: ObjectiveCategory[], choice
   const chapter = chapters?.chapters?.find((c) => c.chapterStart <= Math.max(1, level) && Math.max(1, level) <= c.chapterEnd);
   const background = chapter?.backgroundImage || details?.actBackgroundImage || null;
   const pass = eventPass(e, [...(items ?? []), ...(bonus ?? [])], progress, background, choices, { unclaimed: unclaimed?.rewardsCount, xpIcon: info?.battleExpIcon });
-  return { pass, missions: missionCards(categories, e.eventId, Date.now(), e.eventInfo.eventName) };
+  return { pass, missions: missionCards(categories, e.eventId, Date.now(), e.eventInfo.eventName), kiwi: isKiwiHub(e) };
 }
 
 async function loadAll(): Promise<Loaded> {
   const [events, objectives, tft, troves, wallet, grants] = await Promise.all([
-    getJson<HubEvent[]>('/lol-event-hub/v1/events'),
+    loadMenuEvents(),
     getJson<Array<{ objectivesCategories?: ObjectiveCategory[] }>>('/lol-objectives/v1/objectives/lol'),
     loadTftPasses().catch(() => []),
     getJson<Trove[]>('/lol-tft-troves/v1/banners'),
@@ -54,7 +55,7 @@ async function loadAll(): Promise<Loaded> {
   ]);
   const categories = objectives?.[0]?.objectivesCategories ?? [];
   const choices = pendingChoices(grants ?? []);
-  const lol = (await Promise.all(activeEvents(events ?? []).map((e) => loadLolEvent(e, categories, choices)))).filter((x) => x.pass.levels.length);
+  const lol = (await Promise.all(events.map((e) => loadLolEvent(e, categories, choices)))).filter((x) => x.kiwi || x.pass.levels.length);
   const now = Date.now();
   return {
     lol,
@@ -75,7 +76,10 @@ export function Events({ lcu }: { lcu: Lcu }) {
   if (!data) return <section class="rlc-events"><p class="rlc-ev-empty">{t('evLoading')}</p></section>;
 
   const tabs: Array<{ key: string; label: string; body: () => ComponentChildren }> = [
-    ...data.lol.map(({ pass, missions }) => ({ key: pass.id, label: pass.name, body: () => <PassView key={pass.id} pass={pass} missions={missions} onChanged={reload} /> })),
+    ...data.lol.map(({ pass, missions, kiwi }) => {
+      const track = () => <PassView key={pass.id} pass={pass} missions={missions} onChanged={reload} />;
+      return { key: pass.id, label: pass.name, body: kiwi ? () => <KiwiHub key={pass.id} fallback={track} /> : track };
+    }),
     ...data.tft.map((pass) => ({ key: pass.id, label: data.tft.length > 1 ? pass.name : t('evPassTft'), body: () => <PassView key={pass.id} pass={pass} missions={[]} onChanged={reload} /> })),
     ...(data.troves.length ? [{ key: 'troves', label: t('evTroves'), body: () => <Troves troves={data.troves} wallet={data.wallet} onRolled={reload} /> }] : []),
     // A carteira só traz os Cristais do Reino para quem joga TFT: sem eles, a aba não aparece.
@@ -96,6 +100,18 @@ export function Events({ lcu }: { lcu: Lcu }) {
       {current.body()}
     </section>
   );
+}
+
+/** Hub do passe Mayhem, o do client; sem a API ou se ele falhar, a trilha comum (o `fallbackToBuiltIn` do client). */
+function KiwiHub({ fallback }: { fallback: () => ComponentChildren }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const stop = mountKiwiHub(ref.current!, () => setFailed(true));
+    if (!stop) setFailed(true);
+    return stop ?? undefined;
+  }, []);
+  return failed ? <>{fallback()}</> : <div class="rlc-ev-kiwi" ref={ref} />;
 }
 
 const PAGE = 10;

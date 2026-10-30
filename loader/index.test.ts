@@ -74,7 +74,7 @@ test('postInit: API que chega antes ou depois do bundle pedir é entregue; outro
   const other = vi.fn();
   const rcp = { postInit: vi.fn((name: string, cb: (api: unknown) => unknown) => (name === 'outro' ? other(cb) : void riot.set(name, cb))) };
   const fake = proxyContext({ rcp });
-  expect([...riot.keys()]).toEqual(['rcp-fe-lol-paw', 'rcp-fe-lol-shared-components']);
+  expect([...riot.keys()]).toEqual(['rcp-fe-lol-paw', 'rcp-fe-lol-shared-components', 'rcp-fe-lol-kiwi-hub']);
   riot.get('rcp-fe-lol-paw')!('paw');
   const early = vi.fn();
   fake.rcp.postInit!('rcp-fe-lol-paw', early);

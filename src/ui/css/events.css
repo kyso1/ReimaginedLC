@@ -1,6 +1,12 @@
 /* events: estilos da tela, carregados por @import em styles.css. Cores só por var(--rlc-*, reserva). */
 #rlc-root .rlc-events { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 36px 0 0; overflow: hidden; }
 #rlc-root .rlc-events > .rlc-ev-tabs { position: relative; z-index: 2; padding: 0 48px; flex-wrap: wrap; }
+/*
+ * Hub do Mayhem (plugin do client): o transform prende os filhos fixos dele dentro do quadro. Ele foi feito para a janela
+ * inteira: `margin-top: 82px` (a barra do client) e páginas de 640px fixos no JS (`GROUP_PAGE_HEIGHT`). Por isso o quadro
+ * ocupa a seção toda e nossas abas ficam na faixa da barra.
+ */
+#rlc-root .rlc-ev-kiwi { position: absolute; inset: 0; overflow: hidden; transform: translateZ(0); }
 #rlc-root .rlc-ev-empty { padding: 0 48px; color: var(--rlc-color-textMuted); }
 #rlc-root .rlc-ev-muted { color: var(--rlc-color-textMuted); }
 #rlc-root .rlc-ev-note { margin: 0; font-size: 13px; color: var(--rlc-color-textMuted); }

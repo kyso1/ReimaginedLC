@@ -6,6 +6,7 @@ import { enabled, syncLayer } from './shell/layer';
 import { hideBoot, showBoot } from './shell/boot';
 import { setPawApi, setSharedComponentsApi } from './screens/store/purchase';
 import { loadInstalled } from './plugins/market';
+import { setKiwiHubApi } from './screens/events/kiwiHub';
 
 /** Contexto que o Pengu passa ao `init`: `rcp.postInit` entrega a API de um plugin da Riot quando ele sobe. */
 interface PenguContext {
@@ -29,6 +30,8 @@ export function init(context?: PenguContext): void {
     context?.rcp?.postInit?.('rcp-fe-lol-paw', (api) => setPawApi(api as Parameters<typeof setPawApi>[0]));
     // Compra de RP (o "+" da carteira da loja).
     context?.rcp?.postInit?.('rcp-fe-lol-shared-components', setSharedComponentsApi);
+    // Hub do passe Mayhem na aba Eventos.
+    context?.rcp?.postInit?.('rcp-fe-lol-kiwi-hub', setKiwiHubApi);
   } catch (e) {
     console.error('[rlc]', e);
   }
