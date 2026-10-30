@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
-import { toLine, attach } from './record-lib.mjs';
+import { toLine, attach, toRequestLine, toResponseLine, redactLine } from './record-lib.mjs';
+
+// Mensagem do DevTools (Network.requestWillBeSent) como o client a manda; `frames` é a pilha de quem chamou.
+const sent = ({ url, method = 'GET', type = 'Fetch', postData, frames = ['https://127.0.0.1:50000/fe/lol-loot/index.js'], id = '1' }) => ({
+  method: 'Network.requestWillBeSent',
+  params: { requestId: id, type, request: { url, method, postData }, initiator: { type: 'script', stack: { callFrames: frames.map((u) => ({ url: u })) } } },
+});
 
 const msg = (uri, data = {}, eventType = 'Update') => JSON.stringify([8, 'OnJsonApiEvent', { uri, eventType, data }]);
 
@@ -56,4 +62,71 @@ test('attach encerra uma única vez mesmo com erro seguido de fechamento', () =>
   ws.emit('error', new Error('ECONNRESET'));
   ws.emit('close');
   assert.equal(ends, 1);
+});
+
+test('toRequestLine grava chamada da API feita pelo client original, com corpo em JSON', () => {
+  const msg = sent({ url: 'https://127.0.0.1:50000/lol-loot/v1/recipes/CHEST_generic_OPEN/craft?repeat=1', method: 'POST', postData: '["CHEST_generic","MATERIAL_key"]' });
+  assert.deepEqual(toRequestLine(msg, 300, { host: '127.0.0.1:50000' }), {
+    type: 'request',
+    t: 300,
+    id: '1',
+    sender: 'client',
+    method: 'POST',
+    uri: '/lol-loot/v1/recipes/CHEST_generic_OPEN/craft?repeat=1',
+    data: ['CHEST_generic', 'MATERIAL_key'],
+  });
+});
+
+test('toRequestLine ignora outro host, recurso estático e URI ruidosa', () => {
+  const opts = { host: '127.0.0.1:50000' };
+  assert.equal(toRequestLine(sent({ url: 'https://outro.exemplo/lol-loot/v1/player-loot' }), 0, opts), null);
+  assert.equal(toRequestLine(sent({ url: 'https://127.0.0.1:50000/fe/lol-loot/index.js', type: 'Script' }), 0, opts), null);
+  assert.equal(toRequestLine(sent({ url: 'https://127.0.0.1:50000/lol-missions/v1/missions' }), 0, opts), null);
+  assert.equal(toRequestLine({ method: 'Network.responseReceived', params: {} }, 0, opts), null);
+  assert.equal(toRequestLine(sent({ url: 'https://127.0.0.1:50000/lol-loot/v1/player-loot', type: 'XHR' }), 0, opts).uri, '/lol-loot/v1/player-loot');
+});
+
+test('toRequestLine marca a layer como sender mesmo atrás do wrapper de fetch do client ou numa pilha assíncrona', () => {
+  const opts = { host: '127.0.0.1:50000' };
+  const url = 'https://127.0.0.1:50000/lol-lobby/v2/party/abc/join';
+  const wrapper = 'https://127.0.0.1:50000/fe/common-libs/rcp-fe-common-libs.js';
+  const layer = 'https://plugins/ReimaginedLC/index.js';
+  assert.equal(toRequestLine(sent({ url, frames: [wrapper, layer] }), 0, opts).sender, 'layer');
+
+  const async = sent({ url, frames: [wrapper] });
+  async.params.initiator.stack.parent = { callFrames: [{ url: wrapper }], parent: { callFrames: [{ url: layer }] } };
+  assert.equal(toRequestLine(async, 0, opts).sender, 'layer');
+
+  assert.equal(toRequestLine(sent({ url, frames: [wrapper] }), 0, opts).sender, 'client');
+});
+
+test('toResponseLine grava status e corpo, em JSON quando dá', () => {
+  assert.deepEqual(toResponseLine('1', 200, '{"lootName":"CHEST_generic"}', 450), { type: 'response', t: 450, id: '1', status: 200, data: { lootName: 'CHEST_generic' } });
+  assert.equal(toResponseLine('1', 500, 'falhou', 0).data, 'falhou');
+  assert.equal(toResponseLine('1', 204, '', 0).data, undefined);
+});
+
+test('toRequestLine grava a criação de iframe e, só com --frames, o tráfego dentro dele', () => {
+  const opts = { host: '127.0.0.1:50000', mainFrame: 'principal' };
+  const inFrame = (m, frameId) => ((m.params.frameId = frameId), m);
+  const doc = (frameId) => inFrame(sent({ url: 'https://loja.exemplo/rp?lang=pt', type: 'Document' }), frameId);
+
+  assert.deepEqual(toRequestLine(doc('loja'), 700, opts), { type: 'target', t: 700, kind: 'iframe', url: 'https://loja.exemplo/rp?lang=pt' });
+  assert.equal(toRequestLine(doc('principal'), 0, opts), null);
+
+  const call = () => inFrame(sent({ url: 'https://loja.exemplo/api/compra', method: 'POST' }), 'loja');
+  assert.equal(toRequestLine(call(), 0, opts), null);
+  assert.equal(toRequestLine(call(), 0, { ...opts, frames: true }).uri, 'https://loja.exemplo/api/compra');
+});
+
+test('redactLine tira a senha do client das URLs e os campos secretos dos corpos', () => {
+  assert.deepEqual(
+    redactLine({ type: 'target', t: 0, kind: 'iframe', url: 'https://riot:s3nh4@127.0.0.1:50000/loja?token=abc&lang=pt' }),
+    { type: 'target', t: 0, kind: 'iframe', url: 'https://[redacted]@127.0.0.1:50000/loja?token=[redacted]&lang=pt' },
+  );
+  assert.deepEqual(
+    redactLine({ type: 'response', t: 0, id: '1', status: 200, data: { accessToken: 'eyJabc', jogador: { nome: 'Fulano', password: 'x' }, lista: [{ ticket: 't' }] } }),
+    { type: 'response', t: 0, id: '1', status: 200, data: { accessToken: '[redacted]', jogador: { nome: 'Fulano', password: '[redacted]' }, lista: [{ ticket: '[redacted]' }] } },
+  );
+  assert.equal(redactLine({ type: 'event', t: 0, uri: '/lol-chat/v1/me', eventType: 'Update', data: 'Zeca' }).data, 'Zeca');
 });

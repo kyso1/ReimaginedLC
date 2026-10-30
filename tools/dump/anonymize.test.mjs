@@ -493,3 +493,8 @@ test('nome de página de runas é texto livre do dono e vira [mensagem]; nomes d
   assert.equal(out[0].data[0].uiPerks[0].name, 'Conquistador');
   pass3(lines, out);
 });
+
+test('anonymize recusa sessão gravada com --keep-secrets', () => {
+  const meta = { type: 'meta', client: 'x', startedAt: 0, secrets: true };
+  assert.throws(() => anonymize([meta, ev('/lol-chat/v1/me', { name: 'Fulano' })]), /--keep-secrets/);
+});
