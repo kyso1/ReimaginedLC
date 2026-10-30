@@ -636,6 +636,25 @@ test('música da tela inicial: com a música do client desligada não toca; liga
   vi.unstubAllGlobals();
 });
 
+test('música da tela inicial: aba em quadro (site da Riot, como Worlds) cala a música, como no client', async () => {
+  enabled.value = true;
+  prefs.value = { ...DEFAULT_PREFS, video: false };
+  lcu = fakeLcu({ gameflowPhase: phase, audioSettings: clientAudio() });
+  const nav = { data: [{ title: 'ARAM: Mayhem', action: { type: 'lc_home_tab', payload: { tabId: 'aram' } } }, { title: 'Worlds', action: { type: 'iframed', payload: { url: 'https://embed.example/worlds' } } }] };
+  vi.stubGlobal('fetch', vi.fn(async (u: string) => new Response(JSON.stringify(String(u).includes('client-nav') ? nav : {}), { status: 200 })));
+  const music = homeMusic();
+  mount();
+  await shows('.rlc-feat-tabs button');
+  await flush();
+  // Aba comum do CMS (ARAM: Mayhem): o client toca o tema da tela inicial.
+  expect(music.playing()).toHaveLength(1);
+  [...root.querySelectorAll<HTMLButtonElement>('.rlc-feat-tabs button')].find((b) => b.textContent === 'Worlds')!.click();
+  await vi.waitFor(() => expect(music.playing()).toHaveLength(0));
+  [...root.querySelectorAll<HTMLButtonElement>('.rlc-feat-tabs button')].find((b) => b.textContent === 'ARAM: Mayhem')!.click();
+  await vi.waitFor(() => expect(music.playing()).toHaveLength(1));
+  vi.unstubAllGlobals();
+});
+
 test('trilho tem Espólios entre Coleção e Eventos e abre a vista própria; ponto marca item novo', async () => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response('[]', { status: 200 })));
   enabled.value = true;
