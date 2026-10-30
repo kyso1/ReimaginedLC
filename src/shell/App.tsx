@@ -33,6 +33,7 @@ import { prefs } from './prefs';
 import { freezeRiot, isLite, liteAuto } from './perf';
 import { ChatDock } from '../screens/social/Chat';
 import { ContextChat, roomChatOpen, type RoomJoin } from '../screens/social/ContextChat';
+import { openParty } from '../screens/social/FriendCard';
 import { MemberMenu } from '../screens/lobby/MemberMenu';
 import type { LolChatFriendResource } from '../lcu/types';
 import { background, loadBg } from '../theme/background';
@@ -251,6 +252,12 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
     if (!lcu.conversations.value.data?.some((c) => c.id === f.id)) await request('POST', '/lol-chat/v1/conversations', { id: f.id, type: 'chat' }).catch(() => {});
     setChat({ open: true, active: f.id });
   };
+  const partyItem = (f: LolChatFriendResource) => {
+    const party = openParty(f, lcu.lobby.value.data?.partyId);
+    if (!party) return [];
+    const join = () => request('POST', `/lol-lobby/v2/party/${encodeURIComponent(party)}/join`, {}).catch(() => window.Toast?.error(t('joinPartyFailed')));
+    return [{ label: t('joinParty'), run: () => void join() }];
+  };
   const friendMenu = (f: LolChatFriendResource) => (
     <MemberMenu
       items={[
@@ -262,6 +269,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
             setView('profile');
           },
         },
+        ...partyItem(f),
         ...(lcu.lobby.value.data ? [{ label: t('inviteToLobby'), run: () => void request('POST', '/lol-lobby/v2/lobby/invitations', [{ toSummonerId: f.summonerId }]).catch(() => {}) }] : []),
         { label: t('removeFriend'), run: () => setRemoving(f) },
       ]}

@@ -36,6 +36,21 @@ export function queueName(lcu: Lcu, lol: Record<string, string> | undefined): st
   return q?.name || (lol?.gameMode ? t(`colMode_${lol.gameMode}` as TextKey) || '' : '');
 }
 
+/**
+ * Festa do amigo em que dá para entrar: aberta, com vaga e que não é a minha (`mine`). A presença traz a festa em `lol.pty` (JSON).
+ * ponytail: regra tirada do swagger e da presença, sem sessão do client original entrando numa festa; conferir quando houver uma.
+ */
+export function openParty(f: Pick<Friend, 'lol'>, mine?: string): string | null {
+  let pty: { partyId?: string; isPartyOpen?: boolean; maxPlayers?: number; summonerPuuids?: string[] };
+  try {
+    pty = JSON.parse(f.lol?.pty ?? '');
+  } catch {
+    return null;
+  }
+  const full = (pty.summonerPuuids?.length ?? 0) >= (pty.maxPlayers ?? Infinity);
+  return pty.isPartyOpen && pty.partyId && pty.partyId !== mine && !full ? pty.partyId : null;
+}
+
 /** O que o amigo está fazendo, como o client escreve abaixo do nome. */
 export function activityKey(f: Friend): TextKey | null {
   const s = f.lol?.gameStatus ?? '';

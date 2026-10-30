@@ -850,3 +850,30 @@ test('tela da partida: fundo em vídeo fica parado durante a partida e volta a t
   await flush();
   expect(play).toHaveBeenCalled();
 });
+
+test('amigo em festa aberta: o menu dele tem Entrar na festa, que pede para entrar pelo id da presença', async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }));
+  vi.stubGlobal('fetch', fetchMock);
+  enabled.value = true;
+  const pty = JSON.stringify({ partyId: 'festa-1', isPartyOpen: true, maxPlayers: 5, summonerPuuids: ['zeca'] });
+  // Gaveta fixa: a lista aberta, com o ⋯ de cada amigo.
+  prefs.value = { ...DEFAULT_PREFS, socialPinned: true };
+  lcu.friends.value = ready([friendFixture({ id: 'zeca@pvp.net', gameName: 'Zeca', availability: 'chat', lol: { pty } }), friendFixture({ gameName: 'Fulano', availability: 'chat' })]);
+  mount();
+  await flush();
+  const menuOf = (name: string) => {
+    const row = [...root.querySelectorAll('.rlc-rc-friend')].find((r) => r.querySelector('.rlc-rc-fname')?.textContent === name)!;
+    row.querySelector<HTMLButtonElement>('.rlc-col-menu')!.click();
+  };
+  const items = () => [...root.querySelectorAll('.rlc-menu button')].map((b) => b.textContent);
+  menuOf('Fulano');
+  await flush();
+  expect(items()).not.toContain('Entrar na festa');
+  root.querySelector<HTMLElement>('.rlc-menu-backdrop')!.click();
+  await flush();
+  menuOf('Zeca');
+  await flush();
+  [...root.querySelectorAll<HTMLButtonElement>('.rlc-menu button')].find((b) => b.textContent === 'Entrar na festa')!.click();
+  await flush();
+  expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-lobby/v2/party/festa-1/join' && c[1].method === 'POST')).toBe(true);
+});
