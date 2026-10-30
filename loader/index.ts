@@ -20,7 +20,7 @@ export const PUBLIC_KEY: JsonWebKey = {
 };
 
 /** Plugins da Riot cuja API o bundle pede no `init` (o postInit só vale se registrado no init síncrono). */
-export const EARLY_APIS = ['rcp-fe-lol-paw', 'rcp-fe-lol-shared-components'];
+export const EARLY_APIS = ['rcp-fe-lol-paw', 'rcp-fe-lol-shared-components', 'rcp-fe-lol-navigation'];
 const CHECK_EVERY = 6 * 60 * 60 * 1000;
 const log = (...a: unknown[]) => console.warn('[rlc-loader]', ...a);
 
