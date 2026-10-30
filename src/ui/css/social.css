@@ -5,7 +5,8 @@
 /* A faixa reserva no fluxo a largura de --rlc-social-w: 56 px solta, 300 px fixa (o alfinete); as telas encolhem junto. */
 #rlc-root .rlc-app { --rlc-social-w: 56px; }
 #rlc-root .rlc-app[data-social='pinned'] { --rlc-social-w: 300px; }
-#rlc-root .rlc-rc { position: relative; z-index: 6; flex: none; width: var(--rlc-social-w); transition: width 0.34s cubic-bezier(0.2, 0.8, 0.2, 1); }
+/* Acima da folha de modos (15): aberta, a gaveta cresce para a esquerda por cima dela. Abaixo de menus soltos (18) e avisos (20). */
+#rlc-root .rlc-rc { position: relative; z-index: 16; flex: none; width: var(--rlc-social-w); transition: width 0.34s cubic-bezier(0.2, 0.8, 0.2, 1); }
 #rlc-root .rlc-rc-drawer { position: absolute; top: 0; right: 0; bottom: 0; width: 56px; overflow: hidden; border-left: 1px solid var(--rlc-color-border); background: var(--rlc-color-surface); backdrop-filter: blur(var(--rlc-blur-surface)); transition: width 0.34s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.34s ease; }
 /* Aberta: vidro mais denso e sombra para a esquerda, porque passa por cima da tela. */
 #rlc-root .rlc-rc[data-open='true'] .rlc-rc-drawer { width: 300px; background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(10, 12, 20, 0.72)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.86))); backdrop-filter: blur(18px) brightness(0.7); box-shadow: -28px 0 48px -28px var(--rlc-color-shade, rgba(0, 0, 0, 0.6)); }
@@ -25,6 +26,8 @@
 #rlc-root .rlc-app .rlc-chat-dock { right: calc(var(--rlc-social-w) + 8px); width: min(620px, calc(100% - var(--rlc-social-w) - 84px)); }
 #rlc-root .rlc-app .rlc-veil.rlc-modes { right: var(--rlc-social-w); }
 #rlc-root .rlc-app .rlc-invites { right: calc(var(--rlc-social-w) + 16px); }
+#rlc-root .rlc-app .rlc-winbtns { right: calc(var(--rlc-social-w) + 12px); }
+#rlc-root .rlc-app .rlc-update-notice { right: calc(var(--rlc-social-w) + 28px); }
 
 /* Eu: ícone (abre o perfil) com o ponto da disponibilidade; aberto, nome#tag, disponibilidade e mensagem ao lado. */
 #rlc-root .rlc-rc-me-row { position: relative; align-items: start; padding-bottom: 12px; margin-bottom: 10px; }
