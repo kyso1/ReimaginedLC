@@ -1,7 +1,9 @@
 import { render } from 'preact';
+import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../../i18n';
 import { Home, patchNotesUrl, shortPatch } from './Home';
+import { setNavigationApi } from './riotFrame';
 
 let host: HTMLElement;
 
@@ -91,6 +93,61 @@ test('destaques: abas da Riot, slides da aba, miniatura troca o slide e Ver na l
   await new Promise((r) => setTimeout(r, 30));
   expect(host.querySelector('.rlc-feat-title')!.textContent).toBe('Senna');
   expect(button('Ver na loja')).toBeUndefined();
+});
+
+test("destaques: logo do cabeçalho e botão que abre o site num quadro por cima (Esc fecha), como o Pick'Ems do client", async () => {
+  const pages: Record<string, unknown> = {
+    '/lol-activity-center/v1/content/client-nav': { data: [{ title: 'Palpites', action: { type: 'lc_home_tab', payload: { tabId: 'pk' } } }] },
+    '/lol-activity-center/v1/content/pk': {
+      blades: [{ type: 'leagueClientMastheadContentBlock', header: { media: { type: 'image', url: 'https://i/logo.png' }, subtitle: 'Faça seus palpites', links: [{ title: 'Palpites abertos', action: { type: 'open_iframe', payload: { url: 'https://palpites.exemplo/' } } }] } }],
+    },
+  };
+  const open = vi.fn();
+  render(<Home version={null} locale="pt_BR" onPlay={() => {}} open={open} load={async (u) => pages[u] ?? null} />, host);
+  for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 30));
+  expect(host.querySelector<HTMLImageElement>('.rlc-feat-logo')!.src).toBe('https://i/logo.png');
+  expect(host.querySelector('.rlc-feat-title')).toBeNull();
+  act(() => button('Palpites abertos')!.click());
+  expect(host.querySelector<HTMLIFrameElement>('.rlc-veil iframe')!.src).toBe('https://palpites.exemplo/');
+  expect(open).not.toHaveBeenCalled();
+  act(() => void document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+  expect(host.querySelector('.rlc-veil')).toBeNull();
+});
+
+test("destaques: com o client oferecendo o managed-iframe, o Pick'Ems abre nele (com o iframeId) e Esc o destrói", async () => {
+  const frame = { appendTo: vi.fn(), destroy: vi.fn() };
+  const create = vi.fn(() => frame);
+  setNavigationApi({ activityCenter: { _activityCenterApi: { _appInstance: { __container__: { lookupFactory: () => ({ create }) } } } } });
+  const pages: Record<string, unknown> = {
+    '/lol-activity-center/v1/content/client-nav': { data: [{ title: 'Palpites', action: { type: 'lc_home_tab', payload: { tabId: 'pk' } } }] },
+    '/lol-activity-center/v1/content/pk': {
+      blades: [{ type: 'leagueClientMastheadContentBlock', header: { links: [{ title: 'Palpites abertos', action: { type: 'open_iframe', payload: { iframeId: 'palpites_zeca', url: 'https://palpites.exemplo/' } } }] } }],
+    },
+  };
+  render(<Home version={null} locale="pt_BR" onPlay={() => {}} load={async (u) => pages[u] ?? null} />, host);
+  for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 30));
+  act(() => button('Palpites abertos')!.click());
+  expect(create).toHaveBeenCalledWith(expect.objectContaining({ id: 'palpites_zeca', url: 'https://palpites.exemplo/' }));
+  expect(frame.appendTo).toHaveBeenCalledWith(host.querySelector('.rlc-veil [data-riot-frame]'));
+  expect(host.querySelector('.rlc-veil iframe')).toBeNull();
+  act(() => void document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+  expect(frame.destroy).toHaveBeenCalledTimes(1);
+  setNavigationApi(null);
+});
+
+test('destaques: aba de skins sem imagem no CMS busca o skins.json e mostra o nome da skin', async () => {
+  const pages: Record<string, unknown> = {
+    '/lol-activity-center/v1/content/client-nav': { data: [{ title: 'Coração', action: { type: 'lc_home_tab', payload: { tabId: 'hs' } } }] },
+    '/lol-activity-center/v1/content/hs': {
+      blades: [{ type: 'mediaGallery', items: [{ mediaGalleryItemID: 'z', header: { title: '*Zeca', links: [{ action: { type: 'lc_store_paw', payload: { inventoryType: 'CHAMPION_SKIN', itemId: '7' } } }] } }] }],
+    },
+    '/lol-game-data/assets/v1/skins.json': { '7': { name: 'Zeca Coração de Aço', uncenteredSplashPath: '/s/7.jpg' } },
+  };
+  const load = vi.fn(async (u: string) => pages[u] ?? null);
+  render(<Home version={null} locale="pt_BR" onPlay={() => {}} load={load} />, host);
+  for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 30));
+  expect(load).toHaveBeenCalledWith('/lol-game-data/assets/v1/skins.json');
+  expect(host.querySelector('.rlc-feat-title')!.textContent).toBe('Zeca Coração de Aço');
 });
 
 test('destaques: o fundo troca de slide com fusão (Crossfade), não com corte seco', async () => {

@@ -26,6 +26,13 @@ test('editor de runas: o topo (com a lista de páginas) fica acima das colunas d
   expect(Number(top?.[1])).toBeGreaterThan(1);
 });
 
+test('aba de site da Riot (notas do patch, Worlds) ocupa a área toda do Início, sem moldura, como o quadro do client', () => {
+  const rule = /#rlc-root \.rlc-feat-embed \{([^}]*)\}/.exec(ALL())?.[1] ?? '';
+  expect(rule).toContain('inset: 0');
+  expect(rule).toContain('border: 0');
+  expect(rule).not.toMatch(/left: \d|top: \d/);
+});
+
 test('cartão da seleção: nenhuma regra própria do menu dentro dele (ele abre solto na tela)', () => {
   expect(ALL()).not.toContain('.rlc-cs-cell .rlc-menu');
 });

@@ -145,7 +145,12 @@
 #rlc-root .rlc-feat-desc { margin: 0; max-width: 46ch; font-size: 14px; line-height: 1.5; color: var(--rlc-color-textMuted); text-shadow: 0 1px 4px var(--rlc-color-textShadow, #000); }
 #rlc-root .rlc-feat-links { display: flex; flex-wrap: wrap; gap: 8px; }
 /* Site da Riot embutido (Worlds, notas do patch): quadro à direita das abas. */
-#rlc-root .rlc-feat-embed { position: absolute; left: 300px; top: 80px; width: calc(100% - 332px); height: calc(100% - 200px); border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-bg); }
+#rlc-root .rlc-feat-embed { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--rlc-color-bg); }
+#rlc-root .rlc-feat-logo { max-width: min(360px, 100%); max-height: 140px; object-fit: contain; }
+#rlc-root .rlc-feat-popup { position: relative; width: min(1100px, 86%); height: 82%; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+#rlc-root .rlc-feat-frame { position: relative; flex: 1; overflow: hidden; width: 100%; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-bg); }
+/* O `managed-iframe` da Riot entra dentro da nossa caixa: ele e o iframe dele ocupam tudo. */
+#rlc-root [data-riot-frame] .managed-iframe, #rlc-root [data-riot-frame] iframe { width: 100%; height: 100%; border: 0; }
 #rlc-root .rlc-feat-title { margin: 0; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: clamp(26px, 3.4vw, 44px); line-height: 1.1; text-shadow: 0 2px 12px var(--rlc-color-textShadow, #000); }
 #rlc-root .rlc-feat-strip { position: absolute; right: 40px; bottom: 56px; display: flex; align-items: center; gap: 8px; }
 #rlc-root .rlc-feat-thumb { width: 104px; height: 58px; padding: 0; border: 2px solid transparent; border-radius: var(--rlc-radius-sm); background: var(--rlc-color-surface) center / cover; opacity: 0.65; cursor: pointer; transition: opacity var(--rlc-motion-duration) var(--rlc-motion-easing); }

@@ -1,12 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { t } from '../../i18n';
 import { prefs, setPrefs } from '../../shell/prefs';
+import { homeIframe } from '../../shell/sound';
 import { background, setBackground, type BgSource } from '../../theme/background';
 import { Wallpapers } from '../../ui/Wallpapers';
 import { Button } from '../../ui/Button';
 import { Crossfade } from '../../ui/Crossfade';
+import { useEscape } from '../../ui/useEscape';
 import { getJson } from '../profile/data';
-import { NAV_URL, pageUrl, parseNav, parsePage, type FeaturedLink, type FeaturedPage, type FeaturedTab } from './featured';
+import { mountRiotFrame, openClientAction } from './riotFrame';
+import { NAV_URL, SKINS_URL, needsSkins, pageUrl, parseNav, parsePage, type FeaturedLink, type FeaturedPage, type FeaturedTab, type SkinInfo } from './featured';
 
 /** "16.19.823.0722" vira "16.19". */
 export function shortPatch(version: string | null | undefined): string | null {
@@ -68,7 +71,7 @@ export function Home({ version, locale, onPlay, onStore, onEvents, open = (url) 
     );
   return (
     <section class="rlc-home">
-      <Featured load={load} locale={locale} onLink={(l) => (l.kind === 'store' ? onStore?.() : l.kind === 'events' ? onEvents?.() : open(l.url))} />
+      <Featured load={load} locale={locale} onLink={(l) => (l.kind === 'store' ? onStore?.() : l.kind === 'events' ? onEvents?.() : l.kind === 'client' ? openClientAction(l.type, l.payload) : open(l.url))} />
       <div class="rlc-home-play">
         <Button variant="primary" onClick={onPlay}>
           {t('play')}
@@ -104,6 +107,9 @@ function Featured({ load, locale, onLink }: { load: Load; locale: string | null;
   const [page, setPage] = useState<FeaturedPage>(EMPTY);
   const [index, setIndex] = useState(0);
   const [hold, setHold] = useState(false);
+  // Site aberto por um botão `open_iframe`: quadro por cima da tela, como o modal do client.
+  const [popup, setPopup] = useState<{ title: string; url: string; frameId: string } | null>(null);
+  const follow = (l: FeaturedLink) => (l.kind === 'iframe' ? setPopup({ title: l.title, url: l.url, frameId: l.frameId }) : onLink(l));
   useEffect(() => {
     let live = true;
     void load(NAV_URL).then((nav) => {
@@ -115,12 +121,20 @@ function Featured({ load, locale, onLink }: { load: Load; locale: string | null;
     return () => void (live = false);
   }, [load, locale]);
   const tab = tabs.find((x) => x.id === tabId) ?? null;
+  // Aba em quadro cala o tema da tela inicial, como o client; ao sair do Início ele volta ao normal.
+  useEffect(() => {
+    homeIframe.value = tab?.kind === 'embed';
+    return () => void (homeIframe.value = false);
+  }, [tab?.kind]);
   useEffect(() => {
     setPage(EMPTY);
     setIndex(0);
     if (!tab || tab.kind !== 'page') return;
     let live = true;
-    void load(pageUrl(tab.id)).then((p) => live && setPage(parsePage(p)));
+    void load(pageUrl(tab.id)).then(async (p) => {
+      const skins = needsSkins(p) ? ((await load(SKINS_URL)) as Record<string, SkinInfo> | null) : null;
+      if (live) setPage(parsePage(p, skins));
+    });
     return () => void (live = false);
   }, [tab?.id, load]);
   const slides = page.slides;
@@ -142,6 +156,8 @@ function Featured({ load, locale, onLink }: { load: Load; locale: string | null;
       {/* Fica montada entre abas: sem imagem nova ainda, a anterior continua até a próxima carregar. */}
       {tab?.kind === 'page' ? <Crossfade src={image} class="rlc-feat-bg" position="center 30%" /> : null}
       {tab?.kind === 'page' && video ? <video class="rlc-feat-bg rlc-feat-video" key={video} src={video} poster={m?.image ?? undefined} autoplay muted loop playsInline /> : null}
+      {/* Antes das abas: o quadro ocupa a área toda e as abas ficam por cima, como no client. */}
+      {tab?.kind === 'embed' ? <RiotFrame class="rlc-feat-embed" key={tab.url} id={tab.frameId} url={tab.url} title={tab.title} /> : null}
       <nav class="rlc-feat-tabs" aria-label={t('featured')}>
         {tabs.map((x) => (
           <button type="button" key={x.id} aria-current={x.id === tabId ? 'true' : undefined} onClick={() => setTabId(x.id)}>
@@ -149,11 +165,11 @@ function Featured({ load, locale, onLink }: { load: Load; locale: string | null;
           </button>
         ))}
       </nav>
-      {tab?.kind === 'embed' ? <iframe class="rlc-feat-embed" key={tab.url} src={tab.url} title={tab.title} /> : null}
       {tab?.kind === 'page' && (slide || m) ? (
         <div class="rlc-feat-info">
           {m?.supertitle ? <span class="rlc-feat-super">{m.supertitle}</span> : null}
-          <h2 class="rlc-feat-title">{slide?.title || m?.title}</h2>
+          {!slide && m?.logo ? <img class="rlc-feat-logo" src={m.logo} alt={m.title || tab.title} /> : null}
+          {slide?.title || m?.title ? <h2 class="rlc-feat-title">{slide?.title || m?.title}</h2> : null}
           {!slide && m?.subtitle ? <p class="rlc-feat-sub">{m.subtitle}</p> : null}
           {!slide && m?.description ? <p class="rlc-feat-desc">{m.description}</p> : null}
           <div class="rlc-feat-links">
@@ -163,7 +179,7 @@ function Featured({ load, locale, onLink }: { load: Load; locale: string | null;
               </button>
             ) : null}
             {(slide ? [] : (m?.links ?? [])).map((l) => (
-              <button type="button" key={l.title} class="rlc-button" data-variant="pill" onClick={() => onLink(l)}>
+              <button type="button" key={l.title} class="rlc-button" data-variant="pill" onClick={() => follow(l)}>
                 {l.title}
               </button>
             ))}
@@ -183,8 +199,39 @@ function Featured({ load, locale, onLink }: { load: Load; locale: string | null;
           </button>
         </div>
       ) : null}
+      {popup ? <FramePopup link={popup} onClose={() => setPopup(null)} /> : null}
     </div>
   );
+}
+
+/** Site de um botão do destaque num quadro sobre a tela; Esc ou Fechar volta. */
+function FramePopup({ link, onClose }: { link: { title: string; url: string; frameId: string }; onClose: () => void }) {
+  useEscape(onClose);
+  return (
+    <div class="rlc-veil" role="dialog" aria-modal="true" aria-label={link.title}>
+      <div class="rlc-feat-popup">
+        <RiotFrame class="rlc-feat-frame" id={link.frameId} url={link.url} title={link.title} />
+        <button type="button" class="rlc-button" data-variant="pill" onClick={onClose}>
+          {t('close')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Site da Riot no quadro do próprio client (`managed-iframe`), que responde às perguntas do site (Worlds, Pick'Ems).
+ * Sem o componente, fica um `<iframe>` comum.
+ */
+function RiotFrame({ id, url, title, class: cls }: { id: string; url: string; title: string; class: string }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [plain, setPlain] = useState(false);
+  useEffect(() => {
+    const cleanup = box.current ? mountRiotFrame(box.current, { id, url }) : null;
+    if (!cleanup) setPlain(true);
+    return cleanup ?? undefined;
+  }, [id, url]);
+  return plain ? <iframe class={cls} src={url} title={title} /> : <div ref={box} class={cls} data-riot-frame="true" />;
 }
 
 /** Olho (mostrar só o fundo) e olho riscado (trazer o Início de volta). */
