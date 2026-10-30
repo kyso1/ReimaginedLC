@@ -623,6 +623,8 @@
   "viewProfile": "View profile",
   "removeFriend": "Remove friend",
   "removeFriendConfirm": "Remove this friend?",
+  "joinParty": "Join party",
+  "joinPartyFailed": "Couldn't join the party",
   "inviteToLobby": "Invite to lobby",
   "today": "today",
   "yesterday": "yesterday",

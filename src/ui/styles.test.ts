@@ -43,3 +43,19 @@ test('lobby: com o chat da sala aberto, a primeira vaga sobe (com animação); a
   expect(css).toContain(".rlc-app[data-screen='lobby'][data-room-chat='open'] .rlc-stage[data-band='red'] > .rlc-col:first-child[data-empty='true'] { padding-bottom: 320px; }");
   expect(css).toMatch(/\.rlc-stage > \.rlc-col:first-child, #rlc-root \.rlc-app\[data-screen='lobby'\] \.rlc-stage > \.rlc-col:first-child > \.rlc-col-legend \{ transition: padding-bottom/);
 });
+
+test('gaveta de amigos: aberta passa por cima da folha de modos, mas fica abaixo de menus soltos e avisos', () => {
+  const css = ALL();
+  const z = (sel: string) => {
+    const start = css.indexOf(`#rlc-root ${sel} {`);
+    return Number(/z-index: (\d+)/.exec(css.slice(start, css.indexOf('}', start)))![1]);
+  };
+  expect(z('.rlc-rc')).toBeGreaterThan(z('.rlc-modes'));
+  expect(z('.rlc-rc')).toBeLessThan(z('.rlc-menu-backdrop[data-floating]'));
+  expect(z('.rlc-rc')).toBeLessThan(z('.rlc-veil'));
+  // Os botões da janela e o aviso de atualização ficam à esquerda da faixa (solta ou fixa), com folga, nunca embaixo dela.
+  for (const sel of ['.rlc-winbtns', '.rlc-update-notice']) {
+    const gap = new RegExp(`#rlc-root \\.rlc-app \\${sel} \\{ right: calc\\(var\\(--rlc-social-w\\) \\+ (\\d+)px\\); \\}`).exec(css);
+    expect(Number(gap?.[1]), sel).toBeGreaterThanOrEqual(12);
+  }
+});

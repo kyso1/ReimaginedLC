@@ -7,6 +7,7 @@ import { DEFAULT_PREFS, prefs } from '../../shell/prefs';
 import { fakeLcu, friend, ready } from '../../test/fixtures';
 import { ChatDock, ChatWindow, messageTime } from './Chat';
 import { ContextChat, roomChatOpen } from './ContextChat';
+import { openParty } from './FriendCard';
 import { AddFriend, FriendRequests, StatusEditor } from './FriendTools';
 
 let root: HTMLElement;
@@ -302,4 +303,14 @@ test('abrir a conversa marca como ativa (o client zera as não lidas) e fechar s
   fetchMock.mockClear();
   act(() => render(null, root));
   expect(active()).toEqual([['DELETE', undefined]]);
+});
+
+test('festa aberta do amigo: id da festa na presença (pty), só aberta, com vaga e que não é a minha', () => {
+  const pty = (over: object) => friend({ lol: { pty: JSON.stringify({ partyId: 'festa-1', isPartyOpen: true, maxPlayers: 5, summonerPuuids: ['zeca'], ...over }) } });
+  expect(openParty(pty({}))).toBe('festa-1');
+  expect(openParty(pty({ isPartyOpen: false }))).toBe(null);
+  expect(openParty(pty({ summonerPuuids: ['a', 'b', 'c', 'd', 'e'] }))).toBe(null);
+  expect(openParty(pty({}), 'festa-1')).toBe(null);
+  expect(openParty(friend())).toBe(null);
+  expect(openParty(friend({ lol: { pty: '{quebrado' } }))).toBe(null);
 });
