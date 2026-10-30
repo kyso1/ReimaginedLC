@@ -1,6 +1,6 @@
 const DROP_URI = /token|rso-auth|entitlements|lol-login|league-session/i;
-const SECRET_KEY =
-  /token|jwt|password|secret|authorization|cookie|credential|encryptionkey|spectatorkey|discord|lobbyname|groupname|^pty$|^auth$|apikey|signature|ticket|bearer/i;
+export const SECRET_KEY =
+  /(?<!required)token|jwt|password|secret|authorization|cookie|credential|encryptionkey|spectatorkey|discord|lobbyname|groupname|^pty$|^auth$|apikey|signature|ticket|bearer/i;
 const IDENTITY_KEY =
   /puuid|summonerid|accountid|game_?name|summoner_?name|displayname|internalname|^email$|^username$|^pid$|^jid$|partyid|multiuserchatid|channelclaim|gameid$|matchid$|commonfriendname|playeralias|playerorteamname|nickname|^nick$/i;
 const TAG_KEY = /tagline|gametag/i;
@@ -168,6 +168,8 @@ function applyEntry(s, e, mode, ctx) {
 }
 
 export function anonymize(lines) {
+  // Sessão com segredos é só para depuração local; nunca vira fixture do repo.
+  if (lines.some((l) => l.type === 'meta' && l.secrets)) throw new Error('sessão gravada com --keep-secrets tem segredos; grave de novo sem essa flag');
   const map = collectIdentities(lines);
   // Mais longos primeiro, para "FulanoSmurf" não virar "anon-1Smurf".
   const byLength = (list, isSecret) => list.sort((x, y) => String(y[0]).length - String(x[0]).length).map(([real, fake]) => entry(real, fake, isSecret));
