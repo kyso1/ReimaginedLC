@@ -60,7 +60,7 @@ export interface Pass {
 export interface HubEvent {
   eventId: string;
   eventInfo: {
-    eventName: string; localizedShortName?: string; eventType: string; startDate: string; endDate: string; progressEndDate?: string;
+    eventName: string; localizedShortName?: string; eventType: string; seasonPassSubType?: string; startDate: string; endDate: string; progressEndDate?: string;
     isPassPurchased: boolean; unclaimedRewardCount: number; eventPassBundles?: unknown[];
   };
 }
@@ -79,6 +79,21 @@ const KINDS: Record<string, TextKey> = {
 /** Eventos que viram aba: no período, fora dos marcos do centro de atividades e do Passe Clássico (que a LCU só expõe com dados de teste). */
 export const activeEvents = (events: HubEvent[], now = Date.now()) =>
   events.filter((e) => !['kActivityCenterMilestones', 'kDemaciaPass'].includes(e.eventInfo.eventType) && Date.parse(e.eventInfo.startDate) <= now && now < Date.parse(e.eventInfo.endDate));
+
+/**
+ * Eventos do menu, como o client monta o dele: `/lol-event-hub/v1/navigation-button-data`, na ordem dele, ligado a
+ * `/events` pelo `activeEventId` (lista vazia esconde o menu). Sem resposta, fica o filtro de `activeEvents`.
+ */
+export const menuEvents = (events: HubEvent[], nav: Array<{ activeEventId?: string }> | null) =>
+  Array.isArray(nav) ? nav.map((b) => events.find((e) => e.eventId === b.activeEventId)).filter((e): e is HubEvent => !!e) : activeEvents(events);
+
+/** Passe com hub próprio (Mayhem): o client mostra o plugin `rcp-fe-lol-kiwi-hub` (`getRouteByEventHubType`). */
+export const isKiwiHub = (e: HubEvent) => e.eventInfo.eventType === 'kSeasonPass' && e.eventInfo.seasonPassSubType === 'MayhemCustomHub';
+
+export const loadMenuEvents = async () => {
+  const [events, nav] = await Promise.all([getJson<HubEvent[]>('/lol-event-hub/v1/events'), getJson<Array<{ activeEventId?: string }>>('/lol-event-hub/v1/navigation-button-data')]);
+  return menuEvents(events ?? [], nav);
+};
 
 /** Escolhas pendentes por grupo de recompensa. */
 export function pendingChoices(grants: Grant[]): Map<string, Choice> {
@@ -190,8 +205,8 @@ export function openPassPurchase(eventId: string): boolean {
 /** Recompensas esperando resgate em todos os passes (para o ponto dourado do trilho). */
 export async function pendingClaims(lcu: Lcu): Promise<number> {
   void lcu; // a leitura é por fetch; o parâmetro fica para o integrador trocar por stores se quiser
-  const [events, tft] = await Promise.all([getJson<HubEvent[]>('/lol-event-hub/v1/events'), loadTftPasses().catch(() => [])]);
-  const lol = activeEvents(events ?? []).reduce((n, e) => n + (e.eventInfo.unclaimedRewardCount || 0), 0);
+  const [events, tft] = await Promise.all([loadMenuEvents(), loadTftPasses().catch(() => [])]);
+  const lol = events.reduce((n, e) => n + (e.eventInfo.unclaimedRewardCount || 0), 0);
   return lol + tft.reduce((n, p) => n + p.unclaimed, 0);
 }
 

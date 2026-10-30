@@ -7,6 +7,7 @@ import { hideBoot, showBoot } from './shell/boot';
 import { setPawApi, setSharedComponentsApi } from './screens/store/purchase';
 import { loadInstalled } from './plugins/market';
 import { setNavigationApi } from './screens/home/riotFrame';
+import { setKiwiHubApi } from './screens/events/kiwiHub';
 
 /** Contexto que o Pengu passa ao `init`: `rcp.postInit` entrega a API de um plugin da Riot quando ele sobe. */
 interface PenguContext {
@@ -32,6 +33,8 @@ export function init(context?: PenguContext): void {
     context?.rcp?.postInit?.('rcp-fe-lol-shared-components', setSharedComponentsApi);
     // Quadro da Riot para Worlds e Pick'Ems (sites que falam com o client).
     context?.rcp?.postInit?.('rcp-fe-lol-navigation', setNavigationApi);
+    // Hub do passe Mayhem na aba Eventos.
+    context?.rcp?.postInit?.('rcp-fe-lol-kiwi-hub', setKiwiHubApi);
   } catch (e) {
     console.error('[rlc]', e);
   }

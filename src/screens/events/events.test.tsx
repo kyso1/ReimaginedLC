@@ -5,6 +5,7 @@ import { setLocale } from '../../i18n';
 import { fakeLcu } from '../../test/fixtures';
 import { eventPass, missionCards, tftPass, type HubEvent, type TftPass } from './data';
 import { Events, PassView, pendingClaims } from './Events';
+import { setKiwiHubApi } from './kiwiHub';
 
 // Dados no formato das respostas reais da LCU (GET), com nomes neutros.
 const EV = 'ev-1';
@@ -357,4 +358,34 @@ test('Loja de Cristais: aba sÃ³ com Cristais na carteira; comprar pede confirmaÃ
   routes['/lol-inventory/v1/wallet/0'] = { RP: 5 };
   await mount();
   expect(tabs()).not.toContain('Loja de Cristais');
+});
+
+test('abas do LoL seguem o menu do client (navigation-button-data): ordem dele e evento novo de qualquer tipo entra', async () => {
+  routes['/lol-event-hub/v1/events'] = [event(), event({ eventType: 'kNovoTipo', eventName: 'Evento Zeca' }, 'ev-3'), event({ eventType: 'kDemaciaPass', eventName: 'Passe Fora' }, 'ev-4')];
+  routes['/lol-event-hub/v1/navigation-button-data'] = [{ activeEventId: 'ev-3' }, { activeEventId: EV }, { activeEventId: 'sumiu' }];
+  routes['/lol-event-hub/v1/events/ev-3/reward-track/items'] = ITEMS;
+  await mount();
+  expect(tabs()).toEqual(['Evento Zeca', 'Temporada de Teste']);
+  routes['/lol-event-hub/v1/navigation-button-data'] = [];
+  expect(await pendingClaims(fakeLcu())).toBe(0);
+});
+
+test('passe Mayhem (MayhemCustomHub) mostra o hub do client; sem a API ou se ele falhar, a trilha comum', async () => {
+  routes['/lol-event-hub/v1/events'] = [event({ seasonPassSubType: 'MayhemCustomHub' })];
+  const hub = { show: vi.fn(), hide: vi.fn() };
+  setKiwiHubApi(hub);
+  await mount();
+  const box = root.querySelector<HTMLElement>('.rlc-ev-kiwi')!;
+  expect(hub.show).toHaveBeenCalledWith({ targetDivId: box.id });
+  expect(root.querySelector('.rlc-ev-pass')).toBeNull();
+  act(() => render(null, root));
+  expect(hub.hide).toHaveBeenCalled();
+
+  setKiwiHubApi({ show: () => Promise.reject(new Error('x')), hide: vi.fn() });
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  await mount();
+  expect(root.querySelector('.rlc-ev-kiwi')).toBeNull();
+  expect(root.querySelector('.rlc-ev-pass')).not.toBeNull();
+  setKiwiHubApi(null);
+  vi.restoreAllMocks();
 });
