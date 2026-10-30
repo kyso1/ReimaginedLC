@@ -185,8 +185,16 @@
 #rlc-root .rlc-app[data-screen='champselect'] .rlc-ctx[data-open='true'] { height: clamp(44px, calc(100% - 440px), 260px); }
 #rlc-root .rlc-chat-dock { position: absolute; right: 64px; bottom: 0; z-index: 8; display: flex; width: min(620px, calc(100% - 140px)); height: min(420px, 62%); border: 1px solid var(--rlc-color-border); border-bottom: 0; border-radius: var(--rlc-radius-md) var(--rlc-radius-md) 0 0; background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(10, 12, 20, 0.66)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.82))); backdrop-filter: blur(18px) brightness(0.7); overflow: hidden; transform: translateY(calc(100% + 24px)); visibility: hidden; transition: transform 0.38s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s linear 0.38s; }
 #rlc-root .rlc-chat-dock[data-open='true'] { transform: none; visibility: visible; transition: transform 0.38s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s; }
-#rlc-root .rlc-chat-list { width: 38%; flex: none; display: flex; flex-direction: column; border-right: 1px solid var(--rlc-color-border); overflow-y: auto; }
-#rlc-root .rlc-chat-list header { display: flex; align-items: center; justify-content: space-between; padding: 10px 10px 8px; }
+#rlc-root .rlc-chat-list { width: 38%; flex: none; display: flex; flex-direction: column; border-right: 1px solid var(--rlc-color-border); }
+/* Só as conversas rolam: o título fica parado no fundo desfocado da doca e nada passa por baixo dele. */
+#rlc-root .rlc-chat-items { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; }
+#rlc-root .rlc-chat-list header { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 10px 10px 8px; }
+#rlc-root .rlc-chat-row { position: relative; display: flex; }
+#rlc-root .rlc-chat-row .rlc-chat-item { flex: 1; min-width: 0; padding-right: 30px; }
+#rlc-root .rlc-chat-remove { position: absolute; top: 50%; right: 6px; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--rlc-color-textMuted); font: inherit; font-size: 16px; line-height: 1; cursor: pointer; transform: translateY(-50%); }
+/* O X de tirar da lista só aparece com o mouse na conversa ou com o foco do teclado nele. */
+#rlc-root .rlc-chat-row:not(:hover) .rlc-chat-remove:not(:focus-visible) { opacity: 0; }
+#rlc-root .rlc-chat-remove:hover, #rlc-root .rlc-chat-remove:focus-visible { background: var(--rlc-color-surface); color: var(--rlc-color-text); }
 #rlc-root .rlc-chat-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 0; border-left: 2px solid transparent; background: transparent; color: var(--rlc-color-text); font: inherit; text-align: left; cursor: pointer; }
 #rlc-root .rlc-chat-item:hover { background: var(--rlc-color-surface); }
 #rlc-root .rlc-chat-item[aria-pressed='true'] { background: var(--rlc-color-surface); border-left-color: var(--rlc-color-accent); }

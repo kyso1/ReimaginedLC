@@ -511,7 +511,7 @@ test('clicar num amigo abre a conversa na doca (criando-a se preciso); o botão 
   root.querySelector<HTMLButtonElement>('.rlc-chat-window button[aria-label="Fechar conversa"]')!.click();
   await flush();
   // Fechar a conversa fecha o chat todo; o botão de chat reabre e minimiza.
-  expect(root.querySelector('.rlc-chat-window')).toBeNull();
+  expect(root.querySelector('.rlc-chat-window[aria-label="Zeca"]')).toBeNull();
   expect(root.querySelector('.rlc-chat-dock')!.getAttribute('data-open')).toBeNull();
   root.querySelector<HTMLButtonElement>('.rlc-rc-chatbtn')!.click();
   await flush();

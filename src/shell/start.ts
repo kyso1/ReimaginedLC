@@ -21,6 +21,7 @@ import { startAppearOffline } from '../plugins/appearOffline';
 import { startAutoAccept } from '../plugins/autoAccept';
 import { startSpotify } from '../plugins/spotify';
 import { startCustomCss } from '../theme/customCss';
+import { watchScrollEdges } from '../ui/scrollEdges';
 
 /**
  * Pasta das fontes e temas. Pelo carregador (loader/), a que ele publica (o bundle chega por blob:); sem ele, a URL do
@@ -50,6 +51,7 @@ export async function start(): Promise<void> {
   root.id = 'rlc-root';
   root.dataset.visible = 'false';
   document.body.append(root);
+  watchScrollEdges(root);
 
   let observer: MutationObserver | undefined;
   try {
