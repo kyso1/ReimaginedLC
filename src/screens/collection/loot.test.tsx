@@ -30,7 +30,9 @@ beforeEach(() => {
   setLocale('pt_BR');
   root = document.body.appendChild(document.createElement('div'));
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
-    if (url === '/lol-loot/v1/player-loot/CHEST_generic/context-menu') return new Response(JSON.stringify([{ name: 'CHEST_generic_OPEN', actionType: 'OPEN', recipeContextMenuAction: 'Abrir', enabled: true, requiredOthers: 'MATERIAL_key' }, { name: 'CHEST_DISENCHANT', actionType: 'DISENCHANT', recipeContextMenuAction: 'Desencantar', enabled: false }]), { status: 200 });
+    // Como numa sessão real do client: o menu do baú vem com `requiredOthers` vazio; a chave só aparece nas vagas da receita.
+    if (url === '/lol-loot/v1/player-loot/CHEST_generic/context-menu') return new Response(JSON.stringify([{ name: 'CHEST_generic_OPEN', actionType: 'OPEN', recipeContextMenuAction: 'Abrir', enabled: true, requiredOthers: '' }, { name: 'CHEST_DISENCHANT', actionType: 'DISENCHANT', recipeContextMenuAction: 'Desencantar', enabled: false }]), { status: 200 });
+    if (url === '/lol-loot/v1/recipes/initial-item/CHEST_generic') return new Response(JSON.stringify([{ recipeName: 'CHEST_generic_OPEN', type: 'OPEN', slots: [{ slotNumber: 0, quantity: 1, lootIds: ['CHEST_generic'] }, { slotNumber: 1, quantity: 1, lootIds: ['MATERIAL_key'] }] }]), { status: 200 });
     if (url.startsWith('/lol-loot/v1/recipes/CHEST_generic_OPEN/craft') && init?.method === 'POST') return new Response(JSON.stringify({ added: [{ playerLoot: { lootId: 'CHAMPION_SKIN_RENTAL_1', localizedName: '', itemDesc: 'Skin de Ahri', tilePath: '/t/x.png' }, deltaCount: 1 }], removed: [], redeemed: [] }), { status: 200 });
     return new Response('[]', { status: 200 });
   });
@@ -136,6 +138,9 @@ test('ação pede confirmação, cria pela receita com os itens envolvidos e rev
   const call = fetchMock.mock.calls.find((c) => String(c[0]).startsWith('/lol-loot/v1/recipes/CHEST_generic_OPEN/craft'))!;
   expect(call[0]).toBe('/lol-loot/v1/recipes/CHEST_generic_OPEN/craft?repeat=1');
   expect(JSON.parse(call[1].body)).toEqual(['CHEST_generic', 'MATERIAL_key']);
+  // O menu é só leitura: GET, como o client faz.
+  const menu = fetchMock.mock.calls.find((c) => String(c[0]).endsWith('/CHEST_generic/context-menu'))!;
+  expect(menu[1]?.method ?? 'GET').toBe('GET');
   // Primeiro o baú tremendo; o clique pula para os cartões.
   expect(root.querySelector('.rlc-reveal-chest img')!.getAttribute('src')).toBe('/t/CHEST_generic.png');
   act(() => root.querySelector<HTMLElement>('.rlc-reveal')!.click());
