@@ -179,8 +179,8 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
     background.value = loadBg();
   }, []);
   const custom = useBackground(lcu, shownView ?? page ?? '');
-  // Música ambiente fora da partida e toque de clique nos botões (sons do próprio client).
-  useSound(root, shownView ?? page ?? '', visible, focused.value);
+  // Tema da tela inicial (com o som do client) e toque de clique nos botões (sons do próprio client).
+  useSound(root, shownView ?? page ?? '', visible, focused.value, lcu.audioSettings.value.data?.data);
   useEffect(() => {
     if (phaseName === 'TerminatedInError') window.Toast?.error(t('gameError'));
   }, [phaseName]);
