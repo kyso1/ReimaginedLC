@@ -1,6 +1,6 @@
 const DROP_URI = /token|rso-auth|entitlements|lol-login|league-session/i;
 export const SECRET_KEY =
-  /token|jwt|password|secret|authorization|cookie|credential|encryptionkey|spectatorkey|discord|lobbyname|groupname|^pty$|^auth$|apikey|signature|ticket|bearer/i;
+  /(?<!required)token|jwt|password|secret|authorization|cookie|credential|encryptionkey|spectatorkey|discord|lobbyname|groupname|^pty$|^auth$|apikey|signature|ticket|bearer/i;
 const IDENTITY_KEY =
   /puuid|summonerid|accountid|game_?name|summoner_?name|displayname|internalname|^email$|^username$|^pid$|^jid$|partyid|multiuserchatid|channelclaim|gameid$|matchid$|commonfriendname|playeralias|playerorteamname|nickname|^nick$/i;
 const TAG_KEY = /tagline|gametag/i;

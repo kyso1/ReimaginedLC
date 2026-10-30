@@ -82,6 +82,9 @@ test('toRequestLine ignora outro host, recurso estático e URI ruidosa', () => {
   assert.equal(toRequestLine(sent({ url: 'https://outro.exemplo/lol-loot/v1/player-loot' }), 0, opts), null);
   assert.equal(toRequestLine(sent({ url: 'https://127.0.0.1:50000/fe/lol-loot/index.js', type: 'Script' }), 0, opts), null);
   assert.equal(toRequestLine(sent({ url: 'https://127.0.0.1:50000/lol-missions/v1/missions' }), 0, opts), null);
+  // Sons e imagens do próprio client chegam como fetch; o tracing dele também.
+  assert.equal(toRequestLine(sent({ url: 'https://127.0.0.1:50000/fe/lol-uikit/sfx-uikit-button-click.ogg' }), 0, opts), null);
+  assert.equal(toRequestLine(sent({ url: 'https://127.0.0.1:50000/tracing/v1/trace', method: 'POST' }), 0, opts), null);
   assert.equal(toRequestLine({ method: 'Network.responseReceived', params: {} }, 0, opts), null);
   assert.equal(toRequestLine(sent({ url: 'https://127.0.0.1:50000/lol-loot/v1/player-loot', type: 'XHR' }), 0, opts).uri, '/lol-loot/v1/player-loot');
 });
@@ -129,4 +132,6 @@ test('redactLine tira a senha do client das URLs e os campos secretos dos corpos
     { type: 'response', t: 0, id: '1', status: 200, data: { accessToken: '[redacted]', jogador: { nome: 'Fulano', password: '[redacted]' }, lista: [{ ticket: '[redacted]' }] } },
   );
   assert.equal(redactLine({ type: 'event', t: 0, uri: '/lol-chat/v1/me', eventType: 'Update', data: 'Zeca' }).data, 'Zeca');
+  // requiredTokens é o custo de um item do loot, não um segredo.
+  assert.equal(redactLine({ type: 'response', t: 0, id: '1', status: 200, data: { requiredTokens: 'MATERIAL_key' } }).data.requiredTokens, 'MATERIAL_key');
 });

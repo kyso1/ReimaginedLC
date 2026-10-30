@@ -1,7 +1,7 @@
 import { SECRET_KEY } from './anonymize.mjs';
 
-// URIs de alto volume que a LCU simulada não precisa reproduzir.
-const NOISE = /^\/?(riot-messaging-service|data-store|lol-patch|patcher|telemetry|lol-telemetry|performance|lol-hovercard|lol-cosmetics|lol-challenges|lol-missions|lol-objectives)\b/;
+// URIs de alto volume que a LCU simulada não precisa reproduzir. `fe` são sons e imagens do client.
+const NOISE = /^\/?(fe|tracing|riot-messaging-service|data-store|lol-patch|patcher|telemetry|lol-telemetry|performance|lol-hovercard|lol-cosmetics|lol-challenges|lol-missions|lol-objectives)\b/;
 
 export function toLine(raw, t) {
   if (!raw) return null;
