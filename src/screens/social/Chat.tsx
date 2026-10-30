@@ -208,50 +208,91 @@ export const conversationTitle = (lcu: Lcu, id: string) => {
 };
 
 /** Conversas 1:1 mais recentes primeiro (pela última mensagem); salas de lobby e seleção ficam de fora. */
-export function recentConversations(lcu: Lcu): Array<{ id: string; title: string; preview: string; unread: number; icon?: number }> {
+export function recentConversations(lcu: Lcu): Array<{ id: string; title: string; preview: string; unread: number; muted?: boolean; icon?: number }> {
   const friends = lcu.friends.value.data ?? [];
   return (lcu.conversations.value.data ?? [])
     .filter((c) => c.type === 'chat')
     .sort((a, b) => (b.lastMessage?.timestamp ?? '').localeCompare(a.lastMessage?.timestamp ?? ''))
-    .map((c) => ({ id: c.id, title: conversationTitle(lcu, c.id), preview: c.lastMessage?.body ?? '', unread: c.unreadMessageCount ?? 0, icon: friends.find((f) => f.id === c.id)?.icon }));
+    .map((c) => ({ id: c.id, title: conversationTitle(lcu, c.id), preview: c.lastMessage?.body ?? '', unread: c.unreadMessageCount ?? 0, muted: c.isMuted, icon: friends.find((f) => f.id === c.id)?.icon }));
 }
+
+/** Tira a conversa da lista, como o X do client (`closeConversation`): `DELETE /lol-chat/v1/conversations/{id}`. */
+export const removeConversation = (id: string) => request('DELETE', `/lol-chat/v1/conversations/${encodeURIComponent(id)}`);
 
 /**
  * Chat como no client: sobe do canto inferior direito com as conversas recentes à esquerda e a conversa aberta à direita.
  * Abre pelo botão de chat no pé da faixa de amigos ou ao clicar num amigo. Fechar a conversa fecha o chat todo.
+ * Clicar na conversa aberta só a fecha (fica na lista); o X ao lado tira da lista. Como no client, o X não aparece
+ * com mensagem não lida (a menos que a conversa esteja silenciada). O X do canto fica sempre, com ou sem conversa aberta,
+ * e clicar fora do chat o esconde (a coluna de amigos não conta: dali se abre conversa e alterna o chat).
  */
 export function ChatDock({ lcu, open, active, onActivate, onClose }: { lcu: Lcu; open: boolean; active: string | null; onActivate: (id: string | null) => void; onClose: () => void }) {
   const list = recentConversations(lcu);
   useChatSound(lcu, open ? active : null);
   // Conversa recém-criada ainda pode não ter chegado na lista da LCU: entra no topo para aparecer selecionada.
   if (active && !list.some((c) => c.id === active)) list.unshift({ id: active, title: conversationTitle(lcu, active), preview: '', unread: 0 });
+  const dock = useRef<HTMLElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    if (!open) return;
+    const outside = (e: PointerEvent) => {
+      const el = e.target as Element | null;
+      if (el && !dock.current?.contains(el) && !el.closest?.('.rlc-rc')) close.current();
+    };
+    document.addEventListener('pointerdown', outside, true);
+    return () => document.removeEventListener('pointerdown', outside, true);
+  }, [open]);
   return (
-    <section class="rlc-chat-dock" data-open={open ? 'true' : undefined} aria-hidden={open ? undefined : 'true'} aria-label={t('chatRecent')}>
+    <section ref={dock} class="rlc-chat-dock" data-open={open ? 'true' : undefined} aria-hidden={open ? undefined : 'true'} aria-label={t('chatRecent')}>
       <div class="rlc-chat-list">
         <header>
           <strong>{t('chatRecent')}</strong>
-          <button type="button" class="rlc-winbtn" aria-label={t('chatMinimize')} title={t('chatMinimize')} onClick={onClose}>
-            —
-          </button>
         </header>
-        {list.length ? (
-          list.map((c) => (
-            <button type="button" key={c.id} class="rlc-chat-item" aria-pressed={c.id === active} data-unread={c.unread > 0 && c.id !== active ? 'true' : undefined} onClick={() => onActivate(c.id)}>
-              <span class="rlc-rc-avatar" data-group="none">{c.icon ? <img src={profileIcon(c.icon)} alt="" /> : null}</span>
-              <span class="rlc-chat-item-text">
-                <b>{c.title}</b>
-                <small>{c.preview}</small>
-              </span>
-            </button>
-          ))
-        ) : (
-          <p class="rlc-muted rlc-chat-empty">{t('chatNoConversations')}</p>
-        )}
+        <div class="rlc-chat-items">
+          {list.length ? (
+            list.map((c) => (
+              <div key={c.id} class="rlc-chat-row">
+                <button type="button" class="rlc-chat-item" aria-pressed={c.id === active} data-unread={c.unread > 0 && c.id !== active ? 'true' : undefined} onClick={() => onActivate(c.id === active ? null : c.id)}>
+                  <span class="rlc-rc-avatar" data-group="none">{c.icon ? <img src={profileIcon(c.icon)} alt="" /> : null}</span>
+                  <span class="rlc-chat-item-text">
+                    <b>{c.title}</b>
+                    <small>{c.preview}</small>
+                  </span>
+                </button>
+                {c.muted || !c.unread ? (
+                  <button
+                    type="button"
+                    class="rlc-chat-remove"
+                    aria-label={`${t('chatRemove')}: ${c.title}`}
+                    title={t('chatRemove')}
+                    onClick={() => {
+                      if (c.id === active) onActivate(null);
+                      void removeConversation(c.id).catch((e) => console.error('[rlc]', e));
+                    }}
+                  >
+                    ×
+                  </button>
+                ) : null}
+              </div>
+            ))
+          ) : (
+            <p class="rlc-muted rlc-chat-empty">{t('chatNoConversations')}</p>
+          )}
+        </div>
       </div>
       {open && active ? (
         <ChatWindow key={active} lcu={lcu} conversationId={active} title={conversationTitle(lcu, active)} onClose={onClose} />
       ) : (
-        <p class="rlc-muted rlc-chat-pick">{t('chatPick')}</p>
+        <section class="rlc-chat-window" aria-label={t('chatPick')}>
+          <header>
+            <strong />
+            <button type="button" class="rlc-winbtn" aria-label={t('closeChat')} onClick={onClose}>
+              ✕
+            </button>
+          </header>
+          <p class="rlc-muted rlc-chat-pick">{t('chatPick')}</p>
+        </section>
       )}
     </section>
   );

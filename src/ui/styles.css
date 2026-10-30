@@ -508,6 +508,13 @@
 #rlc-root ::-webkit-scrollbar { width: 8px; height: 8px; }
 #rlc-root ::-webkit-scrollbar-track { background: transparent; }
 #rlc-root ::-webkit-scrollbar-thumb { background: var(--rlc-color-border); border-radius: 4px; }
+/* Polegar achatado na ponta em que encostou (topo/fim): `data-rlc-y`/`data-rlc-x` vêm de ui/scrollEdges.ts. */
+#rlc-root ::-webkit-scrollbar-thumb:vertical { border-top-left-radius: 0; border-top-right-radius: 0; }
+#rlc-root [data-rlc-y]::-webkit-scrollbar-thumb:vertical { border-radius: 4px; }
+#rlc-root [data-rlc-y='end']::-webkit-scrollbar-thumb:vertical { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+#rlc-root ::-webkit-scrollbar-thumb:horizontal { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+#rlc-root [data-rlc-x]::-webkit-scrollbar-thumb:horizontal { border-radius: 4px; }
+#rlc-root [data-rlc-x='end']::-webkit-scrollbar-thumb:horizontal { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 #rlc-root ::-webkit-scrollbar-corner { background: transparent; }
 #rlc-root input[type='checkbox'], #rlc-root input[type='range'], #rlc-root input[type='radio'] { accent-color: var(--rlc-color-accent); }
 #rlc-root .rlc-st-update { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border: 1px solid var(--rlc-color-accent); border-radius: var(--rlc-radius-md); background: var(--rlc-color-surface); }

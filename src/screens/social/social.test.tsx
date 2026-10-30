@@ -79,8 +79,52 @@ test('doca: conversas recentes primeiro, ponto de não lida, clicar ativa e — 
   expect(root.querySelector('.rlc-chat-window')!.getAttribute('aria-label')).toBe('Zeca');
   act(() => (items[0] as HTMLButtonElement).click());
   expect(onActivate).toHaveBeenCalledWith('b');
-  act(() => btn('Minimizar')!.click());
-  expect(onClose).toHaveBeenCalledOnce();
+  // Só a conversa aberta tem botão de fechar; a lista não repete um.
+  expect(root.querySelector('.rlc-chat-list .rlc-winbtn')).toBeNull();
+});
+
+test('doca: clicar na conversa aberta só a fecha; o X tira da lista (DELETE), e some com mensagem não lida', async () => {
+  const lcu = withValues({
+    conversations: ready([
+      { id: 'a@pvp.net', gameName: 'Zeca', unreadMessageCount: 0, type: 'chat' },
+      { id: 'b@pvp.net', gameName: 'Fulana', unreadMessageCount: 2, type: 'chat' },
+      { id: 'c@pvp.net', gameName: 'Beltrano', unreadMessageCount: 1, isMuted: true, type: 'chat' },
+    ]),
+  });
+  const onActivate = vi.fn();
+  act(() => render(<ChatDock lcu={lcu} open active="a@pvp.net" onActivate={onActivate} onClose={vi.fn()} />, root));
+  const item = (name: string) => [...root.querySelectorAll<HTMLButtonElement>('.rlc-chat-item')].find((b) => b.textContent!.includes(name))!;
+  act(() => item('Zeca').click());
+  expect(onActivate).toHaveBeenLastCalledWith(null);
+  act(() => item('Fulana').click());
+  expect(onActivate).toHaveBeenLastCalledWith('b@pvp.net');
+  const removes = [...root.querySelectorAll('.rlc-chat-remove')].map((b) => b.getAttribute('aria-label'));
+  expect(removes).toEqual(['Remover conversa: Zeca', 'Remover conversa: Beltrano']);
+  await act(async () => btn('Remover conversa: Zeca')!.click());
+  expect(onActivate).toHaveBeenLastCalledWith(null);
+  expect(calls('/lol-chat/v1/conversations/a%40pvp.net').map((c) => c[1]?.method)).toEqual(['DELETE']);
+});
+
+test('doca: o X do canto existe sem conversa aberta; clicar fora esconde, dentro e na coluna de amigos não', () => {
+  const lcu = withValues({ conversations: ready([{ id: 'a', gameName: 'Zeca', unreadMessageCount: 0, type: 'chat' }]) });
+  const onClose = vi.fn();
+  const side = document.body.appendChild(document.createElement('aside'));
+  side.className = 'rlc-rc';
+  const outside = document.body.appendChild(document.createElement('div'));
+  act(() => render(<ChatDock lcu={lcu} open active={null} onActivate={vi.fn()} onClose={onClose} />, root));
+  act(() => btn('Fechar conversa', root.querySelector('.rlc-chat-window')!)!.click());
+  expect(onClose).toHaveBeenCalledTimes(1);
+  const down = (el: Element) => act(() => void el.dispatchEvent(new Event('pointerdown', { bubbles: true })));
+  down(root.querySelector('.rlc-chat-item')!);
+  down(side);
+  expect(onClose).toHaveBeenCalledTimes(1);
+  down(outside);
+  expect(onClose).toHaveBeenCalledTimes(2);
+  act(() => render(<ChatDock lcu={lcu} open={false} active={null} onActivate={vi.fn()} onClose={onClose} />, root));
+  down(outside);
+  expect(onClose).toHaveBeenCalledTimes(2);
+  side.remove();
+  outside.remove();
 });
 
 test('doca: fechar a conversa aberta fecha o chat todo', () => {
