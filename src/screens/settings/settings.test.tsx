@@ -68,7 +68,7 @@ test('início: um painel por área com nome, propósito e resumo do estado', asy
   expect(tiles.map((x) => x.dataset.area)).toEqual(['look', 'anim', 'sound', 'plug', 'general', 'notif', 'chat', 'game', 'keys']);
   const tags = (id: string) => [...root.querySelectorAll(`.rlc-st-tile[data-area="${id}"] .rlc-st-tag`)].map((x) => x.textContent);
   expect(tags('look')).toEqual(['Vidro', 'Escurecer 35%']);
-  expect(tags('sound')).toEqual(expect.arrayContaining(['Ambiente 35%', 'Cliques 60%']));
+  expect(tags('sound')).toEqual(expect.arrayContaining(['Cliques 60%']));
   expect(tags('plug')).toEqual(['Runas OP.GG', 'Matchup']);
   expect(tags('anim')).toEqual(['Completa', 'Vídeo ligado']);
   expect(tags('game')).toEqual(['Sem bordas', '1/2 ligados']);
@@ -119,20 +119,14 @@ test('animações: transições, vídeo e animações gravam nas preferências',
 test('som: interruptores e volumes gravam nas preferências', () => {
   mount();
   area('sound');
-  act(() => sw('Som ambiente').click());
   act(() => sw('Som de cliques').click());
-  const vol = root.querySelector<HTMLInputElement>('input[type="range"][aria-label="Volume ambiente"]')!;
-  act(() => {
-    vol.value = '0.8';
-    vol.dispatchEvent(new Event('input', { bubbles: true }));
-  });
   const clickVol = root.querySelector<HTMLInputElement>('input[type="range"][aria-label="Volume dos cliques"]')!;
   act(() => {
     clickVol.value = '0.2';
     clickVol.dispatchEvent(new Event('input', { bubbles: true }));
   });
-  expect(prefs.value).toMatchObject({ ambient: false, clicks: false, ambientVolume: 0.8, clickVolume: 0.2 });
-  expect((store.get('rlc.prefs') as { ambientVolume: number }).ambientVolume).toBe(0.8);
+  expect(prefs.value).toMatchObject({ clicks: false, clickVolume: 0.2 });
+  expect((store.get('rlc.prefs') as { clickVolume: number }).clickVolume).toBe(0.2);
 });
 
 test('plugins: cada interruptor grava a sua preferência; splashes avisa que os outros veem', () => {

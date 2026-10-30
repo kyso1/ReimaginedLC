@@ -10,9 +10,6 @@ export interface Prefs {
   locale: 'auto' | 'pt' | 'en';
   /** Camada ao abrir o client: ligada, desligada ou como ficou da última vez (null). */
   openOnStart: boolean | null;
-  /** Som ambiente (música das telas do client) e volume de 0 a 1. */
-  ambient: boolean;
-  ambientVolume: number;
   /** Som de clique em botões e abas, e volume de 0 a 1. */
   clicks: boolean;
   clickVolume: number;
@@ -66,8 +63,6 @@ export const DEFAULT_PREFS: Prefs = {
   video: true,
   locale: 'auto',
   openOnStart: null,
-  ambient: true,
-  ambientVolume: 0.35,
   clicks: true,
   clickVolume: 0.6,
   readyCheckAnim: true,
@@ -107,8 +102,6 @@ export function sanitizePrefs(v: unknown): Prefs {
     video: o.video !== false,
     locale: oneOf(o.locale, ['auto', 'pt', 'en'], 'auto'),
     openOnStart: typeof o.openOnStart === 'boolean' ? o.openOnStart : null,
-    ambient: bool(o.ambient, DEFAULT_PREFS.ambient),
-    ambientVolume: unit(o.ambientVolume, DEFAULT_PREFS.ambientVolume),
     clicks: bool(o.clicks, DEFAULT_PREFS.clicks),
     clickVolume: unit(o.clickVolume, DEFAULT_PREFS.clickVolume),
     readyCheckAnim: bool(o.readyCheckAnim, DEFAULT_PREFS.readyCheckAnim),

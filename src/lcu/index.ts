@@ -3,6 +3,7 @@ import { createGameData, type GameData } from '../data/gamedata';
 import { request } from './request';
 import { connect } from './socket';
 import { createListStore, createStore, type StoreState } from './store';
+import type { ClientAudio } from '../shell/sound';
 import type {
   LolChatFriendResource,
   LolChatGroupResource,
@@ -80,6 +81,8 @@ export interface Lcu {
   /** Essência Laranja (espólio `CURRENCY_cosmetic`). */
   orangeEssence: Signal<StoreState<LolLootPlayerLoot>> & { refresh: () => Promise<void> };
   friendRequests: Signal<StoreState<LolChatFriendRequestResource[]>>;
+  /** Som do client (Configurações › Som): o mesmo que o rcp-fe-audio da Riot segue. */
+  audioSettings: Signal<StoreState<{ data?: ClientAudio }>>;
   conversations: Signal<StoreState<LolChatConversationResource[]>> & { refresh: () => Promise<void> };
   /** Espólio; a LCU não manda evento na lista ao criar/abrir: `refresh` relê. */
   loot: Signal<StoreState<LolLootPlayerLoot[]>> & { refresh: () => Promise<void> };
@@ -197,6 +200,7 @@ export function createLcu(doc: Document = document): Lcu {
     wallet: refreshOnPrefix(createStore('/lol-inventory/v1/wallet?currencyTypes=' + encodeURIComponent('["RP","lol_blue_essence"]'), socket), socket, '/lol-inventory/'),
     orangeEssence: createStore('/lol-loot/v1/player-loot/CURRENCY_cosmetic', socket),
     friendRequests: createStore('/lol-chat/v2/friend-requests', socket),
+    audioSettings: createStore('/lol-settings/v1/local/lol-audio', socket),
     conversations: createListStore('/lol-chat/v1/conversations', socket),
     loot: lootStore(socket),
     events: { onPrefix: (prefix, fn) => socket.subscribePrefix(prefix, fn) },

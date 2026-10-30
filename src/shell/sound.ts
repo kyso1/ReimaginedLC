@@ -1,9 +1,11 @@
-import { useEffect } from 'preact/hooks';
+import { signal } from '@preact/signals';
+import { useEffect, useRef } from 'preact/hooks';
 import { prefs } from './prefs';
 
 /** Sons do próprio client da Riot, servidos pelo `/fe/` de cada módulo. */
 export const SOUNDS = {
-  ambient: '/fe/lol-navigation/music-ac-home-main.ogg',
+  /** Tema da tela inicial (rcp-fe-lol-navigation, `CLIENT_AMBIENCE.AC_MAIN`); a Riot troca o arquivo a cada evento. */
+  homeMusic: '/fe/lol-navigation/music-ac-home-main.ogg',
   click: '/fe/lol-parties/sfx-soc-ui-click-generic.ogg',
   confirm: '/fe/lol-parties/sfx-gameselect-button-confirm-click.ogg',
   tab: '/fe/lol-parties/sfx-uikit-grid-click.ogg',
@@ -19,8 +21,26 @@ export function playChatSound(): void {
   void a.play().catch(() => {});
 }
 
-/** Telas com música ambiente: as de fora da partida. Na seleção e no jogo a Riot já toca a dela. */
-const AMBIENT_SCREENS = new Set(['home', 'lobby', 'profile', 'collection', 'events', 'store', 'settings']);
+/** `/lol-settings/v1/local/lol-audio`: o som do client (Configurações › Som). */
+export interface ClientAudio {
+  masterSoundEnabled?: boolean;
+  masterVolume?: number;
+  musicEnabled?: boolean;
+  musicVolume?: number;
+  clientAmbienceMusicEnabled?: boolean;
+}
+
+/**
+ * Volume do tema da tela inicial, de 0 a 1, como o rcp-fe-audio calcula para o canal `music-client-ambience`:
+ * mudo com o som geral, a música ou a "música ambiente do client" desligados; senão o volume da música (e o geral).
+ */
+export function homeMusicVolume(a: ClientAudio | null | undefined): number {
+  if (!a || a.masterSoundEnabled === false || a.musicEnabled === false || a.clientAmbienceMusicEnabled === false) return 0;
+  return ((a.musicVolume ?? 100) / 100) * ((a.masterVolume ?? 100) / 100);
+}
+
+/** Aba da tela inicial aberta num quadro (site da Riot, como Worlds): o client cala o tema enquanto ela está aberta. */
+export const homeIframe = signal(false);
 
 /** Qual clique tocar para o elemento clicado: confirmar (botão principal), aba/chip ou clique comum. */
 export function clickSound(target: Element | null): keyof typeof SOUNDS | null {
@@ -32,26 +52,32 @@ export function clickSound(target: Element | null): keyof typeof SOUNDS | null {
 }
 
 /**
- * Som ambiente em laço nas telas fora da partida (pausa sem foco, como o vídeo de fundo) e um toque curto a cada clique
- * em botões da camada. Os dois seguem as preferências ao vivo.
+ * Tema da tela inicial em laço, como o client: só no Início (fora de aba em quadro), com o som do client
+ * (`audio`), pausado sem foco como o vídeo de fundo. E um toque curto a cada clique em botões da camada.
  */
-export function useSound(root: HTMLElement, screen: string, visible: boolean, focused: boolean): void {
+export function useSound(root: HTMLElement, screen: string, visible: boolean, focused: boolean, audio: ClientAudio | null | undefined): void {
   const p = prefs.value;
-  const playAmbient = visible && focused && p.ambient && AMBIENT_SCREENS.has(screen);
+  const volume = homeMusicVolume(audio);
+  const playMusic = visible && focused && screen === 'home' && !homeIframe.value && volume > 0;
+  const music = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (!playAmbient) return;
-    const music = new Audio(SOUNDS.ambient);
-    music.loop = true;
-    music.volume = p.ambientVolume;
-    void music.play().catch(() => {});
+    if (!playMusic) return;
+    const a = (music.current = new Audio(SOUNDS.homeMusic));
+    a.loop = true;
+    a.volume = volume;
+    void a.play().catch(() => {});
     return () => {
-      music.pause();
-      music.src = '';
+      music.current = null;
+      a.pause();
+      a.src = '';
     };
-  }, [playAmbient]);
+  }, [playMusic]);
+  // Volume mudado no client vale na hora, sem reiniciar a faixa.
+  useEffect(() => {
+    if (music.current) music.current.volume = volume;
+  }, [volume]);
 
-  // Volume muda sem reiniciar a música: o elemento atual é achado pelo laço acima; aqui só os cliques.
   useEffect(() => {
     if (!visible || !p.clicks) return;
     const onClick = (e: MouseEvent) => {

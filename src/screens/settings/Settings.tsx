@@ -63,7 +63,7 @@ const AREAS: Array<[Area, TextKey, TextKey]> = [
 const OWN_ROWS: Partial<Record<Area, TextKey[]>> = {
   look: ['stThemesLol', 'stThemesTft', 'stImport', 'stNewTheme', 'stCss', 'stBackground', 'stBgScreen', 'stBgSource', 'stBgRandom', 'stBgDim', 'stBgBlur', 'stBgPosX', 'stBgPosY'],
   anim: ['stMotion', 'stVideo', 'stReadyAnim', 'stLobbyAnim'],
-  sound: ['stAmbient', 'stAmbientVol', 'stClicks', 'stClickVol'],
+  sound: ['stClicks', 'stClickVol'],
   plug: ['stRunesAuto', 'stRunesMatchup', 'stRunesLock', 'stAllSplashes', 'mkAutoAccept', 'mkAcceptDelay', 'mkOffline', 'roseName', 'spName', 'spStatus', 'mkTitle'],
   general: ['stLanguage', 'stOpenOnStart', 'perfLite', 'perfPotato', 'stShortcut', 'versionLabel', 'stReport'],
   chat: ['socialPinned'],
@@ -101,7 +101,7 @@ function peeks(area: Area, themes: ThemeEngine, data: GameData): string[] {
     case 'anim':
       return [t(MOTIONS.find(([m]) => m === p.motion)?.[1] ?? 'stMotionFull'), t(p.video ? 'stPeekVideoOn' : 'stPeekVideoOff')];
     case 'sound':
-      return [p.ambient ? `${t('stPeekAmbient')} ${pct(p.ambientVolume)}` : t('stPeekNoAmbient'), p.clicks ? `${t('stPeekClicks')} ${pct(p.clickVolume)}` : t('stPeekNoClicks'), ...gamePeeks(data, 'sound')];
+      return [p.clicks ? `${t('stPeekClicks')} ${pct(p.clickVolume)}` : t('stPeekNoClicks'), ...gamePeeks(data, 'sound')];
     case 'plug': {
       const on = [p.runesAuto && t('stPeekRunes'), p.runesAuto && p.runesMatchup && t('stPeekMatchup'), p.allSplashes && t('stPeekSplashes'), p.autoAccept && t('stPeekAccept'), p.appearOffline && t('stPeekOffline')].filter((x): x is string => !!x);
       return on.length ? on : [t('stPeekPlugOff')];
@@ -271,12 +271,6 @@ function Sound() {
   return (
     <section class="rlc-st-card">
       <h3>{t('stInClient')}</h3>
-      <Row name={t('stAmbient')} desc={t('stAmbientDesc')}>
-        <Switch label={t('stAmbient')} checked={p.ambient} onChange={(ambient) => setPrefs({ ambient })} />
-      </Row>
-      <Row name={t('stAmbientVol')}>
-        <Range label={t('stAmbientVol')} value={p.ambientVolume} min={0} max={1} step={0.05} text={pct(p.ambientVolume)} onInput={(ambientVolume) => setPrefs({ ambientVolume })} />
-      </Row>
       <Row name={t('stClicks')} desc={t('stClicksDesc')}>
         <Switch label={t('stClicks')} checked={p.clicks} onChange={(clicks) => setPrefs({ clicks })} />
       </Row>

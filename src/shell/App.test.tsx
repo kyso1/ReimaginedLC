@@ -566,7 +566,7 @@ test('Configurações abre a tela de configurações', async () => {
 test('preferências: transições vão para data-motion e vídeo desligado não toca', async () => {
   enabled.value = true;
   themes.active.value = { ...themes.active.value, backgrounds: { default: { theme: 'vidro', path: '/fe/x/a.webm' } } };
-  prefs.value = { ...DEFAULT_PREFS, motion: 'off', video: false, ambient: false };
+  prefs.value = { ...DEFAULT_PREFS, motion: 'off', video: false };
   mount();
   await flush();
   expect(root.dataset.motion).toBe('off');
@@ -579,20 +579,61 @@ test('preferências: transições vão para data-motion e vídeo desligado não 
   expect(play).not.toHaveBeenCalled();
 });
 
-test('som ambiente: toca na tela inicial com foco e para sem foco', async () => {
+/** Elementos de áudio criados com o tema da tela inicial (o client: `music-ac-home-main.ogg`). */
+const homeMusic = () => {
+  const made: HTMLAudioElement[] = [];
+  const Real = window.Audio;
+  vi.stubGlobal('Audio', function (src?: string) {
+    const a = new Real(src);
+    if (src?.includes('music-ac-home-main')) made.push(a);
+    return a;
+  });
+  const playing = () => made.filter((a) => (HTMLMediaElement.prototype.play as unknown as ReturnType<typeof vi.fn>).mock.contexts.includes(a) && !(HTMLMediaElement.prototype.pause as unknown as ReturnType<typeof vi.fn>).mock.contexts.includes(a));
+  return { made, playing };
+};
+const clientAudio = (over: Record<string, unknown> = {}) => signal(ready({ schemaVersion: 5, data: { masterSoundEnabled: true, musicEnabled: true, clientAmbienceMusicEnabled: true, musicVolume: 40, ...over } })) as Lcu['audioSettings'];
+
+test('música da tela inicial: toca só no Início, com o volume do client; para ao sair e sem foco', async () => {
   enabled.value = true;
-  prefs.value = { ...DEFAULT_PREFS, video: false, ambient: true };
-  const play = HTMLMediaElement.prototype.play as unknown as ReturnType<typeof vi.fn>;
-  const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
-  focused.value = true;
-  play.mockClear();
+  prefs.value = { ...DEFAULT_PREFS, video: false };
+  lcu = fakeLcu({ gameflowPhase: phase, audioSettings: clientAudio() });
+  const music = homeMusic();
   mount();
   await flush();
-  expect(play).toHaveBeenCalled();
+  expect(music.playing()).toHaveLength(1);
+  expect(music.playing()[0]!.volume).toBeCloseTo(0.4);
+  expect(music.playing()[0]!.loop).toBe(true);
   focused.value = false;
   await flush();
-  expect(pause).toHaveBeenCalled();
-  pause.mockRestore();
+  expect(music.playing()).toHaveLength(0);
+  focused.value = true;
+  await flush();
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Perfil"]')!.click();
+  await shows('.rlc-app[data-screen="profile"]');
+  await flush();
+  expect(music.playing()).toHaveLength(0);
+  vi.unstubAllGlobals();
+});
+
+test('música da tela inicial: com a música do client desligada não toca; ligar no client começa sem recarregar', async () => {
+  enabled.value = true;
+  prefs.value = { ...DEFAULT_PREFS, video: false };
+  const audio = clientAudio({ clientAmbienceMusicEnabled: false });
+  lcu = fakeLcu({ gameflowPhase: phase, audioSettings: audio });
+  const music = homeMusic();
+  mount();
+  await flush();
+  expect(music.playing()).toHaveLength(0);
+  audio.value = clientAudio({ musicVolume: 20 }).value;
+  await flush();
+  expect(music.playing()).toHaveLength(1);
+  expect(music.playing()[0]!.volume).toBeCloseTo(0.2);
+  // Volume mudado no client vale na hora, sem reiniciar a faixa.
+  audio.value = clientAudio({ musicVolume: 60 }).value;
+  await flush();
+  expect(music.made).toHaveLength(1);
+  expect(music.made[0]!.volume).toBeCloseTo(0.6);
+  vi.unstubAllGlobals();
 });
 
 test('trilho tem Espólios entre Coleção e Eventos e abre a vista própria; ponto marca item novo', async () => {
@@ -672,19 +713,19 @@ test('gaveta de amigos fixa: o App marca data-social para as telas encolherem; n
 test('modo leve: atributo data-lite conforme auto/on/off e transições completas viram reduzidas', async () => {
   enabled.value = true;
   liteAuto.value = false;
-  prefs.value = { ...DEFAULT_PREFS, lite: 'on', ambient: false };
+  prefs.value = { ...DEFAULT_PREFS, lite: 'on' };
   mount();
   await flush();
   expect(root.dataset.lite).toBe('');
   expect(root.dataset.motion).toBe('reduced');
-  prefs.value = { ...DEFAULT_PREFS, lite: 'auto', ambient: false };
+  prefs.value = { ...DEFAULT_PREFS, lite: 'auto' };
   await flush();
   expect(root.dataset.lite).toBeUndefined();
   expect(root.dataset.motion).toBe('full');
   liteAuto.value = true;
   await flush();
   expect(root.dataset.lite).toBe('');
-  prefs.value = { ...DEFAULT_PREFS, lite: 'off', ambient: false };
+  prefs.value = { ...DEFAULT_PREFS, lite: 'off' };
   await flush();
   expect(root.dataset.lite).toBeUndefined();
   liteAuto.value = false;
@@ -692,7 +733,7 @@ test('modo leve: atributo data-lite conforme auto/on/off e transições completa
 
 test('interface da Riot congelada só com a camada visível', async () => {
   enabled.value = true;
-  prefs.value = { ...DEFAULT_PREFS, ambient: false };
+  prefs.value = { ...DEFAULT_PREFS };
   mount();
   await flush();
   expect(riot.dataset.rlcFrozen).toBe('');
