@@ -145,7 +145,7 @@ function Craft({ lcu }: { lcu: Lcu }) {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<Sort>('name');
   const [focusId, setFocusId] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<{ menu: LolLootContextMenu; loot: LolLootPlayerLoot; repeat: number } | null>(null);
+  const [confirm, setConfirm] = useState<{ menu: LolLootContextMenu; loot: LolLootPlayerLoot; repeat: number; ids: string[] } | null>(null);
   const [reroll, setReroll] = useState<{ menu: LolLootContextMenu; loot: LolLootPlayerLoot; pool: string[] } | null>(null);
   const [reveal, setReveal] = useState<{ items: RevealItem[]; chest?: string } | null>(null);
   useEffect(loadLootStrings, []);
@@ -234,7 +234,7 @@ function Craft({ lcu }: { lcu: Lcu }) {
             <p class="rlc-muted">
               {focus.isRental && (lootGroup(focus) === 'champions' || lootGroup(focus) === 'skins') ? `${t('lootShard')} · ` : ''}×{n.format(focus.count)}
             </p>
-            <Actions key={focus.lootId} lootId={focus.lootId} count={focus.count} cache={menus} units={(pool) => rerollUnits(pool, raw).length} onAction={(menu, pool, repeat) => (menu.actionType === 'REROLL' ? setReroll({ menu, loot: focus, pool }) : setConfirm({ menu, loot: focus, repeat }))} busy={craft.pending} />
+            <Actions key={focus.lootId} lootId={focus.lootId} count={focus.count} cache={menus} units={(pool) => rerollUnits(pool, raw).length} onAction={(menu, pool, repeat, ids) => (menu.actionType === 'REROLL' ? setReroll({ menu, loot: focus, pool }) : setConfirm({ menu, loot: focus, repeat, ids }))} busy={craft.pending} />
           </>
         ) : (
           <p class="rlc-muted">{t('lootPick')}</p>
@@ -252,7 +252,7 @@ function Craft({ lcu }: { lcu: Lcu }) {
           message={`${actionLabel(confirm.menu)}: ${lootName(confirm.loot)}${confirm.repeat > 1 ? ` ×${confirm.repeat}` : ''}?`}
           confirmLabel={actionLabel(confirm.menu)}
           onConfirm={() => {
-            craft.run(confirm.menu, [confirm.loot.lootId, ...(confirm.menu.requiredOthers ? [confirm.menu.requiredOthers] : [])], confirm.repeat, confirm.loot);
+            craft.run(confirm.menu, confirm.ids, confirm.repeat, confirm.loot);
             setConfirm(null);
           }}
           onCancel={() => setConfirm(null)}
@@ -286,8 +286,9 @@ function Balance({ icon, label, value }: { icon?: string; label: string; value: 
   );
 }
 
-/** Ações do item em foco, como a LCU as oferece no menu de contexto, e os itens aceitos pela receita de reformular. */
-type MenuCache = Map<string, Promise<{ menu: LolLootContextMenu[]; pool: string[] }>>;
+/** Ações do item em foco, como a LCU as oferece no menu de contexto, e as receitas que usam o item. */
+type MenuState = { menu: LolLootContextMenu[]; pool: string[]; recipes: Recipe[] };
+type MenuCache = Map<string, Promise<MenuState>>;
 
 interface Recipe {
   recipeName: string;
@@ -295,31 +296,41 @@ interface Recipe {
   slots: Array<{ lootIds: string[]; quantity: number }>;
 }
 
-const getList = <T,>(url: string, init?: RequestInit): Promise<T[]> =>
-  fetch(url, init)
+const getList = <T,>(url: string): Promise<T[]> =>
+  fetch(url)
     .then((r) => (r.ok ? (r.json() as Promise<T[]>) : []))
     .then((v) => (Array.isArray(v) ? v : []))
     .catch(() => []);
 
 /**
- * Menu de ações do item. Uma consulta por item e quantidade (voltar ao item usa o cache); falha deixa sem ações, sem aviso.
- * O menu da LCU marca Reformular como possível mesmo com menos de 3 peças; quem decide é a receita
- * (`/recipes/initial-item`, vagas com os lootIds aceitos), lida só quando o menu traz Reformular.
+ * Corpo do craft: um lootId por vaga da receita, como o client manda. O item em foco ocupa a vaga que o aceita;
+ * as outras levam o que a receita pede (abrir baú: a chave, que o menu não informa em `requiredOthers`).
+ * Sem receita, cai no que o menu diz.
  */
-function Actions({ lootId, count, cache, units, onAction, busy }: { lootId: string; count: number; cache: MenuCache; units: (pool: string[]) => number; onAction: (m: LolLootContextMenu, pool: string[], repeat: number) => void; busy: boolean }) {
-  const [state, setState] = useState<{ menu: LolLootContextMenu[]; pool: string[] }>({ menu: [], pool: [] });
+function craftIds(lootId: string, menu: LolLootContextMenu, recipes: Recipe[]): string[] {
+  const recipe = recipes.find((r) => r.recipeName === menu.name);
+  if (!recipe?.slots.length) return [lootId, ...(menu.requiredOthers ? [menu.requiredOthers] : [])];
+  // ponytail: vaga que aceita vários itens leva o primeiro; escolher pelo que o jogador tem se aparecer receita assim.
+  return recipe.slots.map((s) => (s.lootIds.includes(lootId) ? lootId : s.lootIds[0]!));
+}
+
+/**
+ * Menu de ações do item. Uma consulta por item e quantidade (voltar ao item usa o cache); falha deixa sem ações, sem aviso.
+ * Como o client: lê o menu e as receitas do item (`/recipes/initial-item`, vagas com os lootIds aceitos).
+ * O menu marca Reformular como possível mesmo com menos de 3 peças; quem decide é a receita.
+ */
+function Actions({ lootId, count, cache, units, onAction, busy }: { lootId: string; count: number; cache: MenuCache; units: (pool: string[]) => number; onAction: (m: LolLootContextMenu, pool: string[], repeat: number, ids: string[]) => void; busy: boolean }) {
+  const [state, setState] = useState<MenuState>({ menu: [], pool: [], recipes: [] });
   useEffect(() => {
     let live = true;
     const key = `${lootId}:${count}`;
     let entry = cache.get(key);
     if (!entry) {
-      // POST de leitura: a LCU só monta o menu, não gasta nada.
-      entry = getList<LolLootContextMenu>(`/lol-loot/v1/player-loot/${encodeURIComponent(lootId)}/context-menu`, { method: 'POST' }).then(async (menu) => {
+      const id = encodeURIComponent(lootId);
+      entry = Promise.all([getList<LolLootContextMenu>(`/lol-loot/v1/player-loot/${id}/context-menu`), getList<Recipe>(`/lol-loot/v1/recipes/initial-item/${id}`)]).then(([menu, recipes]) => {
         const rr = menu.find((m) => m.actionType === 'REROLL');
-        if (!rr) return { menu, pool: [] };
-        const recipes = await getList<Recipe>(`/lol-loot/v1/recipes/initial-item/${encodeURIComponent(lootId)}`);
-        const recipe = recipes.find((r) => r.recipeName === rr.name) ?? recipes.find((r) => r.type === 'REROLL');
-        return { menu, pool: [...new Set(recipe?.slots.flatMap((s) => s.lootIds) ?? [])] };
+        const recipe = rr && (recipes.find((r) => r.recipeName === rr.name) ?? recipes.find((r) => r.type === 'REROLL'));
+        return { menu, recipes, pool: [...new Set(recipe?.slots.flatMap((s) => s.lootIds) ?? [])] };
       });
       cache.set(key, entry);
     }
@@ -334,12 +345,12 @@ function Actions({ lootId, count, cache, units, onAction, busy }: { lootId: stri
         const blocked = m.actionType === 'REROLL' && short;
         return (
           <Fragment key={m.name}>
-            <button type="button" class="rlc-button" data-variant="pill" disabled={!m.enabled || blocked || busy} title={blocked ? t('lootRerollNeed') : undefined} onClick={() => onAction(m, state.pool, 1)}>
+            <button type="button" class="rlc-button" data-variant="pill" disabled={!m.enabled || blocked || busy} title={blocked ? t('lootRerollNeed') : undefined} onClick={() => onAction(m, state.pool, 1, craftIds(lootId, m, state.recipes))}>
               {actionLabel(m)}
             </button>
             {/* Vários iguais: abrir ou desencantar todos de uma vez (o `repeat` da receita, como no client). */}
             {count > 1 && m.enabled && (m.actionType === 'OPEN' || m.actionType === 'DISENCHANT') ? (
-              <button type="button" class="rlc-button" data-variant="pill" disabled={busy} onClick={() => onAction(m, state.pool, count)}>
+              <button type="button" class="rlc-button" data-variant="pill" disabled={busy} onClick={() => onAction(m, state.pool, count, craftIds(lootId, m, state.recipes))}>
                 {`${t('lootAll')} ×${count}`}
               </button>
             ) : null}
