@@ -7,6 +7,7 @@ import { Rank, rankedQueueOf } from '../../ui/Rank';
 import { formatClock } from '../lobby/format';
 import { tierLabel } from '../profile/data';
 import { useDecoded } from '../../ui/useDecoded';
+import { queueLabel } from '../modes/queues';
 
 export const profileIcon = (id: number | undefined) => (id ? `/lol-game-data/assets/v1/profile-icons/${id}.jpg` : '');
 
@@ -33,7 +34,7 @@ export const friendName = (f: Pick<Friend, 'gameName' | 'name'>) => f.gameName |
 export function queueName(lcu: Lcu, lol: Record<string, string> | undefined): string {
   const id = Number(lol?.queueId);
   const q = id > 0 ? lcu.queues.value.data?.find((x) => x.id === id) : undefined;
-  return q?.name || (lol?.gameMode ? t(`colMode_${lol.gameMode}` as TextKey) || '' : '');
+  return queueLabel(q) || (lol?.gameMode ? t(`colMode_${lol.gameMode}` as TextKey) || '' : '');
 }
 
 /**

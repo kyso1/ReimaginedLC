@@ -1,6 +1,24 @@
 import { expect, test } from 'vitest';
 import { queue } from '../../test/fixtures';
-import { customLobbyBody, customModes, groupQueues } from './queues';
+import { customLobbyBody, customModes, groupQueues, queueLabel } from './queues';
+
+test('queueLabel usa o campo que o client usa em cada tela, e cai nos outros quando vazio', () => {
+  const draft = queue({ name: 'Normal', shortName: 'Normal', description: 'Escolha Alternada', detailedDescription: 'Normal (Escolha Alternada)' });
+  expect(queueLabel(draft)).toBe('Escolha Alternada');
+  expect(queueLabel(draft, 'lobby')).toBe('Normal');
+  expect(queueLabel(draft, 'history')).toBe('Normal (Escolha Alternada)');
+  // TFT: name traz o jogo junto; o client mostra só a description.
+  expect(queueLabel(queue({ name: 'Teamfight Tactics (Ranqueada)', description: 'Ranqueada' }))).toBe('Ranqueada');
+  // Fila de evento sem name nem detailedDescription.
+  const jade = queue({ name: '', shortName: 'Clássico', description: 'Clássico 5x5', detailedDescription: '' });
+  expect(queueLabel(jade, 'history')).toBe('Clássico 5x5');
+  expect(queueLabel(null)).toBe('');
+});
+
+test('fila sem name mas com description entra na lista; sem nenhum nome, fica de fora', () => {
+  const groups = groupQueues([queue({ id: 4310, name: '', description: 'Clássico 5x5' }), queue({ id: 1, name: ' ', description: '' })]);
+  expect(groups.flatMap((g) => g.queues.map((q) => q.id))).toEqual([4310]);
+});
 
 test('agrupa por gameSelectModeGroup na ordem fixa, só filas disponíveis, visíveis e não personalizadas', () => {
   const groups = groupQueues([

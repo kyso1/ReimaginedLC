@@ -5,6 +5,7 @@ import { request } from '../lcu/request';
 import { formatClock, useClock } from '../screens/lobby/format';
 import { useAction } from '../ui/useAction';
 import { prefs } from './prefs';
+import { queueLabel } from '../screens/modes/queues';
 
 const BAR = '#rlc-root .rlc-lobby .rlc-bar';
 const EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -70,7 +71,7 @@ export function QueuePill({ lcu, onLobby, onOpen }: { lcu: Lcu; onLobby: boolean
 
   if (!searching || (onLobby && !entering && !stretching)) return null;
   const queueId = search?.queueId ?? lcu.lobby.value.data?.gameConfig.queueId;
-  const queueName = lcu.queues.value.data?.find((q) => q.id === queueId)?.name ?? '';
+  const queueName = queueLabel(lcu.queues.value.data?.find((q) => q.id === queueId));
   const leader = lcu.lobby.value.data?.localMember.isLeader !== false;
   return (
     <div ref={ref} class="rlc-qpill" data-stretch={onLobby ? 'true' : undefined}>

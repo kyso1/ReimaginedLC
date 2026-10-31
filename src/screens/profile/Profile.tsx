@@ -20,6 +20,7 @@ import { TftHistory } from './TftHistory';
 import { PlayerHover } from './PlayerHover';
 import { ReplayButton } from './ReplayButton';
 import { canReportFromHistory, PlayerMenu, ReportDialog, useReported, type EogTarget } from '../postgame/Report';
+import { queueLabel } from '../modes/queues';
 
 type Tab = 'summary' | 'history' | 'ranked' | 'mastery';
 const TABS: Array<[Tab, TextKey]> = [
@@ -278,7 +279,7 @@ function History({ lcu, puuid, ranked }: { lcu: Lcu; puuid: string; ranked: Rank
     });
     return () => void (live = false);
   }, [puuid]);
-  const queueName = (id: number) => lcu.queues.value.data?.find((q) => q.id === id)?.name ?? '';
+  const queueName = (id: number) => queueLabel(lcu.queues.value.data?.find((q) => q.id === id), 'history');
 
   if (tft) return <TftHistory lcu={lcu} puuid={puuid} head={head} elo={<EloPanel ranked={ranked} queues={TFT_QUEUES} />} />;
   if (open) return <MatchDetail lcu={lcu} puuid={puuid} gameId={open.gameId} originY={open.originY} onBack={() => setOpen(null)} />;
@@ -533,7 +534,7 @@ function MatchDetail({ lcu, puuid, gameId, originY, onBack }: { lcu: Lcu; puuid:
         <>
           <h2 class="rlc-md-result">{me?.stats.win ? t('victory') : t('defeat')}</h2>
           <div class="rlc-md-meta">
-            <p class="rlc-muted">{`${champ(me)?.name ?? ''} · ${lcu.queues.value.data?.find((q) => q.id === game.queueId)?.name ?? ''} · ${formatClock(game.gameDuration)}`}</p>
+            <p class="rlc-muted">{`${champ(me)?.name ?? ''} · ${queueLabel(lcu.queues.value.data?.find((q) => q.id === game.queueId), 'history')} · ${formatClock(game.gameDuration)}`}</p>
             <ReplayButton game={{ gameId: game.gameId, queueId: game.queueId, gameType: game.gameType ?? 'MATCHED_GAME', gameVersion: game.gameVersion, gameCreation: game.gameCreation, gameDuration: game.gameDuration }} where="match-history" />
           </div>
           <nav class="rlc-tabs-text">
