@@ -1,7 +1,10 @@
 import { afterEach, expect, test, vi } from 'vitest';
-import { REFRESH_BATCH_MS, refreshOnPrefix } from './index';
+import { REFRESH_BATCH_MS, friendRequestsStore, refreshOnPrefix } from './index';
 
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 test('carteira (endereço com query): eventos do inventário, que vêm sem query, releem uma vez por rajada', async () => {
   vi.useFakeTimers();
@@ -30,4 +33,20 @@ test('o próprio endereço do store (que já tem evento) não relê de novo', as
   fn!('/lol-loot/v1/player-loot/CHAMPION_RENTAL_266');
   await vi.advanceTimersByTimeAsync(REFRESH_BATCH_MS + 10);
   expect(store.refresh).toHaveBeenCalledTimes(1);
+});
+
+test('pedidos de amizade: a LCU avisa na v1, e a lista (lida na v2) passa a mostrar o pedido novo', async () => {
+  vi.useFakeTimers();
+  const prefixes: Array<[string, (uri: string) => void]> = [];
+  const socket = { subscribe: () => () => {}, onReconnect: () => () => {}, subscribePrefix: (p: string, fn: (uri: string) => void) => (prefixes.push([p, fn]), () => {}) };
+  const zeca = { puuid: 'p-zeca', gameName: 'Zeca', tagLine: 'BR1', direction: 'in' };
+  const fetch = vi.fn().mockResolvedValueOnce(new Response('[]')).mockResolvedValueOnce(new Response(JSON.stringify([zeca])));
+  vi.stubGlobal('fetch', fetch);
+  const store = friendRequestsStore(socket as never);
+  await vi.advanceTimersByTimeAsync(0);
+  expect(store.value.data).toEqual([]);
+  prefixes.filter(([p]) => '/lol-chat/v1/friend-requests/p-zeca'.startsWith(p)).forEach(([, fn]) => fn('/lol-chat/v1/friend-requests/p-zeca'));
+  await vi.advanceTimersByTimeAsync(REFRESH_BATCH_MS + 10);
+  expect(fetch).toHaveBeenLastCalledWith('/lol-chat/v2/friend-requests');
+  expect(store.value.data).toEqual([zeca]);
 });
