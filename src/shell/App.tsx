@@ -45,6 +45,7 @@ import { useBackground } from './useBackground';
 import { useSound } from './sound';
 import { WindowBar } from './WindowBar';
 import { bootStatus, hideBoot } from './boot';
+import { exposeShell } from './devhook';
 
 /** Item do trilho para as telas do fluxo da partida. */
 // Telas fora da abertura: chunks sob demanda, resolvidos relativos ao index.js (import.meta.url).
@@ -241,6 +242,18 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   };
   useLayoutEffect(() => sync(visible, hide), [root, visible, hide, domVersion]);
   useLayoutEffect(() => () => sync(false, false), [root]);
+
+  if (import.meta.env.MODE === 'client') {
+    exposeShell(lcu, Object.keys(VIEW_LABEL), {
+      state: { screen, page, view: shownView, panel, chat, profilePuuid, settingsArea },
+      setView: (v) => setView(v as View | null),
+      setPanel,
+      goHome: () => (setPanel(null), setView(null), setAtHome(true)),
+      openChat: (id) => setChat(id ? { open: true, active: id } : (c) => ({ ...c, open: false })),
+      openProfile: (puuid) => (setProfilePuuid(puuid), setView('profile')),
+      openSettings: (area) => (setSettingsArea(area), setView('settings')),
+    });
+  }
 
   if (!visible || screen === null) return null;
 
