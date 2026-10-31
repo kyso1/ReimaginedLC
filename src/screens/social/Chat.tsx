@@ -108,7 +108,7 @@ export function useChatSound(lcu: Lcu, visibleId: string | null): void {
       const echo = sent.get(id);
       if (echo && echo.body === m.body && Date.now() - echo.at < SENT_ECHO_MS) return;
       if (id === visible.current && document.hasFocus()) return;
-      playChatSound();
+      playChatSound(lcu.audioSettings.peek().data?.data);
     });
   }, [lcu]);
 }

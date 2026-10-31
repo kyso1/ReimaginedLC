@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { clickSound, homeMusicVolume } from './sound';
+import { clickSound, homeMusicVolume, sfxVolume } from './sound';
 
 const el = (html: string) => {
   const host = document.createElement('div');
@@ -25,4 +25,15 @@ test('música da tela inicial segue o som do client: música e ambiente do clien
   expect(homeMusicVolume({ ...on, masterSoundEnabled: false })).toBe(0);
   // Sem a configuração lida ainda, nada toca.
   expect(homeMusicVolume(null)).toBe(0);
+});
+
+test('efeitos (cliques, aviso de mensagem) seguem o som do client: canal de efeitos e volume geral', () => {
+  const on = { masterSoundEnabled: true, sfxEnabled: true, sfxVolume: 21 };
+  expect(sfxVolume(on)).toBeCloseTo(0.21);
+  expect(sfxVolume({ ...on, masterVolume: 50 })).toBeCloseTo(0.105);
+  expect(sfxVolume({ ...on, sfxEnabled: false })).toBe(0);
+  expect(sfxVolume({ ...on, masterSoundEnabled: false })).toBe(0);
+  // Música desligada não cala os efeitos.
+  expect(sfxVolume({ ...on, musicEnabled: false })).toBeCloseTo(0.21);
+  expect(sfxVolume(null)).toBe(0);
 });

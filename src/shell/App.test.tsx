@@ -636,6 +636,34 @@ test('música da tela inicial: com a música do client desligada não toca; liga
   vi.unstubAllGlobals();
 });
 
+test('cliques nos botões seguem os efeitos do client: volume da pref vezes o canal de efeitos; efeitos ou som geral desligados calam', async () => {
+  enabled.value = true;
+  prefs.value = { ...DEFAULT_PREFS, video: false, clickVolume: 0.5 };
+  const audio = clientAudio({ musicEnabled: false, sfxEnabled: true, sfxVolume: 40 });
+  lcu = fakeLcu({ gameflowPhase: phase, audioSettings: audio });
+  const clicks: HTMLAudioElement[] = [];
+  const Real = window.Audio;
+  vi.stubGlobal('Audio', function (src?: string) {
+    const a = new Real(src);
+    if (src?.includes('/sfx-')) clicks.push(a);
+    return a;
+  });
+  mount();
+  await flush();
+  const profile = () => root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Perfil"]')!;
+  profile().click();
+  expect(clicks).toHaveLength(1);
+  expect(clicks[0]!.volume).toBeCloseTo(0.2);
+  audio.value = clientAudio({ sfxEnabled: false, sfxVolume: 40 }).value;
+  await flush();
+  profile().click();
+  audio.value = clientAudio({ masterSoundEnabled: false, sfxEnabled: true, sfxVolume: 40 }).value;
+  await flush();
+  profile().click();
+  expect(clicks).toHaveLength(1);
+  vi.unstubAllGlobals();
+});
+
 test('música da tela inicial: aba em quadro (site da Riot, como Worlds) cala a música, como no client', async () => {
   enabled.value = true;
   prefs.value = { ...DEFAULT_PREFS, video: false };

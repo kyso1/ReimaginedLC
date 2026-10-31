@@ -13,12 +13,18 @@ export const SOUNDS = {
   chat: '/fe/lol-social/sounds/sfx-soc-notif-chat-rcvd.ogg',
 } as const;
 
-/** Aviso de mensagem nova, com o volume dos cliques; segue a pref `chatSound`. */
-export function playChatSound(): void {
-  if (!prefs.value.chatSound) return;
-  const a = new Audio(SOUNDS.chat);
-  a.volume = prefs.value.clickVolume;
+/** Efeito curto: volume da pref dos cliques vezes o canal de efeitos do client; calado se der zero. */
+function playSfx(kind: keyof typeof SOUNDS, audio: ClientAudio | null | undefined): void {
+  const volume = prefs.value.clickVolume * sfxVolume(audio);
+  if (volume <= 0) return;
+  const a = new Audio(SOUNDS[kind]);
+  a.volume = volume;
   void a.play().catch(() => {});
+}
+
+/** Aviso de mensagem nova, como os cliques; segue a pref `chatSound` e os efeitos do client. */
+export function playChatSound(audio: ClientAudio | null | undefined): void {
+  if (prefs.value.chatSound) playSfx('chat', audio);
 }
 
 /** `/lol-settings/v1/local/lol-audio`: o som do client (Configurações › Som). */
@@ -28,6 +34,14 @@ export interface ClientAudio {
   musicEnabled?: boolean;
   musicVolume?: number;
   clientAmbienceMusicEnabled?: boolean;
+  sfxEnabled?: boolean;
+  sfxVolume?: number;
+}
+
+/** Volume do canal de efeitos do client, de 0 a 1: mudo com o som geral ou os efeitos desligados (ou sem a configuração lida). */
+export function sfxVolume(a: ClientAudio | null | undefined): number {
+  if (!a || a.masterSoundEnabled === false || a.sfxEnabled === false) return 0;
+  return ((a.sfxVolume ?? 100) / 100) * ((a.masterVolume ?? 100) / 100);
 }
 
 /**
@@ -60,6 +74,9 @@ export function useSound(root: HTMLElement, screen: string, visible: boolean, fo
   const volume = homeMusicVolume(audio);
   const playMusic = visible && focused && screen === 'home' && !homeIframe.value && volume > 0;
   const music = useRef<HTMLAudioElement | null>(null);
+  // O ouvinte de cliques lê o som do client mais recente sem se registrar de novo.
+  const audioNow = useRef(audio);
+  audioNow.current = audio;
 
   useEffect(() => {
     if (!playMusic) return;
@@ -82,10 +99,7 @@ export function useSound(root: HTMLElement, screen: string, visible: boolean, fo
     if (!visible || !p.clicks) return;
     const onClick = (e: MouseEvent) => {
       const kind = clickSound(e.target as Element | null);
-      if (!kind) return;
-      const a = new Audio(SOUNDS[kind]);
-      a.volume = prefs.value.clickVolume;
-      void a.play().catch(() => {});
+      if (kind) playSfx(kind, audioNow.current);
     };
     root.addEventListener('click', onClick, true);
     return () => root.removeEventListener('click', onClick, true);

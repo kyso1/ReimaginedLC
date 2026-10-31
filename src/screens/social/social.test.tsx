@@ -1,5 +1,6 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
+import { signal } from '@preact/signals';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../../i18n';
 import type { Lcu } from '../../lcu';
@@ -175,9 +176,12 @@ test('chat de contexto: roomChatOpen acompanha abrir, recolher, esconder e sair 
 test('som de mensagem: só mensagem nova de outra pessoa; nem minha, nem de sistema, nem histórico, nem da conversa à vista com foco', () => {
   const play = vi.fn().mockResolvedValue(undefined);
   const srcs: string[] = [];
-  vi.stubGlobal('Audio', vi.fn(function (this: { play: typeof play; volume: number }, src: string) { srcs.push(src); this.play = play; this.volume = 1; }));
+  const made: { volume: number }[] = [];
+  vi.stubGlobal('Audio', vi.fn(function (this: { play: typeof play; volume: number }, src: string) { srcs.push(src); this.play = play; this.volume = 1; made.push(this); }));
   const focus = vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+  const audio = signal(ready({ data: { masterSoundEnabled: true, sfxEnabled: true, sfxVolume: 50 } }));
   const lcu = withValues({ chatMe: ready({ puuid: 'me', id: 'me-id', pid: 'me-pid' }) });
+  lcu.audioSettings = audio as Lcu['audioSettings'];
   act(() => render(<ChatDock lcu={lcu} open active="zeca@pvp.net" onActivate={() => {}} onClose={() => {}} />, root));
   const room = '/lol-chat/v1/conversations/sala@champ-select.pvp.net/messages/';
   act(() => emit(`${room}a`, 'Create', { ...msg('a', 'eu', ''), fromPid: 'me-pid' }));
@@ -191,10 +195,17 @@ test('som de mensagem: só mensagem nova de outra pessoa; nem minha, nem de sist
   act(() => emit('/lol-chat/v1/conversations/sala%40champ-select.pvp.net/messages/f', 'Create', { ...msg('f', 'mid?', 'x'), type: 'groupchat' }));
   expect(play).toHaveBeenCalledTimes(1);
   expect(srcs).toEqual(['/fe/lol-social/sounds/sfx-soc-notif-chat-rcvd.ogg']);
+  // Volume da pref vezes o canal de efeitos do client (0,6 × 50%).
+  expect(made[0]!.volume).toBeCloseTo(0.3);
   // Sem foco na janela, a conversa à vista também avisa; com a pref desligada, nada.
   focus.mockReturnValue(false);
   act(() => emit('/lol-chat/v1/conversations/zeca@pvp.net/messages/g', 'Create', msg('g', 'oi?')));
   expect(play).toHaveBeenCalledTimes(2);
+  // Efeitos desligados no client: não toca.
+  audio.value = ready({ data: { masterSoundEnabled: true, sfxEnabled: false, sfxVolume: 50 } });
+  act(() => emit('/lol-chat/v1/conversations/zeca@pvp.net/messages/g2', 'Create', msg('g2', 'oi?')));
+  expect(play).toHaveBeenCalledTimes(2);
+  audio.value = ready({ data: { masterSoundEnabled: true, sfxEnabled: true, sfxVolume: 50 } });
   prefs.value = { ...DEFAULT_PREFS, chatSound: false };
   act(() => emit('/lol-chat/v1/conversations/zeca@pvp.net/messages/h', 'Create', msg('h', 'oi??')));
   expect(play).toHaveBeenCalledTimes(2);
