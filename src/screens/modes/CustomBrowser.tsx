@@ -4,6 +4,7 @@ import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
 import type { LolLobbyLobbyCustomGame } from '../../lcu/types';
 import { Button } from '../../ui/Button';
+import { PillSelect } from '../../ui/PillMenu';
 import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
 import { useDrawerClose } from './Modes';
@@ -39,13 +40,17 @@ export function CustomBrowser({ lcu, onClose }: { lcu: Lcu; onClose: () => void 
   );
 }
 
+type Room = LolLobbyLobbyCustomGame & { partyId?: string };
+// O client atual devolve id 0 em todas as salas; o partyId é o que as distingue.
+const roomKey = (g: Room) => g.partyId || String(g.id);
+
 function RoomList({ games, refresh, onJoined }: { games: LolLobbyLobbyCustomGame[]; refresh: () => Promise<void>; onJoined: () => void }) {
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
   const [password, setPassword] = useState('');
-  const room = games.find((g) => g.id === selected) ?? null;
+  const room: Room | null = games.find((g) => roomKey(g) === selected) ?? null;
   const join = useAction(async () => {
     // Salas novas entram pelo grupo (`partyId`), como no client atual; as antigas, pelo id da sala.
-    const party = (room as LolLobbyLobbyCustomGame & { partyId?: string }).partyId;
+    const party = room!.partyId;
     if (party) await request('POST', `/lol-lobby/v2/party/${encodeURIComponent(party)}/join`, { asSpectator: false, ...(room!.hasPassword ? { lobbyPassword: password } : {}) });
     else await request('POST', `/lol-lobby/v1/custom-games/${room!.id}/join`, { asSpectator: false, ...(room!.hasPassword ? { password } : {}) });
     onJoined();
@@ -55,8 +60,14 @@ function RoomList({ games, refresh, onJoined }: { games: LolLobbyLobbyCustomGame
     <section class="rlc-panel rlc-rooms">
       <header>
         <strong>{t('rooms')}</strong>
+        {room?.hasPassword ? (
+          <input type="password" class="rlc-input" aria-label={t('roomPassword')} placeholder={t('roomPassword')} value={password} onInput={(e) => setPassword(e.currentTarget.value)} />
+        ) : null}
         <button type="button" class="rlc-button" data-variant="pill" disabled={reload.pending} onClick={() => reload.run()}>
           ↻ {t('refresh')}
+        </button>
+        <button type="button" class="rlc-button" data-variant="primary" disabled={!room || join.pending} onClick={() => join.run()}>
+          {t('join')}
         </button>
       </header>
       <div class="rlc-room-list">
@@ -64,11 +75,11 @@ function RoomList({ games, refresh, onJoined }: { games: LolLobbyLobbyCustomGame
         {games.map((g) => (
           <button
             type="button"
-            key={g.id}
+            key={roomKey(g)}
             class="rlc-room"
-            aria-pressed={g.id === selected}
+            aria-pressed={roomKey(g) === selected}
             onClick={() => {
-              setSelected(g.id);
+              setSelected(roomKey(g));
               setPassword('');
             }}
           >
@@ -81,14 +92,6 @@ function RoomList({ games, refresh, onJoined }: { games: LolLobbyLobbyCustomGame
           </button>
         ))}
       </div>
-      <footer>
-        {room?.hasPassword ? (
-          <input type="password" class="rlc-input" aria-label={t('roomPassword')} placeholder={t('roomPassword')} value={password} onInput={(e) => setPassword(e.currentTarget.value)} />
-        ) : null}
-        <button type="button" class="rlc-button" data-variant="primary" disabled={!room || join.pending} onClick={() => join.run()}>
-          {t('join')}
-        </button>
-      </footer>
     </section>
   );
 }
@@ -107,29 +110,28 @@ function CreateRoom({ modes, onCreated }: { modes: ReturnType<typeof customModes
       <header>
         <strong>{t('createRoom')}</strong>
       </header>
-      <input class="rlc-input" aria-label={t('roomName')} placeholder={t('roomName')} maxLength={60} value={form.name} onInput={(e) => set({ name: e.currentTarget.value })} />
-      <input type="password" class="rlc-input" aria-label={t('password')} placeholder={t('password')} value={form.password} onInput={(e) => set({ password: e.currentTarget.value })} />
-      <select class="rlc-input" aria-label={t('mode')} value={mode?.id ?? ''} onChange={(e) => setModeId(Number(e.currentTarget.value))}>
-        {modes.map((m) => (
-          <option key={m.id} value={m.id}>
-            {m.name}
-          </option>
-        ))}
-      </select>
-      <select class="rlc-input" aria-label={t('teamSize')} value={form.teamSize} onChange={(e) => set({ teamSize: Number(e.currentTarget.value) })}>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <option key={n} value={n}>
-            {n}x{n}
-          </option>
-        ))}
-      </select>
-      <select class="rlc-input" aria-label={t('spectators')} value={form.spectators} onChange={(e) => set({ spectators: e.currentTarget.value as CustomForm['spectators'] })}>
-        {SPECTATORS.map(([value, key]) => (
-          <option key={value} value={value}>
-            {t('spectators')}: {t(key)}
-          </option>
-        ))}
-      </select>
+      <label class="rlc-field">
+        <span>{t('roomName')}</span>
+        <input class="rlc-input" aria-label={t('roomName')} maxLength={60} value={form.name} onInput={(e) => set({ name: e.currentTarget.value })} />
+      </label>
+      <label class="rlc-field">
+        <span>{t('password')}</span>
+        <input type="password" class="rlc-input" aria-label={t('password')} value={form.password} onInput={(e) => set({ password: e.currentTarget.value })} />
+      </label>
+      <div class="rlc-field">
+        <span>{t('mode')}</span>
+        <PillSelect label={t('mode')} options={modes.map((m) => [String(m.id), m.name])} value={String(mode?.id ?? '')} onChange={(v) => setModeId(Number(v))} />
+      </div>
+      <div class="rlc-field-row">
+        <div class="rlc-field">
+          <span>{t('teamSize')}</span>
+          <PillSelect label={t('teamSize')} options={[1, 2, 3, 4, 5].map((n) => [String(n), `${n}x${n}`])} value={String(form.teamSize)} onChange={(v) => set({ teamSize: Number(v) })} />
+        </div>
+        <div class="rlc-field">
+          <span>{t('spectators')}</span>
+          <PillSelect label={t('spectators')} options={SPECTATORS.map(([v, key]) => [v, t(key)])} value={form.spectators} onChange={(spectators) => set({ spectators })} />
+        </div>
+      </div>
       <button type="button" class="rlc-button" data-variant="primary" disabled={!form.name.trim() || !mode || create.pending} onClick={() => create.run()}>
         {t('create')}
       </button>

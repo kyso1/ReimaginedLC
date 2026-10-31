@@ -323,8 +323,32 @@
 #rlc-root .rlc-panel { display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-surface); backdrop-filter: blur(var(--rlc-blur-surface)); }
 #rlc-root .rlc-panel header, #rlc-root .rlc-panel footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 #rlc-root .rlc-rooms { flex: 2; min-width: 0; }
-#rlc-root .rlc-create { flex: 1; min-width: 260px; }
-#rlc-root .rlc-create .rlc-button[data-variant='primary'], #rlc-root .rlc-rooms footer .rlc-button[data-variant='primary'] { padding: 10px 28px; font-size: 15px; margin-left: auto; }
+#rlc-root .rlc-create { position: relative; z-index: 1; flex: 1; min-width: 260px; }
+/* Campos da sala: vidro como a busca da loja, rótulo visível em cima, escolhas em pílula com o .rlc-pf-menu. */
+#rlc-root .rlc-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+#rlc-root .rlc-field > span { font-size: 12px; font-weight: 700; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+#rlc-root .rlc-field-row { display: flex; gap: 12px; }
+#rlc-root .rlc-field-row > .rlc-field { flex: 1; }
+#rlc-root .rlc-custom .rlc-input { padding: 9px 14px; border-radius: var(--rlc-radius-md, 8px); background: var(--rlc-color-surface, rgba(255, 255, 255, 0.04)); transition: border-color var(--rlc-motion-duration, 200ms) var(--rlc-motion-easing, ease); }
+#rlc-root .rlc-custom .rlc-input:focus-visible { outline: none; border-color: var(--rlc-color-accent, #5fd3b0); }
+#rlc-root .rlc-pill-select { position: relative; }
+#rlc-root .rlc-pill-select[data-open='true'] { z-index: 3; }
+#rlc-root .rlc-pill-select > .rlc-input { display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; cursor: pointer; }
+#rlc-root .rlc-pill-select > .rlc-input > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-pill-select > .rlc-input[aria-expanded='true'] .rlc-pf-caret { transform: rotate(180deg); }
+/* O painel já tem backdrop-filter, então o blur do menu não enxerga o fundo: fundo sólido aqui. */
+#rlc-root .rlc-pill-select .rlc-pf-menu { max-height: 240px; overflow-y: auto; background: var(--rlc-color-bg, #0b1020); }
+#rlc-root .rlc-pill-select .rlc-pf-menu button { flex-shrink: 0; }
+/* Barra fina e arredondada, longe dos cantos de 18px do menu (a global tem pontas retas para encostar na borda). */
+#rlc-root .rlc-pill-select .rlc-pf-menu::-webkit-scrollbar { width: 12px; }
+#rlc-root .rlc-pill-select .rlc-pf-menu::-webkit-scrollbar-track { margin: 16px 0; }
+#rlc-root .rlc-pill-select .rlc-pf-menu::-webkit-scrollbar-thumb:vertical { border: 4px solid transparent; border-radius: 99px; }
+#rlc-root .rlc-create .rlc-button[data-variant='primary'] { padding: 10px 28px; font-size: 15px; margin-left: auto; }
+/* Entrar mora no cabeçalho, ao lado de atualizar; a senha da sala aparece antes deles quando precisa. */
+#rlc-root .rlc-rooms header strong { margin-right: auto; }
+#rlc-root .rlc-rooms header .rlc-input { width: 200px; padding: 6px 12px; }
+#rlc-root .rlc-rooms header .rlc-button[data-variant='primary'] { padding: 7px 22px; font-size: 14px; }
+#rlc-root .rlc-panel header { min-height: 36px; }
 #rlc-root .rlc-room-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
 #rlc-root .rlc-room { display: grid; grid-template-columns: 1fr 140px 64px 24px; gap: 8px; padding: 8px 10px; border: 0; border-radius: var(--rlc-radius-sm); background: transparent; color: var(--rlc-color-text); font: inherit; text-align: left; cursor: pointer; }
 #rlc-root .rlc-room:hover { background: var(--rlc-color-surface); }
@@ -335,7 +359,26 @@
 #rlc-root .rlc-lobby[data-custom='true'] .rlc-stage[data-band='red'] .rlc-col { padding-bottom: 120px; }
 #rlc-root .rlc-stage[data-band='blue'] .rlc-col[data-empty='true'] { background-color: var(--rlc-color-teamBlue, rgba(20, 40, 90, 0.35)); }
 #rlc-root .rlc-stage[data-band='red'] .rlc-col[data-empty='true'] { background-color: var(--rlc-color-teamRed, rgba(90, 20, 30, 0.35)); }
-#rlc-root .rlc-bot-list { max-height: 220px; overflow-y: auto; }
+/* Escolha de bot: grade de retratos como a seleção de campeões; dificuldade em segmentos ao lado dos botões. */
+#rlc-root .rlc-bot-picker { width: min(640px, 90vw); }
+#rlc-root .rlc-bot-picker header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+#rlc-root .rlc-bot-picker h2 { margin: 0; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 22px; }
+#rlc-root .rlc-bot-picker header .rlc-input { width: 220px; padding: 7px 14px; border-radius: var(--rlc-radius-pill, 99px); background: var(--rlc-color-surface, rgba(255, 255, 255, 0.04)); }
+#rlc-root .rlc-bot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 12px 8px; height: 300px; overflow-y: auto; align-content: start; padding: 2px; }
+#rlc-root .rlc-bot-champ { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0; border: 0; background: transparent; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); font: inherit; font-size: 11px; cursor: pointer; }
+#rlc-root .rlc-bot-champ img, #rlc-root .rlc-bot-champ i { width: 60px; height: 60px; border: 2px solid transparent; border-radius: var(--rlc-radius-sm, 6px); background: var(--rlc-color-surface, rgba(255, 255, 255, 0.04)); object-fit: cover; transition: border-color var(--rlc-motion-duration, 200ms) var(--rlc-motion-easing, ease), transform var(--rlc-motion-duration, 200ms) var(--rlc-motion-easing, ease); }
+#rlc-root .rlc-bot-champ span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rlc-root .rlc-bot-champ:hover img { border-color: var(--rlc-color-border, rgba(255, 255, 255, 0.16)); transform: translateY(-1px); }
+#rlc-root .rlc-bot-champ[aria-pressed='true'] { color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-bot-champ[aria-pressed='true'] img, #rlc-root .rlc-bot-champ[aria-pressed='true'] i { border-color: var(--rlc-color-accent, #5fd3b0); }
+#rlc-root .rlc-bot-champ:focus-visible { outline: none; }
+#rlc-root .rlc-bot-champ:focus-visible img { outline: 2px solid var(--rlc-color-text, #fff); outline-offset: 2px; }
+#rlc-root .rlc-bot-picker .rlc-dialog-actions { align-items: center; }
+#rlc-root .rlc-bot-diff { display: flex; gap: 2px; margin-right: auto; padding: 3px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.16)); border-radius: var(--rlc-radius-pill, 99px); }
+#rlc-root .rlc-bot-diff:empty { display: none; }
+#rlc-root .rlc-bot-diff button { padding: 6px 14px; border: 0; border-radius: var(--rlc-radius-pill, 99px); background: transparent; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background var(--rlc-motion-duration, 200ms) var(--rlc-motion-easing, ease), color var(--rlc-motion-duration, 200ms) var(--rlc-motion-easing, ease); }
+#rlc-root .rlc-bot-diff button[aria-pressed='true'] { background: var(--rlc-color-accent, #5fd3b0); color: var(--rlc-color-onAccent, #0b1020); }
+#rlc-root .rlc-bot-diff button:focus-visible { outline: 2px solid var(--rlc-color-text, #fff); outline-offset: -2px; }
 
 #rlc-root .rlc-unknown { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
 #rlc-root .rlc-unknown h2 { margin: 0; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 28px; }
