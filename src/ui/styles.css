@@ -25,6 +25,8 @@
   overflow: hidden;
 }
 #rlc-root[data-visible='true'] { display: block; }
+/* Única regra fora de #rlc-root: o menu do Pengu Loader (Ctrl+K, z-index 99) abre por cima da camada, não atrás dela. */
+#pengu-root { position: relative; z-index: 2147483100; }
 #rlc-root *, #rlc-root *::before, #rlc-root *::after { box-sizing: border-box; }
 
 #rlc-root .rlc-bg {
@@ -525,16 +527,19 @@
 #rlc-root .rlc-ed-sample { display: flex; flex-direction: column; gap: 16px; align-items: flex-start; padding: 32px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-lg, 16px); background: var(--rlc-color-surface); }
 #rlc-root .rlc-ed-sample h1 { margin: 0; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 40px; }
 
-#rlc-root ::-webkit-scrollbar { width: 8px; height: 8px; }
+/* Polegar de 8px afastado 6px do conteúdo: a barra tem 14px e a borda transparente do lado de dentro (esquerda na
+   vertical, em cima na horizontal) não é pintada. Os cantos desse lado ganham raio elíptico (10px = 4px + 6px de
+   borda) para o polegar visível continuar com 4px de raio. */
+#rlc-root ::-webkit-scrollbar { width: 14px; height: 14px; }
 #rlc-root ::-webkit-scrollbar-track { background: transparent; }
-#rlc-root ::-webkit-scrollbar-thumb { background: var(--rlc-color-border); border-radius: 4px; }
+#rlc-root ::-webkit-scrollbar-thumb { background: var(--rlc-color-border); background-clip: padding-box; border: 0 solid transparent; border-radius: 4px; }
 /* Polegar achatado na ponta em que encostou (topo/fim): `data-rlc-y`/`data-rlc-x` vêm de ui/scrollEdges.ts. */
-#rlc-root ::-webkit-scrollbar-thumb:vertical { border-top-left-radius: 0; border-top-right-radius: 0; }
-#rlc-root [data-rlc-y]::-webkit-scrollbar-thumb:vertical { border-radius: 4px; }
-#rlc-root [data-rlc-y='end']::-webkit-scrollbar-thumb:vertical { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-#rlc-root ::-webkit-scrollbar-thumb:horizontal { border-top-left-radius: 0; border-bottom-left-radius: 0; }
-#rlc-root [data-rlc-x]::-webkit-scrollbar-thumb:horizontal { border-radius: 4px; }
-#rlc-root [data-rlc-x='end']::-webkit-scrollbar-thumb:horizontal { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+#rlc-root ::-webkit-scrollbar-thumb:vertical { border-left: 6px solid transparent; border-radius: 0 0 4px 10px / 0 0 4px 4px; }
+#rlc-root [data-rlc-y]::-webkit-scrollbar-thumb:vertical { border-radius: 10px 4px 4px 10px / 4px; }
+#rlc-root [data-rlc-y='end']::-webkit-scrollbar-thumb:vertical { border-radius: 10px 4px 0 0 / 4px 4px 0 0; }
+#rlc-root ::-webkit-scrollbar-thumb:horizontal { border-top: 6px solid transparent; border-radius: 0 4px 4px 0 / 0 10px 4px 0; }
+#rlc-root [data-rlc-x]::-webkit-scrollbar-thumb:horizontal { border-radius: 4px / 10px 10px 4px 4px; }
+#rlc-root [data-rlc-x='end']::-webkit-scrollbar-thumb:horizontal { border-radius: 4px 0 0 4px / 10px 0 0 4px; }
 #rlc-root ::-webkit-scrollbar-corner { background: transparent; }
 #rlc-root input[type='checkbox'], #rlc-root input[type='range'], #rlc-root input[type='radio'] { accent-color: var(--rlc-color-accent); }
 #rlc-root .rlc-st-update { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border: 1px solid var(--rlc-color-accent); border-radius: var(--rlc-radius-md); background: var(--rlc-color-surface); }
