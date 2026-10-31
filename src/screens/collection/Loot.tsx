@@ -90,10 +90,13 @@ export function lootName(l: Pick<LolLootPlayerLoot, 'lootId' | 'localizedName' |
   return material ? t(material) : t('lootItem');
 }
 
-/** Rótulo da ação: a LCU costuma mandar `recipeContextMenuAction` vazio; aí usa o nosso, com a essência ganha ou gasta. */
+/**
+ * Rótulo da ação: o nosso, com a essência ganha ou gasta. O `recipeContextMenuAction` da LCU só vale para ação que não
+ * conhecemos: em baús ele traz o nome do prêmio ("Mystery Emote"), e o client oficial nem lê esse campo.
+ */
 export function actionLabel(m: LolLootContextMenu): string {
-  if (m.recipeContextMenuAction) return m.recipeContextMenuAction;
-  const base = ACTION[m.actionType] ? t(ACTION[m.actionType]!) : m.actionType;
+  if (!ACTION[m.actionType]) return m.recipeContextMenuAction || m.actionType;
+  const base = t(ACTION[m.actionType]!);
   const q = m.essenceQuantity ?? 0;
   if (!q) return base;
   const unit = ESSENCE[m.essenceType] ? ` ${t(ESSENCE[m.essenceType]!)}` : '';
