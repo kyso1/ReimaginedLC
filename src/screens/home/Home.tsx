@@ -158,6 +158,8 @@ function Featured({ load, locale, onLink }: { load: Load; locale: string | null;
       {tab?.kind === 'page' && video ? <video class="rlc-feat-bg rlc-feat-video" key={video} src={video} poster={m?.image ?? undefined} autoplay muted loop playsInline /> : null}
       {/* Antes das abas: o quadro ocupa a área toda e as abas ficam por cima, como no client. */}
       {tab?.kind === 'embed' ? <RiotFrame class="rlc-feat-embed" key={tab.url} id={tab.frameId} url={tab.url} title={tab.title} /> : null}
+      {/* Abas e título numa coluna: com muitas abas, a lista rola no espaço que o título deixa. */}
+      <div class="rlc-feat-side">
       <nav class="rlc-feat-tabs" aria-label={t('featured')}>
         {tabs.map((x) => (
           <button type="button" key={x.id} aria-current={x.id === tabId ? 'true' : undefined} onClick={() => setTabId(x.id)}>
@@ -186,6 +188,7 @@ function Featured({ load, locale, onLink }: { load: Load; locale: string | null;
           </div>
         </div>
       ) : null}
+      </div>
       {slides.length > 1 ? (
         <div class="rlc-feat-strip">
           <button type="button" class="rlc-feat-arrow" aria-label={t('previous')} onClick={() => go(-1)}>

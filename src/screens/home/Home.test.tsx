@@ -86,6 +86,8 @@ test('destaques: abas da Riot, slides da aba, miniatura troca o slide e Ver na l
   render(<Home version={null} locale="pt_BR" onPlay={() => {}} onStore={onStore} load={async (u) => pages[u] ?? null} />, host);
   for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 30));
   expect(host.querySelector('.rlc-feat-tabs')!.textContent).toBe('True Damage');
+  // Abas e título na mesma coluna: com muitas abas, a lista rola em vez de passar por cima do título.
+  expect(host.querySelector('.rlc-feat-side > .rlc-feat-tabs + .rlc-feat-info')).not.toBeNull();
   expect(host.querySelector('.rlc-feat-title')!.textContent).toBe('Yasuo');
   button('Ver na loja')!.click();
   expect(onStore).toHaveBeenCalledTimes(1);
