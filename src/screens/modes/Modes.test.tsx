@@ -113,3 +113,18 @@ test('trocar de modo escolhe a primeira fila JxJ dele e mostra no resumo; catego
   expect(root.querySelector('.rlc-modes-summary')!.textContent).toBe("Summoner's Rift · Normal");
   expect([...root.querySelectorAll('.rlc-queue-cat')].map((c) => c.textContent)).toEqual(['JxJ', 'Cooperativo vs. IA']);
 });
+
+test('a fila escolhida ganha um só realce, que vai até a posição dela ao trocar', () => {
+  // jsdom não mede layout: cada botão de fila "fica" 100px à direita do anterior.
+  const spy = vi.spyOn(HTMLElement.prototype, 'offsetLeft', 'get').mockImplementation(function (this: HTMLElement) {
+    return [...root.querySelectorAll('.rlc-queue-chip')].indexOf(this) * 100;
+  });
+  mount();
+  const hl = () => root.querySelectorAll<HTMLElement>('.rlc-queue-hl');
+  expect(hl()).toHaveLength(1);
+  expect(hl()[0]!.style.left).toBe('100px');
+  act(() => btn('Normal (escolha)').click());
+  expect(hl()).toHaveLength(1);
+  expect(hl()[0]!.style.left).toBe('0px');
+  spy.mockRestore();
+});

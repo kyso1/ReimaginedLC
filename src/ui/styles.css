@@ -274,6 +274,17 @@
 #rlc-root .rlc-queue-chip { padding: 8px 16px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-pill); background: var(--rlc-color-surface); color: var(--rlc-color-text); font: inherit; cursor: pointer; }
 #rlc-root .rlc-queue-chip[aria-pressed='true'] { background: var(--rlc-color-accent); color: var(--rlc-color-onAccent); border-color: transparent; }
 #rlc-root .rlc-modes-actions { display: flex; justify-content: flex-end; gap: 12px; }
+/* Filas da folha de modos: cada categoria num trilho de vidro, alinhado aos cartões; a escolhida ganha o mesmo
+   realce contornado dos cartões (.rlc-queue-hl), que desliza entre as filas. Fora daqui o .rlc-queue-chip não muda. */
+#rlc-root .rlc-modes .rlc-queue-groups { position: relative; justify-content: flex-start; gap: 16px 24px; }
+#rlc-root .rlc-modes .rlc-queue-group { align-items: flex-start; gap: 10px; }
+#rlc-root .rlc-modes .rlc-queue-cat { padding-left: 18px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+#rlc-root .rlc-modes .rlc-queue-group .rlc-queue-chips { justify-content: flex-start; gap: 2px; min-height: 0; padding: 4px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.16)); border-radius: 23px; background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.04)); }
+#rlc-root .rlc-modes .rlc-queue-chip { position: relative; z-index: 1; padding: 8px 18px; border: 0; background: transparent; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); font-size: 14px; font-weight: 600; transition: color var(--rlc-motion-duration, 200ms) var(--rlc-motion-easing, ease); }
+#rlc-root .rlc-modes .rlc-queue-chip:hover, #rlc-root .rlc-modes .rlc-queue-chip[aria-pressed='true'] { background: transparent; color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-queue-hl { position: absolute; box-sizing: border-box; border: 1.5px solid var(--rlc-color-text, #fff); border-radius: var(--rlc-radius-pill, 99px); background: var(--rlc-color-glassCardHover, rgba(255, 255, 255, 0.08)); pointer-events: none; transition: left 0.45s cubic-bezier(0.3, 0.9, 0.3, 1), top 0.45s cubic-bezier(0.3, 0.9, 0.3, 1), width 0.45s cubic-bezier(0.3, 0.9, 0.3, 1); }
+#rlc-root[data-motion='off'] .rlc-queue-hl { transition: none; }
+@media (prefers-reduced-motion: reduce) { #rlc-root .rlc-queue-hl { transition: none; } }
 #rlc-root .rlc-mode-card:focus-visible, #rlc-root .rlc-queue-chip:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 2px; }
 #rlc-root .rlc-muted { margin: 0; color: var(--rlc-color-textMuted); }
 
