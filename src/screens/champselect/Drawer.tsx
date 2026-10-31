@@ -5,6 +5,7 @@ import type { Champion } from '../../data/gamedata';
 import { RoleIcon } from '../../ui/RoleIcon';
 import { positionKey } from '../lobby/format';
 import { BRAVERY_ICON } from './Teams';
+import { matchesName } from '../../ui/champSearch';
 
 /** Grade de campeões por cima do palco, com título e o botão de fechar (Esc também fecha). */
 export function Drawer({ onClose, children }: { onClose: () => void; children: ComponentChildren }) {
@@ -74,7 +75,7 @@ export function ChampionGrid({ ids, champions, selected, onPick, lanes, favorite
     .filter((id) => id > 0)
     .map((id) => champions.get(id) ?? { id, name: String(id), icon: '', roles: [] })
     // Campeão sem rota recomendada (dados ausentes, campeão novo) continua visível em qualquer rota.
-    .filter((c) => (!q || c.name.toLowerCase().includes(q)) && (!lane || !lanes[String(c.id)]?.recommendedPositions?.length || lanes[String(c.id)]!.recommendedPositions!.includes(lane)))
+    .filter((c) => matchesName(query, c.name) && (!lane || !lanes[String(c.id)]?.recommendedPositions?.length || lanes[String(c.id)]!.recommendedPositions!.includes(lane)))
     .sort((a, b) => Number(isFav(b.id)) - Number(isFav(a.id)) || a.name.localeCompare(b.name));
   return (
     <div class="rlc-cs-grid-wrap">

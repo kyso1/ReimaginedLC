@@ -547,6 +547,7 @@
   "create": "Create",
   "start": "Start",
   "addBot": "+ bot",
+  "botTitle": "Add bot",
   "add": "Add",
   "bot": "Bot",
   "removeBot": "Remove",

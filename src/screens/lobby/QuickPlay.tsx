@@ -10,6 +10,7 @@ import { useEscape } from '../../ui/useEscape';
 import { lazyView } from '../../shell/lazy';
 import { getJson } from '../profile/data';
 import { POSITIONS, positionKey, type Position } from './format';
+import { matchesName } from '../../ui/champSearch';
 
 export type Slot = LolLobbyQuickPlayPresetSlotDto;
 
@@ -203,10 +204,9 @@ export function QuickPlayEditor({ lcu, slots: current, queueId, summonerId, init
   const withSlot = (patch: Partial<Slot>): [Slot, Slot] => (tab === 0 ? [{ ...slots[0], ...patch }, slots[1]] : [slots[0], { ...slots[1], ...patch }]);
   const recommended = useAction(async () => save(withSlot({ perks: await perksFor(slot.championId, slot.positionPreference) })));
   const currentPage = pages.find((p) => pagePerks(p) === slot.perks);
-  const q = query.trim().toLowerCase();
   const list = (playable ?? [])
     .map((id) => champions.get(id))
-    .filter((c): c is Champion => !!c && (!q || c.name.toLowerCase().includes(q)))
+    .filter((c): c is Champion => !!c && matchesName(query, c.name))
     .sort((a, b) => a.name.localeCompare(b.name));
   const busy = put.pending || pickChampion.pending || recommended.pending;
   const spellOf = (id: number) => spells.find((s) => s.id === id);

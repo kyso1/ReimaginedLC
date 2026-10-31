@@ -30,6 +30,13 @@ const type = (el: HTMLInputElement | HTMLSelectElement, value: string) => act(()
   el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
 });
 
+// Campos de escolha: pílula com menu do tema (como a ordenação da loja), não <select> nativo.
+const pick = (label: string, option: string) => {
+  act(() => { input(label).dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+  const opt = [...root.querySelectorAll<HTMLButtonElement>('[role="listbox"] [role="option"]')].find((o) => o.textContent === option)!;
+  act(() => opt.click());
+};
+
 const setup = (games: LolLobbyLobbyCustomGame[] = []) => {
   const lcu = fakeLcu();
   lcu.customGames.state.value = ready(games);
@@ -52,6 +59,21 @@ test('ao abrir atualiza a lista; mostra nome literal, jogadores e cadeado', () =
   expect(rows[0]!.textContent).toContain('3/10');
   expect(rows[1]!.textContent).toContain('🔒');
   expect(root.querySelector('b')).toBeNull();
+});
+
+// O client atual devolve id 0 em todas as salas; só o partyId as distingue.
+test('selecionar: salas com id 0 se distinguem pelo partyId; só a clicada fica marcada', async () => {
+  setup([game({ id: 0, lobbyName: 'a', partyId: 'p-a' } as never), game({ id: 0, lobbyName: 'b', partyId: 'p-b' } as never)]);
+  act(() => root.querySelectorAll<HTMLButtonElement>('.rlc-room')[1]!.click());
+  expect([...root.querySelectorAll('.rlc-room')].map((r) => r.getAttribute('aria-pressed'))).toEqual(['false', 'true']);
+  act(() => btn('Entrar').click());
+  expect(fetchMock).toHaveBeenCalledWith('/lol-lobby/v2/party/p-b/join', expect.anything());
+});
+
+test('entrar fica no cabeçalho ao lado de atualizar, sem rodapé próprio', () => {
+  setup([game({ id: 1 })]);
+  expect(root.querySelector('.rlc-rooms footer')).toBeNull();
+  expect(btn('Entrar').closest('header')).not.toBeNull();
 });
 
 test('entrar: sala antiga pelo id da sala; com senha pede e envia a senha', async () => {
@@ -83,8 +105,8 @@ test('criar: nome vazio desabilita; cria com o corpo da fila escolhida e fecha',
   const { onClose } = setup();
   expect(btn('Criar').disabled).toBe(true);
   type(input('Nome da sala') as HTMLInputElement, 'Minha sala');
-  type(input('Modo'), '3200');
-  type(input('Tamanho do time'), '3');
+  pick('Modo', 'Howling Abyss Blind Custom');
+  pick('Tamanho do time', '3x3');
   act(() => btn('Criar').click());
   const [, init] = fetchMock.mock.calls.find((c) => c[0] === '/lol-lobby/v2/lobby')!;
   expect(JSON.parse(init.body)).toEqual({
@@ -93,4 +115,19 @@ test('criar: nome vazio desabilita; cria com o corpo da fila escolhida e fecha',
   });
   await settle();
   expect(onClose).toHaveBeenCalledOnce();
+});
+
+test('criar: campos com rótulo visível; escolhas em menu de pílula, sem <select> nativo; espectadores sem prefixo', () => {
+  setup();
+  expect(root.querySelector('select')).toBeNull();
+  const labels = [...root.querySelectorAll('.rlc-create .rlc-field > span')].map((l) => l.textContent);
+  expect(labels).toEqual(['Nome da sala', 'Senha (opcional)', 'Modo', 'Tamanho do time', 'Espectadores']);
+  const spec = input('Espectadores');
+  expect(spec.textContent).toBe('Ninguém');
+  act(() => { spec.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+  expect(spec.getAttribute('aria-expanded')).toBe('true');
+  expect([...root.querySelectorAll('[role="option"]')].map((o) => o.textContent)).toEqual(['Ninguém', 'Só do lobby', 'Todos']);
+  act(() => (root.querySelectorAll<HTMLButtonElement>('[role="option"]')[2]!).click());
+  expect(spec.textContent).toBe('Todos');
+  expect(root.querySelector('[role="listbox"]')).toBeNull();
 });

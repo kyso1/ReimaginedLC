@@ -9,8 +9,8 @@ import { Lobby } from './Lobby';
 let root: HTMLElement;
 let fetchMock: ReturnType<typeof vi.fn>;
 // A LCU manda o id no campo name; o nome vem dos dados do jogo.
-const BOTS = [{ active: true, id: 1, name: '1', botDifficulties: ['RSINTRO', 'RSINTERMEDIATE'] }];
-const withChampions = (lcu: Lcu): Lcu => ({ ...lcu, game: { ...lcu.game, champions: async () => new Map([[1, { id: 1, name: 'Annie', icon: '', roles: [] }]]) } });
+const BOTS = [{ active: true, id: 1, name: '1', botDifficulties: ['RSINTRO', 'RSINTERMEDIATE'] }, { active: true, id: 2, name: '2', botDifficulties: ['RSINTRO'] }];
+const withChampions = (lcu: Lcu): Lcu => ({ ...lcu, game: { ...lcu.game, champions: async () => new Map([[1, { id: 1, name: 'Annie', icon: '/annie.png', roles: [] }], [2, { id: 2, name: 'Zed', icon: '/zed.png', roles: [] }]]) } });
 beforeEach(() => {
   setLocale('pt_BR');
   root = document.body.appendChild(document.createElement('div'));
@@ -79,6 +79,28 @@ test('líder adiciona bot escolhendo campeão e dificuldade', async () => {
   act(() => btn('Intermediário', dialog)!.click());
   act(() => btn('Adicionar', dialog)!.click());
   expect(JSON.parse(call('/lol-lobby/v1/lobby/custom/bots', 'POST')![1].body)).toEqual({ championId: 1, botDifficulty: 'RSINTERMEDIATE', teamId: '200', position: 'MIDDLE', botUuid: '' });
+});
+
+test('escolher bot: título, busca, grade de retratos; dificuldade já escolhida ao pegar o campeão, junto dos botões', async () => {
+  mount();
+  await settle();
+  act(() => btn('+ bot', root.querySelectorAll('.rlc-stage')[1]!)!.click());
+  await settle();
+  const dialog = root.querySelector<HTMLElement>('[role="dialog"]')!;
+  expect(dialog.querySelector('h2')!.textContent).toBe('Adicionar bot');
+  const portraits = () => [...dialog.querySelectorAll<HTMLButtonElement>('.rlc-bot-champ')];
+  expect(portraits().map((b) => b.textContent)).toEqual(['Annie', 'Zed']);
+  expect(portraits()[0]!.querySelector('img')!.getAttribute('src')).toBe('/annie.png');
+  const search = dialog.querySelector<HTMLInputElement>('[aria-label="Buscar campeão"]')!;
+  act(() => {
+    search.value = 'ze';
+    search.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  expect(portraits().map((b) => b.textContent)).toEqual(['Zed']);
+  act(() => portraits()[0]!.click());
+  const diff = dialog.querySelector('.rlc-dialog-actions .rlc-bot-diff')!;
+  expect(diff.querySelector('[aria-pressed="true"]')!.textContent).toBe('Introdução');
+  expect(btn('Adicionar', dialog)!.disabled).toBe(false);
 });
 
 test('líder remove bot pelo menu', async () => {

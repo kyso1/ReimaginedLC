@@ -20,6 +20,7 @@ import { TftHistory } from './TftHistory';
 import { PlayerHover } from './PlayerHover';
 import { ReplayButton } from './ReplayButton';
 import { canReportFromHistory, PlayerMenu, ReportDialog, useReported, type EogTarget } from '../postgame/Report';
+import { matchesName } from '../../ui/champSearch';
 
 type Tab = 'summary' | 'history' | 'ranked' | 'mastery';
 const TABS: Array<[Tab, TextKey]> = [
@@ -859,10 +860,9 @@ function Mastery({ lcu, puuid }: { lcu: Lcu; puuid: string }) {
   const [query, setQuery] = useState('');
   const n = new Intl.NumberFormat(locale(), { notation: 'compact' });
   const name = (id: number) => champions.get(id)?.name ?? String(id);
-  const q = query.trim().toLowerCase();
   const total = list.reduce((sum, m) => sum + m.championPoints, 0);
   const shown = list
-    .filter((m) => !q || name(m.championId).toLowerCase().includes(q))
+    .filter((m) => matchesName(query, name(m.championId)))
     .sort((a, b) => (sort === 'points' ? b.championPoints - a.championPoints : sort === 'level' ? b.championLevel - a.championLevel || b.championPoints - a.championPoints : sort === 'recent' ? (b.lastPlayTime ?? 0) - (a.lastPlayTime ?? 0) : name(a.championId).localeCompare(name(b.championId))));
   return (
     <div class="rlc-ms">
