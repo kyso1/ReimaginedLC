@@ -33,6 +33,15 @@ test('aba de site da Riot (notas do patch, Worlds) ocupa a área toda do Início
   expect(rule).not.toMatch(/left: \d|top: \d/);
 });
 
+test('início: abas e título numa coluna; a lista de abas rola no espaço que sobra, sem cobrir o título', () => {
+  const rule = (sel: string) => new RegExp(`#rlc-root ${sel.replace(/\./g, '\.')} \{([^}]*)\}`).exec(ALL())?.[1] ?? '';
+  expect(rule('.rlc-feat-side')).toMatch(/top: \d+px; bottom: \d+px; display: flex; flex-direction: column/);
+  expect(rule('.rlc-feat-tabs')).toContain('overflow-y: auto');
+  expect(rule('.rlc-feat-tabs')).toContain('min-height: 0');
+  expect(rule('.rlc-feat-tabs')).not.toContain('position: absolute');
+  expect(rule('.rlc-feat-info')).toContain('flex-shrink: 0');
+});
+
 test('cartão da seleção: nenhuma regra própria do menu dentro dele (ele abre solto na tela)', () => {
   expect(ALL()).not.toContain('.rlc-cs-cell .rlc-menu');
 });
