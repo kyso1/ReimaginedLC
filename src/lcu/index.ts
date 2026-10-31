@@ -145,6 +145,12 @@ function firstWithData<T>(stores: Array<Signal<StoreState<T>>>): Signal<StoreSta
   return computed(() => stores.find((s) => s.value.data != null)?.value ?? stores[0]!.value) as Signal<StoreState<T>>;
 }
 
+/**
+ * Pedidos de amizade: o client lê a lista na v2, mas a LCU só avisa na v1 (`/lol-chat/v1/friend-requests/...`).
+ * Sem isto, um pedido novo só aparecia ao reconectar (tocava o som e nada surgia).
+ */
+export const friendRequestsStore = (socket: ReturnType<typeof connect>) => refreshOnPrefix(createStore<LolChatFriendRequestResource[]>('/lol-chat/v2/friend-requests', socket), socket, '/lol-chat/v1/friend-requests');
+
 const lootStore = (socket: ReturnType<typeof connect>) => refreshOnPrefix(createStore<LolLootPlayerLoot[]>('/lol-loot/v1/player-loot', socket), socket, '/lol-loot/', '/lol-loot/v1/player-loot');
 
 /** Abre o único WebSocket do plugin e cria os stores. */
@@ -199,7 +205,7 @@ export function createLcu(doc: Document = document): Lcu {
     // campeão desbloqueado no espólio). Qualquer mudança no inventário relê.
     wallet: refreshOnPrefix(createStore('/lol-inventory/v1/wallet?currencyTypes=' + encodeURIComponent('["RP","lol_blue_essence"]'), socket), socket, '/lol-inventory/'),
     orangeEssence: createStore('/lol-loot/v1/player-loot/CURRENCY_cosmetic', socket),
-    friendRequests: createStore('/lol-chat/v2/friend-requests', socket),
+    friendRequests: friendRequestsStore(socket),
     audioSettings: createStore('/lol-settings/v1/local/lol-audio', socket),
     conversations: createListStore('/lol-chat/v1/conversations', socket),
     loot: lootStore(socket),
