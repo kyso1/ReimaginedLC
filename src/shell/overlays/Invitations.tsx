@@ -3,6 +3,7 @@ import { t } from '../../i18n';
 import { request } from '../../lcu/request';
 import type { LolGameQueuesQueue, LolLobbyReceivedInvitationDto } from '../../lcu/types';
 import { useAction } from '../../ui/useAction';
+import { queueLabel } from '../../screens/modes/queues';
 
 /** Cartões de convite de grupo pendentes, no canto superior direito, sobre qualquer tela nossa. */
 export function InvitationCards({ invitations, queues, name = noName }: { invitations: LolLobbyReceivedInvitationDto[]; queues: LolGameQueuesQueue[]; name?: (puuid: string) => Promise<string | null> }) {
@@ -11,7 +12,7 @@ export function InvitationCards({ invitations, queues, name = noName }: { invita
   return (
     <aside class="rlc-invites" aria-live="polite">
       {pending.map((i) => (
-        <Card key={i.invitationId} invitation={i} name={name} queueName={queues.find((q) => q.id === i.gameConfig?.queueId)?.name ?? null} />
+        <Card key={i.invitationId} invitation={i} name={name} queueName={queueLabel(queues.find((q) => q.id === i.gameConfig?.queueId)) || null} />
       ))}
     </aside>
   );

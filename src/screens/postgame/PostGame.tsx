@@ -15,6 +15,7 @@ import { activeTraits, art, eogArt, fromEog, medal, meIn, pairs, placeOf as tftP
 import { pic, TftStandings, Trait, useTftArt, type Art } from '../profile/TftHistory';
 import { Loader } from '../../ui/Loader';
 import { boardValue, compHistory, compKey, contested, eliminationOrder, hasAny, itemCount, roundLabel, top4Streak, topBy, topUsed, toNextDivision, traitProgress } from './tftInsights';
+import { queueLabel } from '../modes/queues';
 
 // Chaves do bloco do fim de jogo → nomes do histórico; assim o placar e os gráficos do perfil servem aqui sem cópia.
 const KEYS: Record<string, string> = {
@@ -115,7 +116,7 @@ export function PostGame({ lcu }: { lcu: Lcu }) {
   const arena = `/${assets?.['parties-background'] ?? assets?.['gameflow-background'] ?? 'lol-game-data/assets/ASSETS/UX/TFT/OutOfGame/Backgrounds/gameflow.jpg'}`;
   const legend = tftMe?.companion?.icon;
   const bg = tft ? `url("${arena}")` : eog?.localPlayer?.skinSplashPath ? `url("${eog.localPlayer.skinSplashPath}")` : '';
-  const where = [queue?.description || lcu.queues.value.data?.find((q) => q.type === eog?.queueType)?.name, typeof length === 'number' ? formatClock(length) : ''].filter(Boolean);
+  const where = [queueLabel(queue ?? lcu.queues.value.data?.find((q) => q.type === eog?.queueType), 'history'), typeof length === 'number' ? formatClock(length) : ''].filter(Boolean);
   // A LCU ainda não respondeu o fim de jogo: a animação de carregando, por até GIVE_UP_MS (depois a tela mostra o que tiver, com os botões).
   const [gaveUp, setGaveUp] = useState(false);
   const [reporting, setReporting] = useState<EogTarget | null>(null);

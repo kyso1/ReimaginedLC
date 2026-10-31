@@ -12,7 +12,7 @@ import { Lobby, lobbyPanelOpen } from '../screens/lobby/Lobby';
 import { Unknown } from '../screens/unknown/Unknown';
 import { CustomBrowser } from '../screens/modes/CustomBrowser';
 import { LAST_QUEUE_KEY, Modes } from '../screens/modes/Modes';
-import { queueGroup } from '../screens/modes/queues';
+import { queueGroup, queueLabel } from '../screens/modes/queues';
 import { applyTheme, mediaUrl } from '../theme/apply';
 import type { ThemeEngine } from '../theme/engine';
 import { MediaBackground } from '../ui/MediaBackground';
@@ -434,7 +434,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
         <QueuePill lcu={lcu} onLobby={page === 'lobby' && !shownView} onOpen={() => (setPanel(null), setView(null), setAtHome(false))} />
         <Rewards lcu={lcu} />
         <InvitationCards invitations={lcu.invitations.value.data ?? []} queues={lcu.queues.value.data ?? []} name={lcu.name} />
-        {readyVisible ? <ReadyCheck rc={lcu.readyCheck.value.data!} mode={currentQueue ? queueGroup(currentQueue) : 'sr'} queueName={currentQueue?.name} /> : null}
+        {readyVisible ? <ReadyCheck rc={lcu.readyCheck.value.data!} mode={currentQueue ? queueGroup(currentQueue) : 'sr'} queueName={queueLabel(currentQueue)} /> : null}
         <SpotifyWidget />
         <WindowBar onClose={() => setConfirmClose(true)} fullscreen={prefs.value.fullscreen} />
         {confirmClose ? (

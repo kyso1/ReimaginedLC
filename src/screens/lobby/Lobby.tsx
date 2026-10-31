@@ -1,6 +1,6 @@
 import { Voice } from './Voice';
 import { ModeEmblem } from '../modes/Emblems';
-import { queueGroup, type ModeGroupId } from '../modes/queues';
+import { queueGroup, queueLabel, type ModeGroupId } from '../modes/queues';
 import type { ComponentChildren } from 'preact';
 import { signal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
@@ -80,7 +80,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
     ) : null;
 
   const isTft = config.gameMode === 'TFT';
-  const queueName = lcu.queues.value.data?.find((q) => q.id === config.queueId)?.name ?? '';
+  const queueName = queueLabel(lcu.queues.value.data?.find((q) => q.id === config.queueId), 'lobby');
   const column = (m: Participant | null, key: string, empty: ComponentChildren, team?: number) => (
     <Column
       key={m ? m.puuid || m.botUuid : key}
