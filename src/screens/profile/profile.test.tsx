@@ -5,7 +5,7 @@ import { setLocale } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { fakeLcu, queue, ready } from '../../test/fixtures';
 import { relativeDay, teamGold } from './data';
-import { Profile } from './Profile';
+import { Profile, RankedCards } from './Profile';
 import { profileRequest } from '../../shell/nav';
 import { HOVER_DELAY_MS } from './PlayerHover';
 
@@ -21,8 +21,8 @@ const ident = (participantId: number, gameName: string, puuid: string) => ({ par
 const NOW = Date.UTC(2026, 9, 5, 18);
 const DAYS: Record<number, number> = { 1: Date.UTC(2026, 9, 5, 14), 2: Date.UTC(2026, 9, 5, 12), 3: Date.UTC(2026, 9, 4, 14) };
 const listGame = (gameId: number, win: boolean, queueId = 400, lane = 'MIDDLE', role = 'SOLO') => ({
-  gameId, queueId, mapId: queueId === 450 ? 12 : 11, gameDuration: 1721, gameCreation: DAYS[gameId] ?? Date.UTC(2026, 9, 2, 14),
-  participants: [part(1, 100, 103, { kills: 8, deaths: 2, assists: 11, win }, lane, role)],
+  gameId, queueId, mapId: queueId === 450 || queueId === 2400 ? 12 : 11, gameDuration: 1721, gameCreation: DAYS[gameId] ?? Date.UTC(2026, 9, 2, 14),
+  participants: [part(1, 100, 103, { kills: 8, deaths: 2, assists: 11, win, champLevel: 14, totalMinionsKilled: 150, neutralMinionsKilled: 10, item0: 3089, item6: 3340, ...(queueId === 2400 ? {} : { perk0: 8112, perkSubStyle: 8200 }) }, lane, role)],
   participantIdentities: [ident(1, 'Fulano', 'me')],
 });
 const fullGame = {
@@ -33,15 +33,12 @@ const fullGame = {
   participantIdentities: [ident(1, 'Fulano', 'me'), { participantId: 6, player: { ...ident(6, '<i>Zeca</i>', 'z').player, summonerId: 66 } }],
 };
 const timeline = { frames: [{ timestamp: 0, participantFrames: { '1': { participantId: 1, totalGold: 500 }, '6': { participantId: 6, totalGold: 500 } } }, { timestamp: 60000, participantFrames: { '1': { participantId: 1, totalGold: 900 }, '6': { participantId: 6, totalGold: 700 } } }] };
-const ranked = { queueMap: { RANKED_SOLO_5x5: { tier: 'GOLD', division: 'II', leaguePoints: 48, wins: 54, losses: 46, previousSeasonEndTier: 'GOLD', previousSeasonEndDivision: 'IV' }, RANKED_FLEX_SR: { tier: 'SILVER', division: 'I', leaguePoints: 12, wins: 20, losses: 18 }, RANKED_TFT: { tier: '', division: 'NA', leaguePoints: 0, wins: 0, losses: 0 } } };
-const mastery = [{ championId: 103, championLevel: 23, championPoints: 219000 }, { championId: 238, championLevel: 5, championPoints: 31000 }];
+const ranked = { queueMap: { RANKED_SOLO_5x5: { tier: 'GOLD', division: 'II', leaguePoints: 48, wins: 54, losses: 46, previousSeasonEndTier: 'GOLD', previousSeasonEndDivision: 'IV', highestTier: 'PLATINUM', highestDivision: 'IV' }, RANKED_FLEX_SR: { tier: 'SILVER', division: 'I', leaguePoints: 12, wins: 20, losses: 18 }, RANKED_TFT: { tier: '', division: 'NA', leaguePoints: 0, wins: 0, losses: 0, provisionalGamesRemaining: 3 }, RANKED_TFT_DOUBLE_UP: { tier: 'GOLD', division: 'I', leaguePoints: 10, wins: 3, losses: 1, provisionalGamesRemaining: 2 }, RANKED_PREMADE_5x5: { tier: 'BRONZE', division: 'III', leaguePoints: 20, wins: 2, losses: 2 }, JADE_RANKED_SOLO_5x5: { tier: 'SILVER', division: 'II', leaguePoints: 5, wins: 1, losses: 0 } } };
+const mastery = [{ championId: 103, championLevel: 23, championPoints: 219000, championPointsSinceLastLevel: 2750, championPointsUntilNextLevel: 8250, lastPlayTime: 1000 }, { championId: 238, championLevel: 5, championPoints: 31000, championPointsSinceLastLevel: 0, championPointsUntilNextLevel: 0, lastPlayTime: 2000 }];
 
 function routes(url: string): unknown {
   if (url === '/lol-summoner/v2/summoners/puuid/me') return { gameName: 'Fulano', tagLine: 'TAG', summonerLevel: 312, profileIconId: 29 };
-  if (url.startsWith('/lol-match-history/v1/products/lol/me/matches')) {
-    const beg = Number(/begIndex=(\d+)/.exec(url)![1]);
-    return { games: { games: beg === 0 ? [listGame(1, true), listGame(2, false, 420, 'BOTTOM', 'DUO_SUPPORT'), listGame(3, true, 440), listGame(4, false, 450)] : [listGame(5, true, 450)] } };
-  }
+  if (url === '/lol-match-history/v1/products/lol/me/matches') return { games: { games: [listGame(1, true), listGame(2, false, 420, 'BOTTOM', 'DUO_SUPPORT'), listGame(3, true, 440), listGame(4, false, 450), listGame(5, true, 2400)] } };
   if (url === '/lol-match-history/v1/games/1') return fullGame;
   if (url === '/lol-match-history/v1/game-timelines/1') return timeline;
   if (url === '/lol-ranked/v1/ranked-stats/me' || url === '/lol-ranked/v1/ranked-stats/z') return ranked;
@@ -77,7 +74,7 @@ function mount() {
     items: async () => new Map([[3089, '/it/3089.png'], [3340, '/it/3340.png']]),
     spells: async () => new Map([[4, { id: 4, name: 'Flash', icon: '/sp/4.png', gameModes: [] }], [14, { id: 14, name: 'Incendiar', icon: '/sp/14.png', gameModes: [] }]]),
   };
-  lcu.queues.value = ready([queue({ id: 400, name: 'Normal (Escolha)' }), queue({ id: 420, name: 'Ranqueada Solo/Duo' }), queue({ id: 450, name: 'ARAM' })]) as Lcu['queues']['value'];
+  lcu.queues.value = ready([queue({ id: 400, name: 'Normal (Escolha)' }), queue({ id: 420, name: 'Ranqueada Solo/Duo' }), queue({ id: 450, name: 'ARAM' }), queue({ id: 710, type: 'RANKED_PREMADE_5x5', name: 'Ranqueada 5x5' }), queue({ id: 4310, type: 'JADE_RANKED_SOLO_5x5', name: '' })]) as Lcu['queues']['value'];
   act(() => render(<Profile lcu={lcu} puuid="me" />, root));
   return lcu;
 }
@@ -117,25 +114,34 @@ test('histórico: o quadro sobe com o feed por dia e a coluna de elo, rotas e KD
   // Dias: hoje (2 partidas), ontem (1), depois a data.
   const days = [...sheet.querySelectorAll('.rlc-pf-day')];
   expect(days.map((d) => d.querySelector('h3')!.textContent)).toEqual(['hoje', 'ontem', '02 de out.']);
-  expect(days.map((d) => d.querySelectorAll('.rlc-mh-row').length)).toEqual([2, 1, 1]);
+  expect(days.map((d) => d.querySelectorAll('.rlc-mh-row').length)).toEqual([2, 1, 2]);
   const first = days[0]!.querySelector('.rlc-mh-row')!;
   expect(first.querySelector('img')!.getAttribute('alt')).toBe('Ahri');
-  expect(first.querySelector('b')!.textContent).toBe('Vitória');
+  expect(first.querySelector('.rlc-mh-result b')!.textContent).toBe('Vitória');
   expect(first.querySelector('.rlc-mh-meta')!.textContent).toBe('Normal (Escolha) · Meio');
   expect(first.querySelector('.rlc-mh-kda')!.textContent).toBe('8/2/11');
   expect(first.textContent).toContain('28:41');
+  // Linha rica: nível, feitiços e runas, KDA médio, farm por minuto, itens e o placar do dia.
+  expect(first.querySelector('.rlc-md-lvl')!.textContent).toBe('14');
+  expect([...first.querySelectorAll('img.rlc-md-spell')].map((i) => i.getAttribute('alt'))).toEqual(['Flash', 'Incendiar']);
+  expect([...first.querySelectorAll('img.rlc-md-rune')].map((i) => i.getAttribute('src'))).toEqual(['/r/8112.png', '/r/8200.png']);
+  expect(first.querySelector('.rlc-mh-ratio')!.textContent).toBe('9,5 KDA');
+  expect(first.querySelector('.rlc-mh-cs')!.textContent).toBe('160 CS5,6/min');
+  expect([...first.querySelectorAll('.rlc-md-item')].map((i) => i.getAttribute('src'))).toEqual(['/it/3089.png', null, null, null, null, null, '/it/3340.png']);
+  expect(days.map((d) => d.querySelector('.rlc-pf-tally')!.textContent)).toEqual(['1V 1D', '1V 0D', '1V 1D']);
   // Bot + suporte vira Suporte; ARAM não tem rota.
   expect(days[0]!.querySelectorAll('.rlc-mh-meta')[1]!.textContent).toBe('Ranqueada Solo/Duo · Suporte');
   expect(days[2]!.querySelector('.rlc-mh-meta')!.textContent).toBe('ARAM');
   // Coluna: elo por fila com barra de PdL, rotas das partidas carregadas, KDA em linha.
   const elo = [...sheet.querySelectorAll('.rlc-pf-elo')];
+  expect(elo).toHaveLength(3);
   expect(elo[0]!.textContent).toContain('Ouro II');
   expect(elo[0]!.textContent).toContain('Solo/Duo · 48 PdL');
   expect(elo[0]!.querySelector<HTMLElement>('.rlc-pf-bar i')!.style.width).toBe('48%');
   expect(elo[2]!.textContent).toContain('Sem classificação');
   const roles = sheet.querySelector('.rlc-pf-roles')!;
   expect([...roles.children].slice(3).map((c) => c.textContent)).toEqual(['Meio', '', '100%', 'Suporte', '', '0%']);
-  expect(sheet.querySelector('.rlc-pf-kda polyline')!.getAttribute('points')!.split(' ')).toHaveLength(4);
+  expect(sheet.querySelector('.rlc-pf-kda polyline')!.getAttribute('points')!.split(' ')).toHaveLength(5);
   expect(sheet.textContent).toContain('média 9,5');
 });
 
@@ -154,26 +160,52 @@ test('histórico: Esc, clicar na aba de novo ou trocar de aba descem o quadro', 
   // Ranqueadas sobe no mesmo quadro, abaixo do nome, como o histórico.
   const sheet = root.querySelector('.rlc-pf-sheet')!;
   expect(sheet.getAttribute('aria-label')).toBe('Ranqueadas');
-  expect(sheet.querySelectorAll('.rlc-rk-card')).toHaveLength(3);
+  expect(sheet.querySelectorAll('.rlc-rk-card')).toHaveLength(4);
   expect(root.querySelector('.rlc-pf-showcase .rlc-pf-name')).not.toBeNull();
   esc();
   expect(root.querySelector('.rlc-pf-sheet')).toBeNull();
 });
 
-test('histórico: filtro por fila; carregar mais', async () => {
+// A LCU ignora begIndex/endIndex e sempre manda as ~20 últimas: uma busca só, sem "carregar mais".
+test('histórico: filtro por fila; uma busca só, sem carregar mais', async () => {
   mount();
   await settle();
   await openHistory();
   const rows = () => [...root.querySelectorAll('.rlc-mh-row')];
-  expect(rows().map((r) => r.getAttribute('data-win'))).toEqual(['true', 'false', 'true', 'false']);
-  act(() => btn('Ranqueada').click());
+  expect(rows().map((r) => r.getAttribute('data-win'))).toEqual(['true', 'false', 'true', 'false', 'true']);
+  // Sem fileira de chips: o lado ativo da chave LoL/TFT abre um menu pequeno com as filas.
+  expect(root.querySelector('.rlc-queue-chip')).toBeNull();
+  const game = () => root.querySelector<HTMLButtonElement>('.rlc-pf-game button[aria-pressed="true"]')!;
+  const menu = () => root.querySelector<HTMLElement>('.rlc-pf-menu');
+  const opts = () => [...root.querySelectorAll<HTMLButtonElement>('.rlc-pf-menu [role="option"]')];
+  expect(menu()).toBeNull();
+  expect(game().getAttribute('aria-haspopup')).toBe('listbox');
+  act(() => game().click());
+  expect(game().getAttribute('aria-expanded')).toBe('true');
+  expect(opts().map((o) => o.textContent)).toEqual(['Todas', 'Ranqueada', 'Normal', 'ARAM']);
+  expect(opts()[0]!.getAttribute('aria-selected')).toBe('true');
+  act(() => opts()[1]!.click());
+  expect(menu()).toBeNull();
   expect(rows()).toHaveLength(2);
-  act(() => btn('Todas').click());
-  act(() => btn('Carregar mais').click());
-  await settle();
-  await settle();
+  // A chave mostra a fila escolhida ao lado do jogo; a pílula do menu fica na opção ativa.
+  expect(game().querySelector('small')!.textContent).toBe('Ranqueada');
+  act(() => game().click());
+  expect(menu()!.style.getPropertyValue('--i')).toBe('1');
+  // Clique fora fecha sem trocar o filtro.
+  act(() => void document.body.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true })));
+  expect(menu()).toBeNull();
+  expect(rows()).toHaveLength(2);
+  act(() => game().click());
+  act(() => opts()[0]!.click());
   expect(rows()).toHaveLength(5);
-  expect(fetchMock.mock.calls.some((c) => String(c[0]).includes('begIndex=20&endIndex=40'))).toBe(true);
+  expect(game().querySelector('small')).toBeNull();
+  expect([...root.querySelectorAll('button')].some((b) => b.textContent === 'Carregar mais')).toBe(false);
+  // ARAM Caos não tem runas: só os dois feitiços, empilhados.
+  const mayhem = rows()[4]!.querySelector('.rlc-md-loadout')!;
+  expect(mayhem.getAttribute('data-runes')).toBe('false');
+  expect(mayhem.querySelectorAll('.rlc-md-spell')).toHaveLength(2);
+  expect(mayhem.querySelectorAll('.rlc-md-rune')).toHaveLength(0);
+  expect(fetchMock.mock.calls.filter((c) => String(c[0]).includes('/matches'))).toHaveLength(1);
 });
 
 test('detalhe da partida: placar com os dois times, estatísticas e gráfico de ouro; voltar', async () => {
@@ -204,7 +236,7 @@ test('detalhe da partida: placar com os dois times, estatísticas e gráfico de 
   expect([...root.querySelectorAll<HTMLElement>('.rlc-md-track .rlc-md-fill')].map((i) => i.style.width)).toEqual(['100%', `${(24000 / 31000) * 100}%`]);
   act(() => btn('‹ Histórico').click());
   expect(root.querySelector('.rlc-md')).toBeNull();
-  expect(root.querySelectorAll('.rlc-pf-sheet .rlc-mh-row')).toHaveLength(4);
+  expect(root.querySelectorAll('.rlc-pf-sheet .rlc-mh-row')).toHaveLength(5);
 });
 
 test('placar: ícones de campeão, feitiços, runas e os 7 encaixes de item (o 7º é o amuleto), farm por minuto e dano', async () => {
@@ -233,17 +265,29 @@ test('placar: ícones de campeão, feitiços, runas e os 7 encaixes de item (o 7
   expect(row.textContent).toContain('31.000');
 });
 
-test('ranqueadas: três cartões iguais e temporada anterior; fila sem elo mostra "Sem classificação"', async () => {
+test('ranqueadas: um cartão por fila com elo, as três principais primeiro; fila sem elo ou sem nome no client fica de fora', async () => {
   mount();
   await settle();
   act(() => tab('Ranqueadas').click());
   await settle();
   const cards = [...root.querySelectorAll('.rlc-rk-card')];
-  expect(cards).toHaveLength(3);
+  expect(cards.map((c) => c.querySelector('small')!.textContent)).toEqual(['Solo/Duo', 'Flex', 'TFT Dupla', 'Ranqueada 5x5']);
   expect(cards[0]!.textContent).toContain('Ouro II');
   expect(cards[0]!.textContent).toContain('48 PdL');
-  expect(cards[2]!.textContent).toContain('Sem classificação');
-  expect(root.textContent).toContain('Ouro IV');
+  // Cada cartão traz a própria temporada anterior, aproveitamento, pico e a barra de PdL até a próxima divisão.
+  expect(cards[0]!.textContent).toContain('Temporada anterior: Ouro IV');
+  expect(cards[0]!.textContent).toContain('54% de vitórias');
+  expect(cards[0]!.textContent).toContain('Pico: Platina IV');
+  expect(cards[1]!.textContent).not.toContain('Pico');
+  expect(cards[0]!.querySelector<HTMLElement>('.rlc-rk-lp i')!.style.width).toBe('48%');
+  expect(cards[2]!.textContent).toContain('Ouro I');
+  expect(cards[2]!.textContent).toContain('2 partidas de classificação restantes');
+});
+
+test('ranqueadas: sem elo em nenhuma fila mostra só "Sem classificação"', () => {
+  act(() => render(<RankedCards ranked={{ queueMap: { RANKED_SOLO_5x5: { tier: '', division: 'NA', provisionalGamesRemaining: 5 } } }} queues={[]} />, root));
+  expect(root.querySelectorAll('.rlc-rk-card')).toHaveLength(0);
+  expect(root.textContent).toBe('Sem classificação');
 });
 
 test('maestria: grade ordenada por pontos, ordenação por nome e busca', async () => {
@@ -264,23 +308,27 @@ test('maestria: grade ordenada por pontos, ordenação por nome e busca', async 
   expect(names()).toEqual(['Zed']);
 });
 
+test('maestria: resumo, ordem por jogado há menos tempo, faixa do nível e progresso até o próximo', async () => {
+  mount();
+  await settle();
+  act(() => tab('Maestria').click());
+  await settle();
+  await settle();
+  expect(root.querySelector('.rlc-ms-sum')!.textContent!.replace(/\s/g, ' ')).toBe('2 campeões · 250 mil pontos');
+  const rings = [...root.querySelectorAll('.rlc-ms-ring')].map((r) => r.getAttribute('data-tier'));
+  expect(rings).toEqual(['high', 'mid']);
+  const bars = [...root.querySelectorAll<HTMLElement>('.rlc-ms-bar i')].map((b) => b.style.width);
+  // Ahri: 2750 de 11000 = 25%; Zed sem próximo nível informado fica sem barra.
+  expect(bars).toEqual(['25%']);
+  act(() => btn('Recentes').click());
+  expect([...root.querySelectorAll('.rlc-ms-champ')].map((c) => c.getAttribute('aria-label'))).toEqual(['Zed', 'Ahri']);
+});
+
 test('dia relativo e ouro por time', () => {
   const now = Date.UTC(2026, 9, 5, 18);
   expect(relativeDay(Date.UTC(2026, 9, 5, 9), now)).toBe('hoje');
   expect(relativeDay(Date.UTC(2026, 9, 4, 9), now)).toBe('ontem');
   expect(teamGold(timeline as never, { 1: 100, 6: 200 })).toEqual({ blue: [500, 900], red: [500, 700], minutes: [0, 1] });
-});
-
-test('histórico: carregar mais fica desabilitado enquanto a página carrega', async () => {
-  mount();
-  await settle();
-  act(() => tab('Histórico').click());
-  await settle();
-  await settle();
-  act(() => btn('Carregar mais').click());
-  expect(btn('Carregar mais').disabled).toBe(true);
-  await settle();
-  await settle();
 });
 
 test('histórico: roda de carregamento enquanto as partidas não chegam', async () => {

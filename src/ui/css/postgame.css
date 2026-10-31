@@ -147,8 +147,7 @@
 #rlc-root .rlc-pg-elim td { padding: 6px 10px; border-top: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.08)); white-space: nowrap; }
 #rlc-root .rlc-pg-elim td small { margin-left: 8px; font-size: 11px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); }
 #rlc-root .rlc-pg-elim .rlc-tft-place { display: inline-block; min-width: 34px; margin-right: 8px; font-size: 15px; text-align: left; }
-#rlc-root .rlc-pg-elim tr[data-band='first'] .rlc-tft-place { color: var(--rlc-color-highlight, #e7c25a); }
-#rlc-root .rlc-pg-elim tr[data-band='bottom'] .rlc-tft-place { color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); }
+#rlc-root .rlc-pg-elim tr[data-medal] .rlc-tft-place { color: var(--rlc-medal); }
 #rlc-root .rlc-pg-elim tr[data-me='true'] td { font-weight: 700; background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.06)); }
 #rlc-root .rlc-pg-elim tr[data-me='true'] td:first-child { box-shadow: inset 3px 0 0 var(--rlc-pg-tone); }
 

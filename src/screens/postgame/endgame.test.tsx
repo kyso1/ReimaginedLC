@@ -344,6 +344,7 @@ test('TFT: aba Partida com traços (3/4, falta 1) e quem caiu quando; dano e eli
     ['rodada 3631:00', '2ºZeca⋯', '8', '3', '198'],
     ['Venceu', '1ºFulano', '8', '3', '199'],
   ]);
+  expect([...root.querySelectorAll('.rlc-pg-elim tbody tr')].map((tr) => tr.getAttribute('data-medal'))).toEqual(['silver', 'gold']);
   expect(root.textContent).not.toContain('DA_');
 });
 
@@ -378,6 +379,7 @@ test('TFT: você vs seu histórico (média da fila, top 4 seguidos, comp repetid
   // A normal (1090) fica fora: média de 3, 6 e 2.
   expect(facts).toEqual(['Esta partida1ºmelhor que sua média', 'Sua média3,7últimas 3', 'Top 4 seguidos2contando esta', 'Até Diamante I51 PdL~2 partida(s) como esta']);
   expect([...root.querySelectorAll('.rlc-pg-vs .rlc-tft-strip li')].map((li) => li.textContent)).toEqual(['1', '3', '6', '2']);
+  expect([...root.querySelectorAll('.rlc-pg-vs .rlc-tft-strip li')].map((li) => li.getAttribute('data-medal'))).toEqual(['gold', 'bronze', 'gray', 'silver']);
   expect(root.querySelector('.rlc-pg-comp')!.textContent).toContain('Mesma comp: 3× · média 3,7');
   const used = root.querySelector('.rlc-pg-used li[data-here="true"]')!;
   expect(used.textContent).toBe('Vi3×');

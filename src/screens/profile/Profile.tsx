@@ -3,6 +3,8 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
+import type { LolGameQueuesQueue } from '../../lcu/types';
+import { PillMenu } from '../../ui/PillMenu';
 import { Rank } from '../../ui/Rank';
 import { useDecoded } from '../../ui/useDecoded';
 import { useEscape } from '../../ui/useEscape';
@@ -41,6 +43,9 @@ interface QueueEntry {
   losses?: number;
   previousSeasonEndTier?: string;
   previousSeasonEndDivision?: string;
+  highestTier?: string;
+  highestDivision?: string;
+  provisionalGamesRemaining?: number;
 }
 type Ranked = { queueMap?: Record<string, QueueEntry> } | null;
 
@@ -173,7 +178,7 @@ export function Profile({ lcu, puuid }: { lcu: Lcu; puuid: string }) {
             setLeaving(null);
           }}
         >
-          {tab === 'ranked' ? <RankedCards ranked={ranked} /> : <History lcu={lcu} puuid={puuid} ranked={ranked} />}
+          {tab === 'ranked' ? <RankedCards ranked={ranked} queues={lcu.queues.value.data ?? []} /> : <History lcu={lcu} puuid={puuid} ranked={ranked} />}
         </HistorySheet>
       ) : null}
       {tab === 'mastery' ? <Mastery lcu={lcu} puuid={puuid} /> : null}
@@ -187,7 +192,6 @@ const FILTERS: Array<[QueueFilter, TextKey]> = [
   ['normal', 'filterNormal'],
   ['aram', 'filterAram'],
 ];
-const PAGE = 20;
 
 /** Quadro de vidro que sobe sobre o perfil; desce (animado) quando `leaving` liga, e só então avisa `onClosed`. */
 function HistorySheet({ label, leaving, onLeave, onClosed, children }: { label: string; leaving: boolean; onLeave: () => void; onClosed: () => void; children: ComponentChildren }) {
@@ -202,16 +206,50 @@ function HistorySheet({ label, leaving, onLeave, onClosed, children }: { label: 
   );
 }
 
-/** Seletor de jogo do quadro: LoL ou TFT (cada um com feed, filtros e coluna próprios). */
-function GameSwitch({ tft, onChange }: { tft: boolean; onChange: (tft: boolean) => void }) {
+/** Filas do jogo ativo: a primeira opção é "todas". */
+export interface QueueMenu {
+  options: Array<[string, TextKey]>;
+  value: string;
+  onChange: (value: string) => void;
+}
+
+/**
+ * Seletor de jogo do quadro: LoL ou TFT (cada um com feed, filtros e coluna próprios). O lado ativo abre um menu
+ * pequeno com as filas; a pílula do menu desliza até a escolhida, e a chave mostra a fila ao lado do jogo.
+ */
+export function GameSwitch({ tft, onChange, menu }: { tft: boolean; onChange: (tft: boolean) => void; menu?: QueueMenu }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const hasMenu = !!menu && menu.options.length > 1;
+  const index = menu ? Math.max(0, menu.options.findIndex(([v]) => v === menu.value)) : 0;
+  const side = (game: boolean, label: string) => {
+    const active = game === tft;
+    const picked = active && menu && index > 0 ? t(menu.options[index]![1]) : '';
+    return (
+      <button
+        type="button"
+        aria-pressed={active}
+        aria-haspopup={active && hasMenu ? 'listbox' : undefined}
+        aria-expanded={active && hasMenu ? open : undefined}
+        onClick={() => (active ? hasMenu && setOpen(!open) : (setOpen(false), onChange(game)))}
+      >
+        {label}
+        {picked ? <small>{picked}</small> : null}
+        {active && hasMenu ? (
+          <svg class="rlc-pf-caret" viewBox="0 0 10 6" aria-hidden="true">
+            <path d="M1 1l4 4 4-4" />
+          </svg>
+        ) : null}
+      </button>
+    );
+  };
   return (
-    <div class="rlc-pf-game" role="group" aria-label={t('pfTftGame')}>
-      <button type="button" aria-pressed={!tft} onClick={() => onChange(false)}>
-        {t('pfTftLol')}
-      </button>
-      <button type="button" aria-pressed={tft} onClick={() => onChange(true)}>
-        {t('modeTft')}
-      </button>
+    <div class="rlc-pf-gamebox" ref={box}>
+      <div class="rlc-pf-game" role="group" aria-label={t('pfTftGame')}>
+        {side(false, t('pfTftLol'))}
+        {side(true, t('modeTft'))}
+      </div>
+      {open && menu ? <PillMenu box={box} options={menu.options.map(([v, label]) => [v, t(label)])} value={menu.value} onPick={menu.onChange} onClose={() => setOpen(false)} /> : null}
     </div>
   );
 }
@@ -223,52 +261,49 @@ const TFT_QUEUES: Array<[string, TextKey]> = [
 
 function History({ lcu, puuid, ranked }: { lcu: Lcu; puuid: string; ranked: Ranked }) {
   const [tft, setTft] = useState(false);
-  const head = <GameSwitch tft={tft} onChange={setTft} />;
-  const champions = useChampions(lcu);
+  const head = (menu?: QueueMenu) => <GameSwitch tft={tft} onChange={setTft} menu={menu} />;
+  const icons = useIcons(lcu);
   const [games, setGames] = useState<Game[]>([]);
-  const [count, setCount] = useState(PAGE);
   const [filter, setFilter] = useState<QueueFilter>('all');
   const [open, setOpen] = useState<{ gameId: number; originY: number } | null>(null);
-  const [exhausted, setExhausted] = useState(false);
-  // Página em voo: o botão fica desabilitado (dois cliques pulariam uma página).
   const [loading, setLoading] = useState(true);
+  // A LCU ignora begIndex/endIndex e sempre devolve as ~20 últimas partidas: uma busca só, sem paginação.
   useEffect(() => {
     let live = true;
     setLoading(true);
-    const beg = count - PAGE;
-    void getJson<{ games?: { games?: Game[] } }>(`/lol-match-history/v1/products/lol/${encodeURIComponent(puuid)}/matches?begIndex=${beg}&endIndex=${count}`).then((r) => {
+    void getJson<{ games?: { games?: Game[] } }>(`/lol-match-history/v1/products/lol/${encodeURIComponent(puuid)}/matches`).then((r) => {
       if (!live) return;
       setLoading(false);
-      const page = r?.games?.games ?? [];
-      if (!page.length) setExhausted(true);
-      setGames((prev) => [...prev.slice(0, beg), ...page]);
+      setGames(r?.games?.games ?? []);
     });
     return () => void (live = false);
-  }, [puuid, count]);
+  }, [puuid]);
   const queueName = (id: number) => lcu.queues.value.data?.find((q) => q.id === id)?.name ?? '';
 
   if (tft) return <TftHistory lcu={lcu} puuid={puuid} head={head} elo={<EloPanel ranked={ranked} queues={TFT_QUEUES} />} />;
   if (open) return <MatchDetail lcu={lcu} puuid={puuid} gameId={open.gameId} originY={open.originY} onBack={() => setOpen(null)} />;
   const days = byDay(games.filter((g) => inFilter(g.queueId, filter)));
+  const dec = new Intl.NumberFormat(locale(), { maximumFractionDigits: 1, minimumFractionDigits: 1 });
   return (
     <div class="rlc-pf-feedwrap">
       <div class="rlc-mh">
-        {head}
-        <div class="rlc-chip-row">
-          {FILTERS.map(([f, label]) => (
-            <button type="button" key={f} class="rlc-queue-chip" aria-pressed={filter === f} onClick={() => setFilter(f)}>
-              {t(label)}
-            </button>
-          ))}
-        </div>
+        {head({ options: FILTERS, value: filter, onChange: (f) => setFilter(f as QueueFilter) })}
         <div class="rlc-mh-list">
           {days.map((d) => (
             <section key={d.label} class="rlc-pf-day">
-              <h3>{d.label}</h3>
+              <header class="rlc-pf-dayhead">
+                <h3>{d.label}</h3>
+                <small class="rlc-pf-tally">
+                  {(() => {
+                    const w = d.games.filter((g) => mine(g, puuid)?.stats.win).length;
+                    return t('pfTally').replace('{w}', String(w)).replace('{l}', String(d.games.length - w));
+                  })()}
+                </small>
+              </header>
               <div>
                 {d.games.map((g) => {
                   const p = mine(g, puuid);
-                  const champ = champions.get(p?.championId ?? 0);
+                  const champ = icons.champions.get(p?.championId ?? 0);
                   const lane = laneOf(g, p);
                   return (
                     <button
@@ -278,31 +313,40 @@ function History({ lcu, puuid, ranked }: { lcu: Lcu; puuid: string; ranked: Rank
                       data-win={p?.stats.win ? 'true' : 'false'}
                       onClick={(e) => setOpen({ gameId: g.gameId, originY: (e.currentTarget as HTMLElement).offsetTop })}
                     >
-                      {champ?.icon ? <img src={champ.icon} alt={champ.name} title={champ.name} /> : <span class="rlc-mh-icon" />}
-                      <b>{p?.stats.win ? t('victory') : t('defeat')}</b>
-                      <span class="rlc-mh-meta">{[queueName(g.queueId), lane ? t(lane) : ''].filter(Boolean).join(' · ')}</span>
-                      <span class="rlc-mh-kda">{p ? kda(p) : ''}</span>
-                      <small>{formatClock(g.gameDuration)}</small>
+                      <span class="rlc-mh-champ">
+                        {champ?.icon ? <img src={champ.icon} alt={champ.name} title={champ.name} /> : <span class="rlc-mh-icon" />}
+                        {num(p, 'champLevel') ? <b class="rlc-md-lvl">{num(p, 'champLevel')}</b> : null}
+                      </span>
+                      {p ? <Loadout icons={icons} p={p} /> : <span />}
+                      <span class="rlc-mh-result">
+                        <b>{p?.stats.win ? t('victory') : t('defeat')}</b>
+                        <span class="rlc-mh-meta">{[queueName(g.queueId), lane ? t(lane) : ''].filter(Boolean).join(' · ')}</span>
+                      </span>
+                      <span class="rlc-mh-score">
+                        <span class="rlc-mh-kda">{p ? kda(p) : ''}</span>
+                        <small class="rlc-mh-ratio">{num(p, 'deaths') ? `${dec.format(kdaRatio(p))} ${t('kda')}` : t('kdaPerfect')}</small>
+                      </span>
+                      <span class="rlc-mh-cs">
+                        <span>{`${p ? cs(p) : 0} CS`}</span>
+                        <small>{`${dec.format((p ? cs(p) : 0) / Math.max(1, g.gameDuration / 60))}/min`}</small>
+                      </span>
+                      {p ? <ItemSlots icons={icons} p={p} /> : <span />}
+                      <small class="rlc-mh-time">{formatClock(g.gameDuration)}</small>
                     </button>
                   );
                 })}
               </div>
             </section>
           ))}
-          {/* Roda enquanto a página chega (a primeira ou "carregar mais"); a LCU pode levar segundos. */}
+          {/* Roda enquanto as partidas chegam; a LCU pode levar segundos. */}
           {loading ? <Loader small label={t('mhLoading')} /> : null}
           {!loading && !days.length ? <p class="rlc-muted">{t('profNoGames')}</p> : null}
         </div>
-        {!exhausted && games.length ? (
-          <button type="button" class="rlc-button" data-variant="pill" disabled={loading} onClick={() => setCount(count + PAGE)}>
-            {t('loadMore')}
-          </button>
-        ) : null}
       </div>
       <aside class="rlc-pf-aside">
         <EloPanel ranked={ranked} />
         <RolesPanel games={games} puuid={puuid} />
-        <KdaPanel games={games.slice(0, PAGE)} puuid={puuid} />
+        <KdaPanel games={games} puuid={puuid} />
       </aside>
     </div>
   );
@@ -310,8 +354,8 @@ function History({ lcu, puuid, ranked }: { lcu: Lcu; puuid: string; ranked: Rank
 
 const crestUrl = (tier: string) => `/fe/lol-static-assets/images/ranked-mini-crests/${tier.toLowerCase()}.svg`;
 
-/** Elo de cada fila com a barra de PdL (0 a 100; elos de topo enchem a barra). */
-function EloPanel({ ranked, queues = QUEUES }: { ranked: Ranked; queues?: Array<[string, TextKey]> }) {
+/** Elo de cada fila com a barra de PdL (0 a 100; elos de topo enchem a barra). Só Solo/Duo, Flex e TFT: as outras filas ficam nos cards de Ranqueada. */
+function EloPanel({ ranked, queues = QUEUES.slice(0, 3) }: { ranked: Ranked; queues?: Array<[string, TextKey]> }) {
   return (
     <div class="rlc-pf-panel">
       <h4>{t('profEloByQueue')}</h4>
@@ -426,6 +470,35 @@ export function useIcons(lcu: Lcu): Icons {
     return () => void (live = false);
   }, [lcu]);
   return { champions, ...rest };
+}
+
+/** Feitiços e runas (primária e secundária) em 2x2, como no placar do client. Modo sem runas (ARAM Caos manda perk0 = 0): só os feitiços, empilhados. */
+function Loadout({ icons, p }: { icons: Icons; p: Participant }) {
+  const s1 = icons.spells.get(p.spell1Id ?? 0);
+  const s2 = icons.spells.get(p.spell2Id ?? 0);
+  const runes = num(p, 'perk0') > 0;
+  const keystone = icons.runes.get(num(p, 'perk0'));
+  const sub = icons.runes.get(num(p, 'perkSubStyle'));
+  return (
+    <div class="rlc-md-loadout" data-runes={runes ? undefined : 'false'}>
+      {icon(s1?.icon, 'rlc-md-spell', s1?.name)}
+      {runes ? icon(keystone?.icon, 'rlc-md-rune', keystone?.name) : null}
+      {icon(s2?.icon, 'rlc-md-spell', s2?.name)}
+      {runes ? icon(sub?.icon, 'rlc-md-rune', sub?.name) : null}
+    </div>
+  );
+}
+
+/** Seis itens e o sentinela (slot 6); slot vazio vira um quadrado apagado. */
+function ItemSlots({ icons, p }: { icons: Icons; p: Participant }) {
+  return (
+    <div class="rlc-md-items">
+      {[0, 1, 2, 3, 4, 5, 6].map((s) => {
+        const src = icons.items.get(num(p, `item${s}`));
+        return src ? <img key={s} class="rlc-md-item" src={src} alt="" data-slot={s} /> : <span key={s} class="rlc-md-item" data-slot={s} />;
+      })}
+    </div>
+  );
 }
 
 const cs = (p: Participant) => num(p, 'totalMinionsKilled') + num(p, 'neutralMinionsKilled');
@@ -576,10 +649,6 @@ export function Board({ game, me, icons, menuFor, lcu }: { game: Game; me: Parti
             <tbody>
               {team.map((p) => {
                 const ch = icons.champions.get(p.championId);
-                const s1 = icons.spells.get(p.spell1Id ?? 0);
-                const s2 = icons.spells.get(p.spell2Id ?? 0);
-                const keystone = icons.runes.get(num(p, 'perk0'));
-                const sub = icons.runes.get(num(p, 'perkSubStyle'));
                 return (
                   <tr key={p.participantId} data-me={p === me ? 'true' : undefined}>
                     <td class="rlc-md-champcell">
@@ -587,12 +656,7 @@ export function Board({ game, me, icons, menuFor, lcu }: { game: Game; me: Parti
                       {num(p, 'champLevel') ? <b class="rlc-md-lvl">{num(p, 'champLevel')}</b> : null}
                     </td>
                     <td>
-                      <div class="rlc-md-loadout">
-                        {icon(s1?.icon, 'rlc-md-spell', s1?.name)}
-                        {icon(keystone?.icon, 'rlc-md-rune', keystone?.name)}
-                        {icon(s2?.icon, 'rlc-md-spell', s2?.name)}
-                        {icon(sub?.icon, 'rlc-md-rune', sub?.name)}
-                      </div>
+                      <Loadout icons={icons} p={p} />
                     </td>
                     <td class="rlc-md-name">
                       {(() => {
@@ -616,12 +680,7 @@ export function Board({ game, me, icons, menuFor, lcu }: { game: Game; me: Parti
                       <small>{`${dec.format(cs(p) / minutes)}/min`}</small>
                     </td>
                     <td>
-                      <div class="rlc-md-items">
-                        {[0, 1, 2, 3, 4, 5, 6].map((s) => {
-                          const src = icons.items.get(num(p, `item${s}`));
-                          return src ? <img key={s} class="rlc-md-item" src={src} alt="" data-slot={s} /> : <span key={s} class="rlc-md-item" data-slot={s} />;
-                        })}
-                      </div>
+                      <ItemSlots icons={icons} p={p} />
                     </td>
                     <td>{n.format(num(p, 'goldEarned'))}</td>
                     <td class="rlc-md-dmg">
@@ -731,50 +790,80 @@ const QUEUES: Array<[string, TextKey]> = [
   ['RANKED_SOLO_5x5', 'rankedSolo'],
   ['RANKED_FLEX_SR', 'rankedFlex'],
   ['RANKED_TFT', 'rankedTft'],
+  ['RANKED_TFT_DOUBLE_UP', 'rankedTftDoubleUp'],
 ];
 
-function RankedCards({ ranked }: { ranked: Ranked }) {
-  const prev = ranked?.queueMap?.RANKED_SOLO_5x5;
-  const prevLabel = tierLabel(prev?.previousSeasonEndTier, prev?.previousSeasonEndDivision);
+/** Mestre para cima o PdL não tem teto, então não há barra até a próxima divisão. */
+const APEX = ['MASTER', 'GRANDMASTER', 'CHALLENGER'];
+
+/**
+ * Um cartão por fila em que o jogador tem elo: as três principais primeiro, depois as outras que o client manda (Dupla, 5s...).
+ * Fila sem nome no client é interna e fica de fora.
+ */
+export function RankedCards({ ranked, queues }: { ranked: Ranked; queues: LolGameQueuesQueue[] }) {
+  const label = (q: string) => {
+    const known = QUEUES.find(([k]) => k === q);
+    return known ? t(known[1]) : (queues.find((x) => x.type === q && x.name)?.name ?? '');
+  };
+  const order = (q: string) => {
+    const i = QUEUES.findIndex(([k]) => k === q);
+    return i < 0 ? QUEUES.length : i;
+  };
+  const shown = Object.entries(ranked?.queueMap ?? {})
+    .filter(([q, e]) => tierLabel(e.tier, e.division) && label(q))
+    .sort(([a], [b]) => order(a) - order(b));
+  if (!shown.length) return <p class="rlc-muted">{t('unranked')}</p>;
   return (
     <div class="rlc-rk">
       <div class="rlc-rk-cards">
-        {QUEUES.map(([q, label]) => {
-          const e = ranked?.queueMap?.[q];
-          const tier = tierLabel(e?.tier, e?.division);
+        {shown.map(([q, e]) => {
+          const tier = tierLabel(e.tier, e.division);
+          const games = (e.wins ?? 0) + (e.losses ?? 0);
+          const peak = tierLabel(e.highestTier, e.highestDivision);
+          const prev = tierLabel(e.previousSeasonEndTier, e.previousSeasonEndDivision);
           return (
-            <div key={q} class="rlc-rk-card" data-tier={(e?.tier || 'none').toLowerCase()}>
-              <small>{t(label)}</small>
-              <div class="rlc-rk-emblem" style={e?.tier && tier ? { backgroundImage: `url("/fe/lol-static-assets/images/ranked-emblem/emblem-${e.tier.toLowerCase()}.png")` } : undefined} />
-              <strong>{tier || t('unranked')}</strong>
-              {tier ? <span class="rlc-muted">{`${e!.leaguePoints ?? 0} ${t('lp')} · ${e!.wins ?? 0} ${t('winsShort')} / ${e!.losses ?? 0} ${t('lossesShort')}`}</span> : null}
+            <div key={q} class="rlc-rk-card" data-tier={e.tier!.toLowerCase()}>
+              <small>{label(q)}</small>
+              <div class="rlc-rk-emblem" style={{ backgroundImage: `url("/fe/lol-static-assets/images/ranked-emblem/emblem-${e.tier!.toLowerCase()}.png")` }} />
+              <strong>{tier}</strong>
+              {!APEX.includes(e.tier!) ? (
+                <span class="rlc-rk-lp" aria-hidden="true">
+                  <i style={{ width: `${Math.min(100, e.leaguePoints ?? 0)}%` }} />
+                </span>
+              ) : null}
+              <span class="rlc-muted">{`${e.leaguePoints ?? 0} ${t('lp')} · ${e.wins ?? 0} ${t('winsShort')} / ${e.losses ?? 0} ${t('lossesShort')}`}</span>
+              {games ? <span class="rlc-muted">{`${Math.round((100 * (e.wins ?? 0)) / games)}${t('winRateSuffix')}`}</span> : null}
+              {e.provisionalGamesRemaining ? <span class="rlc-muted">{t('rkPlacements').replace('{n}', String(e.provisionalGamesRemaining))}</span> : null}
+              {peak && peak !== tier ? <span class="rlc-rk-extra">{`${t('rkPeak')}: ${peak}`}</span> : null}
+              {prev ? <span class="rlc-rk-extra">{`${t('previousSeason')}: ${prev}`}</span> : null}
             </div>
           );
         })}
       </div>
-      {prevLabel ? <p class="rlc-muted">{`${t('previousSeason')}: ${prevLabel}`}</p> : null}
     </div>
   );
 }
 
-type Sort = 'points' | 'level' | 'name';
+type Sort = 'points' | 'level' | 'recent' | 'name';
 const SORTS: Array<[Sort, TextKey]> = [
   ['points', 'sortPoints'],
   ['level', 'sortLevel'],
+  ['recent', 'sortRecent'],
   ['name', 'sortName'],
 ];
 
 function Mastery({ lcu, puuid }: { lcu: Lcu; puuid: string }) {
   const champions = useChampions(lcu);
-  const list = useFetched<Array<{ championId: number; championLevel: number; championPoints: number }>>(`/lol-champion-mastery/v1/${encodeURIComponent(puuid)}/champion-mastery`) ?? [];
+  const list = useFetched<Array<{ championId: number; championLevel: number; championPoints: number; championPointsSinceLastLevel?: number; championPointsUntilNextLevel?: number; lastPlayTime?: number }>>(`/lol-champion-mastery/v1/${encodeURIComponent(puuid)}/champion-mastery`) ?? [];
   const [sort, setSort] = useState<Sort>('points');
   const [query, setQuery] = useState('');
   const n = new Intl.NumberFormat(locale(), { notation: 'compact' });
   const name = (id: number) => champions.get(id)?.name ?? String(id);
   const q = query.trim().toLowerCase();
+  const total = list.reduce((sum, m) => sum + m.championPoints, 0);
   const shown = list
     .filter((m) => !q || name(m.championId).toLowerCase().includes(q))
-    .sort((a, b) => (sort === 'points' ? b.championPoints - a.championPoints : sort === 'level' ? b.championLevel - a.championLevel || b.championPoints - a.championPoints : name(a.championId).localeCompare(name(b.championId))));
+    .sort((a, b) => (sort === 'points' ? b.championPoints - a.championPoints : sort === 'level' ? b.championLevel - a.championLevel || b.championPoints - a.championPoints : sort === 'recent' ? (b.lastPlayTime ?? 0) - (a.lastPlayTime ?? 0) : name(a.championId).localeCompare(name(b.championId))));
   return (
     <div class="rlc-ms">
       <div class="rlc-chip-row">
@@ -784,16 +873,22 @@ function Mastery({ lcu, puuid }: { lcu: Lcu; puuid: string }) {
             {t(label)}
           </button>
         ))}
+        <span class="rlc-ms-sum">{`${list.length} ${t('colStatChampions')} · ${n.format(total)} ${t('pgPoints')}`}</span>
       </div>
       <div class="rlc-ms-grid">
         {shown.map((m) => (
           <div key={m.championId} class="rlc-ms-champ" aria-label={name(m.championId)} title={name(m.championId)}>
-            <span class="rlc-ms-ring" data-level={Math.min(m.championLevel, 10)}>
+            <span class="rlc-ms-ring" data-tier={m.championLevel >= 10 ? 'high' : m.championLevel >= 5 ? 'mid' : 'low'}>
               {champions.get(m.championId)?.icon ? <img src={champions.get(m.championId)!.icon} alt="" /> : null}
               <b>{m.championLevel}</b>
             </span>
             <span>{name(m.championId)}</span>
             <small>{n.format(m.championPoints)}</small>
+            {m.championPointsUntilNextLevel ? (
+              <span class="rlc-ms-bar" title={`${n.format(m.championPointsUntilNextLevel)} → ${m.championLevel + 1}`}>
+                <i style={{ width: `${Math.round((100 * (m.championPointsSinceLastLevel ?? 0)) / ((m.championPointsSinceLastLevel ?? 0) + m.championPointsUntilNextLevel))}%` }} />
+              </span>
+            ) : null}
           </div>
         ))}
       </div>

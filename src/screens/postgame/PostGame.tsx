@@ -11,7 +11,7 @@ import { useAction } from '../../ui/useAction';
 import { formatClock } from '../lobby/format';
 import { getJson, kda, mine, num, ordinal, playerName, tierLabel, type Game, type Participant, type Timeline } from '../profile/data';
 import { Board, DamageBars, GoldChart, icon, useFetched, useIcons, type Icons } from '../profile/Profile';
-import { activeTraits, art, band, eogArt, fromEog, meIn, pairs, placeOf as tftPlace, queueOf, tftMatches, tftStats as summarize, tftUrl, type TftArt, type TftMatch, type TftPlayer } from '../profile/tft';
+import { activeTraits, art, eogArt, fromEog, medal, meIn, pairs, placeOf as tftPlace, queueOf, tftMatches, tftStats as summarize, tftUrl, type TftArt, type TftMatch, type TftPlayer } from '../profile/tft';
 import { pic, TftStandings, Trait, useTftArt, type Art } from '../profile/TftHistory';
 import { Loader } from '../../ui/Loader';
 import { boardValue, compHistory, compKey, contested, eliminationOrder, hasAny, itemCount, roundLabel, top4Streak, topBy, topUsed, toNextDivision, traitProgress } from './tftInsights';
@@ -567,7 +567,7 @@ function TftMatchTab({ m, mine, played, waiting, a, menuFor }: { m: TftMatch; mi
             </thead>
             <tbody>
               {eliminationOrder(hp).map((p, i) => (
-                <tr key={p.puuid ?? i} data-me={p.puuid === mine?.puuid ? 'true' : undefined} data-band={band(played, p)}>
+                <tr key={p.puuid ?? i} data-me={p.puuid === mine?.puuid ? 'true' : undefined} data-medal={medal(played, p)}>
                   <td>
                     {p.placement === 1 ? (
                       t('pgTftSurvived')
@@ -669,7 +669,7 @@ function TftVsHistory(props: { m: TftMatch; mine: TftPlayer | undefined; matches
         <h3>{t('pgTftRecent')}</h3>
         <ol class="rlc-tft-strip" aria-label={t('pgTftRecent')}>
           {recent.map(({ x, p }) => (
-            <li key={x.gameId} data-band={band(x, p)} data-now={x === m ? 'true' : undefined}>
+            <li key={x.gameId} data-medal={medal(x, p)} data-now={x === m ? 'true' : undefined}>
               {tftPlace(x, p)}
             </li>
           ))}

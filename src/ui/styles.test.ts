@@ -66,3 +66,35 @@ test('gaveta de amigos: aberta passa por cima da folha de modos, mas fica abaixo
     expect(Number(gap?.[1]), sel).toBeGreaterThanOrEqual(12);
   }
 });
+
+test('maestria: busca e ordens numa linha só; o nível não é cortado pelo círculo do retrato', () => {
+  const rule = (sel: string) => new RegExp(`#rlc-root ${sel.replace(/\./g, '\.')} \{([^}]*)\}`).exec(ALL())?.[1] ?? '';
+  expect(rule('.rlc-ms .rlc-chip-row')).toContain('max-width: none');
+  expect(rule('.rlc-ms .rlc-chip-row')).toContain('flex-wrap: nowrap');
+  expect(rule('.rlc-ms-ring')).not.toContain('overflow: hidden');
+  expect(rule('.rlc-ms-ring img')).toContain('border-radius: 50%');
+});
+
+test('TFT: a arte da Pequena Lenda enche a ponta esquerda da linha e some para a direita, atrás da colocação', () => {
+  const rule = (sel: string) => new RegExp(`#rlc-root ${sel.replace(/[.[\]]/g, '\\$&')} \\{([^}]*)\\}`).exec(ALL())?.[1] ?? '';
+  const art = rule('.rlc-pf-sheet .rlc-tft-row .rlc-tft-legend');
+  expect(art).toContain('position: absolute');
+  expect(art).toContain('object-fit: cover');
+  expect(art).toMatch(/-webkit-mask-image: linear-gradient\(90deg/);
+  expect(rule('.rlc-pf-sheet .rlc-mh-row.rlc-tft-row')).toMatch(/grid-template-columns: \d+px minmax\(0, 1fr\) \d+px/);
+});
+
+test('personalizar: a área que rola tem folga em volta, para o contorno do item escolhido (2px + 2px de recuo) não ser cortado nas bordas', () => {
+  const body = /#rlc-root \.rlc-idm-body \{([^}]*)\}/.exec(ALL())?.[1] ?? '';
+  expect(body).toContain('overflow-y: auto');
+  expect(body).toMatch(/padding: 4px;/);
+  // Puxa de volta para a esquerda: a grade continua alinhada com a busca.
+  expect(body).toContain('margin-left: -4px');
+});
+
+test('histórico: a pílula do menu de filas desliza (transição) até a opção marcada em --i', () => {
+  const pill = /#rlc-root \.rlc-pf-menu-pill \{([^}]*)\}/.exec(ALL())?.[1] ?? '';
+  expect(pill).toContain('position: absolute');
+  expect(pill).toMatch(/transform: translateY\(calc\(var\(--i, 0\) \* 32px\)\)/);
+  expect(pill).toMatch(/transition: transform/);
+});

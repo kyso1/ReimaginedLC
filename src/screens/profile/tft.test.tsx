@@ -105,12 +105,14 @@ test('TFT: seletor de jogo troca o feed; linhas por dia com colocação, Pequena
   const days = [...root.querySelectorAll('.rlc-pf-day')];
   expect(days.map((d) => d.querySelector('h3')!.textContent)).toEqual(['hoje', 'ontem']);
   const row = days[0]!.querySelector('.rlc-tft-row')!;
-  expect(row.getAttribute('data-band')).toBe('top');
+  // Cor pela colocação: 4º ainda é vitória, só menos chamativo.
+  expect(row.getAttribute('data-medal')).toBe('teal');
   expect(row.querySelector('.rlc-tft-place')!.textContent).toBe('4º');
   expect(row.querySelector<HTMLImageElement>('.rlc-tft-legend')!.alt).toBe('Janna Chibi');
   // Até 9 unidades, do custo mais alto ao mais baixo; sem catálogo, o nome sai do id (nada de "TFT15_Ahri").
   const units = [...row.querySelectorAll('.rlc-tft-unit')];
   expect(units).toHaveLength(9);
+  expect(row.querySelector('.rlc-tft-units')!.getAttribute('data-size')).toBe('lg');
   expect(units.map((u) => u.getAttribute('title')).slice(0, 3)).toEqual(['Ahri', 'Soraka', 'Fiddlesticks']);
   expect(units[0]!.getAttribute('data-cost')).toBe('5');
   expect(units[0]!.querySelector('img')).toBeNull();
@@ -122,21 +124,23 @@ test('TFT: seletor de jogo troca o feed; linhas por dia com colocação, Pequena
   // Double Up: a colocação é a da dupla (2º individual = 1º).
   const du = days[1]!.querySelector('.rlc-tft-row')!;
   expect(du.querySelector('.rlc-tft-place')!.textContent).toBe('1º');
-  expect(du.getAttribute('data-band')).toBe('first');
+  expect(du.getAttribute('data-medal')).toBe('gold');
   expect(root.textContent).not.toMatch(/DA_|TFT\d/);
 });
 
 test('TFT: chips das filas que existem e coluna com elo, médias e mais usados; voltar para LoL', async () => {
   await openTft();
-  const chips = [...root.querySelectorAll('.rlc-queue-chip')].map((c) => c.textContent);
+  act(() => btn('TFT').click());
+  const chips = [...root.querySelectorAll('.rlc-pf-menu [role="option"]')].map((c) => c.textContent);
   expect(chips).toEqual(['Todas', 'Ranqueada', 'Double Up']);
-  act(() => btn('Double Up').click());
+  act(() => [...root.querySelectorAll<HTMLButtonElement>('.rlc-pf-menu [role="option"]')].find((o) => o.textContent === 'Double Up')!.click());
   expect(root.querySelectorAll('.rlc-tft-row')).toHaveLength(1);
   const elo = [...root.querySelectorAll('.rlc-pf-elo')];
   expect(elo[0]!.textContent).toContain('Diamante II');
   expect(elo[0]!.textContent).toContain('Ranqueada · 39 PdL');
   expect([...root.querySelectorAll('.rlc-tft-numbers dd')].map((d) => d.textContent)).toEqual(['3,0', '100%', '50%']);
   expect([...root.querySelectorAll('.rlc-tft-strip li')].map((l) => l.textContent)).toEqual(['4', '1']);
+  expect([...root.querySelectorAll('.rlc-tft-strip li')].map((l) => l.getAttribute('data-medal'))).toEqual(['teal', 'gold']);
   expect(root.querySelector('.rlc-tft-top li span')!.textContent).toBe('Florescer');
   act(() => btn('LoL').click());
   expect(root.querySelector('.rlc-tft-row')).toBeNull();
@@ -155,7 +159,8 @@ test('TFT: clique abre a classificação dos oito com nível, itens e traços; v
   expect(mine.querySelector('.rlc-tft-who')!.textContent).toBe('Fulanonível 8');
   expect(mine.querySelectorAll('.rlc-tft-unit')).toHaveLength(10);
   expect([...mine.querySelectorAll('.rlc-tft-items img')].map((i) => i.getAttribute('alt'))).toEqual(['Bênção Vermelha', 'Manopla Adornada', 'Bênção Azul']);
-  expect(rows[7]!.getAttribute('data-band')).toBe('bottom');
+  expect(rows.map((r) => r.getAttribute('data-medal'))).toEqual(['gold', 'silver', 'bronze', 'teal', 'gray', 'gray', 'gray', 'red']);
+  expect(root.querySelector('.rlc-md-result')!.getAttribute('data-medal')).toBe('teal');
   act(() => btn('‹ Histórico').click());
   expect(root.querySelectorAll('.rlc-tft-row')).toHaveLength(2);
 });
