@@ -18,6 +18,28 @@ test('styles.css não depende de :has() (regra do projeto para o Chromium do cli
   expect(ALL()).not.toContain(':has(');
 });
 
+test('menu do Pengu Loader (Ctrl+K) abre por cima da camada, não escondido atrás dela', () => {
+  const css = ALL();
+  const z = (sel: string) => Number(new RegExp(`(?:^|\\n)${sel} \\{[^}]*z-index: (\\d+)`).exec(css)?.[1]);
+  const pengu = /(?:^|\n)#pengu-root \{([^}]*)\}/.exec(css)?.[1] ?? '';
+  // z-index só vale com posição: sem ela o quadro do Pengu (z 99) fica embaixo da nossa raiz.
+  expect(pengu).toMatch(/position: relative/);
+  expect(z('#pengu-root')).toBeGreaterThan(z('#rlc-root'));
+});
+
+test('barras de rolagem: o polegar fica afastado do conteúdo (borda transparente do lado de dentro), em todas as áreas que rolam', () => {
+  const css = ALL();
+  const rule = (sel: string) => new RegExp(`#rlc-root ${sel.replace(/[.[\]:]/g, '\$&')} \{([^}]*)\}`).exec(css)?.[1] ?? '';
+  expect(rule('::-webkit-scrollbar-thumb')).toContain('background-clip: padding-box');
+  // Vertical: folga à esquerda (lado do conteúdo); horizontal: folga em cima.
+  const gapY = Number(/border-left: (\d+)px solid transparent/.exec(rule('::-webkit-scrollbar-thumb:vertical'))?.[1]);
+  const gapX = Number(/border-top: (\d+)px solid transparent/.exec(rule('::-webkit-scrollbar-thumb:horizontal'))?.[1]);
+  expect(gapY).toBeGreaterThanOrEqual(4);
+  expect(gapX).toBeGreaterThanOrEqual(4);
+  // A barra cresce o mesmo tanto: o polegar visível continua com 8px.
+  expect(rule('::-webkit-scrollbar')).toContain(`width: ${8 + gapY}px; height: ${8 + gapX}px;`);
+});
+
 test('editor de runas: o topo (com a lista de páginas) fica acima das colunas das árvores', () => {
   const css = ALL();
   // As colunas ganham z-index 1; o topo fica fora dessa regra e acima dela.
