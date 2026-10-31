@@ -67,8 +67,8 @@ export const meIn = (m: TftMatch, puuid: string) => m.participants.find((p) => p
 export const pairs = (m: TftMatch) => m.participants.some((p) => (p.partner_group_id ?? 0) > 0);
 /** Colocação que o jogo mostra: no Double Up é a da dupla (1 a 4). */
 export const placeOf = (m: TftMatch, p: TftPlayer) => (pairs(m) ? Math.ceil(p.placement / 2) : p.placement);
-/** Faixa da colocação: 1º, metade de cima (top 4 / top 2 em dupla) ou de baixo. */
-export const band = (m: TftMatch, p: TftPlayer) => (placeOf(m, p) === 1 ? 'first' : placeOf(m, p) <= (pairs(m) ? 2 : 4) ? 'top' : 'bottom');
+/** Cor da colocação: ouro, prata, bronze, verde-água (4º ainda vence), cinza e o último em vermelho. No Double Up são 4 duplas: ouro, prata, cinza, vermelho. */
+export const medal = (m: TftMatch, p: TftPlayer) => (pairs(m) ? ['gold', 'silver', 'gray', 'red'] : ['gold', 'silver', 'bronze', 'teal', 'gray', 'gray', 'gray', 'red'])[placeOf(m, p) - 1] ?? 'gray';
 
 // ponytail: rarity 6 (sets antigos) vira 5; o 4 antigo (custo 4) sai como 5 até ler o custo do team planner.
 export const costOf = (u: TftUnit) => Math.min(5, (u.rarity ?? 0) + 1);

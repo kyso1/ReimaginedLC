@@ -5,8 +5,9 @@ import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { formatClock } from '../lobby/format';
 import { byDay, getJson, ordinal, relativeDay } from './data';
+import type { QueueMenu } from './Profile';
 import {
-  activeTraits, art, band, costOf, inTftFilter, meIn, pairs, placeOf, queueOf, sortedUnits, tftAssets, tftMatches, tftStats, tftUrl, TFT_GROUPS,
+  activeTraits, art, costOf, inTftFilter, medal, meIn, pairs, placeOf, queueOf, sortedUnits, tftAssets, tftMatches, tftStats, tftUrl, TFT_GROUPS,
   type TftArt, type TftAssets, type TftFilter, type TftMatch, type TftPlayer, type TftTrait, type TftUnit,
 } from './tft';
 
@@ -70,7 +71,7 @@ const companionOf = (a: Art, p: TftPlayer | undefined): TftArt | undefined => {
  * Histórico de TFT no quadro do perfil: feed por dia (colocação, Pequena Lenda, composição, traços, fila e duração),
  * filtro pelas filas que aparecem nas partidas e coluna com elo e médias; o clique abre a classificação dos oito.
  */
-export function TftHistory({ lcu, puuid, head, elo }: { lcu: Lcu; puuid: string; head: ComponentChildren; elo: ComponentChildren }) {
+export function TftHistory({ lcu, puuid, head, elo }: { lcu: Lcu; puuid: string; head: (menu?: QueueMenu) => ComponentChildren; elo: ComponentChildren }) {
   const [matches, setMatches] = useState<TftMatch[] | null>(null);
   const [filter, setFilter] = useState<TftFilter>('all');
   const [open, setOpen] = useState<{ gameId: number; originY: number } | null>(null);
@@ -96,16 +97,7 @@ export function TftHistory({ lcu, puuid, head, elo }: { lcu: Lcu; puuid: string;
   return (
     <div class="rlc-pf-feedwrap">
       <div class="rlc-mh">
-        {head}
-        {chips.length > 2 ? (
-          <div class="rlc-chip-row">
-            {chips.map((f) => (
-              <button type="button" key={f} class="rlc-queue-chip" aria-pressed={filter === f} onClick={() => setFilter(f)}>
-                {t(FILTERS[f])}
-              </button>
-            ))}
-          </div>
-        ) : null}
+        {head(chips.length > 2 ? { options: chips.map((f) => [f, FILTERS[f]]), value: filter, onChange: (f) => setFilter(f as TftFilter) } : undefined)}
         <div class="rlc-mh-list">
           {days.map((d) => (
             <section key={d.label} class="rlc-pf-day">
@@ -119,13 +111,13 @@ export function TftHistory({ lcu, puuid, head, elo }: { lcu: Lcu; puuid: string;
                       type="button"
                       key={m.gameId}
                       class="rlc-mh-row rlc-tft-row"
-                      data-band={band(m, p)}
+                      data-medal={medal(m, p)}
                       onClick={(e) => setOpen({ gameId: m.gameId, originY: (e.currentTarget as HTMLElement).offsetTop })}
                     >
                       <b class="rlc-tft-place">{ordinal(placeOf(m, p))}</b>
                       {pic(companionOf(a, p), 'rlc-tft-legend')}
                       <span class="rlc-tft-body">
-                        <span class="rlc-tft-units">
+                        <span class="rlc-tft-units" data-size="lg">
                           {sortedUnits(p)
                             .slice(0, 9)
                             .map((u, i) => (
@@ -194,7 +186,7 @@ function TftSummary({ matches, puuid, a }: { matches: TftMatch[]; puuid: string;
           {matches.map((m) => {
             const p = meIn(m, puuid);
             return p ? (
-              <li key={m.gameId} data-band={band(m, p)}>
+              <li key={m.gameId} data-medal={medal(m, p)}>
                 {placeOf(m, p)}
               </li>
             ) : null;
@@ -250,7 +242,7 @@ function TftDetail({ m, puuid, a, queue, originY, onBack }: { m: TftMatch; puuid
       <button type="button" class="rlc-button" data-variant="pill" onClick={onBack}>
         {t('backToHistory')}
       </button>
-      <h2 class="rlc-md-result" data-band={me ? band(m, me) : undefined}>
+      <h2 class="rlc-md-result" data-medal={me ? medal(m, me) : undefined}>
         {me ? ordinal(placeOf(m, me)) : '—'}
       </h2>
       <p class="rlc-muted">{[queue, formatClock(m.game_length ?? 0), m.gameCreation ? relativeDay(m.gameCreation) : ''].filter(Boolean).join(' · ')}</p>
@@ -265,7 +257,7 @@ export function TftStandings({ m, me, a }: { m: TftMatch; me: TftPlayer | undefi
   return (
     <ol class="rlc-tft-standings">
       {rows.map((p, i) => (
-        <li key={p.puuid ?? i} data-me={p === me ? 'true' : undefined} data-band={band(m, p)} data-pair={pairs(m) ? p.partner_group_id : undefined}>
+        <li key={p.puuid ?? i} data-me={p === me ? 'true' : undefined} data-medal={medal(m, p)} data-pair={pairs(m) ? p.partner_group_id : undefined}>
           <b class="rlc-tft-place">{ordinal(placeOf(m, p))}</b>
           {pic(companionOf(a, p), 'rlc-tft-legend')}
           <span class="rlc-tft-who" title={p.riotIdTagline ? `${p.riotIdGameName ?? ''}#${p.riotIdTagline}` : undefined}>
