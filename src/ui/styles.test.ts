@@ -98,3 +98,20 @@ test('histórico: a pílula do menu de filas desliza (transição) até a opçã
   expect(pill).toMatch(/transform: translateY\(calc\(var\(--i, 0\) \* 32px\)\)/);
   expect(pill).toMatch(/transition: transform/);
 });
+
+test('loja: o X da gaveta fica abaixo dos botões da janela; nomes dos cartões em até duas linhas; Sua Loja sem cartão esticado', () => {
+  const css = ALL();
+  const rule = (sel: string) => new RegExp(`#rlc-root ${sel.replace(/[.[\]]/g, '\$&')} \{([^}]*)\}`).exec(css)?.[1] ?? '';
+  expect(Number(/top: (\d+)px/.exec(rule('.rlc-sto-x'))?.[1])).toBeGreaterThanOrEqual(44);
+  expect(rule('.rlc-sto-info b')).toContain('-webkit-line-clamp: 2');
+  expect(rule('.rlc-sto-ys')).toContain('align-content: start');
+});
+
+test('loja: o botão Ver do banner fica acima dos pontinhos do carrossel, sem encostar neles', () => {
+  const css = ALL();
+  const go = /#rlc-root \.rlc-sto-hero \.rlc-sto-hero-go \{([^}]*)\}/.exec(css)?.[1] ?? '';
+  const dots = /#rlc-root \.rlc-sto-dots \{ position: absolute;([^}]*)\}/.exec(css)?.[1] ?? '';
+  const bottom = (r: string) => Number(/bottom: (\d+)px/.exec(r)?.[1]);
+  // Pontinhos: 4px de altura a partir do fundo; o botão começa pelo menos 10px acima deles.
+  expect(bottom(go)).toBeGreaterThanOrEqual(bottom(dots) + 4 + 10);
+});

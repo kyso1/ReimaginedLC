@@ -95,9 +95,11 @@ test('catálogo: junta promoção, raridade e arte; croma e item sem preço', ()
   expect(items.find((i) => i.itemId === 103)).toMatchObject({ rp: 790, be: 3150, portrait: '/l/103000.jpg' });
   expect(items.some((i) => i.itemId === 103099)).toBe(false);
   const by = (f: Partial<typeof NO_FILTERS>) => applyFilters(items, { ...NO_FILTERS, kinds: ['skin'], ...f }, new Set([103]), new Map([[103, 'Ahri'], [266, 'Aatrox']])).map((i) => i.name);
-  expect(by({ sort: 'priceAsc' })).toEqual(['Aatrox Justiceiro', 'Ahri do Arcade', 'Ahri K/DA']);
+  // Por padrão a loja esconde o que a pessoa já possui (Ahri K/DA); "Mostrar possuídos" traz de volta.
+  expect(by({})).toEqual(['Ahri do Arcade', 'Aatrox Justiceiro']);
+  expect(by({ showOwned: true, sort: 'priceAsc' })).toEqual(['Aatrox Justiceiro', 'Ahri do Arcade', 'Ahri K/DA']);
   expect(by({ q: 'aatrox' })).toEqual(['Aatrox Justiceiro']);
-  expect(by({ champOwned: true, notOwned: true })).toEqual(['Ahri do Arcade']);
+  expect(by({ champOwned: true })).toEqual(['Ahri do Arcade']);
 });
 
 test('abas, carteira e Sua Loja só quando ligada', async () => {
@@ -118,7 +120,7 @@ test('destaques: banner com a arte da Riot e prateleiras de promoção, novidade
   const shelves = [...root.querySelectorAll('.rlc-sto-shelf')].map((s) => [s.querySelector('h3')!.textContent, [...s.querySelectorAll('.rlc-sto-tile')].map((t) => t.getAttribute('aria-label'))]);
   expect(shelves).toEqual([
     ['Em promoção', ['Ahri do Arcade', 'Pacote de Cromas']],
-    ['Novidades', ['Ahri do Arcade', 'Ahri K/DA', 'Aatrox Justiceiro', 'Aatrox', 'Ahri']],
+    ['Novidades', ['Ahri do Arcade', 'Aatrox Justiceiro', 'Aatrox']],
     ['Pacotes', ['Pacote de Cromas']],
   ]);
   const sale = root.querySelector('.rlc-sto-shelf .rlc-sto-tile')!;
@@ -128,12 +130,53 @@ test('destaques: banner com a arte da Riot e prateleiras de promoção, novidade
   expect(root.querySelector('.rlc-sto-drawer h2')!.textContent).toBe('Ahri do Arcade');
 });
 
+test('destaques: banner de coleção mostra o nome do banner (sem o patch), a contagem e abre os itens dele', async () => {
+  const b = featured.carousel.banners[0]!;
+  Object.assign(b, { title: '26.21 Fliperama de Volta', items: [{ inventoryType: 'CHAMPION_SKIN', itemId: 103027 }, { inventoryType: 'CHAMPION_SKIN', itemId: 103015 }] });
+  try {
+    await mount();
+    // A arte é da coleção, não de um item: a legenda não pode nomear um item só.
+    expect(root.querySelector('.rlc-sto-hero-cap h2')!.textContent).toBe('Fliperama de Volta');
+    expect(root.querySelector('.rlc-sto-hero-row')!.textContent).toBe('2 itens · Você possui 1');
+    act(() => root.querySelector<HTMLButtonElement>('.rlc-sto-hero-go')!.click());
+    const shelf = root.querySelector('.rlc-sto-banner')!;
+    expect(shelf.querySelector('h3')!.textContent).toBe('Fliperama de Volta');
+    expect([...shelf.querySelectorAll('.rlc-sto-tile')].map((t) => t.getAttribute('aria-label'))).toEqual(['Ahri K/DA', 'Ahri do Arcade']);
+    expect(root.querySelector('.rlc-sto-drawer')).toBeNull();
+    // Coleção toda possuída.
+    render(null, root);
+    b.items = [{ inventoryType: 'CHAMPION_SKIN', itemId: 103027 }, { inventoryType: 'CHAMPION', itemId: 103 }];
+    await mount();
+    expect(root.querySelector('.rlc-sto-hero-row')!.textContent).toBe('Você possui os 2 itens');
+  } finally {
+    delete (b as { title?: string }).title;
+    b.items = [{ inventoryType: 'CHAMPION_SKIN', itemId: 103015 }];
+  }
+});
+
+test('destaques: banner sem itens (Loja Mítica) mostra o nome dele e nenhum botão', async () => {
+  const b = featured.carousel.banners[0]!;
+  const items = b.items;
+  Object.assign(b, { title: '26.21 Prestígio Fulano', items: undefined });
+  try {
+    await mount();
+    expect(root.querySelector('.rlc-sto-hero-cap h2')!.textContent).toBe('Prestígio Fulano');
+    expect(root.querySelector('.rlc-sto-hero-go')).toBeNull();
+  } finally {
+    delete (b as { title?: string }).title;
+    b.items = items;
+  }
+});
+
 test('skins: tipo, raridade, faixa de preço, busca, ordenação e selo Possui', async () => {
   await mount();
   act(() => tab('Skins').click());
+  expect(names()).toEqual(['Ahri do Arcade', 'Aatrox Justiceiro']);
+  act(() => check('Mostrar possuídos').click());
   expect(names()).toEqual(['Ahri do Arcade', 'Ahri K/DA', 'Aatrox Justiceiro']);
   const owned = grid().find((c) => c.getAttribute('aria-label') === 'Ahri K/DA')!;
-  expect(owned.querySelector('.rlc-sto-own')!.textContent).toBe('Possui');
+  // Uma vez só: o preço diz Possui, sem selo repetido no canto.
+  expect(owned.querySelector('.rlc-sto-own')).toBeNull();
   expect(owned.querySelector('.rlc-sto-price')!.textContent).toBe('Possui');
   act(() => check('Croma').click());
   expect(names()).toContain('Ahri do Arcade (Rubi)');
@@ -147,16 +190,20 @@ test('skins: tipo, raridade, faixa de preço, busca, ordenação e selo Possui',
   act(() => check('Só em promoção').click());
   expect(names()).toEqual(['Ahri do Arcade']);
   act(() => check('Só em promoção').click());
-  act(() => check('Campeão que tenho').click());
-  act(() => check('Não possuo').click());
+  act(() => check('Para campeões que possuo').click());
+  act(() => check('Mostrar possuídos').click());
   expect(names()).toEqual(['Ahri do Arcade']);
-  act(() => check('Campeão que tenho').click());
-  act(() => check('Não possuo').click());
-  const sort = root.querySelector<HTMLSelectElement>('.rlc-sto-sort')!;
-  act(() => {
-    sort.value = 'name';
-    sort.dispatchEvent(new Event('change'));
-  });
+  act(() => check('Para campeões que possuo').click());
+  act(() => check('Mostrar possuídos').click());
+  // Ordenação no menu de pílula do tema (o mesmo do histórico), não num <select> nativo.
+  const sort = root.querySelector<HTMLButtonElement>('.rlc-sto-sort')!;
+  expect(sort.getAttribute('aria-haspopup')).toBe('listbox');
+  act(() => sort.click());
+  const opts = [...root.querySelectorAll<HTMLButtonElement>('.rlc-sto-tools .rlc-pf-menu [role="option"]')];
+  expect(opts.map((o) => o.textContent)).toEqual(['Mais recentes', 'Menor preço', 'Maior preço', 'Nome']);
+  act(() => opts[3]!.click());
+  expect(root.querySelector('.rlc-sto-tools .rlc-pf-menu')).toBeNull();
+  expect(sort.textContent).toBe('Nome');
   expect(names()).toEqual(['Aatrox Justiceiro', 'Ahri do Arcade', 'Ahri K/DA']);
   const search = root.querySelector<HTMLInputElement>('.rlc-sto-search')!;
   act(() => {
@@ -174,6 +221,8 @@ test('skins: tipo, raridade, faixa de preço, busca, ordenação e selo Possui',
 test('campeões mostram RP e Essência Azul; acessórios trazem ícones', async () => {
   await mount();
   act(() => tab('Campeões').click());
+  expect(names()).toEqual(['Aatrox']);
+  act(() => check('Mostrar possuídos').click());
   expect(names()).toEqual(['Aatrox', 'Ahri']);
   act(() => tab('Acessórios').click());
   expect(names()).toEqual(['Ícone de Teste']);
@@ -193,6 +242,7 @@ test('gaveta: Comprar chama openRiotPurchase com o item; item que possui não co
   expect(root.querySelector('.rlc-sto-riot')).toBeNull();
   act(() => root.querySelector<HTMLButtonElement>('.rlc-sto-x')!.click());
   expect(root.querySelector('.rlc-sto-drawer')).toBeNull();
+  act(() => check('Mostrar possuídos').click());
   act(() => grid()[1]!.click());
   expect(root.querySelector('.rlc-sto-drawer .rlc-sto-big')!.textContent).toBe('Você já possui');
   expect(root.querySelector<HTMLButtonElement>('.rlc-sto-cta')!.disabled).toBe(true);
@@ -337,13 +387,16 @@ test('comprou fora da loja (client da Riot, espólio): o aviso do inventário re
     act(() => render(<Store lcu={lcu} purchase={vi.fn((): 'dialog' | 'store' => 'dialog')} />, root));
     for (let i = 0; i < 6; i++) await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
     act(() => tab('Campeões').click());
-    expect(grid().find((g) => g.getAttribute('aria-label')?.startsWith('Aatrox'))!.querySelector('.rlc-sto-own')).toBeNull();
+    expect(grid().find((g) => g.getAttribute('aria-label')?.startsWith('Aatrox'))!.querySelector('.rlc-sto-price')!.textContent).not.toBe('Possui');
     routes['/lol-catalog/v1/items/CHAMPION'] = champs.map((c) => ({ ...c, owned: true }));
     listener!('/lol-inventory/v1/notifications/CHAMPION');
     listener!('/lol-inventory/v2/inventory/CHAMPION');
     await act(async () => void (await vi.advanceTimersByTimeAsync(STORE_REFRESH_MS + 20)));
     for (let i = 0; i < 6; i++) await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
-    expect(grid().find((g) => g.getAttribute('aria-label')?.startsWith('Aatrox'))!.querySelector('.rlc-sto-own')).not.toBeNull();
+    // Agora possui: some da lista padrão (que esconde possuídos) e volta como Possui ao mostrar possuídos.
+    expect(names()).not.toContain('Aatrox');
+    act(() => check('Mostrar possuídos').click());
+    expect(grid().find((g) => g.getAttribute('aria-label')?.startsWith('Aatrox'))!.querySelector('.rlc-sto-price')!.textContent).toBe('Possui');
   } finally {
     vi.useRealTimers();
   }

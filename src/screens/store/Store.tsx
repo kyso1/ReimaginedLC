@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { Wallet } from '../../shell/Wallet';
 import { Crossfade } from '../../ui/Crossfade';
+import { PillMenu } from '../../ui/PillMenu';
 import { SkinPreview } from '../../ui/SkinPreview';
 import { useEscape } from '../../ui/useEscape';
 import { getJson } from '../profile/data';
@@ -239,8 +240,8 @@ export function Store({ lcu, purchase = openRiotPurchase, buyRp = openRiotRpPurc
 function Showcase({ data, championName, onOpen }: { data: Data; championName: Map<number, string>; onOpen: (i: StoreItem) => void }) {
   const byKey = useMemo(() => new Map(data.items.map((i) => [i.key, i])), [data]);
   const sale = data.items.filter((i) => i.rpFull !== null && !i.owned && i.kind !== 'chroma').sort((a, b) => discount(b.rp, b.rpFull) - discount(a.rp, a.rpFull));
-  const fresh = data.items.filter((i) => (i.kind === 'skin' || i.kind === 'champion') && i.release).sort((a, b) => b.release - a.release).slice(0, 12);
-  const bundles = data.items.filter((i) => i.kind === 'bundle');
+  const fresh = data.items.filter((i) => (i.kind === 'skin' || i.kind === 'champion') && i.release && !i.owned).sort((a, b) => b.release - a.release).slice(0, 12);
+  const bundles = data.items.filter((i) => i.kind === 'bundle' && !i.owned);
   return (
     <div class="rlc-sto-show">
       <Hero banners={data.banners} byKey={byKey} championName={championName} onOpen={onOpen} />
@@ -251,55 +252,74 @@ function Showcase({ data, championName, onOpen }: { data: Data; championName: Ma
   );
 }
 
+/** Título do banner sem o patch na frente ("26.21 True Damage Epics" vira "True Damage Epics"). */
+const bannerTitle = (b: Banner) => (b.title ?? '').replace(/^\d+\.\d+\s+/, '');
+
 /**
- * Banners da Riot em carrossel, trocando com fusão. O título do banner é interno (em inglês, com o patch): a legenda
- * vem do primeiro item do banner no catálogo (nome localizado e preço). Banner sem item (Loja Mítica) fica só com a arte.
+ * Banners da Riot em carrossel, trocando com fusão. Banner de um item só: nome e preço dele, e Ver abre o item.
+ * Banner de coleção (a arte é da coleção, não de um item): nome do banner e a contagem, e Ver abre os itens dele
+ * numa prateleira logo abaixo (o carrossel para enquanto ela está aberta). Banner sem item (Loja Mítica): só o nome.
  */
 function Hero({ banners, byKey, championName, onOpen }: { banners: Banner[]; byKey: Map<string, StoreItem>; championName: Map<number, string>; onOpen: (i: StoreItem) => void }) {
   const [index, setIndex] = useState(0);
+  const [open, setOpen] = useState(false);
   useEffect(() => {
-    if (banners.length < 2) return;
+    if (banners.length < 2 || open) return;
     const id = setInterval(() => setIndex((i) => (i + 1) % banners.length), 7000);
     return () => clearInterval(id);
-  }, [banners.length, index]);
+  }, [banners.length, index, open]);
   const banner = banners[index % Math.max(banners.length, 1)];
   if (!banner) return null;
   const targets = (banner.items ?? []).map((k) => byKey.get(keyOf(k.inventoryType, k.itemId))).filter((i): i is StoreItem => !!i);
-  const target = targets[0];
-  const champ = target ? champHint(target, championName.get(target.championId)) : '';
+  const single = targets.length === 1 ? targets[0]! : null;
+  const title = single ? single.name : bannerTitle(banner);
+  const owned = targets.filter((i) => i.owned).length;
+  const champ = single ? champHint(single, championName.get(single.championId)) : '';
   return (
-    <div class="rlc-sto-hero">
-      <Crossfade src={bannerImage(banner)} position="center 24%" />
-      {target ? (
-        <div class="rlc-sto-hero-cap" key={banner.id}>
-          {champ ? <small>{champ}</small> : null}
-          <h2>{target.name}</h2>
-          <div class="rlc-sto-hero-row">
-            <Price item={target} />
-            {targets.length > 1 ? <small>{t('storeMoreItems').replace('{n}', String(targets.length - 1))}</small> : null}
+    <>
+      <div class="rlc-sto-hero">
+        <Crossfade src={bannerImage(banner)} position="center 24%" />
+        {title ? (
+          <div class="rlc-sto-hero-cap" key={banner.id}>
+            {champ ? <small>{champ}</small> : null}
+            <h2>{title}</h2>
+            {single ? (
+              <div class="rlc-sto-hero-row">
+                <Price item={single} />
+              </div>
+            ) : targets.length ? (
+              <div class="rlc-sto-hero-row">
+                <span class="rlc-sto-price">
+                  {owned === targets.length
+                    ? t('storeOwnAll').replace('{n}', String(owned))
+                    : t('storeBannerItems').replace('{n}', String(targets.length)) + (owned ? ` · ${t('storeBannerOwned').replace('{n}', String(owned))}` : '')}
+                </span>
+              </div>
+            ) : null}
           </div>
-        </div>
-      ) : null}
-      {target ? (
-        <button type="button" class="rlc-sto-hero-go" onClick={() => onOpen(target)}>
-          {t('storeView')}
-        </button>
-      ) : null}
-      {banners.length > 1 ? (
-        <div class="rlc-sto-dots">
-          {banners.map((b, i) => (
-            <button type="button" key={b.id} aria-label={`${i + 1}`} aria-pressed={i === index} onClick={() => setIndex(i)} />
-          ))}
-        </div>
-      ) : null}
-    </div>
+        ) : null}
+        {targets.length ? (
+          <button type="button" class="rlc-sto-hero-go" aria-expanded={single ? undefined : open} onClick={() => (single ? onOpen(single) : setOpen(!open))}>
+            {t('storeView')}
+          </button>
+        ) : null}
+        {banners.length > 1 ? (
+          <div class="rlc-sto-dots">
+            {banners.map((b, i) => (
+              <button type="button" key={b.id} aria-label={`${i + 1}`} aria-pressed={i === index} onClick={() => setIndex(i)} />
+            ))}
+          </div>
+        ) : null}
+      </div>
+      {open && !single && targets.length ? <Shelf class="rlc-sto-banner" title={title} items={targets} championName={championName} onOpen={onOpen} /> : null}
+    </>
   );
 }
 
-function Shelf({ title, items, championName, onOpen }: { title: string; items: StoreItem[]; championName: Map<number, string>; onOpen: (i: StoreItem) => void }) {
+function Shelf({ title, items, championName, onOpen, class: cls }: { title: string; items: StoreItem[]; championName: Map<number, string>; onOpen: (i: StoreItem) => void; class?: string }) {
   if (!items.length) return null;
   return (
-    <section class="rlc-sto-shelf">
+    <section class={cls ? `rlc-sto-shelf ${cls}` : 'rlc-sto-shelf'}>
       <h3>{title}</h3>
       <div class="rlc-sto-row">
         {items.map((i) => (
@@ -321,7 +341,10 @@ function Catalog({ items, config, ownedChampions, championName, onOpen }: { item
   };
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   const pool = useMemo(() => items.filter((i) => config.pool.includes(i.kind)), [items, config]);
-  const list = applyFilters(pool, f, ownedChampions, championName);
+  // Memorizado: abrir o menu de ordenação ou passar o mouse nele não refaz o filtro do catálogo inteiro.
+  const list = useMemo(() => applyFilters(pool, f, ownedChampions, championName), [pool, f, ownedChampions, championName]);
+  const [sorting, setSorting] = useState(false);
+  const sortBox = useRef<HTMLDivElement>(null);
   return (
     <div class="rlc-sto-cat">
       <aside class="rlc-sto-side">
@@ -347,19 +370,21 @@ function Catalog({ items, config, ownedChampions, championName, onOpen }: { item
         ))}
         <div class="rlc-sto-sec">{t('storeShow')}</div>
         <Check on={f.sale} onClick={() => set({ sale: !f.sale })} label={t('storeOnlySale')} />
-        <Check on={f.notOwned} onClick={() => set({ notOwned: !f.notOwned })} label={t('storeNotOwned')} />
+        <Check on={f.showOwned} onClick={() => set({ showOwned: !f.showOwned })} label={t('storeShowOwned')} />
         {config.champ ? <Check on={f.champOwned} onClick={() => set({ champOwned: !f.champOwned })} label={t('storeChampOwned')} /> : null}
       </aside>
       <div class="rlc-sto-main">
         <div class="rlc-sto-tools">
           <input type="search" class="rlc-sto-search" placeholder={t('storeSearch')} aria-label={t('storeSearch')} value={f.q} onInput={(e) => set({ q: (e.target as HTMLInputElement).value })} />
-          <select class="rlc-sto-sort" aria-label={t('storeSort')} value={f.sort} onChange={(e) => set({ sort: (e.target as HTMLSelectElement).value as Sort })}>
-            {SORT_LABEL.map(([k, label]) => (
-              <option key={k} value={k}>
-                {t(label)}
-              </option>
-            ))}
-          </select>
+          <div class="rlc-pf-gamebox" ref={sortBox}>
+            <button type="button" class="rlc-sto-sort" aria-label={t('storeSort')} aria-haspopup="listbox" aria-expanded={sorting} onClick={() => setSorting((o) => !o)}>
+              {t(SORT_LABEL.find(([k]) => k === f.sort)![1])}
+              <svg class="rlc-pf-caret" viewBox="0 0 10 6" aria-hidden="true">
+                <path d="M1 1l4 4 4-4" />
+              </svg>
+            </button>
+            {sorting ? <PillMenu box={sortBox} options={SORT_LABEL.map(([k, label]) => [k, t(label)])} value={f.sort} onPick={(sort: Sort) => set({ sort })} onClose={() => setSorting(false)} /> : null}
+          </div>
           <small class="rlc-muted">{new Intl.NumberFormat(locale()).format(list.length)}</small>
         </div>
         {list.length ? (
@@ -407,7 +432,6 @@ function YourShop({ offers, onOpen, onRevealed, onRiot }: { offers: Array<{ offe
           <button type="button" key={offer.id} class="rlc-sto-offer" aria-label={item.name} onClick={() => onOpen(item)}>
             {item.splash ? <img src={item.splash} alt="" loading="lazy" decoding="async" /> : null}
             {!item.owned && item.rpFull ? <span class="rlc-sto-off">-{discount(item.rp, item.rpFull)}%</span> : null}
-            {item.owned ? <span class="rlc-sto-own">{t('storeOwned')}</span> : null}
             <span class="rlc-sto-info">
               <b>{item.name}</b>
               <Price item={item} />
@@ -436,7 +460,6 @@ function Tile({ item, wide = false, sub, onOpen }: { item: StoreItem; wide?: boo
     <button type="button" class="rlc-sto-tile" data-wide={wide ? 'true' : undefined} data-contain={item.contain ? 'true' : undefined} aria-label={item.name} onClick={() => onOpen(item)}>
       {art ? <img src={art} alt="" loading="lazy" decoding="async" /> : null}
       {off ? <span class="rlc-sto-off">-{off}%</span> : null}
-      {item.owned ? <span class="rlc-sto-own">{t('storeOwned')}</span> : null}
       <span class="rlc-sto-info">
         {sub ? <small>{sub}</small> : null}
         <b>{item.name}</b>

@@ -74,6 +74,8 @@ export interface FeaturedItem {
 }
 export interface Banner {
   id: number;
+  /** Interno, em inglês, com o patch na frente ("26.21 True Damage Epics"). */
+  title?: string;
   imgUrl: string;
   items?: Array<{ inventoryType: string; itemId: number }>;
 }
@@ -225,11 +227,12 @@ export interface Filters {
   rarities: Rarity[];
   band: number | null;
   sale: boolean;
-  notOwned: boolean;
+  /** Desligado (padrão): a loja esconde o que a pessoa já possui. */
+  showOwned: boolean;
   champOwned: boolean;
   sort: Sort;
 }
-export const NO_FILTERS: Filters = { q: '', kinds: [], rarities: [], band: null, sale: false, notOwned: false, champOwned: false, sort: 'recent' };
+export const NO_FILTERS: Filters = { q: '', kinds: [], rarities: [], band: null, sale: false, showOwned: false, champOwned: false, sort: 'recent' };
 
 export const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
@@ -242,7 +245,7 @@ export function applyFilters(items: StoreItem[], f: Filters, ownedChampions: Set
       (!f.rarities.length || (i.rarity !== null && f.rarities.includes(i.rarity))) &&
       (!band || (i.rp !== null && i.rp >= band[0] && i.rp <= band[1])) &&
       (!f.sale || i.rpFull !== null) &&
-      (!f.notOwned || !i.owned) &&
+      (f.showOwned || !i.owned) &&
       (!f.champOwned || ownedChampions.has(i.championId)) &&
       (!q || fold(i.name).includes(q) || fold(championName.get(i.championId) ?? '').includes(q)),
   );
