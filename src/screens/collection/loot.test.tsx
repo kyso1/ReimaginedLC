@@ -173,7 +173,9 @@ test('espólio vazio: item sem lootId fica de fora e aparece o aviso', () => {
 
 test('rótulo da ação: texto da LCU quando vier; senão o nosso, com a essência ganha ou gasta', () => {
   const m = (o: Record<string, unknown>) => ({ actionType: 'DISENCHANT', recipeContextMenuAction: '', essenceQuantity: 0, essenceType: '', ...o }) as never;
-  expect(actionLabel(m({ recipeContextMenuAction: 'Abrir' }))).toBe('Abrir');
+  // Em baús a LCU põe ali o nome do prêmio ("Mystery Emote"), não a ação: a ação conhecida usa o nosso texto.
+  expect(actionLabel(m({ actionType: 'OPEN', recipeContextMenuAction: 'Mystery Emote' }))).toBe('Abrir');
+  expect(actionLabel(m({ actionType: 'NOVA_ACAO', recipeContextMenuAction: 'Fazer algo' }))).toBe('Fazer algo');
   expect(actionLabel(m({ essenceQuantity: 104, essenceType: 'CURRENCY_cosmetic' }))).toBe('Desencantar (+104 EL)');
   expect(actionLabel(m({ actionType: 'UPGRADE', essenceQuantity: -220, essenceType: 'CURRENCY_cosmetic' }))).toBe('Liberar (−220 EL)');
   expect(actionLabel(m({ actionType: 'REROLL' }))).toBe('Reformular');
