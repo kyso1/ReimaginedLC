@@ -38,8 +38,9 @@ export function useDrawerClose(sheet: { current: HTMLElement | null }, onClose: 
 /**
  * Tela de modos: gaveta de vidro que sobe sobre a tela. Cartões por grupo; as filas do grupo escolhido embaixo,
  * separadas como no client (JxJ, Cooperativo vs. IA, Treino); o resumo mostra o que Confirmar vai criar.
+ * Voltar e Escape chamam `onClose`; o lobby criado chama `onLobby`, que leva até ele.
  */
-export function Modes({ queues, current, onClose, onCustom }: { queues: LolGameQueuesQueue[]; current: number | null; onClose: () => void; onCustom: () => void }) {
+export function Modes({ queues, current, onClose, onCustom, onLobby }: { queues: LolGameQueuesQueue[]; current: number | null; onClose: () => void; onCustom: () => void; onLobby: () => void }) {
   const groups = groupQueues(queues);
   const initialGroup = groups.find((g) => g.queues.some((q) => q.id === current))?.id ?? groups[0]?.id ?? null;
   const [group, setGroup] = useState<ModeGroupId | null>(initialGroup);
@@ -62,7 +63,7 @@ export function Modes({ queues, current, onClose, onCustom }: { queues: LolGameQ
     const body = q?.isCustom ? customLobbyBody(q, { name: q.name, password: '', teamSize: 5, spectators: 'NotAllowed' }) : { queueId };
     await request('POST', '/lol-lobby/v2/lobby', body);
     writeSetting(LAST_QUEUE_KEY, queueId);
-    onClose();
+    onLobby();
   });
   const visibleQueues = groups.find((g) => g.id === group)?.queues ?? [];
   const chosen = queues.find((q) => q.id === selected) ?? null;
