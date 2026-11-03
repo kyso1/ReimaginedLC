@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { action, cell, session } from '../../test/fixtures';
-import { actingCells, allyWants, bansByTeam, displayedChampion, flatActions, laneOpponent, myTurn, remainingSeconds, selectPhase, unavailable } from './logic';
+import { actingCells, allyWants, bansByTeam, displayedChampion, flatActions, laneOpponent, myTurn, pickOrder, remainingSeconds, selectPhase, unavailable } from './logic';
 
 test('flatActions achata os grupos de turno', () => {
   const s = session({ actions: [[action({ id: 1 })], [action({ id: 2 }), action({ id: 3 })]] });
@@ -85,4 +85,19 @@ test('adversário de rota: pela posição quando a LCU manda; sem posição, o �
   expect(laneOpponent([cell({ championId: 238 }), cell({ championId: 7 })], 'middle', lanes)).toBe(0);
   expect(laneOpponent([cell({ championId: 266 })], 'middle', lanes)).toBe(0);
   expect(laneOpponent([cell({ championId: 238 })], '', lanes)).toBe(0);
+});
+
+test('pickOrder numera as escolhas dos dois times na ordem dos turnos; quem travou sai; às cegas não tem ordem', () => {
+  const s = session({
+    actions: [
+      [action({ actorCellId: 0, type: 'ban', completed: true }), action({ actorCellId: 5, type: 'ban', isAllyAction: false, completed: true })],
+      [action({ actorCellId: 0, completed: true, championId: 103 })],
+      [action({ actorCellId: 5, isAllyAction: false, isInProgress: true }), action({ actorCellId: 6, isAllyAction: false, isInProgress: true })],
+      [action({ actorCellId: 1 })],
+    ],
+  });
+  expect(pickOrder(s)).toEqual(new Map([[5, 2], [6, 3], [1, 4]]));
+  // Escolha às cegas: todas no mesmo turno, a ordem não diz quem escolhe antes.
+  expect(pickOrder(session({ actions: [[action({ actorCellId: 0 }), action({ actorCellId: 1 })]] }))).toEqual(new Map());
+  expect(pickOrder(session({ actions: [] }))).toEqual(new Map());
 });

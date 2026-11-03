@@ -106,6 +106,26 @@ export function actingCells(session: Session): Map<number, 'ban' | 'pick'> {
 }
 
 /**
+ * Ordem de escolha por vaga, contando as escolhas dos dois times na ordem dos turnos (1 = primeira escolha da partida).
+ * Vaga que já travou sai do mapa. Vazio quando todas as escolhas caem num turno só (escolha às cegas): aí ninguém
+ * escolhe antes de ninguém.
+ */
+export function pickOrder(session: Session): Map<number, number> {
+  const order = new Map<number, number>();
+  const turns = ((session.actions ?? []) as Action[][]).filter((turn) => turn.some((a) => a.type === 'pick'));
+  if (turns.length < 2) return order;
+  let n = 0;
+  for (const turn of turns) {
+    for (const a of turn) {
+      if (a.type !== 'pick') continue;
+      n += 1;
+      if (!a.completed && !order.has(a.actorCellId)) order.set(a.actorCellId, n);
+    }
+  }
+  return order;
+}
+
+/**
  * Campeão do adversário de rota (0 enquanto não se sabe). A LCU só manda a posição do inimigo em alguns modos;
  * na ranqueada ela vem vazia, então vale o único inimigo já confirmado cuja rota principal recomendada é a minha.
  * ponytail: palpite pela rota recomendada; com dois candidatos (ou nenhum) o jogador escolhe em "Contra".

@@ -1236,6 +1236,7 @@
   "pvWait": "Loading the preview",
   "pvFailed": "The preview didn't load.",
   "csBravery": "Bravery",
+  "csPickOrder": "Pick {n}",
   "csBraveryHint": "Bravery: a random champion revealed on the loading screen. Grants a bonus Stats Anvil, extra augment rerolls and bonus gold on item rounds.",
   "csCrowdFavorite": "crowd favorite (bonus when picked)",
   "csSubWaiting": "Waiting",
