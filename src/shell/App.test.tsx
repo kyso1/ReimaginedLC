@@ -480,6 +480,27 @@ test('no lobby, Início e depois Confirmar na tela de modos volta ao lobby (troc
   vi.unstubAllGlobals();
 });
 
+test('entrar num lobby (convite aceito) com a Loja aberta leva ao lobby; a Loja aberta já no lobby fica ao entrar na fila', async () => {
+  enabled.value = true;
+  const views = { store: () => <div class="store-stub" /> };
+  mount({ views, screens: { home: () => <div class="home-stub" />, lobby: LobbyStub } });
+  await flush();
+  const store = () => root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Loja"]')!;
+  store().click();
+  await flush();
+  expect(root.querySelector('.store-stub')).not.toBeNull();
+  lcu.lobby.value = ready(lobbyFixture([leaderFixture()]));
+  phase.value = ready('Lobby');
+  await flush();
+  expect(root.querySelector('.store-stub')).toBeNull();
+  expect(root.querySelector('.lobby-stub')).not.toBeNull();
+  store().click();
+  await flush();
+  phase.value = ready('Matchmaking');
+  await flush();
+  expect(root.querySelector('.store-stub')).not.toBeNull();
+});
+
 test('trilho navega para Perfil, Coleção e Configurações fora do fluxo de partida; Início volta', async () => {
   enabled.value = true;
   const Profile = () => <div class="stub-profile" />;

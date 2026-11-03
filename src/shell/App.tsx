@@ -144,6 +144,11 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   useEffect(() => {
     if (!free) setView(null);
   }, [free]);
+  // Entrar num lobby (convite aceito, festa de amigo, "Jogar de novo") leva até ele, como no client: a vista aberta fecha.
+  // Fila e aceitar partida continuam na tela de lobby, então a vista aberta depois disso fica.
+  useEffect(() => {
+    if (screen === 'lobby') setView(null);
+  }, [screen]);
   const shownView = free ? view : null;
   // Perfil pedido de fora (placar, histórico): abre como o "Ver perfil" do amigo.
   const asked = profileRequest.value;
