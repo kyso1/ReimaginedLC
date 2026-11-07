@@ -22,6 +22,7 @@ import { startAutoAccept } from '../plugins/autoAccept';
 import { startSpotify } from '../plugins/spotify';
 import { startCustomCss } from '../theme/customCss';
 import { watchScrollEdges } from '../ui/scrollEdges';
+import { watchRiotNotices } from './riotNotices';
 
 /**
  * Pasta das fontes e temas. Pelo carregador (loader/), a que ele publica (o bundle chega por blob:); sem ele, a URL do
@@ -52,6 +53,7 @@ export async function start(): Promise<void> {
   root.dataset.visible = 'false';
   document.body.append(root);
   watchScrollEdges(root);
+  watchRiotNotices();
 
   let observer: MutationObserver | undefined;
   try {

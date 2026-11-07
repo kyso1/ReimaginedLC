@@ -3,6 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { t } from '../i18n';
 import { getJson } from '../screens/profile/data';
 import { useEscape } from './useEscape';
+import { spotlightOf } from '../data/skinSpotlights';
 
 /** Vídeos das habilidades: o JSON do campeão manda o caminho relativo a este CDN (o mesmo da tela de campeão da Riot). */
 export const ABILITY_CDN = 'https://d28xe8vt774jo5.cloudfront.net/';
@@ -77,15 +78,19 @@ const cdn = (path: string | undefined) => (!path ? '' : /^https?:|^\//.test(path
 // Os vídeos de efeitos da skin vêm como `ASSETS/...`, relativos à pasta de artes da LCU.
 const asset = (path: string | undefined) => (!path ? '' : path.startsWith('/') ? path : `/lol-game-data/assets/${path}`);
 
-export type PreviewView = 'splash' | 'load' | 'chromas' | 'features' | 'abilities';
+export type PreviewView = 'splash' | 'load' | 'chromas' | 'features' | 'spotlight' | 'abilities';
 
-/** Abas que fazem sentido para a skin: só aparecem as que têm arte. */
+/**
+ * Abas que fazem sentido para a skin: só aparecem as que têm arte. Skin com vídeo do SkinSpotlights mostra o vídeo
+ * dela no lugar das habilidades (que são as da base); sem vídeo (a base, skin nova), ficam as habilidades.
+ */
 export function previewViews(skin: SkinJson, champion: ChampionJson): PreviewView[] {
   const out: PreviewView[] = ['splash'];
   if (skin.loadScreenPath) out.push('load');
   if (skin.chromas?.length) out.push('chromas');
   if (skin.skinFeaturePreviewData?.some((f) => f.videoPath)) out.push('features');
-  if ([champion.passive, ...(champion.spells ?? [])].some((a) => a?.abilityVideoPath)) out.push('abilities');
+  if (!skin.isBase && spotlightOf(skin.id)) out.push('spotlight');
+  else if ([champion.passive, ...(champion.spells ?? [])].some((a) => a?.abilityVideoPath)) out.push('abilities');
   return out;
 }
 
@@ -94,6 +99,7 @@ const VIEW_LABEL: Record<PreviewView, Parameters<typeof t>[0]> = {
   load: 'pvLoading',
   chromas: 'csChromas',
   features: 'pvFeatures',
+  spotlight: 'pvSpotlight',
   abilities: 'pvAbilities',
 };
 
@@ -115,7 +121,9 @@ export function SkinPreview({ championId, skinId, start, onClose, children }: { 
   const views = skin && champ ? previewViews(skin, champ) : [];
   const chromaStart = skin?.chromas?.some((c) => c.id === skinId);
   const [view, setView] = useState<PreviewView | null>(null);
-  const shown = view && views.includes(view) ? view : start && views.includes(start) ? start : chromaStart ? 'chromas' : 'splash';
+  // Pedido de abrir nas habilidades vale para o vídeo da skin, que ocupa a aba delas.
+  const wanted = start === 'abilities' && !views.includes('abilities') && views.includes('spotlight') ? 'spotlight' : start;
+  const shown = view && views.includes(view) ? view : wanted && views.includes(wanted) ? wanted : chromaStart ? 'chromas' : 'splash';
   const tier = skin?.questSkinInfo?.tiers?.find((x) => x.id === skinId);
   const name = chromaStart ? (skin?.chromas?.find((c) => c.id === skinId)?.name ?? skin?.name) : (tier?.name ?? skin?.name);
   const bg = tier?.uncenteredSplashPath || tier?.splashPath || skin?.uncenteredSplashPath || skin?.splashPath || '';
@@ -141,6 +149,7 @@ export function SkinPreview({ championId, skinId, start, onClose, children }: { 
             {shown === 'load' ? <img class="rlc-pv-load" src={tier?.loadScreenPath || skin.loadScreenPath} alt="" /> : null}
             {shown === 'chromas' ? <Chromas skin={skin} first={chromaStart ? skinId : undefined} /> : null}
             {shown === 'features' ? <Videos items={(skin.skinFeaturePreviewData ?? []).filter((f) => f.videoPath).map((f) => ({ name: f.description ?? '', icon: asset(f.iconPath), video: asset(f.videoPath) }))} /> : null}
+            {shown === 'spotlight' && skin ? <Spotlight id={spotlightOf(skin.id)!} title={name ?? ''} /> : null}
             {shown === 'abilities' ? (
               <Videos
                 items={[champ.passive, ...(champ.spells ?? [])]
@@ -173,6 +182,17 @@ function Splash({ skin, tier }: { skin: SkinJson; tier?: { splashPath?: string; 
   // Splash animada só da skin (os estágios não têm vídeo próprio).
   if (!tier && skin.splashVideoPath) return <video class="rlc-pv-splash" src={skin.splashVideoPath} poster={still} autoplay loop muted playsInline />;
   return still ? <img class="rlc-pv-splash" src={still} alt="" /> : null;
+}
+
+/** Vídeo do SkinSpotlights (YouTube sem cookies): começa mudo para poder tocar sozinho; os controles dão o som. */
+function Spotlight({ id, title }: { id: string; title: string }) {
+  const src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&rel=0&playsinline=1&modestbranding=1`;
+  return (
+    <div class="rlc-pv-videos">
+      <iframe class="rlc-pv-video rlc-pv-spot" src={src} title={title} allow="autoplay; encrypted-media; fullscreen; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowFullScreen />
+      <p class="rlc-pv-caption rlc-muted">{t('pvSpotlightBy')}</p>
+    </div>
+  );
 }
 
 function Chromas({ skin, first }: { skin: SkinJson; first?: number }) {

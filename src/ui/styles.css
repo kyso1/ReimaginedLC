@@ -27,6 +27,10 @@
 #rlc-root[data-visible='true'] { display: block; }
 /* Única regra fora de #rlc-root: o menu do Pengu Loader (Ctrl+K, z-index 99) abre por cima da camada, não atrás dela. */
 #pengu-root { position: relative; z-index: 2147483100; }
+/* Aviso nativo da Riot aberto (src/shell/riotNotices.ts): o gerenciador de camadas dela sobe acima da camada. O chat da
+   Riot mora no mesmo gerenciador e continua escondido. */
+#lol-uikit-layer-manager[data-rlc-notice] { position: relative; z-index: 2147483050; }
+#lol-uikit-layer-manager[data-rlc-notice] lol-social-chat-window { visibility: hidden; }
 #rlc-root *, #rlc-root *::before, #rlc-root *::after { box-sizing: border-box; }
 
 #rlc-root .rlc-bg {

@@ -4,6 +4,10 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../i18n';
 import { ABILITY_CDN, findSkin, SkinPreview, type ChampionJson } from './SkinPreview';
 
+// A tabela real tem ids de verdade (901 é um campeão): os testes decidem quem tem vídeo.
+const spot = vi.hoisted(() => ({ of: (_id: number | undefined): string | null => null }));
+vi.mock('../data/skinSpotlights', () => ({ spotlightOf: (id: number | undefined) => spot.of(id) }));
+
 let root: HTMLElement;
 const settle = () => act(async () => void (await new Promise((r) => setTimeout(r, 0))));
 const tabs = () => [...root.querySelectorAll('.rlc-pv-tabs button')].map((b) => b.textContent);
@@ -93,4 +97,20 @@ test('vídeo de habilidade que não carrega vira ícone grande com aviso', async
   act(() => void root.querySelector('.rlc-pv-video')!.dispatchEvent(new Event('error')));
   expect(root.querySelector('.rlc-pv-novideo img')!.getAttribute('src')).toBe('/i/p.png');
   expect(root.querySelector('.rlc-pv-novideo')!.textContent).toContain('ainda não está disponível');
+});
+
+test('skin com vídeo do SkinSpotlights: a aba de habilidades vira o vídeo dela (YouTube sem cookies, mudo, em loop)', async () => {
+  spot.of = (id) => (id === 901001 ? 'abcdefghijk' : null);
+  act(() => render(<SkinPreview championId={901} skinId={901002} start="abilities" onClose={() => {}} />, root));
+  await settle();
+  expect(tabs()).toEqual(['Splash', 'Tela de carregamento', 'Cromas', 'Vídeo da skin']);
+  const frame = root.querySelector<HTMLIFrameElement>('iframe.rlc-pv-spot')!;
+  expect(frame.src).toBe('https://www.youtube-nocookie.com/embed/abcdefghijk?autoplay=1&mute=1&loop=1&playlist=abcdefghijk&rel=0&playsinline=1&modestbranding=1');
+  render(null, root);
+  // Skin sem vídeo continua com as habilidades da base.
+  act(() => render(<SkinPreview championId={901} skinId={901003} onClose={() => {}} />, root));
+  await settle();
+  expect(tabs()).toContain('Habilidades');
+  expect(tabs()).not.toContain('Vídeo da skin');
+  spot.of = () => null;
 });

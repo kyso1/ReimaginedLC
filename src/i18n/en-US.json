@@ -1148,6 +1148,8 @@
   "pvSplash": "Splash",
   "pvLoading": "Loading screen",
   "pvFeatures": "Features",
+  "pvSpotlight": "Skin video",
+  "pvSpotlightBy": "Video: SkinSpotlights (YouTube)",
   "pvAbilities": "Abilities",
   "pvDefault": "Default",
   "pvWait": "Loading the preview",

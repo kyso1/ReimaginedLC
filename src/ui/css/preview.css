@@ -25,6 +25,7 @@
 #rlc-root .rlc-pv-swatch { width: 26px; height: 26px; padding: 0; border: 2px solid var(--rlc-color-border, rgba(255, 255, 255, 0.3)); border-radius: 50%; background: var(--rlc-color-surface, rgba(255, 255, 255, 0.2)); cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease; }
 #rlc-root .rlc-pv-swatch[aria-pressed='true'], #rlc-root .rlc-pv-swatch:hover { border-color: var(--rlc-color-text, #fff); transform: scale(1.12); }
 #rlc-root .rlc-pv-video { flex: 1; min-height: 0; max-width: 100%; border-radius: var(--rlc-radius-md); background: var(--rlc-color-scrim, rgba(0, 0, 0, 0.5)); object-fit: contain; }
+#rlc-root .rlc-pv-spot { width: auto; aspect-ratio: 16 / 9; border: 0; }
 #rlc-root .rlc-pv-novideo { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; width: min(100%, 960px); }
 #rlc-root .rlc-pv-novideo img { width: 96px; height: 96px; border-radius: var(--rlc-radius-md); object-fit: cover; }
 #rlc-root .rlc-pv-abilities { display: flex; gap: 8px; }
