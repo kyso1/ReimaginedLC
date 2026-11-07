@@ -3,7 +3,8 @@ import { Wallpapers } from '../../ui/Wallpapers';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
-import { prefs, setPrefs, type Prefs } from '../../shell/prefs';
+import { prefs, setPrefs, type Prefs, type ReadyStyle } from '../../shell/prefs';
+import { READY_STYLES, readyCheckPreview } from '../../shell/overlays/ReadyCheck';
 import { isLite, liteAuto, readPotato, writePotato } from '../../shell/perf';
 import { canReload, reloadForUpdate, update } from '../../shell/update';
 import { applyTheme } from '../../theme/apply';
@@ -62,7 +63,7 @@ const AREAS: Array<[Area, TextKey, TextKey]> = [
 // Linhas das áreas da camada, para a busca achar a configuração pelo nome.
 const OWN_ROWS: Partial<Record<Area, TextKey[]>> = {
   look: ['stThemesLol', 'stImport', 'stNewTheme', 'stCss', 'stBackground', 'stBgScreen', 'stBgSource', 'stBgRandom', 'stBgDim', 'stBgBlur', 'stBgPosX', 'stBgPosY'],
-  anim: ['stMotion', 'stVideo', 'stReadyAnim', 'stLobbyAnim'],
+  anim: ['stMotion', 'stVideo', 'stReadyAnim', 'stReadyStyle', 'stLobbyAnim'],
   sound: ['stClicks', 'stClickVol'],
   plug: ['stRunesAuto', 'stRunesMatchup', 'stRunesLock', 'stAllSplashes', 'mkAutoAccept', 'mkAcceptDelay', 'mkOffline', 'roseName', 'spName', 'spStatus', 'mkTitle'],
   general: ['stLanguage', 'stOpenOnStart', 'perfLite', 'perfPotato', 'stShortcut', 'versionLabel', 'stReport'],
@@ -82,6 +83,7 @@ const OPEN: Array<['last' | 'true' | 'false', TextKey]> = [
   ['true', 'stOpenOn'],
   ['false', 'stOpenOff'],
 ];
+const READY_STYLE_NAME: Record<ReadyStyle, TextKey> = { iris: 'rcIris', curtain: 'rcCurtain', wave: 'rcWave', band: 'rcBand', card: 'rcCard', cinema: 'rcCinema' };
 const MOTIONS: Array<[Prefs['motion'], TextKey]> = [
   ['full', 'stMotionFull'],
   ['reduced', 'stMotionReduced'],
@@ -258,6 +260,18 @@ function Animations() {
       </Row>
       <Row name={t('stReadyAnim')} desc={t('stReadyAnimDesc')}>
         <Switch label={t('stReadyAnim')} checked={p.readyCheckAnim} onChange={(readyCheckAnim) => setPrefs({ readyCheckAnim })} />
+      </Row>
+      <Row name={t('stReadyStyle')} desc={t('stReadyStyleDesc')}>
+        <select class="rlc-input" aria-label={t('stReadyStyle')} value={p.readyCheckStyle} onChange={(e) => setPrefs({ readyCheckStyle: e.currentTarget.value as ReadyStyle })}>
+          {READY_STYLES.map((s) => (
+            <option key={s} value={s}>
+              {t(READY_STYLE_NAME[s])}
+            </option>
+          ))}
+        </select>
+        <button type="button" class="rlc-button" data-variant="pill" onClick={() => (readyCheckPreview.value = true)}>
+          {t('stReadyPreview')}
+        </button>
       </Row>
       <Row name={t('stLobbyAnim')} desc={t('stLobbyAnimDesc')}>
         <Switch label={t('stLobbyAnim')} checked={p.lobbyAnim} onChange={(lobbyAnim) => setPrefs({ lobbyAnim })} />

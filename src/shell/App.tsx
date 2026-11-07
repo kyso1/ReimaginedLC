@@ -26,7 +26,7 @@ import { QueuePill } from './QueuePill';
 import { UpdateNotice } from './UpdateNotice';
 import { update } from './update';
 import { Rewards } from './overlays/Rewards';
-import { ReadyCheckOverlay, showReadyCheck } from './overlays/ReadyCheck';
+import { ReadyCheckOverlay, ReadyCheckPreview, readyCheckPreview, showReadyCheck } from './overlays/ReadyCheck';
 import { screenFor, type Screen } from './router';
 import { readSetting } from './storage';
 import { prefs } from './prefs';
@@ -432,7 +432,11 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
         <QueuePill lcu={lcu} onLobby={page === 'lobby' && !shownView} onOpen={() => (setPanel(null), setView(null), setAtHome(false))} />
         <Rewards lcu={lcu} />
         <InvitationCards invitations={lcu.invitations.value.data ?? []} queues={lcu.queues.value.data ?? []} name={lcu.name} />
-        {readyVisible ? <ReadyCheck rc={lcu.readyCheck.value.data!} mode={currentQueue ? queueGroup(currentQueue) : 'sr'} queueName={currentQueue?.name} /> : null}
+        {readyVisible ? (
+          <ReadyCheck rc={lcu.readyCheck.value.data!} mode={currentQueue ? queueGroup(currentQueue) : 'sr'} queueName={currentQueue?.name} />
+        ) : visible && readyCheckPreview.value ? (
+          <ReadyCheckPreview queueName={currentQueue?.name} />
+        ) : null}
         <SpotifyWidget />
         <WindowBar onClose={() => setConfirmClose(true)} fullscreen={prefs.value.fullscreen} />
         {confirmClose ? (

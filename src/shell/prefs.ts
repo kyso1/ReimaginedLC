@@ -1,6 +1,9 @@
 import { signal } from '@preact/signals';
 import { readSetting, writeSetting } from './storage';
 
+/** Estilo do aviso de partida encontrada. */
+export type ReadyStyle = 'iris' | 'curtain' | 'wave' | 'band' | 'card' | 'cinema';
+
 export interface Prefs {
   /** Transições: completa, reduzida (só esmaecer) ou desligada. */
   motion: 'full' | 'reduced' | 'off';
@@ -13,8 +16,10 @@ export interface Prefs {
   /** Som de clique em botões e abas, e volume de 0 a 1. */
   clicks: boolean;
   clickVolume: number;
-  /** Animação de partida encontrada (cortina de vidro) e de entrada no lobby. */
+  /** Animação de partida encontrada e de entrada no lobby. */
   readyCheckAnim: boolean;
+  /** Estilo do aviso de partida encontrada (a íris é o padrão). */
+  readyCheckStyle: ReadyStyle;
   lobbyAnim: boolean;
   /** Runas recomendadas (OP.GG) na seleção; usar a matchup; aplicar sozinho ao confirmar o campeão. */
   runesAuto: boolean;
@@ -66,6 +71,7 @@ export const DEFAULT_PREFS: Prefs = {
   clicks: true,
   clickVolume: 0.6,
   readyCheckAnim: true,
+  readyCheckStyle: 'iris',
   lobbyAnim: true,
   runesAuto: true,
   runesMatchup: true,
@@ -105,6 +111,7 @@ export function sanitizePrefs(v: unknown): Prefs {
     clicks: bool(o.clicks, DEFAULT_PREFS.clicks),
     clickVolume: unit(o.clickVolume, DEFAULT_PREFS.clickVolume),
     readyCheckAnim: bool(o.readyCheckAnim, DEFAULT_PREFS.readyCheckAnim),
+    readyCheckStyle: oneOf(o.readyCheckStyle, ['iris', 'curtain', 'wave', 'band', 'card', 'cinema'], DEFAULT_PREFS.readyCheckStyle),
     lobbyAnim: bool(o.lobbyAnim, DEFAULT_PREFS.lobbyAnim),
     runesAuto: bool(o.runesAuto, DEFAULT_PREFS.runesAuto),
     runesMatchup: bool(o.runesMatchup, DEFAULT_PREFS.runesMatchup),

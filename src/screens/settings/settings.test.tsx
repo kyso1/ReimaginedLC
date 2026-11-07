@@ -8,6 +8,7 @@ import { fakeLcu, fakeThemes } from '../../test/fixtures';
 import type { ResolvedTheme } from '../../theme/resolve';
 import * as bg from '../../theme/background';
 import { update } from '../../shell/update';
+import { readyCheckPreview } from '../../shell/overlays/ReadyCheck';
 import { Settings } from './Settings';
 import { formatBind, humanize } from './game';
 
@@ -58,6 +59,8 @@ function mount(overrides: Partial<ReturnType<typeof fakeThemes>> = {}) {
 test('preferências: só valores conhecidos', () => {
   expect(sanitizePrefs({ motion: 'turbo', video: 'sim', champSelectLayout: 'classic', locale: 'en', openOnStart: true })).toMatchObject({ motion: 'full', video: true, locale: 'en', openOnStart: true });
   expect(sanitizePrefs(null)).toMatchObject({ motion: 'full', locale: 'auto', openOnStart: null });
+  expect(sanitizePrefs({ readyCheckStyle: 'disco' }).readyCheckStyle).toBe('iris');
+  expect(sanitizePrefs({ readyCheckStyle: 'band' }).readyCheckStyle).toBe('band');
 });
 
 test('início: um painel por área com nome, propósito e resumo do estado', async () => {
@@ -114,6 +117,17 @@ test('animações: transições, vídeo e animações gravam nas preferências',
   act(() => sw('Partida encontrada').click());
   act(() => sw('Entrada no lobby').click());
   expect(prefs.value).toMatchObject({ video: false, readyCheckAnim: false, lobbyAnim: false });
+
+  // Estilo do aviso: íris por padrão, troca pelo seletor e a prévia abre o aviso sem LCU.
+  const style = root.querySelector<HTMLSelectElement>('select[aria-label="Estilo da partida encontrada"]')!;
+  expect(style.value).toBe('iris');
+  expect([...style.options].map((o) => o.textContent)).toEqual(['Íris', 'Cortina de vidro', 'Onda', 'Faixa', 'Cartão', 'Cinema']);
+  style.value = 'cinema';
+  act(() => void style.dispatchEvent(new Event('change')));
+  expect(prefs.value.readyCheckStyle).toBe('cinema');
+  act(() => btn('Ver prévia')!.click());
+  expect(readyCheckPreview.value).toBe(true);
+  readyCheckPreview.value = false;
 });
 
 test('som: interruptores e volumes gravam nas preferências', () => {

@@ -12,6 +12,7 @@
 @import "./css/postgame.css";
 @import "./css/spotify.css";
 @import "./css/preview.css";
+@import "./css/readycheck.css";
 #rlc-root {
   position: fixed;
   inset: 0;
@@ -200,32 +201,6 @@
    ao elemento. `no-drag` nos controles evita que a faixa declarada por nós engula o clique. */
 #rlc-root button, #rlc-root input, #rlc-root select, #rlc-root textarea, #rlc-root a, #rlc-root [role='button'] { -webkit-app-region: no-drag; }
 
-/* Partida encontrada: cortina de vidro. As placas se fecham do alto e de baixo; o emblema do modo acende no encontro. */
-#rlc-root .rlc-readycheck { z-index: 30; background: transparent; overflow: hidden; }
-#rlc-root .rlc-rcheck-plate { position: absolute; left: 0; right: 0; height: 50%; background: linear-gradient(180deg, var(--rlc-color-glassTop, rgba(10, 12, 20, 0.8)), var(--rlc-color-glassBottom, rgba(10, 12, 20, 0.66))); backdrop-filter: blur(16px) brightness(0.65); }
-#rlc-root .rlc-rcheck-plate[data-side='top'] { top: 0; border-bottom: 1px solid var(--rlc-color-border); }
-#rlc-root .rlc-rcheck-plate[data-side='bottom'] { bottom: 0; border-top: 1px solid var(--rlc-color-border); }
-#rlc-root .rlc-rcheck-body { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-#rlc-root .rlc-rcheck-body .rlc-emblem { width: 84px; height: 84px; margin: 0; color: var(--rlc-color-text); }
-#rlc-root .rlc-rcheck-body .rlc-emblem * { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-#rlc-root .rlc-rcheck-body .rlc-emblem [data-part='core'] { fill: currentColor; fill-opacity: 0.12; }
-#rlc-root .rlc-readycheck h2 { margin: 0; font-family: var(--rlc-font-display); font-weight: var(--rlc-font-displayWeight); font-size: 34px; }
-#rlc-root .rlc-rcheck-time { display: flex; align-items: center; gap: 12px; }
-#rlc-root .rlc-rcheck-bar { width: 260px; height: 4px; border-radius: 2px; background: var(--rlc-color-border); overflow: hidden; }
-#rlc-root .rlc-rcheck-bar i { display: block; height: 100%; background: var(--rlc-color-accent); transition: width 1s linear; }
-#rlc-root .rlc-readycheck[data-response='Accepted'] .rlc-rcheck-bar i { background: var(--rlc-color-online, #5fd18a); }
-#rlc-root .rlc-ring-count { min-width: 2ch; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
-#rlc-root .rlc-rcheck-queue { margin: 0; color: var(--rlc-color-textMuted); font-size: 15px; }
-#rlc-root .rlc-readycheck-actions { display: flex; gap: 16px; margin-top: 6px; }
-#rlc-root .rlc-readycheck[data-anim] .rlc-rcheck-plate[data-side='top'] { animation: rlc-plate-top 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-#rlc-root .rlc-readycheck[data-anim] .rlc-rcheck-plate[data-side='bottom'] { animation: rlc-plate-bottom 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-#rlc-root .rlc-readycheck[data-anim] .rlc-emblem { animation: rlc-emblem-glow 1s ease 0.45s both; }
-#rlc-root .rlc-readycheck[data-anim] .rlc-rcheck-body > :not(.rlc-emblem) { animation: rlc-rise-in 0.4s ease 0.6s both; }
-@keyframes rlc-plate-top { from { transform: translateY(-100%); } }
-@keyframes rlc-plate-bottom { from { transform: translateY(100%); } }
-@keyframes rlc-emblem-glow { 0% { opacity: 0; transform: scale(0.7); } 60% { opacity: 1; filter: drop-shadow(0 0 12px var(--rlc-color-text)); } 100% { filter: drop-shadow(0 0 3px var(--rlc-color-text)); } }
-@keyframes rlc-rise-in { from { opacity: 0; transform: translateY(12px); } }
-#rlc-root .rlc-readycheck-state { margin: 0; color: var(--rlc-color-textMuted); font-size: 16px; }
 
 #rlc-root .rlc-invites { position: absolute; top: 24px; right: 16px; z-index: 25; display: flex; flex-direction: column; gap: 10px; width: 280px; }
 #rlc-root .rlc-invite { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-surface); backdrop-filter: blur(var(--rlc-blur-surface)); animation: rlc-fade var(--rlc-motion-duration) var(--rlc-motion-easing) both; }

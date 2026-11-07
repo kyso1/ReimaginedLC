@@ -4,7 +4,8 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../../i18n';
 import { invitation, queue, readyCheck, ready } from '../../test/fixtures';
 import { InvitationCards } from './Invitations';
-import { ReadyCheckOverlay, showReadyCheck } from './ReadyCheck';
+import { prefs, setPrefs } from '../prefs';
+import { ReadyCheckOverlay, ReadyCheckPreview, readyCheckPreview, showReadyCheck } from './ReadyCheck';
 
 let root: HTMLElement;
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -18,10 +19,14 @@ afterEach(() => {
   render(null, root);
   root.remove();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
+  setPrefs({ readyCheckStyle: 'iris' });
+  readyCheckPreview.value = false;
 });
 
 const buttons = () => [...root.querySelectorAll('button')];
-const byText = (text: string) => buttons().find((b) => b.textContent === text);
+// Aceitar na íris traz a contagem junto (escondida do leitor de tela): vale o começo do texto.
+const byText = (text: string) => buttons().find((b) => b.textContent?.startsWith(text));
 
 test('showReadyCheck: aceite em andamento e sem suppressUx, em qualquer fase (a fila normal pode nem passar por Matchmaking)', () => {
   expect(showReadyCheck(ready(readyCheck()))).toBe(true);
@@ -83,4 +88,35 @@ test('convite sem nome usa o nome buscado pelo puuid de quem convidou', async ()
   act(() => render(<InvitationCards invitations={[i]} queues={[]} name={async (p) => (p === i.fromPuuid ? 'Zeca' : null)} />, root));
   await act(async () => void (await new Promise((r) => setTimeout(r, 0))));
   expect(root.querySelector('.rlc-invite')!.textContent).toContain('Zeca');
+});
+
+test('aceite: estilo vem da aparência (íris por padrão); a íris conta o tempo dentro do Aceitar, a onda num anel', () => {
+  expect(prefs.value.readyCheckStyle).toBe('iris');
+  act(() => render(<ReadyCheckOverlay rc={readyCheck({ timer: 3 })} />, root));
+  const veil = root.querySelector<HTMLElement>('.rlc-readycheck')!;
+  expect(veil.getAttribute('data-style')).toBe('iris');
+  expect(veil.style.getPropertyValue('--rlc-rc-left')).toBe('0.7');
+  expect(root.querySelector('.rlc-rcheck-in')!.textContent).toBe('7');
+  act(() => setPrefs({ readyCheckStyle: 'wave' }));
+  expect(veil.getAttribute('data-style')).toBe('wave');
+  expect(root.querySelector('.rlc-rcheck-in')).toBeNull();
+  const left = root.querySelector('.rlc-rcheck-ring [data-part="left"]')!;
+  expect(Number(left.getAttribute('stroke-dashoffset'))).toBeCloseTo(2 * Math.PI * 46 * 0.3);
+  // Cada estilo tem as próprias peças: cortina com placas, cinema com barras.
+  act(() => setPrefs({ readyCheckStyle: 'curtain' }));
+  expect(root.querySelectorAll('.rlc-rcheck-plate')).toHaveLength(2);
+  act(() => setPrefs({ readyCheckStyle: 'cinema' }));
+  expect(root.querySelectorAll('.rlc-rcheck-letterbox')).toHaveLength(2);
+});
+
+test('prévia do aceite: responder não chama a LCU e fecha sozinha', async () => {
+  vi.useFakeTimers();
+  readyCheckPreview.value = true;
+  act(() => render(<ReadyCheckPreview />, root));
+  act(() => byText('Aceitar')!.click());
+  await act(async () => void (await vi.advanceTimersByTimeAsync(300)));
+  expect(root.textContent).toContain('Aceito, aguardando os outros');
+  await act(async () => void (await vi.advanceTimersByTimeAsync(1600)));
+  expect(readyCheckPreview.value).toBe(false);
+  expect(fetchMock).not.toHaveBeenCalled();
 });
