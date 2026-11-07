@@ -820,7 +820,8 @@ export function RankedCards({ ranked, queues }: { ranked: Ranked; queues: LolGam
           return (
             <div key={q} class="rlc-rk-card" data-tier={e.tier!.toLowerCase()}>
               <small>{label(q)}</small>
-              <div class="rlc-rk-emblem" style={{ backgroundImage: `url("${crestUrl(e.tier!, 'emblem')}")` }} />
+              {/* O emblema do client tem muita margem e vai ampliado; o brasão de outro plugin (League Old Ranks) já vem recortado e cabe inteiro. */}
+              <div class="rlc-rk-emblem" data-tight={crestUrl(e.tier!, 'emblem').startsWith('/fe/') ? undefined : 'true'} style={{ backgroundImage: `url("${crestUrl(e.tier!, 'emblem')}")` }} />
               <strong>{tier}</strong>
               {!APEX.includes(e.tier!) ? (
                 <span class="rlc-rk-lp" aria-hidden="true">

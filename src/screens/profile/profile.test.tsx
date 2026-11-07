@@ -419,3 +419,18 @@ test('o voltar do detalhe fica preso no topo enquanto o placar rola', async () =
   const css = (await import('node:fs')).readFileSync('src/ui/css/profile.css', 'utf8');
   expect(css).toMatch(/\.rlc-md > \.rlc-md-back \{[^}]*position: sticky; top: 0;/);
 });
+
+test('ranqueadas: brasão do League Old Ranks (já recortado) cabe inteiro; o emblema do client segue ampliado', () => {
+  const ranked = { queueMap: { RANKED_SOLO_5x5: { tier: 'PLATINUM', division: 'I' } } };
+  act(() => render(<RankedCards ranked={ranked} queues={[]} />, root));
+  expect(root.querySelector('.rlc-rk-emblem')!.hasAttribute('data-tight')).toBe(false);
+  (window as { __leagueOldRanks?: unknown }).__leagueOldRanks = 'https://plugins/League%20Old%20Ranks/index.js';
+  try {
+    act(() => render(<RankedCards ranked={{ ...ranked }} queues={[]} />, root));
+    const emblem = root.querySelector<HTMLElement>('.rlc-rk-emblem')!;
+    expect(emblem.getAttribute('data-tight')).toBe('true');
+    expect(emblem.style.backgroundImage).toContain('full%20crests/platinum.webp');
+  } finally {
+    delete (window as { __leagueOldRanks?: unknown }).__leagueOldRanks;
+  }
+});

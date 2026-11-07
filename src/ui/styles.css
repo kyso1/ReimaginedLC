@@ -395,6 +395,7 @@
 #rlc-root .rlc-rk-card strong { font-size: 22px; }
 /* A imagem é 2560x1440 com o brasão no centro: amplia e recorta. */
 #rlc-root .rlc-rk-emblem { width: 100%; max-width: 180px; aspect-ratio: 9 / 7; background-size: 356% auto; background-repeat: no-repeat; background-position: center; }
+#rlc-root .rlc-rk-emblem[data-tight='true'] { background-size: contain; }
 #rlc-root .rlc-ms { display: flex; flex-direction: column; gap: 12px; min-height: 0; flex: 1; }
 #rlc-root .rlc-ms .rlc-input { width: 220px; }
 #rlc-root .rlc-ms .rlc-chip-row { max-width: none; flex-wrap: nowrap; align-items: center; }
