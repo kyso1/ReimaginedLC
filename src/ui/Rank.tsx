@@ -8,6 +8,23 @@ const RANKED_QUEUES: Record<number, string> = {
   440: 'RANKED_FLEX_SR',
   4310: 'JADE_RANKED_SOLO_5x5',
 };
+/**
+ * Arte do elo: o mini brasão (linhas, cartões) ou o emblema grande. Com o plugin "League Old Ranks" instalado
+ * (`window.__leagueOldRanks` = URL do index.js dele), usa os brasões antigos que ele traz, como no client da Riot.
+ */
+export function crestUrl(tier: string, kind: 'mini' | 'emblem' = 'mini'): string {
+  const t = tier.toLowerCase();
+  const old = (window as { __leagueOldRanks?: unknown }).__leagueOldRanks;
+  if (typeof old === 'string') {
+    try {
+      return new URL(`./assets/full%20crests/${t}.webp`, old).href;
+    } catch {
+      // URL inválida: cai na arte do client.
+    }
+  }
+  return kind === 'emblem' ? `/fe/lol-static-assets/images/ranked-emblem/emblem-${t}.png` : `/fe/lol-static-assets/images/ranked-mini-crests/${t}.svg`;
+}
+
 export const rankedQueueOf = (queueId: number | undefined): string | null => (queueId ? (RANKED_QUEUES[queueId] ?? null) : null);
 
 export interface Entry {
@@ -45,7 +62,7 @@ export function Rank({ puuid, queue }: { puuid: string | undefined; queue: strin
   if (!e || !label) return null;
   return (
     <span class="rlc-rank" title={label}>
-      <img src={`/fe/lol-static-assets/images/ranked-mini-crests/${e.tier!.toLowerCase()}.svg`} alt="" />
+      <img src={crestUrl(e.tier!)} alt="" />
       <span>{`• ${label} ${e.leaguePoints ?? 0} ${t('lp')}`}</span>
     </span>
   );

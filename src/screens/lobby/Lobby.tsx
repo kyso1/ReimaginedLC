@@ -18,6 +18,7 @@ import { MemberMenu } from './MemberMenu';
 import { Column, Stage, type Participant } from './Stage';
 import { QuickPlayEditor, quickPlayProblem, SlotStrip } from './QuickPlay';
 import type { Champion } from '../../data/gamedata';
+import { roseFindMatchHover } from '../../plugins/rose';
 
 const MEMBERS = '/lol-lobby/v2/lobby/members';
 
@@ -276,7 +277,7 @@ export function LobbyBar({ lcu, title, subtitle, onTitle, leader, partyType, sta
               ) : null}
             </>
           ) : start ? (
-            <button type="button" class="rlc-button" data-variant="primary" disabled={!start.enabled || begin.pending} onClick={() => begin.run(start.path)}>
+            <button type="button" class="rlc-button" data-variant="primary" disabled={!start.enabled || begin.pending} onMouseEnter={roseFindMatchHover} onClick={() => begin.run(start.path)}>
               {start.label}
             </button>
           ) : null}

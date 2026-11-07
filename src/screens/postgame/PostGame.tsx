@@ -6,7 +6,7 @@ import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { request } from '../../lcu/request';
 import type { LolEndOfGameEndOfGameStats } from '../../lcu/types';
-import { Rank, rankedQueueOf } from '../../ui/Rank';
+import { crestUrl, Rank, rankedQueueOf } from '../../ui/Rank';
 import { useAction } from '../../ui/useAction';
 import { formatClock } from '../lobby/format';
 import { getJson, kda, mine, num, ordinal, playerName, tierLabel, type Game, type Participant, type Timeline } from '../profile/data';
@@ -282,7 +282,7 @@ function Progress({ eog, lp, mastery, queueId, puuid, honors }: { eog: LolEndOfG
       <li key="lp">
         <small>{t('pgRanked')}</small>
         <b class="rlc-rank">
-          <img src={`/fe/lol-static-assets/images/ranked-mini-crests/${lp!.tier!.toLowerCase()}.svg`} alt="" />
+          <img src={crestUrl(lp!.tier!)} alt="" />
           {`${tier} ${lp!.leaguePoints ?? 0} ${t('lp')}`}
         </b>
         <span class="rlc-pg-delta" data-sign={delta < 0 ? 'down' : 'up'}>{`${n.format(delta)} ${t('lp')}`}</span>

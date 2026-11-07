@@ -208,6 +208,14 @@ export function useRose(on: boolean): void {
 }
 
 /** Escolhe a skin pelo nome localizado (o que o ROSE-SkinMonitor leria no carrossel oficial). Zera a croma. */
+/**
+ * Mouse sobre "Encontrar partida": o ROSE-SkinMonitor detecta pelo som de hover do botão da Riot, que na nossa tela
+ * nunca toca. Mandamos o mesmo aviso; sem conexão, não faz nada.
+ */
+export function roseFindMatchHover(): void {
+  send({ type: 'find-match-hover', timestamp: Date.now() });
+}
+
 export function chooseRoseSkin(name: string): void {
   roseChoice.value = { name, chroma: null };
   send({ skin: name, originalName: name, timestamp: Date.now() });

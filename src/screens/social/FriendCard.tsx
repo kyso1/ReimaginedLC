@@ -3,7 +3,7 @@ import type { Champion } from '../../data/gamedata';
 import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import type { LolChatFriendResource } from '../../lcu/types';
-import { Rank, rankedQueueOf } from '../../ui/Rank';
+import { crestUrl, Rank, rankedQueueOf } from '../../ui/Rank';
 import { formatClock } from '../lobby/format';
 import { tierLabel } from '../profile/data';
 import { useDecoded } from '../../ui/useDecoded';
@@ -168,7 +168,7 @@ export function FriendCard({ lcu, friend: f, top }: { lcu: Lcu; friend: Friend; 
         <Rank puuid={f.puuid} queue={ranked} />
       ) : soloLabel ? (
         <span class="rlc-rank">
-          <img src={`/fe/lol-static-assets/images/ranked-mini-crests/${lol.rankedLeagueTier!.toLowerCase()}.svg`} alt="" />
+          <img src={crestUrl(lol.rankedLeagueTier!)} alt="" />
           <span>{`${t('rankedSolo')} • ${soloLabel}`}</span>
         </span>
       ) : null}

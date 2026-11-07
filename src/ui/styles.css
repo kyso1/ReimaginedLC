@@ -535,7 +535,8 @@
    borda) para o polegar visível continuar com 4px de raio. */
 #rlc-root ::-webkit-scrollbar { width: 14px; height: 14px; }
 #rlc-root ::-webkit-scrollbar-track { background: transparent; }
-#rlc-root ::-webkit-scrollbar-thumb { background: var(--rlc-color-border); background-clip: padding-box; border: 0 solid transparent; border-radius: 4px; }
+/* !important: temas do client (KysoTheme, Auxqii) zeram o polegar com !important em ::-webkit-scrollbar-thumb. */
+#rlc-root ::-webkit-scrollbar-thumb { background: var(--rlc-color-border); background-color: var(--rlc-color-border) !important; background-clip: padding-box; border: 0 solid transparent; border-radius: 4px; }
 /* Polegar achatado na ponta em que encostou (topo/fim): `data-rlc-y`/`data-rlc-x` vêm de ui/scrollEdges.ts. */
 #rlc-root ::-webkit-scrollbar-thumb:vertical { border-left: 6px solid transparent; border-radius: 0 0 4px 10px / 0 0 4px 4px; }
 #rlc-root [data-rlc-y]::-webkit-scrollbar-thumb:vertical { border-radius: 10px 4px 4px 10px / 4px; }

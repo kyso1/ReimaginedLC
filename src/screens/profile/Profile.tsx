@@ -5,7 +5,7 @@ import { locale, t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import type { LolGameQueuesQueue } from '../../lcu/types';
 import { PillMenu } from '../../ui/PillMenu';
-import { Rank } from '../../ui/Rank';
+import { crestUrl, Rank } from '../../ui/Rank';
 import { useDecoded } from '../../ui/useDecoded';
 import { useEscape } from '../../ui/useEscape';
 import { useDrawerClose } from '../modes/Modes';
@@ -333,7 +333,6 @@ function History({ lcu, puuid, ranked }: { lcu: Lcu; puuid: string; ranked: Rank
   );
 }
 
-const crestUrl = (tier: string) => `/fe/lol-static-assets/images/ranked-mini-crests/${tier.toLowerCase()}.svg`;
 
 /** Elo de cada fila com a barra de PdL (0 a 100; elos de topo enchem a barra). Só Solo/Duo e Flex: as outras filas ficam nos cards de Ranqueada. */
 function EloPanel({ ranked, queues = QUEUES.slice(0, 3) }: { ranked: Ranked; queues?: Array<[string, TextKey]> }) {
@@ -821,7 +820,7 @@ export function RankedCards({ ranked, queues }: { ranked: Ranked; queues: LolGam
           return (
             <div key={q} class="rlc-rk-card" data-tier={e.tier!.toLowerCase()}>
               <small>{label(q)}</small>
-              <div class="rlc-rk-emblem" style={{ backgroundImage: `url("/fe/lol-static-assets/images/ranked-emblem/emblem-${e.tier!.toLowerCase()}.png")` }} />
+              <div class="rlc-rk-emblem" style={{ backgroundImage: `url("${crestUrl(e.tier!, 'emblem')}")` }} />
               <strong>{tier}</strong>
               {!APEX.includes(e.tier!) ? (
                 <span class="rlc-rk-lp" aria-hidden="true">

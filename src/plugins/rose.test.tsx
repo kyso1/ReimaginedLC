@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../i18n';
 import { SkinCarousel } from '../screens/champselect/Loadout';
 import { cell } from '../test/fixtures';
-import { chooseRoseChroma, chooseRoseSkin, roseChoice, roseMods, roseStatus, selectRoseMod, startRose, stopRose } from './rose';
+import { chooseRoseChroma, chooseRoseSkin, roseFindMatchHover, roseChoice, roseMods, roseStatus, selectRoseMod, startRose, stopRose } from './rose';
 
 /** WebSocket falso: guarda o que foi enviado e deixa o teste mandar mensagens do "ROSE". */
 class FakeSocket {
@@ -101,6 +101,8 @@ test('acha a porta, conecta e manda a escolha no formato dos plugins do ROSE; re
   chooseRoseChroma('Ahri Arcana', { id: 103087, name: 'Rubi', championId: 103, baseSkinId: 103086 });
   expect(ws.sent[1]).toMatchObject({ type: 'chroma-selection', skinId: 103087, chromaId: 103087, chromaName: 'Rubi', championId: 103, baseSkinId: 103086 });
 
+  roseFindMatchHover();
+  expect(ws.sent.at(-1)).toMatchObject({ type: 'find-match-hover' });
   ws.sent = [];
   act(() => ws.emit({ type: 'champion-locked', locked: true }));
   expect(ws.sent.map((m) => m.type ?? m.skin)).toEqual(['Ahri Arcana', 'chroma-selection']);

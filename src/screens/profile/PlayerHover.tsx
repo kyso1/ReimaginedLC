@@ -2,7 +2,7 @@ import { createPortal, type ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { t, type TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
-import { statsOf, type Entry } from '../../ui/Rank';
+import { crestUrl, statsOf, type Entry } from '../../ui/Rank';
 import { profileIcon, useBanner } from '../social/FriendCard';
 import { tierLabel } from './data';
 
@@ -78,7 +78,7 @@ function PlayerCard({ lcu, player, at }: { lcu: Lcu; player: CardPlayer; at: { l
         <ul class="rlc-pcard-ranks">
           {rows.map((r) => (
             <li key={r.label}>
-              <img src={`/fe/lol-static-assets/images/ranked-mini-crests/${r.e!.tier!.toLowerCase()}.svg`} alt="" />
+              <img src={crestUrl(r.e!.tier!)} alt="" />
               <span>{t(r.label)}</span>
               <b>{`${r.text} · ${r.e!.leaguePoints ?? 0} ${t('lp')}`}</b>
             </li>
