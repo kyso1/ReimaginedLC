@@ -402,7 +402,7 @@ test('comprou fora da loja (client da Riot, espólio): o aviso do inventário re
   }
 });
 
-test('janela de compra: o contêiner de camadas da Riot sobe acima da camada enquanto ela está aberta e volta ao fechar', async () => {
+test('janela de compra: o modal sobe; o gerenciador de camadas da Riot fica com o riotNotices (sem estilo inline aqui)', async () => {
   vi.useFakeTimers();
   try {
     const layer = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'lol-uikit-layer-manager' }));
@@ -411,11 +411,11 @@ test('janela de compra: o contêiner de camadas da Riot sobe acima da camada enq
     modal.appendChild(Object.assign(document.createElement('div'), { className: 'rcp-fe-lol-paw' }));
     const restore = liftModal(document, '.rcp-fe-lol-paw');
     vi.advanceTimersByTime(150);
-    expect(layer.style.zIndex).toBe('2147483001');
+    expect(layer.getAttribute('style')).toBeNull();
     expect(modal.style.zIndex).toBe('2147483001');
     modal.remove();
     vi.advanceTimersByTime(150);
-    expect(layer.getAttribute('style')).toBe('');
+    expect(layer.getAttribute('style')).toBeNull();
     restore();
     layer.remove();
   } finally {

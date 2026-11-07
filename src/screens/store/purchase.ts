@@ -106,7 +106,9 @@ export function liftModal(doc: Document, sel: string): () => void {
         // O ancestral direto do body (o gerenciador de camadas da Riot) inteiro acima da nossa raiz.
         let top: HTMLElement = box;
         while (top.parentElement && top.parentElement !== doc.body) top = top.parentElement;
-        if (top !== box && top.parentElement === doc.body) {
+        // O gerenciador de camadas da Riot já sobe sozinho com qualquer modal (shell/riotNotices.ts, em tela cheia):
+        // estilo inline aqui (position: relative) o deixaria de novo com 0x0 e os modais sem tamanho.
+        if (top !== box && top.parentElement === doc.body && top.id !== 'lol-uikit-layer-manager') {
           layer = { el: top, style: top.getAttribute('style') ?? '' };
           if (getComputedStyle(top).position === 'static') top.style.position = 'relative';
           Object.assign(top.style, { zIndex: PAW_Z, visibility: 'visible' });
