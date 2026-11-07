@@ -72,6 +72,7 @@ function mount() {
     ...lcu.game,
     champions: async () => new Map([[103, { id: 103, name: 'Ahri', icon: '/i/103.png', roles: [] }], [238, { id: 238, name: 'Zed', icon: '/i/238.png', roles: [] }]]),
     items: async () => new Map([[3089, '/it/3089.png'], [3340, '/it/3340.png']]),
+    splash: async (id) => (id === 103000 ? '/s/103000.jpg' : null),
     spells: async () => new Map([[4, { id: 4, name: 'Flash', icon: '/sp/4.png', gameModes: [] }], [14, { id: 14, name: 'Incendiar', icon: '/sp/14.png', gameModes: [] }]]),
   };
   lcu.queues.value = ready([queue({ id: 400, name: 'Normal (Escolha)' }), queue({ id: 420, name: 'Ranqueada Solo/Duo' }), queue({ id: 450, name: 'ARAM' }), queue({ id: 710, type: 'RANKED_PREMADE_5x5', name: 'Ranqueada 5x5' }), queue({ id: 4310, type: 'JADE_RANKED_SOLO_5x5', name: '', gameMode: 'JADE', description: 'Clássico 5x5' })]) as Lcu['queues']['value'];
@@ -116,7 +117,9 @@ test('histórico: o quadro sobe com o feed por dia e a coluna de elo, rotas e KD
   expect(days.map((d) => d.querySelector('h3')!.textContent)).toEqual(['hoje', 'ontem', '02 de out.']);
   expect(days.map((d) => d.querySelectorAll('.rlc-mh-row').length)).toEqual([2, 1, 2]);
   const first = days[0]!.querySelector('.rlc-mh-row')!;
-  expect(first.querySelector('img')!.getAttribute('alt')).toBe('Ahri');
+  expect(first.querySelector('.rlc-mh-champ img')!.getAttribute('alt')).toBe('Ahri');
+  // Banner da linha: splash base do campeão jogado (Ahri).
+  expect(first.querySelector('img.rlc-mh-art')!.getAttribute('src')).toBe('/s/103000.jpg');
   expect(first.querySelector('.rlc-mh-result b')!.textContent).toBe('Vitória');
   expect(first.querySelector('.rlc-mh-meta')!.textContent).toBe('Normal (Escolha) · Meio');
   expect(first.querySelector('.rlc-mh-kda')!.textContent).toBe('8/2/11');

@@ -293,6 +293,7 @@ function History({ lcu, puuid, ranked }: { lcu: Lcu; puuid: string; ranked: Rank
                       data-win={p?.stats.win ? 'true' : 'false'}
                       onClick={(e) => setOpen({ gameId: g.gameId, originY: (e.currentTarget as HTMLElement).offsetTop })}
                     >
+                      <RowSplash splash={lcu.game.splash} championId={p?.championId} />
                       <span class="rlc-mh-champ">
                         {champ?.icon ? <img src={champ.icon} alt={champ.name} title={champ.name} /> : <span class="rlc-mh-icon" />}
                         {num(p, 'champLevel') ? <b class="rlc-md-lvl">{num(p, 'champLevel')}</b> : null}
@@ -361,6 +362,22 @@ function EloPanel({ ranked, queues = QUEUES.slice(0, 3) }: { ranked: Ranked; que
 const pct = (a: number, b: number) => `${Math.round((a / Math.max(1, b)) * 100)}%`;
 
 /** Rotas das partidas carregadas (só Summoner's Rift): fatia dos jogos na barra, taxa de vitórias ao lado. */
+/**
+ * Banner da linha: a splash do campeão jogado ampliada na ponta esquerda, sumindo para a direita (atrás do tom de
+ * vitória/derrota). O histórico não traz a skin usada, então é a splash base.
+ */
+function RowSplash({ splash, championId }: { splash: Lcu['game']['splash']; championId?: number }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    setSrc(null);
+    if (!championId) return;
+    let live = true;
+    void splash(championId * 1000).then((u) => live && setSrc(u));
+    return () => void (live = false);
+  }, [championId, splash]);
+  return src ? <img class="rlc-mh-art" src={src} alt="" loading="lazy" decoding="async" /> : null;
+}
+
 function RolesPanel({ games, puuid }: { games: Game[]; puuid: string }) {
   const by = new Map<TextKey, { n: number; w: number }>();
   for (const g of games) {
