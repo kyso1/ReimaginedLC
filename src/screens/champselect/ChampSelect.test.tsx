@@ -874,7 +874,15 @@ test('Arena: Ousadia no começo da grade (destaca -3 e trava), bigorna nos favor
   await settle();
   const tiles = [...root.querySelectorAll('.rlc-cs-tile')];
   expect(tiles[0]!.getAttribute('data-bravery')).toBe('true');
-  expect(tiles.find((t) => t.querySelector('.rlc-cs-crowd'))!.querySelector('button')!.getAttribute('aria-label')).toBe('Yasuo · favorito da torcida (bônus ao escolher)');
+  // Bigorna logo depois da Ousadia; "Todos" volta à ordem alfabética pura.
+  expect(tiles[1]!.querySelector('button')!.getAttribute('aria-label')).toBe('Yasuo · favorito da torcida (bônus ao escolher)');
+  const names = () => [...root.querySelectorAll('.rlc-cs-tile:not([data-bravery]) .rlc-cs-tile-name')].map((n) => n.textContent!);
+  expect(names().length).toBeGreaterThan(1);
+  act(() => btn('Todos')!.click());
+  expect(names()).toEqual([...names()].sort((a, b) => a.localeCompare(b)));
+  expect(names()[0]).not.toBe('Yasuo');
+  act(() => btn('Todos')!.click());
+  expect(names()[0]).toBe('Yasuo');
   act(() => btn('Ousadia')!.click());
   expect(JSON.parse(call('/lol-champ-select/v1/session/actions/6')[0]![1].body)).toEqual({ championId: -3 });
   act(() => void (lcu.champSelect.value = ready(arena(-3))));

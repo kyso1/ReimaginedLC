@@ -53,7 +53,8 @@ export const CROWD_ICON = '/fe/lol-champ-select/images/config/champ-crowd-favori
 /** Grade de campeões permitidos: busca por nome, separador por rota e favoritos da rota na frente. */
 export function ChampionGrid({ ids, champions, selected, onPick, lanes, favorites, initialLane, onFavorite, onHover, blocked, wanted, crowd, bravery }: GridProps) {
   const [query, setQuery] = useState('');
-  const [lane, setLane] = useState<Lane | null>(initialLane);
+  // 'ALL': todos em ordem alfabética, sem filtro de rota nem bigorna/favoritos na frente.
+  const [lane, setLane] = useState<Lane | 'ALL' | null>(initialLane);
   // Menu do clique direito (ou tecla de menu / Shift+F10): ponto de abertura e o botão para devolver o foco.
   const [menu, setMenu] = useState<{ id: number; x: number; y: number; from: HTMLElement } | null>(null);
   const openMenu = (e: MouseEvent | KeyboardEvent, id: number) => {
@@ -69,17 +70,23 @@ export function ChampionGrid({ ids, champions, selected, onPick, lanes, favorite
     setMenu(null);
   };
   const q = query.trim().toLowerCase();
-  const isFav = (id: number) => lane !== null && (favorites.get(id) ?? []).includes(lane.toLowerCase());
+  const byLane = lane !== null && lane !== 'ALL' ? lane : null;
+  const isFav = (id: number) => byLane !== null && (favorites.get(id) ?? []).includes(byLane.toLowerCase());
+  const isFan = (id: number) => lane !== 'ALL' && !!crowd?.has(id) && !blocked?.has(id);
   const list = ids
     .filter((id) => id > 0)
     .map((id) => champions.get(id) ?? { id, name: String(id), icon: '', roles: [] })
     // Campeão sem rota recomendada (dados ausentes, campeão novo) continua visível em qualquer rota.
-    .filter((c) => (!q || c.name.toLowerCase().includes(q)) && (!lane || !lanes[String(c.id)]?.recommendedPositions?.length || lanes[String(c.id)]!.recommendedPositions!.includes(lane)))
-    .sort((a, b) => Number(isFav(b.id)) - Number(isFav(a.id)) || a.name.localeCompare(b.name));
+    .filter((c) => (!q || c.name.toLowerCase().includes(q)) && (!byLane || !lanes[String(c.id)]?.recommendedPositions?.length || lanes[String(c.id)]!.recommendedPositions!.includes(byLane)))
+    // Como no client: favoritos da torcida (bigorna) primeiro na Arena; favoritos da rota primeiro no filtro de rota.
+    .sort((a, b) => Number(isFan(b.id)) - Number(isFan(a.id)) || Number(isFav(b.id)) - Number(isFav(a.id)) || a.name.localeCompare(b.name));
   return (
     <div class="rlc-cs-grid-wrap">
       <div class="rlc-cs-filters">
         <input type="search" class="rlc-input" placeholder={t('searchChampion')} aria-label={t('searchChampion')} value={query} onInput={(e) => setQuery(e.currentTarget.value)} />
+        <button type="button" class="rlc-queue-chip" aria-pressed={lane === 'ALL'} onClick={() => setLane(lane === 'ALL' ? null : 'ALL')}>
+          {t('csAll')}
+        </button>
         {LANES.map((l) => (
           <button type="button" key={l} class="rlc-queue-chip rlc-cs-lane" aria-pressed={lane === l} onClick={() => setLane(lane === l ? null : l)}>
             <RoleIcon role={l} />
@@ -116,8 +123,8 @@ export function ChampionGrid({ ids, champions, selected, onPick, lanes, favorite
             <span class="rlc-cs-tile-name" aria-hidden="true">
               {c.name}
             </span>
-            {lane ? (
-              <button type="button" class="rlc-cs-fav" aria-label={t('favorite')} title={t('favorite')} aria-pressed={isFav(c.id)} onClick={() => onFavorite(c.id, lane)}>
+            {byLane ? (
+              <button type="button" class="rlc-cs-fav" aria-label={t('favorite')} title={t('favorite')} aria-pressed={isFav(c.id)} onClick={() => onFavorite(c.id, byLane)}>
                 ★
               </button>
             ) : (favorites.get(c.id)?.length ?? 0) > 0 ? (
