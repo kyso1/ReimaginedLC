@@ -543,6 +543,8 @@
   "add": "Add",
   "bot": "Bot",
   "removeBot": "Remove",
+  "arenaTeam": "Team",
+  "arenaMoveHere": "Move here",
   "switchTeam": "Switch team",
   "difficulty": "Difficulty",
   "champion": "Champion",

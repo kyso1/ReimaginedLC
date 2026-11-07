@@ -111,3 +111,23 @@ function useSplash(member: Participant | null, profile: Lcu['profile'], splashOf
   }, [puuid, profile, splashOf]);
   return url;
 }
+
+/**
+ * Arena: vagas por subtime e posição (1 em diante, como a LCU manda em `subteamIndex` e `intraSubteamPosition`).
+ * Quem vier sem subtime, ou numa vaga já ocupada, fica na primeira vaga livre.
+ */
+export function arenaTeams(members: Participant[], slots: number, size: number): (Participant | null)[][] {
+  const teams = Array.from({ length: Math.ceil(Math.max(slots, members.length) / size) }, () => Array<Participant | null>(size).fill(null));
+  const loose: Participant[] = [];
+  for (const m of members) {
+    const row = teams[(m.subteamIndex ?? 0) - 1];
+    const i = (m.intraSubteamPosition ?? 0) - 1;
+    if (row && i >= 0 && i < size && !row[i]) row[i] = m;
+    else loose.push(m);
+  }
+  for (const m of loose) {
+    const row = teams.find((r) => r.includes(null))!;
+    row[row.indexOf(null)] = m;
+  }
+  return teams;
+}

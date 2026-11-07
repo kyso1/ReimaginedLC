@@ -15,7 +15,8 @@ import { BotPicker, useBots } from './BotPicker';
 import { formatClock, useClock } from './format';
 import { InviteFriends } from './InviteFriends';
 import { MemberMenu } from './MemberMenu';
-import { Column, Stage, type Participant } from './Stage';
+import { arenaTeams, Column, Stage, type Participant } from './Stage';
+import { arenaTeamSize } from '../champselect/logic';
 import { QuickPlayEditor, quickPlayProblem, SlotStrip } from './QuickPlay';
 import type { Champion } from '../../data/gamedata';
 import { roseFindMatchHover } from '../../plugins/rose';
@@ -46,6 +47,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
   const [kicking, setKicking] = useState<Participant | null>(null);
   const bots = useBots(lcu.lobby.value.data?.gameConfig.isCustom === true, lcu.game);
   const switchTeam = useAction((team: number) => request('POST', `/lol-lobby/v2/lobby/team/TEAM${team === 100 ? 1 : 2}`));
+  const moveTo = useAction((subteamIndex: number, intraSubteamPosition: number) => request('PUT', '/lol-lobby/v2/lobby/subteamData', { subteamIndex, intraSubteamPosition }));
   const data = lcu.lobby.value.data;
   // Lobby some antes da fase mudar (expulso, saiu): mostra vazio até a rota trocar.
   if (!data) return <section class="rlc-lobby" />;
@@ -151,8 +153,43 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
       </LobbyBar>
     );
   } else {
-    const slots = Array.from({ length: Math.max(config.maxLobbySize, data.members.length) }, (_, i) => data.members[i] ?? null);
-    stage = <Stage>{slots.map((m, i) => column(m, `empty-${i}`, inviteSlot))}</Stage>;
+    const arena = config.gameMode === 'CHERRY';
+    if (arena) {
+      // Arena: até 18 vagas não cabem em colunas; vira uma grade de times (trios ou duplas). Vaga livre leva o
+      // jogador para lá; o convite sai das vagas e vai para a barra.
+      const size = arenaTeamSize(config.queueId);
+      stage = (
+        <div class="rlc-arena" data-size={size}>
+          {arenaTeams(data.members, config.maxLobbySize, size).map((row, ti) => {
+            const label = `${t('arenaTeam')} ${ti + 1}`;
+            return (
+              <section key={ti} class="rlc-arena-team" aria-label={label} data-mine={row.some((m) => m && isLocal(m)) ? 'true' : undefined}>
+                <header class="rlc-arena-head">
+                  <span>{label}</span>
+                  <small>
+                    {row.filter(Boolean).length}/{size}
+                  </small>
+                </header>
+                <div class="rlc-arena-slots">
+                  {row.map((m, pi) =>
+                    column(
+                      m,
+                      `arena-${ti}-${pi}`,
+                      <button type="button" disabled={moveTo.pending} onClick={() => moveTo.run(ti + 1, pi + 1)}>
+                        {t('arenaMoveHere')}
+                      </button>,
+                    ),
+                  )}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      );
+    } else {
+      const slots = Array.from({ length: Math.max(config.maxLobbySize, data.members.length) }, (_, i) => data.members[i] ?? null);
+      stage = <Stage>{slots.map((m, i) => column(m, `empty-${i}`, inviteSlot))}</Stage>;
+    }
     bar = (
       <LobbyBar
         lcu={lcu}
@@ -163,7 +200,13 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
         partyType={data.partyType}
         // Jogo Rápido: a LCU deixa `canStartActivity` ligado mesmo com vaga inválida; a restrição QP é quem diz.
         start={leader ? { label: t('findMatch'), path: '/lol-lobby/v2/lobby/matchmaking/search', enabled: data.canStartActivity && !(quickPlay && quickPlayProblem(data.restrictions, data.scarcePositions)) } : null}
-      />
+      >
+        {arena && (leader || local.allowedInviteOthers) ? (
+          <button type="button" class="rlc-button" data-variant="pill" onClick={() => setPanel('invite')}>
+            + {t('invite')}
+          </button>
+        ) : null}
+      </LobbyBar>
     );
   }
 

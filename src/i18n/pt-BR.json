@@ -543,6 +543,8 @@
   "add": "Adicionar",
   "bot": "Bot",
   "removeBot": "Remover",
+  "arenaTeam": "Time",
+  "arenaMoveHere": "Ir para esta vaga",
   "switchTeam": "Trocar de time",
   "difficulty": "Dificuldade",
   "champion": "Campeão",

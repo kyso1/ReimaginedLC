@@ -253,3 +253,25 @@ test('membro que não está pronto fica apagado com reticências no centro', () 
     act(() => render(null, root));
   }
 });
+
+test('Arena: grade de times pelo subtime e posição da LCU, vaga livre leva para lá, convite na barra', async () => {
+  const eu = leader({ summonerName: 'Fulano', subteamIndex: 2, intraSubteamPosition: 3 });
+  // A LCU manda null sem subtime; o tipo gerado só aceita número ou ausente.
+  const outro = member({ summonerName: 'Zeca', subteamIndex: null as unknown as undefined });
+  mount(withSignals({ lobby: ready(lobby([eu, outro], eu, { gameMode: 'CHERRY', queueId: 1750, maxLobbySize: 18, showPositionSelector: false })) }));
+  const teams = [...root.querySelectorAll('.rlc-arena-team')];
+  expect(teams.map((s) => s.getAttribute('aria-label'))).toEqual(['Time 1', 'Time 2', 'Time 3', 'Time 4', 'Time 5', 'Time 6']);
+  const names = (s: Element) => [...s.querySelectorAll('.rlc-col')].map((c) => c.querySelector('.rlc-col-nick')?.textContent ?? null);
+  // Sem subtime, o Zeca fica na primeira vaga livre; o meu time vem marcado.
+  expect(names(teams[0]!)).toEqual(['Zeca', null, null]);
+  expect(names(teams[1]!)).toEqual([null, null, 'Fulano']);
+  expect(teams[1]!.getAttribute('data-mine')).toBe('true');
+  expect(teams[1]!.textContent).toContain('1/3');
+  // O convite saiu das vagas: um botão só, na barra.
+  expect(buttons().filter((b) => b.textContent?.includes('Convidar'))).toHaveLength(1);
+  act(() => teams[3]!.querySelectorAll<HTMLButtonElement>('.rlc-col-empty > button')[1]!.click());
+  await settle();
+  const put = call('/lol-lobby/v2/lobby/subteamData')!;
+  expect(put[1].method).toBe('PUT');
+  expect(JSON.parse(put[1].body)).toEqual({ subteamIndex: 4, intraSubteamPosition: 2 });
+});

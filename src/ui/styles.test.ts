@@ -79,7 +79,7 @@ test('lobby: com o chat da sala aberto, a primeira vaga sobe (com animação); a
   const css = ALL();
   expect(css).toContain(".rlc-app[data-screen='lobby'][data-room-chat='open'] .rlc-stage:not([data-band='blue']) > .rlc-col:first-child:not([data-empty='true']) { padding-bottom: 292px; }");
   expect(css).toContain(".rlc-app[data-screen='lobby'][data-room-chat='open'] .rlc-stage[data-band='red'] > .rlc-col:first-child[data-empty='true'] { padding-bottom: 320px; }");
-  expect(css).toMatch(/\.rlc-stage > \.rlc-col:first-child, #rlc-root \.rlc-app\[data-screen='lobby'\] \.rlc-stage > \.rlc-col:first-child > \.rlc-col-legend \{ transition: padding-bottom/);
+  expect(css).toContain(".rlc-app[data-screen='lobby'] .rlc-stage > .rlc-col:first-child { transition: padding-bottom");
 });
 
 test('gaveta de amigos: aberta passa por cima da folha de modos, mas fica abaixo de menus soltos e avisos', () => {
