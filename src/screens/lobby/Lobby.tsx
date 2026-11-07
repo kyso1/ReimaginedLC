@@ -1,6 +1,6 @@
 import { Voice } from './Voice';
 import { ModeEmblem } from '../modes/Emblems';
-import { queueGroup, type ModeGroupId } from '../modes/queues';
+import { queueGroup, queueLabel, type ModeGroupId } from '../modes/queues';
 import type { ComponentChildren } from 'preact';
 import { signal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
@@ -16,21 +16,20 @@ import { formatClock, useClock } from './format';
 import { InviteFriends } from './InviteFriends';
 import { MemberMenu } from './MemberMenu';
 import { Column, Stage, type Participant } from './Stage';
-import { TftCustomize } from './TftCustomize';
 import { QuickPlayEditor, quickPlayProblem, SlotStrip } from './QuickPlay';
 import type { Champion } from '../../data/gamedata';
 
 const MEMBERS = '/lol-lobby/v2/lobby/members';
 
 /**
- * Gaveta do lobby aberta (Jogo Rápido, Personalizar, convidar, bot). A gaveta fica dentro da tela e o chat da sala
+ * Gaveta do lobby aberta (Jogo Rápido, convidar, bot). A gaveta fica dentro da tela e o chat da sala
  * fora, por cima: com ela aberta o App esconde o chat para não cobrir a gaveta.
  */
 export const lobbyPanelOpen = signal(false);
 
 /** Lobby no layout Palco: uma coluna por vaga e a barra flutuante com fila e busca. */
 export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
-  const [panel, setPanel] = useState<null | 'invite' | 'tft' | { botTeam: number } | { qp: 0 | 1 }>(null);
+  const [panel, setPanel] = useState<null | 'invite' | { botTeam: number } | { qp: 0 | 1 }>(null);
   const [champions, setChampions] = useState<Map<number, Champion>>(new Map());
   const quickPlay = lcu.lobby.value.data?.gameConfig.showQuickPlaySlotSelection === true;
   useEffect(() => {
@@ -79,8 +78,8 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
       </button>
     ) : null;
 
-  const isTft = config.gameMode === 'TFT';
-  const queueName = lcu.queues.value.data?.find((q) => q.id === config.queueId)?.name ?? '';
+  const queue = lcu.queues.value.data?.find((q) => q.id === config.queueId);
+  const queueName = queue ? queueLabel(queue) : '';
   const column = (m: Participant | null, key: string, empty: ComponentChildren, team?: number) => (
     <Column
       key={m ? m.puuid || m.botUuid : key}
@@ -97,8 +96,6 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
       rankQueue={rankedQueueOf(config.queueId)}
       menu={m ? memberMenu(m, team) : null}
       empty={empty}
-      companions={isTft ? lcu.game.companions : undefined}
-      onLegend={isTft && m && isLocal(m) ? () => setPanel('tft') : undefined}
       slots={quickPlay && m && !m.isBot ? <SlotStrip slots={m.playerSlots} champions={champions} onEdit={isLocal(m) ? (i) => setPanel({ qp: i }) : undefined} /> : undefined}
     />
   );
@@ -165,13 +162,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
         partyType={data.partyType}
         // Jogo Rápido: a LCU deixa `canStartActivity` ligado mesmo com vaga inválida; a restrição QP é quem diz.
         start={leader ? { label: t('findMatch'), path: '/lol-lobby/v2/lobby/matchmaking/search', enabled: data.canStartActivity && !(quickPlay && quickPlayProblem(data.restrictions, data.scarcePositions)) } : null}
-      >
-        {isTft ? (
-          <button type="button" class="rlc-button" onClick={() => setPanel('tft')}>
-            {t('tftCustomize')}
-          </button>
-        ) : null}
-      </LobbyBar>
+      />
     );
   }
 
@@ -180,7 +171,6 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
     <section class="rlc-lobby" data-custom={config.isCustom ? 'true' : undefined} data-enter={prefs.value.lobbyAnim && prefs.value.motion !== 'off' ? 'true' : undefined}>
       {stage}
       {bar}
-      {panel === 'tft' ? <TftCustomize onClose={() => setPanel(null)} /> : null}
       {panel === 'invite' ? <InviteFriends friends={lcu.friends.value.data ?? []} exclude={new Set(data.members.map((m) => m.puuid))} onClose={() => setPanel(null)} /> : null}
       {panel && typeof panel === 'object' && 'qp' in panel ? <QuickPlayEditor lcu={lcu} slots={local.playerSlots} queueId={config.queueId} summonerId={local.summonerId} initial={panel.qp} scarce={data.scarcePositions} onClose={() => setPanel(null)} /> : null}
       {panel && typeof panel === 'object' && 'botTeam' in panel ? <BotPicker bots={bots} teamId={panel.botTeam} onClose={() => setPanel(null)} /> : null}
@@ -205,7 +195,7 @@ export function lobbyEmblem(lcu: Lcu): ModeGroupId {
   const q = lcu.queues.value.data?.find((x) => x.id === config?.queueId);
   if (q) return queueGroup(q);
   const mode = config?.gameMode ?? '';
-  return mode === 'TFT' ? 'tft' : mode === 'ARAM' || mode.startsWith('KIWI') ? 'aram' : mode === 'CLASSIC' || mode === 'SWIFTPLAY' ? 'sr' : 'other';
+  return mode === 'ARAM' || mode.startsWith('KIWI') ? 'aram' : mode === 'CLASSIC' || mode === 'SWIFTPLAY' ? 'sr' : 'other';
 }
 
 interface BarProps {

@@ -60,7 +60,7 @@ export function Wallpapers({ current, onPick, compact = false }: { current: BgSo
   return (
     <div class="rlc-wp" data-compact={compact ? 'true' : undefined}>
       <div class="rlc-wp-tools">
-        <div class="rlc-tft-filter" role="tablist">
+        <div class="rlc-sheet-filter" role="tablist">
           {(['engine', 'user'] as const).map((k) => (
             <button type="button" key={k} role="tab" aria-checked={tab === k} onClick={() => setTab(k)}>
               {t(k === 'engine' ? 'wpEngine' : 'wpUser')} <small>{state.list.filter((w) => w.source === k).length}</small>

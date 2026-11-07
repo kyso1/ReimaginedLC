@@ -1,6 +1,5 @@
 import type { TextKey } from '../../i18n';
 import type { Lcu } from '../../lcu';
-import { supports } from '../../lcu/capabilities';
 import { request } from '../../lcu/request';
 import { choiceOf, selectChoice, type Choice, type RewardGrant as Grant } from '../../shell/overlays/Rewards';
 
@@ -16,7 +15,7 @@ export const getJson = async <T,>(url: string): Promise<T | null> => {
   }
 };
 
-// Modelo comum da trilha: o passe do LoL e o do TFT viram a mesma coisa na tela.
+// Modelo comum da trilha do passe.
 export interface Reward {
   name: string;
   description: string;
@@ -39,7 +38,6 @@ export const rewardState = (r: Reward): RewardState => (r.claimed ? 'claimed' : 
 export interface Level { level: number; free?: Reward; premium?: Reward }
 export interface Pass {
   id: string;
-  game: 'lol' | 'tft';
   name: string;
   endsAt: number | null;
   background: string | null;
@@ -130,7 +128,7 @@ export function eventPass(e: HubEvent, items: TrackItem[], progress: TrackProgre
     return level;
   });
   return {
-    id: e.eventId, game: 'lol', name: e.eventInfo.localizedShortName || e.eventInfo.eventName,
+    id: e.eventId, name: e.eventInfo.localizedShortName || e.eventInfo.eventName,
     endsAt: Date.parse(e.eventInfo.progressEndDate || e.eventInfo.endDate) || null, background,
     level: progress?.level ?? 0, xp: progress?.currentLevelXP ?? 0, xpTotal: progress?.totalLevelXP ?? 0,
     // A contagem do `eventInfo` fica velha (o ARAM Caos dizia 7 com nada a resgatar): vale a da trilha quando vem.
@@ -138,57 +136,13 @@ export function eventPass(e: HubEvent, items: TrackItem[], progress: TrackProgre
   };
 }
 
-// ---- Passe do TFT ----
-
-interface TftMilestone {
-  level: number; title: string; description: string; iconImageUrl: string; isPaid: boolean; isLocked: boolean; status: string;
-  pointsEarnedForMilestone: number; pointsNeededForMilestone: number;
-}
-export interface TftPass {
-  info: { passId: string; title: string; endDate: number; premium: boolean };
-  currentLevel: number;
-  activeMilestone?: TftMilestone | null;
-  milestones: TftMilestone[];
-}
-
-/** Passe do TFT: um marco por nível e fila (`isPaid`). COMPLETE é resgatado; REWARDABLE sem cadeado espera o Resgatar. */
-export function tftPass(p: TftPass): Pass {
-  const byLevel = new Map<number, Level>();
-  for (const m of p.milestones) {
-    const level = byLevel.get(m.level) ?? { level: m.level };
-    const row = m.isPaid ? 'premium' : 'free';
-    level[row] ??= {
-      name: m.title, description: m.description, icon: m.iconImageUrl, premium: m.isPaid,
-      claimed: m.status === 'COMPLETE', locked: m.isPaid && !p.info.premium, ready: m.status === 'REWARDABLE' && !m.isLocked,
-    };
-    byLevel.set(m.level, level);
-  }
-  return {
-    id: p.info.passId, game: 'tft', name: p.info.title, endsAt: p.info.endDate || null, background: null,
-    level: p.currentLevel, xp: p.activeMilestone?.pointsEarnedForMilestone ?? 0, xpTotal: p.activeMilestone?.pointsNeededForMilestone ?? 0,
-    levels: [...byLevel.values()].sort((a, b) => a.level - b.level), purchased: p.info.premium, buyable: !p.info.premium,
-    unclaimed: p.milestones.filter((m) => m.status === 'REWARDABLE' && !m.isLocked).length,
-  };
-}
-
-/** Passes do TFT ativos; sem a lista, cai no passe de batalha único. */
-export async function loadTftPasses(): Promise<Pass[]> {
-  const list = await getJson<TftPass[]>('/lol-tft-pass/v1/active-passes');
-  const passes = list?.length ? list : [await getJson<TftPass>('/lol-tft-pass/v1/battle-pass')].filter((p): p is TftPass => !!p?.info);
-  return passes.filter((p) => p.milestones?.length).map(tftPass);
-}
-
 // ---- Escritas ----
 
 /**
  * Resgata tudo o que está pendente. O client oficial (rcp-fe-lol-event-hub) usa o mesmo POST claim-all tanto no
  * botão Resgatar quanto no clique de um item liberado; não há resgate de item avulso.
- * TFT: PUT claimAllRewards tirado de docs/dump/lcu/endpoints.json, não conferido no JS oficial.
  */
-export const claimAll = (p: Pass) =>
-  p.game === 'lol'
-    ? request('POST', `/lol-event-hub/v1/events/${encodeURIComponent(p.id)}/reward-track/claim-all`)
-    : request('PUT', `/lol-tft-pass/v1/pass/${encodeURIComponent(p.id)}/milestone/claimAllRewards`);
+export const claimAll = (p: Pass) => request('POST', `/lol-event-hub/v1/events/${encodeURIComponent(p.id)}/reward-track/claim-all`);
 
 export { selectChoice };
 
@@ -205,9 +159,8 @@ export function openPassPurchase(eventId: string): boolean {
 /** Recompensas esperando resgate em todos os passes (para o ponto dourado do trilho). */
 export async function pendingClaims(lcu: Lcu): Promise<number> {
   void lcu; // a leitura é por fetch; o parâmetro fica para o integrador trocar por stores se quiser
-  const [events, tft] = await Promise.all([loadMenuEvents(), loadTftPasses().catch(() => [])]);
-  const lol = events.reduce((n, e) => n + (e.eventInfo.unclaimedRewardCount || 0), 0);
-  return lol + tft.reduce((n, p) => n + p.unclaimed, 0);
+  const events = await loadMenuEvents();
+  return events.reduce((n, e) => n + (e.eventInfo.unclaimedRewardCount || 0), 0);
 }
 
 // ---- Missões ----
@@ -246,41 +199,8 @@ export function missionCards(categories: ObjectiveCategory[], eventId: string, n
   return cards.sort((a, b) => Number(a.done) - Number(b.done));
 }
 
-// ---- Reinos dos Tesouros e Clash ----
+// ---- Clash ----
 
-export interface Trove {
-  id: string; name: string; backgroundTexture: string; thumbnailTexture: string; startDate: string; endDate: string; pullCost: number;
-  /** Compra pela loja (giro v2, o atual do client); sem eles, o giro antigo pela oferta e tabela de sorteio. */
-  storeId?: string; catalogEntryId?: string; paymentOptionsKeys?: string[]; rollOffer?: string; status?: { dropTableId?: string };
-}
-
-/** Moeda dos giros dos Reinos na carteira. */
-export const TROVE_TOKEN = 'TFT_TREASURE_TROVE_TOKEN';
-
-const ROLL_V2 = '/lol-tft-troves/v2/roll';
-const ROLL_V1 = '/lol-tft-troves/v1/roll';
-/** Giro que este client aceita para o banner: v2 (pela oferta da loja) quando há os dois, v1 como reserva; null sem nenhum. */
-export const trovesRoll = (b: Trove): 'v2' | 'v1' | null => (b.storeId && b.catalogEntryId && supports('POST', ROLL_V2) ? 'v2' : supports('POST', ROLL_V1) ? 'v1' : null);
-
-/** Gira um Reino `count` vezes, gastando fichas: o mesmo pedido do client. */
-export function rollTrove(b: Trove, count: number) {
-  if (trovesRoll(b) === 'v2') return request('POST', ROLL_V2, { storeId: b.storeId, catalogEntryId: b.catalogEntryId, paymentOptionsKeys: b.paymentOptionsKeys ?? [], quantity: count });
-  return request('POST', ROLL_V1, { offerId: b.rollOffer || b.id, numberOfRolls: count, dropTableId: b.status?.dropTableId || b.id });
-}
-
-/** Nomes do que saiu no giro (`roll-rewards` chega depois do pedido); vazio se não vier a tempo. Limpa depois de ler, como o client. */
-export async function trovesRewards(wait: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)), tries = 8): Promise<Array<{ name: string; icon: string }>> {
-  for (let i = 0; i < tries; i++) {
-    const got = await getJson<unknown>('/lol-tft-troves/v1/roll-rewards');
-    const list = (Array.isArray(got) ? got : ((got as { rewards?: unknown[] } | null)?.rewards ?? [])) as Array<Record<string, unknown>>;
-    if (list.length) {
-      void request('DELETE', '/lol-tft-troves/v1/roll-rewards').catch(() => {});
-      return list.map((r) => ({ name: String(r.name ?? r.itemName ?? r.rewardName ?? r.localizedName ?? ''), icon: String(r.iconPath ?? r.loadoutsIcon ?? r.imagePath ?? '') })).filter((r) => r.name);
-    }
-    await wait(1000);
-  }
-  return [];
-}
 export interface ClashPlayer { tier: number; tickets?: Record<string, number>; isClashBanned?: boolean }
 /** Torneio de `/lol-clash/v1/all-tournaments` (formato do dump; lista vazia quando não há torneio). */
 export interface ClashTournament { id: number; startTimeMs?: number; phases?: Array<{ id: number; cancelled?: boolean; lockinStartTime?: number }> }

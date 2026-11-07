@@ -23,7 +23,7 @@ const submit = () => request('POST', '/lol-honor/v1/ballot').catch(() => undefin
 /**
  * Votação de honra: aliados e inimigos elegíveis, até acabarem os votos da cédula. A fase PreEndOfGame só avança quando
  * cada etapa registrada pela Riot é concluída, e a tela da Riot está escondida; então nós concluímos: depois do último
- * voto, ao pular/concluir, quando não há ninguém para honrar (TFT, por exemplo) e em qualquer outra etapa que fique parada.
+ * voto, ao pular/concluir, quando não há ninguém para honrar e em qualquer outra etapa que fique parada.
  */
 export function Honor({ lcu }: { lcu: Lcu }) {
   const ballot = lcu.honorBallot.value.data;
@@ -47,15 +47,13 @@ export function Honor({ lcu }: { lcu: Lcu }) {
     }, AFTER_VOTE_MS);
     return () => clearTimeout(id);
   }, [!!ballot, done, given.length, left]);
-  // TFT não tem honra: a etapa é concluída na hora, sem esperar a cédula (que às vezes nem chega).
-  const tft = lcu.gameflowSession.value.data?.map?.gameMode === 'TFT';
   const [noBallot, setNoBallot] = useState(false);
   useEffect(() => {
     if (ballot) return;
     const id = setTimeout(() => setNoBallot(true), NO_BALLOT_MS);
     return () => clearTimeout(id);
   }, [!!ballot]);
-  const nobody = tft || (ballot ? !allies.length && !opponents.length : noBallot);
+  const nobody = ballot ? !allies.length && !opponents.length : noBallot;
   useEffect(() => {
     if (nobody) void completeStep('honor-vote');
   }, [nobody]);

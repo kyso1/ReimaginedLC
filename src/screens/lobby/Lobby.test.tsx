@@ -242,58 +242,10 @@ test('em fila com a fase ainda em Lobby (como a LCU faz na fila normal), a barra
   expect(btn('Encontrar partida')).toBeUndefined();
 });
 
-test('TFT: a coluna mostra a Pequena Lenda equipada no lugar da splash, e Personalizar abre a gaveta', async () => {
-  const tft = leader({ summonerName: 'Fulano', summonerIconId: 29, memberData: { 'TFT.Tactician': 'abc' } } as never);
-  const lcu = withSignals({ lobby: ready(lobby([tft], tft, { gameMode: 'TFT', queueId: 1100 })) });
-  lcu.profile = async () => ({ backgroundSkinId: 1001 });
-  lcu.game = { ...lcu.game, splash: async () => '/s.jpg', companions: async () => new Map([['abc', { itemId: 91003, name: 'Chibi Orianna', icon: '/o.png' }]]) };
-  mount(lcu);
-  await settle();
-  await settle();
-  const col = root.querySelector<HTMLElement>('.rlc-col')!;
-  expect(col.querySelector<HTMLImageElement>('.rlc-col-legend img')!.getAttribute('src')).toBe('/o.png');
-  // Sem a splash do perfil: o fundo é a própria lenda (desfocada no CSS).
-  expect(col.querySelectorAll('.rlc-col-splash')).toHaveLength(1);
-  expect(col.querySelector<HTMLElement>('.rlc-col-legend-bg')!.style.backgroundImage).toContain('/o.png');
-  expect(col.querySelector<HTMLImageElement>('.rlc-col-name .rlc-col-icon')!.getAttribute('src')).toBe('/lol-game-data/assets/v1/profile-icons/29.jpg');
-  act(() => btn('Personalizar')!.click());
-  expect(root.querySelector('.rlc-tft-drawer')).not.toBeNull();
-});
-
-test('TFT: clicar na Pequena Lenda do jogador local abre Personalizar; a dos outros não é botão', async () => {
-  const tft = leader({ summonerName: 'Fulano', memberData: { 'TFT.Tactician': 'abc' } } as never);
-  const outro = member({ summonerName: 'Zeca', memberData: { 'TFT.Tactician': 'abc' } } as never);
-  const lcu = withSignals({ lobby: ready(lobby([tft, outro], tft, { gameMode: 'TFT', queueId: 1090 })) });
-  lcu.game = { ...lcu.game, companions: async () => new Map([['abc', { itemId: 91003, name: 'Chibi Orianna', icon: '/o.png' }]]) };
-  mount(lcu);
-  await settle();
-  await settle();
-  const cards = [...root.querySelectorAll('.rlc-col-legend-card')];
-  expect(cards.map((c) => c.tagName)).toEqual(['BUTTON', 'SPAN']);
-  expect(root.querySelector('.rlc-col[data-tft="true"]')).not.toBeNull();
-  act(() => (cards[0] as HTMLButtonElement).click());
-  expect(root.querySelector('.rlc-tft-drawer')).not.toBeNull();
-});
-
-test('TFT ranqueado: cada coluna mostra o elo do jogador', async () => {
-  const tft = leader({ summonerName: 'Fulano', puuid: 'tft-elo-1' });
-  fetchMock.mockImplementation(async (url: string) =>
-    url === '/lol-ranked/v1/ranked-stats/tft-elo-1'
-      ? new Response(JSON.stringify({ queueMap: { RANKED_TFT: { tier: 'DIAMOND', division: 'II', leaguePoints: 39 }, RANKED_SOLO_5x5: { tier: 'GOLD', division: 'I', leaguePoints: 5 } } }), { status: 200 })
-      : new Response(null, { status: 204 }),
-  );
-  mount(withSignals({ lobby: ready(lobby([tft], tft, { gameMode: 'TFT', queueId: 1100 })) }));
-  await settle();
-  await settle();
-  const rank = root.querySelector('.rlc-col .rlc-rank')!;
-  expect(rank.textContent).toBe('• Diamante II 39 PdL');
-  expect(rank.querySelector('img')!.getAttribute('src')).toContain('diamond');
-});
-
-test('membro que não está pronto fica apagado com reticências no centro, no LoL e no TFT', () => {
+test('membro que não está pronto fica apagado com reticências no centro', () => {
   const busy = member({ summonerName: 'Zeca', ready: false });
-  for (const config of [{}, { gameMode: 'TFT' }]) {
-    mount(withSignals({ lobby: ready(lobby([me, busy], me, config)) }));
+  {
+    mount(withSignals({ lobby: ready(lobby([me, busy], me)) }));
     const cols = [...root.querySelectorAll('.rlc-col:not([data-empty])')];
     expect(cols.map((c) => c.getAttribute('data-unready'))).toEqual([null, 'true']);
     expect(cols[1]!.querySelector('.rlc-col-wait')!.getAttribute('aria-label')).toBe('Ainda não está pronto');

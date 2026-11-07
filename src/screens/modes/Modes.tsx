@@ -9,11 +9,11 @@ import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
 import { ModeEmblem, TEAM_SIZE } from './Emblems';
 import { Loader } from '../../ui/Loader';
-import { customLobbyBody, groupQueues, type ModeGroupId } from './queues';
+import { customLobbyBody, groupQueues, queueLabel, type ModeGroupId } from './queues';
 
 export const LAST_QUEUE_KEY = 'rlc.lastQueue';
 
-const LABEL: Record<ModeGroupId, TextKey> = { sr: 'modeSr', aram: 'modeAram', tft: 'modeTft', other: 'modeOther' };
+const LABEL: Record<ModeGroupId, TextKey> = { sr: 'modeSr', classic: 'mapClassicRift', aram: 'modeAram', other: 'modeOther' };
 
 /** Categoria da fila como as abas do client (JxJ, Cooperativo vs. IA, Treino). Sem categoria conhecida, conta como JxJ. */
 type Category = 'pvp' | 'ai' | 'training';
@@ -75,7 +75,7 @@ export function Modes({ queues, current, onClose, onCustom }: { queues: LolGameQ
     if (!list.some((q) => q.id === selected)) setSelected(first?.id ?? null);
   };
   const chosenGroup = chosen ? groups.find((g) => g.queues.includes(chosen)) : undefined;
-  const summary = chosen ? (chosenGroup ? `${t(LABEL[chosenGroup.id])} · ${chosen.name}` : chosen.name) : t('pickQueue');
+  const summary = chosen ? (chosenGroup ? `${t(LABEL[chosenGroup.id])} · ${queueLabel(chosen)}` : queueLabel(chosen)) : t('pickQueue');
   const categories = (['pvp', 'ai', 'training'] as Category[]).map((c) => [c, visibleQueues.filter((q) => categoryOf(q) === c)] as const).filter(([, list]) => list.length);
 
   return (
@@ -103,7 +103,7 @@ export function Modes({ queues, current, onClose, onCustom }: { queues: LolGameQ
             <div class="rlc-queue-chips">
               {list.map((q) => (
                 <button type="button" key={q.id} class="rlc-queue-chip" aria-pressed={q.id === selected} onClick={() => setSelected(q.id)} onDblClick={() => confirm.run(q.id)}>
-                  {q.name}
+                  {queueLabel(q)}
                 </button>
               ))}
             </div>

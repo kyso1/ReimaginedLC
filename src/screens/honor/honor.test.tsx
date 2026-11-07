@@ -25,7 +25,7 @@ function mount(lcu: Lcu, step = 'honor-vote') {
   return { host, calls };
 }
 
-test('fim de jogo sem ninguém para honrar (TFT) conclui a etapa de honra sozinho', async () => {
+test('fim de jogo sem ninguém para honrar conclui a etapa de honra sozinho', async () => {
   const { calls } = mount(fakeLcu({ honorBallot: ballot(0) }));
   await act(async () => {});
   expect(calls).toEqual(['/lol-pre-end-of-game/v1/complete/honor-vote']);
@@ -44,14 +44,6 @@ test('etapa da Riot sem tela nossa parada é concluída; a de honra com votos pe
   for (let t = 0; t <= STUCK_MS + 4000; t += 1000) { await act(async () => void vi.advanceTimersByTime(1000)); await act(async () => {}); }
   expect(calls).toContain('/lol-pre-end-of-game/v1/complete/tft-ceremony');
   expect(calls).not.toContain('/lol-pre-end-of-game/v1/complete/honor-vote');
-});
-
-test('TFT conclui a honra na hora, sem esperar a cédula', async () => {
-  const lcu = fakeLcu();
-  (lcu.gameflowSession as { value: unknown }).value = { loading: false, error: null, status: 'ready', data: { map: { gameMode: 'TFT' } } };
-  const { calls } = mount(lcu);
-  await act(async () => {});
-  expect(calls).toContain('/lol-pre-end-of-game/v1/complete/honor-vote');
 });
 
 test('sem cédula depois de NO_BALLOT_MS, a honra é concluída', async () => {

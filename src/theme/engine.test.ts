@@ -41,15 +41,12 @@ test.each([['texto'], [42], [null], [['editorial']], [{ lol: 'nao-existe' }], [{
   expect(engine.active.value.name).toBe('vidro');
 });
 
-test('set troca o tema ativo e persiste por jogo, preservando o outro jogo', async () => {
+test('set troca o tema ativo e persiste, preservando chaves antigas do registro', async () => {
   data.set('rlc.theme', { lol: 'vidro', tft: 'vidro-ludico' });
   const engine = await createThemeEngine('https://x/', files());
   engine.set('editorial');
   expect(engine.active.value.name).toBe('editorial');
   expect(data.get('rlc.theme')).toEqual({ lol: 'editorial', tft: 'vidro-ludico' });
-  engine.set('vidro', 'tft');
-  expect(engine.active.value.name).toBe('editorial');
-  expect(data.get('rlc.theme')).toEqual({ lol: 'editorial', tft: 'vidro' });
 });
 
 test('set com tema desconhecido mantém o atual e avisa', async () => {
@@ -95,13 +92,6 @@ test('tema do usuário inválido ou com nome de tema embutido é recusado com o 
   expect(engine.saveUser(userTheme({ name: 'vidro' }))).toMatchObject({ ok: false });
   expect(engine.saveUser('nada')).toMatchObject({ ok: false });
   expect(engine.list.value.some((t) => t.name === 'meu-tema')).toBe(false);
-});
-
-test('tema por jogo: o do TFT é independente do LoL', async () => {
-  const engine = await createThemeEngine('https://x/', files());
-  engine.set('vidro-ludico', 'tft');
-  expect(engine.forGame.tft.value.name).toBe('vidro-ludico');
-  expect(engine.active.value.name).toBe('vidro');
 });
 
 test('apagar o tema ativo volta ao Vidro; exportar devolve o manifesto em JSON', async () => {

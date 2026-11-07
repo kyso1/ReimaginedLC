@@ -87,7 +87,7 @@ export function fakeLcu(over: Partial<Lcu> = {}): Lcu {
     customGames: { state: signal(ready([])), refresh: async () => {} },
     profile: async () => null,
     name: async () => null,
-    game: { champions: async () => new Map(), spells: async () => new Map(), splash: async () => null, items: async () => new Map(), companions: async () => new Map() },
+    game: { champions: async () => new Map(), spells: async () => new Map(), splash: async () => null, items: async () => new Map() },
     champSelect: signal(ready<Lcu['champSelect']['value']['data'] & object>(null)),
     skins: signal(ready([])),
     pickable: signal(ready([])),
@@ -138,10 +138,10 @@ export const session = (over: Partial<Session> & { actions?: ActionFixture[][] }
   }) as unknown as Session;
 
 /** Motor de temas de teste: só o necessário, com `set` substituível. */
-export function fakeThemes(active: import('@preact/signals').Signal<import('../theme/resolve').ResolvedTheme>, available: Array<{ name: string; label: string; user?: boolean }>, set: (name: string, game?: 'lol' | 'tft') => void): import('../theme/engine').ThemeEngine {
+export function fakeThemes(active: import('@preact/signals').Signal<import('../theme/resolve').ResolvedTheme>, available: Array<{ name: string; label: string; user?: boolean }>, set: (name: string, game?: 'lol') => void): import('../theme/engine').ThemeEngine {
   return {
     active,
-    forGame: { lol: active, tft: active },
+    forGame: { lol: active },
     list: signal(available.map((a) => ({ ...a, user: a.user ?? false }))),
     available,
     set,

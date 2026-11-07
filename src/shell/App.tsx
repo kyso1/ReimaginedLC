@@ -110,9 +110,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   const screen = route === 'champselect' && lcu.champSelect.value.status === 'unavailable' ? null : route;
   const phaseName = lcu.gameflowPhase.value.data ?? '';
   const visible = enabled.value && screen !== null;
-  // Tema por jogo: lobby ou partida de TFT usa o tema do TFT.
-  const isTft = lcu.lobby.value.data?.gameConfig.gameMode === 'TFT' || lcu.gameflowSession.value.data?.gameData?.queue?.gameMode === 'TFT';
-  const theme = isTft ? themes.forGame.tft.value : themes.active.value;
+  const theme = themes.active.value;
   const hide = visible && hideRiot.value;
   // Tela de carregamento (posta no `init`): sai quando a camada desliga ou quando a tela e o perfil chegaram.
   const profileReady = lcu.currentSummoner.value.status !== 'loading';

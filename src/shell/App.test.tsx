@@ -532,17 +532,6 @@ test('chat da sala aparece no lobby a partir do id da sala', async () => {
   expect(root.querySelector('.rlc-ctx')).not.toBeNull();
 });
 
-test('lobby de TFT usa o tema do TFT', async () => {
-  enabled.value = true;
-  const tft: typeof vidro = { ...vidro, name: 'vidro-ludico', tokens: { 'color.bg': '#3a2a12' } };
-  themes.forGame.tft = signal(tft);
-  phase.value = ready('Lobby');
-  lcu.lobby.value = ready(lobbyFixture([leaderFixture()], undefined, { gameMode: 'TFT', queueId: 1090 }));
-  mount();
-  await flush();
-  expect(root.style.getPropertyValue('--rlc-color-bg')).toBe('#3a2a12');
-});
-
 test('fundo personalizado: splash escolhida substitui o fundo do tema na tela inicial, com escurecer', async () => {
   enabled.value = true;
   lcu.game = { ...lcu.game, splash: async (id) => (id === 103001 ? '/s/103001.jpg' : null) };

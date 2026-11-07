@@ -61,7 +61,7 @@ const AREAS: Array<[Area, TextKey, TextKey]> = [
 
 // Linhas das áreas da camada, para a busca achar a configuração pelo nome.
 const OWN_ROWS: Partial<Record<Area, TextKey[]>> = {
-  look: ['stThemesLol', 'stThemesTft', 'stImport', 'stNewTheme', 'stCss', 'stBackground', 'stBgScreen', 'stBgSource', 'stBgRandom', 'stBgDim', 'stBgBlur', 'stBgPosX', 'stBgPosY'],
+  look: ['stThemesLol', 'stImport', 'stNewTheme', 'stCss', 'stBackground', 'stBgScreen', 'stBgSource', 'stBgRandom', 'stBgDim', 'stBgBlur', 'stBgPosX', 'stBgPosY'],
   anim: ['stMotion', 'stVideo', 'stReadyAnim', 'stLobbyAnim'],
   sound: ['stClicks', 'stClickVol'],
   plug: ['stRunesAuto', 'stRunesMatchup', 'stRunesLock', 'stAllSplashes', 'mkAutoAccept', 'mkAcceptDelay', 'mkOffline', 'roseName', 'spName', 'spStatus', 'mkTitle'],
@@ -372,7 +372,6 @@ function Appearance({ lcu, themes, onEdit }: { lcu: Lcu; themes: ThemeEngine; on
   const [deleting, setDeleting] = useState<{ name: string; label: string } | null>(null);
   const groups: Array<[Game, TextKey]> = [
     ['lol', 'stThemesLol'],
-    ['tft', 'stThemesTft'],
   ];
   const importJson = async (file: File | undefined) => {
     if (!file) return;
@@ -654,7 +653,7 @@ function PotatoRow() {
 
 function General({ lcu, themes }: { lcu: Lcu; themes: ThemeEngine }) {
   const p = prefs.value;
-  const report = () => errorReport({ phase: lcu.gameflowPhase.value.data ?? null, theme: themes.forGame.lol.value.name, tftTheme: themes.forGame.tft.value.name });
+  const report = () => errorReport({ phase: lcu.gameflowPhase.value.data ?? null, theme: themes.forGame.lol.value.name });
   return (
     <section class="rlc-st-card rlc-st-general">
       {/* Primeiro da área: é aqui que o aviso de versão nova manda o usuário. */}

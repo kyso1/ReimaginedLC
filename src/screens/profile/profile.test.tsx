@@ -33,7 +33,7 @@ const fullGame = {
   participantIdentities: [ident(1, 'Fulano', 'me'), { participantId: 6, player: { ...ident(6, '<i>Zeca</i>', 'z').player, summonerId: 66 } }],
 };
 const timeline = { frames: [{ timestamp: 0, participantFrames: { '1': { participantId: 1, totalGold: 500 }, '6': { participantId: 6, totalGold: 500 } } }, { timestamp: 60000, participantFrames: { '1': { participantId: 1, totalGold: 900 }, '6': { participantId: 6, totalGold: 700 } } }] };
-const ranked = { queueMap: { RANKED_SOLO_5x5: { tier: 'GOLD', division: 'II', leaguePoints: 48, wins: 54, losses: 46, previousSeasonEndTier: 'GOLD', previousSeasonEndDivision: 'IV', highestTier: 'PLATINUM', highestDivision: 'IV' }, RANKED_FLEX_SR: { tier: 'SILVER', division: 'I', leaguePoints: 12, wins: 20, losses: 18 }, RANKED_TFT: { tier: '', division: 'NA', leaguePoints: 0, wins: 0, losses: 0, provisionalGamesRemaining: 3 }, RANKED_TFT_DOUBLE_UP: { tier: 'GOLD', division: 'I', leaguePoints: 10, wins: 3, losses: 1, provisionalGamesRemaining: 2 }, RANKED_PREMADE_5x5: { tier: 'BRONZE', division: 'III', leaguePoints: 20, wins: 2, losses: 2 }, JADE_RANKED_SOLO_5x5: { tier: 'SILVER', division: 'II', leaguePoints: 5, wins: 1, losses: 0 } } };
+const ranked = { queueMap: { RANKED_SOLO_5x5: { tier: 'GOLD', division: 'II', leaguePoints: 48, wins: 54, losses: 46, previousSeasonEndTier: 'GOLD', previousSeasonEndDivision: 'IV', highestTier: 'PLATINUM', highestDivision: 'IV' }, RANKED_FLEX_SR: { tier: 'SILVER', division: 'I', leaguePoints: 12, wins: 20, losses: 18 }, RANKED_TFT: { tier: '', division: 'NA', leaguePoints: 0, wins: 0, losses: 0, provisionalGamesRemaining: 3 }, RANKED_TFT_DOUBLE_UP: { tier: 'GOLD', division: 'I', leaguePoints: 10, wins: 3, losses: 1, provisionalGamesRemaining: 2 }, RANKED_PREMADE_5x5: { tier: 'BRONZE', division: 'III', leaguePoints: 20, wins: 2, losses: 2 }, JADE_RANKED_SOLO_5x5: { tier: 'SILVER', division: 'II', leaguePoints: 5, wins: 1, losses: 0, provisionalGamesRemaining: 2 } } };
 const mastery = [{ championId: 103, championLevel: 23, championPoints: 219000, championPointsSinceLastLevel: 2750, championPointsUntilNextLevel: 8250, lastPlayTime: 1000 }, { championId: 238, championLevel: 5, championPoints: 31000, championPointsSinceLastLevel: 0, championPointsUntilNextLevel: 0, lastPlayTime: 2000 }];
 
 function routes(url: string): unknown {
@@ -74,7 +74,7 @@ function mount() {
     items: async () => new Map([[3089, '/it/3089.png'], [3340, '/it/3340.png']]),
     spells: async () => new Map([[4, { id: 4, name: 'Flash', icon: '/sp/4.png', gameModes: [] }], [14, { id: 14, name: 'Incendiar', icon: '/sp/14.png', gameModes: [] }]]),
   };
-  lcu.queues.value = ready([queue({ id: 400, name: 'Normal (Escolha)' }), queue({ id: 420, name: 'Ranqueada Solo/Duo' }), queue({ id: 450, name: 'ARAM' }), queue({ id: 710, type: 'RANKED_PREMADE_5x5', name: 'Ranqueada 5x5' }), queue({ id: 4310, type: 'JADE_RANKED_SOLO_5x5', name: '' })]) as Lcu['queues']['value'];
+  lcu.queues.value = ready([queue({ id: 400, name: 'Normal (Escolha)' }), queue({ id: 420, name: 'Ranqueada Solo/Duo' }), queue({ id: 450, name: 'ARAM' }), queue({ id: 710, type: 'RANKED_PREMADE_5x5', name: 'Ranqueada 5x5' }), queue({ id: 4310, type: 'JADE_RANKED_SOLO_5x5', name: '', gameMode: 'JADE', description: 'Clássico 5x5' })]) as Lcu['queues']['value'];
   act(() => render(<Profile lcu={lcu} puuid="me" />, root));
   return lcu;
 }
@@ -134,11 +134,10 @@ test('histórico: o quadro sobe com o feed por dia e a coluna de elo, rotas e KD
   expect(days[2]!.querySelector('.rlc-mh-meta')!.textContent).toBe('ARAM');
   // Coluna: elo por fila com barra de PdL, rotas das partidas carregadas, KDA em linha.
   const elo = [...sheet.querySelectorAll('.rlc-pf-elo')];
-  expect(elo).toHaveLength(3);
+  expect(elo).toHaveLength(2);
   expect(elo[0]!.textContent).toContain('Ouro II');
   expect(elo[0]!.textContent).toContain('Solo/Duo · 48 PdL');
   expect(elo[0]!.querySelector<HTMLElement>('.rlc-pf-bar i')!.style.width).toBe('48%');
-  expect(elo[2]!.textContent).toContain('Sem classificação');
   const roles = sheet.querySelector('.rlc-pf-roles')!;
   expect([...roles.children].slice(3).map((c) => c.textContent)).toEqual(['Meio', '', '100%', 'Suporte', '', '0%']);
   expect(sheet.querySelector('.rlc-pf-kda polyline')!.getAttribute('points')!.split(' ')).toHaveLength(5);
@@ -265,13 +264,13 @@ test('placar: ícones de campeão, feitiços, runas e os 7 encaixes de item (o 7
   expect(row.textContent).toContain('31.000');
 });
 
-test('ranqueadas: um cartão por fila com elo, as três principais primeiro; fila sem elo ou sem nome no client fica de fora', async () => {
+test('ranqueadas: um cartão por fila com elo, as principais primeiro; TFT (client próprio) e fila sem elo ficam de fora; Rift Clássico pelo description', async () => {
   mount();
   await settle();
   act(() => tab('Ranqueadas').click());
   await settle();
   const cards = [...root.querySelectorAll('.rlc-rk-card')];
-  expect(cards.map((c) => c.querySelector('small')!.textContent)).toEqual(['Solo/Duo', 'Flex', 'TFT Dupla', 'Ranqueada 5x5']);
+  expect(cards.map((c) => c.querySelector('small')!.textContent)).toEqual(['Solo/Duo', 'Flex', 'Ranqueada 5x5', 'Clássico 5x5']);
   expect(cards[0]!.textContent).toContain('Ouro II');
   expect(cards[0]!.textContent).toContain('48 PdL');
   // Cada cartão traz a própria temporada anterior, aproveitamento, pico e a barra de PdL até a próxima divisão.
@@ -280,8 +279,8 @@ test('ranqueadas: um cartão por fila com elo, as três principais primeiro; fil
   expect(cards[0]!.textContent).toContain('Pico: Platina IV');
   expect(cards[1]!.textContent).not.toContain('Pico');
   expect(cards[0]!.querySelector<HTMLElement>('.rlc-rk-lp i')!.style.width).toBe('48%');
-  expect(cards[2]!.textContent).toContain('Ouro I');
-  expect(cards[2]!.textContent).toContain('2 partidas de classificação restantes');
+  expect(cards[3]!.textContent).toContain('Prata II');
+  expect(cards[3]!.textContent).toContain('2 partidas de classificação restantes');
 });
 
 test('ranqueadas: sem elo em nenhuma fila mostra só "Sem classificação"', () => {

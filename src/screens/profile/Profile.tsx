@@ -10,13 +10,13 @@ import { useDecoded } from '../../ui/useDecoded';
 import { useEscape } from '../../ui/useEscape';
 import { useDrawerClose } from '../modes/Modes';
 import { formatClock } from '../lobby/format';
+import { queueLabel } from '../modes/queues';
 import {
   byDay, getJson, inFilter, kda, kdaRatio, laneOf, mine, niceStep, num, perks, playerName, relativeDay, teamGold, tierLabel,
   type Game, type Participant, type Perk, type QueueFilter, type Timeline,
 } from './data';
 import { crestFromId, prestigeTheme, type BannerCatalog, type ChallengeSummary, type Look } from './look';
 import { Badge, IdentityModal, type Tab as IdentityTab } from './Identity';
-import { TftHistory } from './TftHistory';
 import { PlayerHover } from './PlayerHover';
 import { ReplayButton } from './ReplayButton';
 import { canReportFromHistory, PlayerMenu, ReportDialog, useReported, type EogTarget } from '../postgame/Report';
@@ -214,54 +214,35 @@ export interface QueueMenu {
 }
 
 /**
- * Seletor de jogo do quadro: LoL ou TFT (cada um com feed, filtros e coluna próprios). O lado ativo abre um menu
- * pequeno com as filas; a pílula do menu desliza até a escolhida, e a chave mostra a fila ao lado do jogo.
+ * Seletor de fila do quadro: a pílula abre um menu pequeno com as filas; a pílula do menu desliza até a escolhida e
+ * a chave mostra a fila ao lado do nome.
  */
-export function GameSwitch({ tft, onChange, menu }: { tft: boolean; onChange: (tft: boolean) => void; menu?: QueueMenu }) {
+export function GameSwitch({ menu }: { menu?: QueueMenu }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const hasMenu = !!menu && menu.options.length > 1;
   const index = menu ? Math.max(0, menu.options.findIndex(([v]) => v === menu.value)) : 0;
-  const side = (game: boolean, label: string) => {
-    const active = game === tft;
-    const picked = active && menu && index > 0 ? t(menu.options[index]![1]) : '';
-    return (
-      <button
-        type="button"
-        aria-pressed={active}
-        aria-haspopup={active && hasMenu ? 'listbox' : undefined}
-        aria-expanded={active && hasMenu ? open : undefined}
-        onClick={() => (active ? hasMenu && setOpen(!open) : (setOpen(false), onChange(game)))}
-      >
-        {label}
-        {picked ? <small>{picked}</small> : null}
-        {active && hasMenu ? (
-          <svg class="rlc-pf-caret" viewBox="0 0 10 6" aria-hidden="true">
-            <path d="M1 1l4 4 4-4" />
-          </svg>
-        ) : null}
-      </button>
-    );
-  };
+  const picked = menu && index > 0 ? t(menu.options[index]![1]) : '';
   return (
     <div class="rlc-pf-gamebox" ref={box}>
       <div class="rlc-pf-game" role="group" aria-label={t('pfTftGame')}>
-        {side(false, t('pfTftLol'))}
-        {side(true, t('modeTft'))}
+        <button type="button" aria-pressed={true} aria-haspopup={hasMenu ? 'listbox' : undefined} aria-expanded={hasMenu ? open : undefined} onClick={() => hasMenu && setOpen(!open)}>
+          {t('pfTftLol')}
+          {picked ? <small>{picked}</small> : null}
+          {hasMenu ? (
+            <svg class="rlc-pf-caret" viewBox="0 0 10 6" aria-hidden="true">
+              <path d="M1 1l4 4 4-4" />
+            </svg>
+          ) : null}
+        </button>
       </div>
       {open && menu ? <PillMenu box={box} options={menu.options.map(([v, label]) => [v, t(label)])} value={menu.value} onPick={menu.onChange} onClose={() => setOpen(false)} /> : null}
     </div>
   );
 }
 
-const TFT_QUEUES: Array<[string, TextKey]> = [
-  ['RANKED_TFT', 'filterRanked'],
-  ['RANKED_TFT_DOUBLE_UP', 'pfTftDoubleUp'],
-];
-
 function History({ lcu, puuid, ranked }: { lcu: Lcu; puuid: string; ranked: Ranked }) {
-  const [tft, setTft] = useState(false);
-  const head = (menu?: QueueMenu) => <GameSwitch tft={tft} onChange={setTft} menu={menu} />;
+  const head = (menu?: QueueMenu) => <GameSwitch menu={menu} />;
   const icons = useIcons(lcu);
   const [games, setGames] = useState<Game[]>([]);
   const [filter, setFilter] = useState<QueueFilter>('all');
@@ -280,7 +261,6 @@ function History({ lcu, puuid, ranked }: { lcu: Lcu; puuid: string; ranked: Rank
   }, [puuid]);
   const queueName = (id: number) => lcu.queues.value.data?.find((q) => q.id === id)?.name ?? '';
 
-  if (tft) return <TftHistory lcu={lcu} puuid={puuid} head={head} elo={<EloPanel ranked={ranked} queues={TFT_QUEUES} />} />;
   if (open) return <MatchDetail lcu={lcu} puuid={puuid} gameId={open.gameId} originY={open.originY} onBack={() => setOpen(null)} />;
   const days = byDay(games.filter((g) => inFilter(g.queueId, filter)));
   const dec = new Intl.NumberFormat(locale(), { maximumFractionDigits: 1, minimumFractionDigits: 1 });
@@ -354,7 +334,7 @@ function History({ lcu, puuid, ranked }: { lcu: Lcu; puuid: string; ranked: Rank
 
 const crestUrl = (tier: string) => `/fe/lol-static-assets/images/ranked-mini-crests/${tier.toLowerCase()}.svg`;
 
-/** Elo de cada fila com a barra de PdL (0 a 100; elos de topo enchem a barra). Só Solo/Duo, Flex e TFT: as outras filas ficam nos cards de Ranqueada. */
+/** Elo de cada fila com a barra de PdL (0 a 100; elos de topo enchem a barra). Só Solo/Duo e Flex: as outras filas ficam nos cards de Ranqueada. */
 function EloPanel({ ranked, queues = QUEUES.slice(0, 3) }: { ranked: Ranked; queues?: Array<[string, TextKey]> }) {
   return (
     <div class="rlc-pf-panel">
@@ -589,7 +569,6 @@ function MatchDetail({ lcu, puuid, gameId, originY, onBack }: { lcu: Lcu; puuid:
         <ReportDialog
           gameId={game.gameId}
           target={reporting}
-          game="lol"
           from="history"
           onSent={() => {
             markReported(reporting.puuid);
@@ -789,8 +768,6 @@ export function DamageBars({ game, me, icons }: { game: Game; me: Participant | 
 const QUEUES: Array<[string, TextKey]> = [
   ['RANKED_SOLO_5x5', 'rankedSolo'],
   ['RANKED_FLEX_SR', 'rankedFlex'],
-  ['RANKED_TFT', 'rankedTft'],
-  ['RANKED_TFT_DOUBLE_UP', 'rankedTftDoubleUp'],
 ];
 
 /** Mestre para cima o PdL não tem teto, então não há barra até a próxima divisão. */
@@ -803,7 +780,10 @@ const APEX = ['MASTER', 'GRANDMASTER', 'CHALLENGER'];
 export function RankedCards({ ranked, queues }: { ranked: Ranked; queues: LolGameQueuesQueue[] }) {
   const label = (q: string) => {
     const known = QUEUES.find(([k]) => k === q);
-    return known ? t(known[1]) : (queues.find((x) => x.type === q && x.name)?.name ?? '');
+    // TFT tem client próprio: os elos dele ainda vêm no queueMap, mas ficam de fora.
+    if (q.includes('TFT')) return '';
+    const queue = queues.find((x) => x.type === q);
+    return known ? t(known[1]) : queue ? queueLabel(queue) : '';
   };
   const order = (q: string) => {
     const i = QUEUES.findIndex(([k]) => k === q);

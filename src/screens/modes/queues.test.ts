@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { queue } from '../../test/fixtures';
-import { customLobbyBody, customModes, groupQueues } from './queues';
+import { customLobbyBody, customModes, groupQueues, queueLabel } from './queues';
 
 test('agrupa por gameSelectModeGroup na ordem fixa, só filas disponíveis, visíveis e não personalizadas', () => {
   const groups = groupQueues([
@@ -56,4 +56,18 @@ test('a Ferramenta de Treino (kTraining) entra em Summoner\'s Rift mesmo marcada
 
 test('fila sem nome fica de fora', () => {
   expect(groupQueues([queue({ id: 843, name: '' })])).toEqual([]);
+});
+
+test('16.22: TFT (client próprio) some do seletor; Rift Clássico (kJade) vira grupo próprio com o nome da description', () => {
+  const list = [
+    queue({ id: 1100, gameMode: 'TFT', gameSelectModeGroup: 'kTeamfightTactics', name: 'TFT Ranqueada' }),
+    queue({ id: 4310, gameMode: 'JADE', gameSelectModeGroup: 'kJade', name: '', shortName: 'Clássico', description: 'Clássico 5x5' }),
+    queue({ id: 4320, gameMode: 'JADE', gameSelectModeGroup: 'kJade', name: 'Jade', shortName: 'Clássico', description: 'Clássico Cooperativo' }),
+    queue({ id: 3260, gameMode: 'JADE', gameSelectModeGroup: 'kJade', name: 'Classic Rift', description: 'Clássico (Escolha às Cegas)', gameSelectCategory: 'CreateCustom', isCustom: true }),
+    queue({ id: 3000, gameMode: 'TFT', name: 'TFT Personalizada', gameSelectCategory: 'CreateCustom', isCustom: true }),
+  ];
+  const groups = groupQueues(list);
+  expect(groups.map((g) => [g.id, g.queues.map(queueLabel)])).toEqual([['classic', ['Clássico 5x5', 'Clássico Cooperativo']]]);
+  expect(customModes(list).map(queueLabel)).toEqual(['Clássico (Escolha às Cegas)']);
+  expect(queueLabel(queue({ name: 'ARAM', description: 'outra coisa' }))).toBe('ARAM');
 });

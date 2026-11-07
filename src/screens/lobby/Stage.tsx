@@ -6,7 +6,6 @@ import type { LolLobbyLobbyParticipantDto } from '../../lcu/types';
 import { Rank } from '../../ui/Rank';
 import { useDecoded } from '../../ui/useDecoded';
 import { PositionIcons } from './Positions';
-import { profileIcon } from '../social/FriendCard';
 
 export type Participant = LolLobbyLobbyParticipantDto;
 
@@ -39,17 +38,12 @@ interface ColumnProps {
   menu?: ComponentChildren;
   /** Conteúdo da vaga vazia (convidar, trocar de time, bot). */
   empty?: ComponentChildren;
-  /** TFT: Pequenas Lendas por contentId; a coluna mostra a do membro no lugar da splash. */
-  companions?: Lcu['game']['companions'];
-  /** TFT: clique na Pequena Lenda (só a do jogador local) abre Personalizar. */
-  onLegend?: () => void;
   /** Jogo Rápido: as vagas (campeão e rota) do membro, abaixo do elo. */
   slots?: ComponentChildren;
 }
 
-export function Column({ member, profile, name, splash: splashOf, isLocal = false, showPositions = false, scarce, forceScarce, label, editPositions = false, rankQueue = null, menu, empty, companions, onLegend, slots }: ColumnProps) {
-  const legend = useLegend(companions ? member : null, companions);
-  const splash = useDecoded(useSplash(companions ? null : member, profile, splashOf));
+export function Column({ member, profile, name, splash: splashOf, isLocal = false, showPositions = false, scarce, forceScarce, label, editPositions = false, rankQueue = null, menu, empty, slots }: ColumnProps) {
+  const splash = useDecoded(useSplash(member, profile, splashOf));
   const resolved = useName(member, name);
   if (!member) {
     return (
@@ -61,8 +55,6 @@ export function Column({ member, profile, name, splash: splashOf, isLocal = fals
   const body = (
     <>
       <span class="rlc-col-name">
-        {/* TFT: ícone de perfil à esquerda do nome (no LoL quem identifica é o fundo de perfil). */}
-        {companions && !member.isBot && member.summonerIconId ? <img class="rlc-col-icon" src={profileIcon(member.summonerIconId)} alt="" /> : null}
         <span class="rlc-col-nick">{label ?? resolved}</span>
         {member.isLeader ? <span class="rlc-col-leader" title={t('leaderMark')} aria-label={t('leaderMark')}> ★</span> : null}
       </span>
@@ -74,7 +66,7 @@ export function Column({ member, profile, name, splash: splashOf, isLocal = fals
   // Quem ainda não pode entrar na fila (atualizando, com o client ocupado) fica apagado com reticências no meio.
   const waiting = member.ready === false && !member.isBot;
   return (
-    <div class="rlc-col" data-local={isLocal ? 'true' : undefined} data-tft={companions ? 'true' : undefined} data-unready={waiting ? 'true' : undefined}>
+    <div class="rlc-col" data-local={isLocal ? 'true' : undefined} data-unready={waiting ? 'true' : undefined}>
       {waiting ? (
         <span class="rlc-col-wait" role="status" aria-label={t('socNotReady')} title={t('socNotReady')}>
           <i />
@@ -83,21 +75,6 @@ export function Column({ member, profile, name, splash: splashOf, isLocal = fals
         </span>
       ) : null}
       {splash ? <div class="rlc-col-splash" style={{ backgroundImage: `url("${splash}")` }} /> : null}
-      {/* TFT: a própria Pequena Lenda, desfocada, é o fundo da coluna e do cartão. */}
-      {legend ? <div class="rlc-col-splash rlc-col-legend-bg" style={{ backgroundImage: `url("${legend.icon}")` }} aria-hidden="true" /> : null}
-      {legend ? (
-        <div class="rlc-col-legend">
-          {onLegend ? (
-            <button type="button" class="rlc-col-legend-card" title={`${legend.name} · ${t('tftCustomize')}`} aria-label={`${t('tftCustomize')}: ${legend.name}`} onClick={onLegend}>
-              <img src={legend.icon} alt="" />
-            </button>
-          ) : (
-            <span class="rlc-col-legend-card" title={legend.name}>
-              <img src={legend.icon} alt={legend.name} />
-            </span>
-          )}
-        </div>
-      ) : null}
       <div class="rlc-col-info">{body}</div>
       {menu}
     </div>
@@ -133,21 +110,4 @@ function useSplash(member: Participant | null, profile: Lcu['profile'], splashOf
     return () => void (live = false);
   }, [puuid, profile, splashOf]);
   return url;
-}
-
-/** Pequena Lenda equipada do membro, pelo contentId que o lobby de TFT manda. */
-function useLegend(member: Participant | null, companions: Lcu['game']['companions'] | undefined) {
-  const [legend, setLegend] = useState<{ name: string; icon: string } | null>(null);
-  const contentId = (member as { memberData?: Record<string, string> } | null)?.memberData?.['TFT.Tactician'] ?? null;
-  useEffect(() => {
-    setLegend(null);
-    if (!contentId || !companions) return;
-    let live = true;
-    void companions().then((m) => {
-      const c = m.get(contentId);
-      if (live && c?.icon) setLegend(c);
-    });
-    return () => void (live = false);
-  }, [contentId, companions]);
-  return legend;
 }

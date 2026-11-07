@@ -222,9 +222,9 @@ export function QuickPlayEditor({ lcu, slots: current, queueId, summonerId, init
     put.run(next);
   };
   return (
-    <section class="rlc-tft-drawer rlc-qp" role="dialog" aria-label={t('qpTitle')}>
-      <header class="rlc-tft-head">
-        <nav class="rlc-tft-tabs" role="tablist">
+    <section class="rlc-sheet-drawer rlc-qp" role="dialog" aria-label={t('qpTitle')}>
+      <header class="rlc-sheet-head">
+        <nav class="rlc-sheet-tabs" role="tablist">
           {([0, 1] as const).map((i) =>
             i === 1 && hidden ? null : (
               <button type="button" key={i} role="tab" aria-selected={tab === i} onClick={() => setTab(i)}>
@@ -237,7 +237,7 @@ export function QuickPlayEditor({ lcu, slots: current, queueId, summonerId, init
           {t('close')}
         </button>
       </header>
-      <aside class="rlc-tft-preview">
+      <aside class="rlc-sheet-preview">
         <div class="rlc-qp-pick">
           {champions.get(slot.championId)?.icon ? <img src={champions.get(slot.championId)!.icon} alt="" /> : <span aria-hidden="true">?</span>}
           <h3>{champions.get(slot.championId)?.name ?? t('qpPickChampion')}</h3>
@@ -307,13 +307,13 @@ export function QuickPlayEditor({ lcu, slots: current, queueId, summonerId, init
             </span>
           </label>
         ) : null}
-        <p class="rlc-tft-desc">{t('qpRunesNote')}</p>
+        <p class="rlc-sheet-desc">{t('qpRunesNote')}</p>
       </aside>
-      <div class="rlc-tft-main">
-        <div class="rlc-tft-tools">
+      <div class="rlc-sheet-main">
+        <div class="rlc-sheet-tools">
           <input type="search" class="rlc-input" placeholder={t('searchChampion')} aria-label={t('searchChampion')} value={query} onInput={(e) => setQuery(e.currentTarget.value)} />
         </div>
-        <div class="rlc-tft-body">
+        <div class="rlc-sheet-body">
           <div class="rlc-qp-grid">
             {list.map((c) => (
               <button type="button" key={c.id} class="rlc-qp-champ" aria-label={c.name} title={c.name} aria-pressed={slot.championId === c.id} disabled={busy} onClick={() => pickChampion.run(c.id)}>

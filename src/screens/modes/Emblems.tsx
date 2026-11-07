@@ -1,13 +1,13 @@
 import type { ModeGroupId } from './queues';
 
 /**
- * Emblema de cada modo, os mesmos do seletor do client (Rift em losango com o rio, ponte do ARAM, frasco da Arena,
- * T do TFT) redesenhados só em traço. `data-part="core"` é o miolo que se acende no cartão escolhido.
+ * Emblema de cada modo, os mesmos do seletor do client (Rift em losango com o rio, ponte do ARAM, frasco da Arena)
+ * redesenhados só em traço; o Rift Clássico usa o losango do Rift. `data-part="core"` é o miolo que se acende no cartão escolhido.
  */
 export function ModeEmblem({ id }: { id: ModeGroupId | 'custom' }) {
   return (
     <svg class="rlc-emblem" viewBox="0 0 64 64" aria-hidden="true">
-      {id === 'sr' ? (
+      {id === 'sr' || id === 'classic' ? (
         <g>
           <rect x="9" y="9" width="46" height="46" rx="11" />
           <rect data-part="core" x="16" y="16" width="32" height="32" rx="6" />
@@ -18,12 +18,6 @@ export function ModeEmblem({ id }: { id: ModeGroupId | 'custom' }) {
         <g>
           <path d="M10 42 36 10h18v12L28 54H10z" />
           <path data-part="core" d="M17 42 38 17h9v4L26 47h-9z" />
-        </g>
-      ) : null}
-      {id === 'tft' ? (
-        <g>
-          <path data-part="core" d="M11 10h42l-4 9H37v24h-10V19H15z" />
-          <path d="M12 38c4 12 18 18 30 14 6-2 9-6 10-10" />
         </g>
       ) : null}
       {id === 'other' ? (
@@ -43,4 +37,4 @@ export function ModeEmblem({ id }: { id: ModeGroupId | 'custom' }) {
 }
 
 /** Tamanho dos times, como o client mostra acima do nome. */
-export const TEAM_SIZE: Partial<Record<ModeGroupId, string>> = { sr: '5v5', aram: '5v5', tft: 'FFA' };
+export const TEAM_SIZE: Partial<Record<ModeGroupId, string>> = { sr: '5v5', classic: '5v5', aram: '5v5' };

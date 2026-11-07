@@ -1,6 +1,6 @@
 import type { LolGameQueuesQueue } from '../../lcu/types';
 
-export type ModeGroupId = 'sr' | 'aram' | 'tft' | 'other';
+export type ModeGroupId = 'sr' | 'classic' | 'aram' | 'other';
 export interface ModeGroup {
   id: ModeGroupId;
   queues: LolGameQueuesQueue[];
@@ -22,10 +22,18 @@ export interface CustomLobbyBody {
   };
 }
 
-// Agrupamento da própria Riot. Grupo desconhecido (eventos, modos novos) vai para "outros".
-const GROUP: Record<string, ModeGroupId> = { kSummonersRift: 'sr', kARAM: 'aram', kTeamfightTactics: 'tft' };
-const ORDER: ModeGroupId[] = ['sr', 'aram', 'tft', 'other'];
-const usable = (q: LolGameQueuesQueue) => q.queueAvailability === 'Available' && q.isVisible !== false;
+// Agrupamento da própria Riot. Grupo desconhecido (eventos, modos novos) vai para "outros". kJade é o Rift Clássico (mapa 453).
+const GROUP: Record<string, ModeGroupId> = { kSummonersRift: 'sr', kJade: 'classic', kARAM: 'aram' };
+const ORDER: ModeGroupId[] = ['sr', 'classic', 'aram', 'other'];
+// O TFT tem client próprio desde o 16.22: as filas ainda vêm "Available" na LCU, mas o client não entra mais nelas.
+const usable = (q: LolGameQueuesQueue) => q.queueAvailability === 'Available' && q.isVisible !== false && q.gameMode !== 'TFT';
+
+/**
+ * Nome da fila para mostrar. As do Rift Clássico vêm com `name` vazio ("" na ranqueada), interno ("Jade") ou repetido
+ * ("Classic Rift" nas duas personalizadas); a `description` é que diferencia ("Classic 5v5", "Classic (Custom Draft Pick)").
+ */
+export const queueLabel = (q: Pick<LolGameQueuesQueue, 'name' | 'shortName' | 'description' | 'gameMode'>) =>
+  (q.gameMode === 'JADE' ? q.description || q.shortName || q.name : q.name?.trim() || q.shortName || q.description) ?? '';
 
 /** Grupo do cartão de modo para uma fila (a Ferramenta de Treino fica no Summoner's Rift). */
 export const queueGroup = (q: Pick<LolGameQueuesQueue, 'gameSelectCategory' | 'gameSelectModeGroup'>): ModeGroupId =>
@@ -35,7 +43,7 @@ export const queueGroup = (q: Pick<LolGameQueuesQueue, 'gameSelectCategory' | 'g
 export function groupQueues(queues: LolGameQueuesQueue[]): ModeGroup[] {
   const buckets = new Map<ModeGroupId, LolGameQueuesQueue[]>();
   for (const q of queues) {
-    if (!usable(q) || !q.name?.trim() || q.gameSelectCategory === 'CreateCustom') continue;
+    if (!usable(q) || !queueLabel(q).trim() || q.gameSelectCategory === 'CreateCustom') continue;
     // A Ferramenta de Treino vem como modo alternativo; a spec a quer junto do mapa dela.
     const id = queueGroup(q);
     buckets.set(id, [...(buckets.get(id) ?? []), q]);
@@ -52,7 +60,7 @@ export function groupQueues(queues: LolGameQueuesQueue[]): ModeGroup[] {
 
 /** Modos de sala personalizada: cada fila `CreateCustom` já define mapa, modo e tipo de escolha. */
 export const customModes = (queues: LolGameQueuesQueue[]) =>
-  queues.filter((q) => usable(q) && q.gameSelectCategory === 'CreateCustom').sort((a, b) => a.name.localeCompare(b.name));
+  queues.filter((q) => usable(q) && q.gameSelectCategory === 'CreateCustom').sort((a, b) => queueLabel(a).localeCompare(queueLabel(b)));
 
 export function customLobbyBody(mode: LolGameQueuesQueue, form: CustomForm): CustomLobbyBody {
   return {

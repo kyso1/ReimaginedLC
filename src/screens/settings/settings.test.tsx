@@ -264,13 +264,11 @@ test('atalhos: teclas legíveis e conjuração rápida grava', async () => {
   expect(JSON.parse(patch[1].body)).toEqual({ Quickbinds: { evtCastSpell1smart: false } });
 });
 
-test('aparência: clicar num tema aplica para o jogo do grupo', () => {
+test('aparência: clicar num tema aplica', () => {
   const { set } = mount();
   area('look');
   act(() => root.querySelectorAll<HTMLButtonElement>('.rlc-st-group')[0]!.querySelector<HTMLButtonElement>('.rlc-st-theme[data-name="editorial"]')!.click());
   expect(set).toHaveBeenCalledWith('editorial', 'lol');
-  act(() => root.querySelectorAll<HTMLButtonElement>('.rlc-st-group')[1]!.querySelector<HTMLButtonElement>('.rlc-st-theme[data-name="vidro"]')!.click());
-  expect(set).toHaveBeenCalledWith('vidro', 'tft');
 });
 
 test('aparência: importar JSON inválido mostra o erro e não salva', async () => {

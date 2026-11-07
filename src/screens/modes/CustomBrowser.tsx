@@ -7,9 +7,9 @@ import { Button } from '../../ui/Button';
 import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
 import { useDrawerClose } from './Modes';
-import { customLobbyBody, customModes, type CustomForm } from './queues';
+import { customLobbyBody, customModes, queueLabel, type CustomForm } from './queues';
 
-const MAP: Record<number, TextKey> = { 11: 'modeSr', 12: 'modeAram', 22: 'modeTft', 30: 'mapArena', 453: 'mapClassicRift' };
+const MAP: Record<number, TextKey> = { 11: 'modeSr', 12: 'modeAram', 30: 'mapArena', 453: 'mapClassicRift' };
 const SPECTATORS: Array<[CustomForm['spectators'], TextKey]> = [
   ['NotAllowed', 'specNone'],
   ['LobbyAllowed', 'specLobby'],
@@ -112,7 +112,7 @@ function CreateRoom({ modes, onCreated }: { modes: ReturnType<typeof customModes
       <select class="rlc-input" aria-label={t('mode')} value={mode?.id ?? ''} onChange={(e) => setModeId(Number(e.currentTarget.value))}>
         {modes.map((m) => (
           <option key={m.id} value={m.id}>
-            {m.name}
+            {queueLabel(m)}
           </option>
         ))}
       </select>

@@ -16,18 +16,12 @@ export interface EogTarget {
   name: string;
 }
 
-/** Seções e categorias de denúncia, as mesmas do client (rcp-fe-lol-shared-components: DEFAULT/TFT_CATEGORY_SECTIONS). */
-const SECTIONS: Record<'lol' | 'tft', Array<[TextKey, string[]]>> = {
-  lol: [
-    ['rpPlayToWin', ['LEAVING_AFK', 'ASSISTING_ENEMY_TEAM']],
-    ['rpPlayFair', ['THIRD_PARTY_TOOLS', 'RANK_MANIPULATION', 'BOTTING']],
-    ['rpRespect', ['VERBAL_ABUSE', 'INAPPROPRIATE_NAME']],
-  ],
-  tft: [
-    ['rpPlayFair', ['THIRD_PARTY_TOOLS', 'RANK_MANIPULATION', 'BOTTING']],
-    ['rpRespect', ['VERBAL_ABUSE', 'INAPPROPRIATE_NAME']],
-  ],
-};
+/** Seções e categorias de denúncia, as mesmas do client (rcp-fe-lol-shared-components: DEFAULT_CATEGORY_SECTIONS). */
+const SECTIONS: Array<[TextKey, string[]]> = [
+  ['rpPlayToWin', ['LEAVING_AFK', 'ASSISTING_ENEMY_TEAM']],
+  ['rpPlayFair', ['THIRD_PARTY_TOOLS', 'RANK_MANIPULATION', 'BOTTING']],
+  ['rpRespect', ['VERBAL_ABUSE', 'INAPPROPRIATE_NAME']],
+];
 const CATEGORY: Record<string, TextKey> = {
   LEAVING_AFK: 'rpAfk',
   ASSISTING_ENEMY_TEAM: 'rpAssisting',
@@ -73,7 +67,7 @@ export function useReported(gameId: number | undefined): [Set<string>, (puuid: s
 }
 
 /** Janela de denúncia: categorias por seção (ao menos uma), comentário opcional e Enviar. */
-export function ReportDialog({ gameId, target, game, from = 'endOfGame', onSent, onClose }: { gameId: number; target: EogTarget; game: 'lol' | 'tft'; from?: keyof typeof REPORT_PATHS; onSent: () => void; onClose: () => void }) {
+export function ReportDialog({ gameId, target, from = 'endOfGame', onSent, onClose }: { gameId: number; target: EogTarget; from?: keyof typeof REPORT_PATHS; onSent: () => void; onClose: () => void }) {
   const [picked, setPicked] = useState<string[]>([]);
   const [comment, setComment] = useState('');
   useEscape(onClose);
@@ -91,7 +85,7 @@ export function ReportDialog({ gameId, target, game, from = 'endOfGame', onSent,
         <h2>
           {t('rpTitle')} <span>{target.name}</span>
         </h2>
-        {SECTIONS[game].map(([head, ids]) => (
+        {SECTIONS.map(([head, ids]) => (
           <fieldset key={head} class="rlc-rp-section">
             <legend>{t(head)}</legend>
             {ids.map((c) => (

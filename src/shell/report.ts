@@ -21,7 +21,7 @@ export function lastError(): string | null {
 }
 
 /** Relatório para colar numa issue ou numa IA: versão, ambiente e o último erro. Sem nome de invocador nem dados da conta. */
-export function errorReport(env: { phase: string | null; theme: string; tftTheme: string }): string {
+export function errorReport(env: { phase: string | null; theme: string }): string {
   const p = prefs.value;
   const error = lastError();
   return [
@@ -29,7 +29,7 @@ export function errorReport(env: { phase: string | null; theme: string; tftTheme
     `- Version: ${__RLC_VERSION__}`,
     `- Time: ${new Date().toISOString()}`,
     `- Game phase: ${env.phase ?? 'unknown'}`,
-    `- Theme: ${env.theme} (TFT: ${env.tftTheme})`,
+    `- Theme: ${env.theme}`,
     `- Language: ${p.locale}, lite: ${p.lite}, motion: ${p.motion}`,
     `- Plugins: ${[p.autoAccept && 'auto-accept', p.appearOffline && 'appear-offline', p.rose && 'rose', p.spotify && 'spotify'].filter(Boolean).join(', ') || 'none'}`,
     `- Browser: ${navigator.userAgent}`,

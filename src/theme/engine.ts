@@ -8,7 +8,7 @@ export const BUILTIN: readonly string[] = ['vidro', 'vidro-ludico', 'editorial']
 const FALLBACK = 'vidro';
 const USER_KEY = 'rlc.userThemes';
 
-export type Game = 'lol' | 'tft';
+export type Game = 'lol';
 export type SaveResult = { ok: true } | { ok: false; error: string };
 export interface ThemeEntry {
   name: string;
@@ -87,7 +87,7 @@ export async function createThemeEngine(base: string, get: (url: string) => Prom
   const stored = readSetting<unknown>('rlc.theme', null);
   const saved = isRecord(stored) ? stored : {};
   const pick = (game: Game, def: string) => resolved.get(typeof saved[game] === 'string' ? (saved[game] as string) : def) ?? resolved.get(def) ?? fallback;
-  const forGame: Record<Game, Signal<ResolvedTheme>> = { lol: signal(pick('lol', FALLBACK)), tft: signal(pick('tft', 'vidro-ludico')) };
+  const forGame: Record<Game, Signal<ResolvedTheme>> = { lol: signal(pick('lol', FALLBACK)) };
   const entries = (): ThemeEntry[] => [...resolved.values()].map(({ name, label }) => ({ name, label, user: userNames.has(name) }));
   const list = signal(entries());
 
@@ -95,7 +95,7 @@ export async function createThemeEngine(base: string, get: (url: string) => Prom
   const refresh = () => {
     resolveAll();
     list.value = entries();
-    for (const game of ['lol', 'tft'] as const) forGame[game].value = resolved.get(forGame[game].value.name) ?? fallback;
+    for (const game of ['lol'] as const) forGame[game].value = resolved.get(forGame[game].value.name) ?? fallback;
   };
   const setFor = (name: string, game: Game) => {
     const theme = resolved.get(name);
@@ -136,7 +136,7 @@ export async function createThemeEngine(base: string, get: (url: string) => Prom
       userNames.delete(name);
       manifests.delete(name);
       persistUser();
-      for (const game of ['lol', 'tft'] as const) if (forGame[game].value.name === name) setFor(game === 'tft' ? 'vidro-ludico' : FALLBACK, game);
+      if (forGame.lol.value.name === name) setFor(FALLBACK, 'lol');
       refresh();
       return { ok: true };
     },

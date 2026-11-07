@@ -6,22 +6,17 @@ import { useAction } from '../../ui/useAction';
 import { useEscape } from '../../ui/useEscape';
 import { ChoicePicker } from '../../shell/overlays/Rewards';
 import { Confirm } from '../../shell/overlays/Confirm';
-import { buyRealmItem, loadRealmShop, REALM_CRYSTAL_WALLET, type RealmItem, type RealmSection } from './realmShop';
 import { mountKiwiHub } from './kiwiHub';
-import { REALM_CRYSTAL_ICON, STAR_SHARDS_ICON, TROVE_TOKEN_ICON } from '../../ui/currency';
 import {
-  claimAll, isKiwiHub, loadMenuEvents, daysLeft, eventPass, getJson, loadTftPasses, missionCards, openPassPurchase, pendingChoices, rewardState, rollTrove, selectChoice, TROVE_TOKEN, trovesRewards, trovesRoll,
+  claimAll, isKiwiHub, loadMenuEvents, daysLeft, eventPass, getJson, missionCards, openPassPurchase, pendingChoices, rewardState, selectChoice,
   type Choice, type Grant, type HubEvent, type Level, type MissionCard, type ObjectiveCategory, type Pass,
-  type Reward, type TrackItem, type TrackProgress, type Trove,
+  type Reward, type TrackItem, type TrackProgress,
 } from './data';
 
 export { pendingClaims, openPassPurchase } from './data';
 
 interface Loaded {
   lol: Array<{ pass: Pass; missions: MissionCard[]; kiwi: boolean }>;
-  tft: Pass[];
-  troves: Trove[];
-  wallet: Record<string, number>;
 }
 
 const base = (id: string) => `/lol-event-hub/v1/events/${encodeURIComponent(id)}`;
@@ -45,27 +40,18 @@ async function loadLolEvent(e: HubEvent, categories: ObjectiveCategory[], choice
 }
 
 async function loadAll(): Promise<Loaded> {
-  const [events, objectives, tft, troves, wallet, grants] = await Promise.all([
+  const [events, objectives, grants] = await Promise.all([
     loadMenuEvents(),
     getJson<Array<{ objectivesCategories?: ObjectiveCategory[] }>>('/lol-objectives/v1/objectives/lol'),
-    loadTftPasses().catch(() => []),
-    getJson<Trove[]>('/lol-tft-troves/v1/banners'),
-    getJson<Record<string, number>>('/lol-inventory/v1/wallet/0'),
     getJson<Grant[]>('/lol-rewards/v1/grants'),
   ]);
   const categories = objectives?.[0]?.objectivesCategories ?? [];
   const choices = pendingChoices(grants ?? []);
   const lol = (await Promise.all(events.map((e) => loadLolEvent(e, categories, choices)))).filter((x) => x.kiwi || x.pass.levels.length);
-  const now = Date.now();
-  return {
-    lol,
-    tft,
-    troves: (troves ?? []).filter((b) => Date.parse(b.startDate) <= now && now < Date.parse(b.endDate)),
-    wallet: wallet ?? {},
-  };
+  return { lol };
 }
 
-/** Eventos: uma aba por evento do LoL ativo, passe do TFT e Reinos dos Tesouros (o Clash tem tela própria). Só aparecem abas com dados. */
+/** Eventos: uma aba por evento do LoL ativo (o Clash tem tela própria). Só aparecem abas com dados. */
 export function Events({ lcu }: { lcu: Lcu }) {
   void lcu;
   const [data, setData] = useState<Loaded | null>(null);
@@ -80,10 +66,6 @@ export function Events({ lcu }: { lcu: Lcu }) {
       const track = () => <PassView key={pass.id} pass={pass} missions={missions} onChanged={reload} />;
       return { key: pass.id, label: pass.name, body: kiwi ? () => <KiwiHub key={pass.id} fallback={track} /> : track };
     }),
-    ...data.tft.map((pass) => ({ key: pass.id, label: data.tft.length > 1 ? pass.name : t('evPassTft'), body: () => <PassView key={pass.id} pass={pass} missions={[]} onChanged={reload} /> })),
-    ...(data.troves.length ? [{ key: 'troves', label: t('evTroves'), body: () => <Troves troves={data.troves} wallet={data.wallet} onRolled={reload} /> }] : []),
-    // A carteira só traz os Cristais do Reino para quem joga TFT: sem eles, a aba não aparece.
-    ...(REALM_CRYSTAL_WALLET in data.wallet ? [{ key: 'realm', label: t('evRealmShop'), body: () => <RealmShop wallet={data.wallet} onBought={reload} /> }] : []),
   ];
   if (!tabs.length) return <section class="rlc-events"><p class="rlc-ev-empty">{t('evNone')}</p></section>;
   const current = tabs.find((x) => x.key === tab) ?? tabs[0]!;
@@ -312,179 +294,5 @@ function Missions({ missions }: { missions: MissionCard[] }) {
         ))}
       </div>
     </aside>
-  );
-}
-
-// Moedas dos reinos na carteira (`/lol-inventory/v1/wallet/0`).
-const TROVE_CURRENCIES: Array<[string, TextKey, string]> = [
-  [TROVE_TOKEN, 'evTreasureTokens', TROVE_TOKEN_ICON],
-  ['tft_star_fragments', 'evStarShards', STAR_SHARDS_ICON],
-  [REALM_CRYSTAL_WALLET, 'evRealmCrystals', REALM_CRYSTAL_ICON],
-];
-
-/** Giros de um Reino: 1 ou 10, como no client. */
-const ROLLS = [1, 10];
-
-/** Reinos dos Tesouros: cada banner com o custo e os giros; girar gasta fichas e pede confirmação antes. */
-function Troves({ troves, wallet, onRolled }: { troves: Trove[]; wallet: Record<string, number>; onRolled: () => void }) {
-  const n = new Intl.NumberFormat(locale());
-  const [asking, setAsking] = useState<{ trove: Trove; count: number } | null>(null);
-  const [got, setGot] = useState<{ name: string; items: Array<{ name: string; icon: string }> } | null>(null);
-  const roll = useAction(async (b: Trove, count: number) => {
-    await rollTrove(b, count);
-    setGot({ name: b.name.trim(), items: await trovesRewards() });
-    onRolled();
-  });
-  const tokens = wallet[TROVE_TOKEN] ?? 0;
-  return (
-    <div class="rlc-ev-page-body">
-      <div class="rlc-ev-wallet">
-        {TROVE_CURRENCIES.filter(([k]) => wallet[k] !== undefined).map(([k, label, icon]) => (
-          <span key={k} class="rlc-rs-cost">
-            <img src={icon} alt="" />
-            <b>{n.format(wallet[k]!)}</b> {t(label)}
-          </span>
-        ))}
-      </div>
-      <div class="rlc-ev-troves">
-        {troves.map((b) => (
-          <article key={b.id} class="rlc-ev-trove">
-            <div class="rlc-ev-trove-art" style={{ backgroundImage: `url("${b.backgroundTexture || b.thumbnailTexture}")` }} />
-            <div class="rlc-ev-trove-info">
-              <b>{b.name.trim()}</b>
-              <span class="rlc-ev-muted">{endsIn(Date.parse(b.endDate))}</span>
-              <span class="rlc-ev-muted rlc-rs-cost">
-                <img src={TROVE_TOKEN_ICON} alt={t('evTreasureTokens')} />
-                {n.format(b.pullCost)} {t('evTroveCost')}
-              </span>
-              {/* Sem endpoint de giro neste client (atualização da Riot): o banner fica só para consulta. */}
-              {trovesRoll(b) ? <div class="rlc-ev-trove-rolls">
-                {ROLLS.map((count) => (
-                  <button type="button" key={count} class="rlc-button" data-variant={count === 1 ? 'primary' : undefined} disabled={roll.pending || !b.pullCost || tokens < b.pullCost * count} onClick={() => setAsking({ trove: b, count })}>
-                    {t('evTroveRoll').replace('{n}', String(count))}
-                  </button>
-                ))}
-              </div> : null}
-            </div>
-          </article>
-        ))}
-      </div>
-      {roll.pending ? <p class="rlc-ev-note" aria-live="polite">{t('evTroveRolling')}</p> : null}
-      {got ? (
-        <div class="rlc-ev-trove-got" aria-live="polite">
-          <b>{got.items.length ? t('evTroveGot') : t('evTroveDone')}</b>
-          {got.items.length ? (
-            <ul>
-              {got.items.map((r, i) => (
-                <li key={i}>
-                  {r.icon ? <img src={r.icon} alt="" /> : null}
-                  <span>{r.name}</span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      ) : null}
-      {asking ? (
-        <Confirm
-          message={t('evTroveConfirm').replace('{cost}', n.format(asking.trove.pullCost * asking.count)).replace('{name}', asking.trove.name.trim())}
-          confirmLabel={t('evTroveRoll').replace('{n}', String(asking.count))}
-          onConfirm={() => {
-            setAsking(null);
-            setGot(null);
-            roll.run(asking.trove, asking.count);
-          }}
-          onCancel={() => setAsking(null)}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-/**
- * Loja de Cristais do Reino: os itens do TFT à venda por Cristais, uma seção por loja (com o prazo dela). Comprar pede
- * confirmação; o item só vira "Possui" com a loja relida depois da compra (sem UI otimista).
- */
-function RealmShop({ wallet, onBought }: { wallet: Record<string, number>; onBought: () => void }) {
-  const n = new Intl.NumberFormat(locale());
-  const [sections, setSections] = useState<RealmSection[] | null>(null);
-  const [rev, setRev] = useState(0);
-  useEffect(() => {
-    let live = true;
-    void loadRealmShop().then((s) => live && setSections(s));
-    return () => void (live = false);
-  }, [rev]);
-  const [asking, setAsking] = useState<RealmItem | null>(null);
-  const [result, setResult] = useState<{ name: string; ok: boolean } | null>(null);
-  const buy = useAction(async (item: RealmItem) => {
-    const ok = await buyRealmItem(item);
-    setResult({ name: item.name, ok });
-    setRev((r) => r + 1);
-    onBought();
-  });
-  const crystals = wallet[REALM_CRYSTAL_WALLET] ?? 0;
-  if (!sections) return <div class="rlc-ev-page-body"><p class="rlc-ev-empty">{t('evLoading')}</p></div>;
-  return (
-    <div class="rlc-ev-page-body rlc-rs">
-      <div class="rlc-ev-wallet">
-        <span class="rlc-rs-cost">
-          <img src={REALM_CRYSTAL_ICON} alt="" />
-          <b>{n.format(crystals)}</b> {t('evRealmCrystals')}
-        </span>
-      </div>
-      {result ? (
-        <p class="rlc-ev-note" role="status" data-ok={result.ok ? 'true' : 'false'}>
-          {t(result.ok ? 'evRealmBought' : 'evRealmFailed').replace('{name}', result.name)}
-        </p>
-      ) : null}
-      {buy.pending ? <p class="rlc-ev-note" aria-live="polite">{t('evRealmBuying')}</p> : null}
-      {sections.length ? null : <p class="rlc-ev-empty">{t('evRealmEmpty')}</p>}
-      {sections.map((s) => (
-        <section key={s.id} class="rlc-rs-section">
-          <header class="rlc-rs-head">
-            <h3>{s.name}</h3>
-            {s.endsAt ? <span class="rlc-ev-muted">{endsIn(s.endsAt)}</span> : null}
-          </header>
-          <div class="rlc-rs-grid">
-            {s.items.map((it) => {
-              const short = !it.owned && crystals < it.price;
-              return (
-                <article key={it.entryId} class="rlc-rs-item" data-owned={it.owned ? 'true' : undefined}>
-                  <div class="rlc-rs-art">{it.image ? <img src={it.image} alt="" loading="lazy" decoding="async" /> : null}</div>
-                  <div class="rlc-rs-info">
-                    <b title={it.description || undefined}>{it.name}</b>
-                    {it.owned ? (
-                      <span class="rlc-ev-muted">{t('storeOwned')}</span>
-                    ) : (
-                      <span class="rlc-rs-cost">
-                        <img src={REALM_CRYSTAL_ICON} alt={t('evRealmCrystals')} />
-                        {n.format(it.price)}
-                      </span>
-                    )}
-                  </div>
-                  {it.owned ? null : (
-                    <button type="button" class="rlc-button" data-variant="primary" disabled={buy.pending || short} title={short ? t('evRealmShort') : undefined} onClick={() => setAsking(it)}>
-                      {t('storeBuy')}
-                    </button>
-                  )}
-                </article>
-              );
-            })}
-          </div>
-        </section>
-      ))}
-      {asking ? (
-        <Confirm
-          message={t('evRealmConfirm').replace('{cost}', n.format(asking.price)).replace('{name}', asking.name)}
-          confirmLabel={t('storeBuy')}
-          onConfirm={() => {
-            setAsking(null);
-            setResult(null);
-            buy.run(asking);
-          }}
-          onCancel={() => setAsking(null)}
-        />
-      ) : null}
-    </div>
   );
 }

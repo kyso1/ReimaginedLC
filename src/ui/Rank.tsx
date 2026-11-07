@@ -6,8 +6,7 @@ import { getJson, tierLabel } from '../screens/profile/data';
 const RANKED_QUEUES: Record<number, string> = {
   420: 'RANKED_SOLO_5x5',
   440: 'RANKED_FLEX_SR',
-  1100: 'RANKED_TFT',
-  1160: 'RANKED_TFT_DOUBLE_UP',
+  4310: 'JADE_RANKED_SOLO_5x5',
 };
 export const rankedQueueOf = (queueId: number | undefined): string | null => (queueId ? (RANKED_QUEUES[queueId] ?? null) : null);
 

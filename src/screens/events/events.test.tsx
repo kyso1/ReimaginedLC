@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../../i18n';
 import { fakeLcu } from '../../test/fixtures';
-import { eventPass, missionCards, tftPass, type HubEvent, type TftPass } from './data';
+import { eventPass, missionCards, type HubEvent } from './data';
 import { Events, PassView, pendingClaims } from './Events';
 import { setKiwiHubApi } from './kiwiHub';
 
@@ -84,7 +84,7 @@ async function mount() {
   for (let i = 0; i < 4; i++) await settle();
 }
 
-test('abas só para o que tem dados: evento com trilha; marcos, TFT sem passe e Clash (tela própria) ficam de fora', async () => {
+test('abas só para o que tem dados: evento com trilha; marcos e Clash (tela própria) ficam de fora', async () => {
   await mount();
   expect(tabs()).toEqual(['Temporada de Teste']);
 });
@@ -214,80 +214,8 @@ test('a trilha abre já na primeira recompensa resgatável, mesmo longe do come�
 });
 
 
-const TFT: TftPass = {
-  info: { passId: 'tft-1', title: 'Passe de Teste', endDate: Date.now() + 3 * DAY, premium: false },
-  currentLevel: 2,
-  activeMilestone: { level: 3, title: 'x', description: '', iconImageUrl: '', isPaid: false, isLocked: false, status: 'ACTIVE', pointsEarnedForMilestone: 700, pointsNeededForMilestone: 1000 },
-  milestones: [
-    { level: 0, title: '200 Fichas', description: 'Abrir', iconImageUrl: '/t/0.png', isPaid: true, isLocked: true, status: 'REWARDABLE', pointsEarnedForMilestone: 0, pointsNeededForMilestone: 0 },
-    { level: 1, title: 'Pequena Lenda', description: '', iconImageUrl: '/t/1.png', isPaid: false, isLocked: false, status: 'COMPLETE', pointsEarnedForMilestone: 1000, pointsNeededForMilestone: 1000 },
-    { level: 2, title: 'Moedas', description: '', iconImageUrl: '/t/2.png', isPaid: false, isLocked: false, status: 'REWARDABLE', pointsEarnedForMilestone: 1000, pointsNeededForMilestone: 1000 },
-    { level: 2, title: 'Arena', description: '', iconImageUrl: '/t/2p.png', isPaid: true, isLocked: true, status: 'UPCOMING', pointsEarnedForMilestone: 0, pointsNeededForMilestone: 1000 },
-  ],
-};
-
-test('passe do TFT: marcos viram níveis com fila, resgate pendente e XP do marco ativo', () => {
-  const p = tftPass(TFT);
-  expect(p.levels.map((l) => l.level)).toEqual([0, 1, 2]);
-  expect(p.levels[0]!.premium).toMatchObject({ name: '200 Fichas', locked: true, claimed: false });
-  expect(p.levels[1]!.free).toMatchObject({ claimed: true, locked: false });
-  expect(p.levels[2]!.premium?.name).toBe('Arena');
-  expect(p.unclaimed).toBe(1);
-  expect([p.xp, p.xpTotal, p.level, p.buyable]).toEqual([700, 1000, 2, true]);
-});
-
-test('passe do TFT vira aba; Resgatar usa a rota do TFT', async () => {
-  routes['/lol-tft-pass/v1/active-passes'] = [TFT];
-  await mount();
-  expect(tabs()).toContain('Passe do TFT');
-  act(() => tab('Passe do TFT').click());
-  expect(root.querySelector('.rlc-ev-claimbar')!.textContent).toContain('1 para resgatar');
-  act(() => claimAllButton()!.click());
-  await settle();
-  const call = fetchMock.mock.calls.find((c) => String(c[0]).includes('claimAllRewards'))!;
-  expect(call[0]).toBe('/lol-tft-pass/v1/pass/tft-1/milestone/claimAllRewards');
-  expect(call[1].method).toBe('PUT');
-});
-
-test('Reinos dos Tesouros: só ativos, com moedas da carteira; giro sem fichas suficientes fica desligado', async () => {
-  routes['/lol-tft-troves/v1/banners'] = [
-    { id: 'b1', name: 'Reino Ativo ', backgroundTexture: '/b1.png', thumbnailTexture: '', startDate: iso(-DAY), endDate: iso(2 * DAY), pullCost: 50 },
-    { id: 'b2', name: 'Reino Velho', backgroundTexture: '/b2.png', thumbnailTexture: '', startDate: iso(-9 * DAY), endDate: iso(-DAY), pullCost: 50 },
-  ];
-  routes['/lol-inventory/v1/wallet/0'] = { TFT_TREASURE_TROVE_TOKEN: 100, tft_star_fragments: 2300, RP: 5 };
-  await mount();
-  act(() => tab('Reinos dos Tesouros').click());
-  expect([...root.querySelectorAll('.rlc-ev-trove b')].map((b) => b.textContent)).toEqual(['Reino Ativo']);
-  const wallet = root.querySelector('.rlc-ev-wallet')!.textContent!;
-  expect(wallet).toContain('100 Fichas do Tesouro');
-  expect(wallet).toContain('2.300 Fragmentos Estelares');
-  expect(wallet).not.toContain('RP');
-  const roll = (n: string) => [...root.querySelectorAll<HTMLButtonElement>('.rlc-ev-trove-rolls button')].find((b) => b.textContent === n)!;
-  expect(roll('Girar 1x').disabled).toBe(false);
-  expect(roll('Girar 10x').disabled).toBe(true);
-});
-
-test('Reinos: girar pede confirmação, manda o giro v2 com a oferta da loja e mostra o que saiu', async () => {
-  routes['/lol-tft-troves/v1/banners'] = [{ id: 'b1', name: 'Reino Ativo', backgroundTexture: '/b1.png', thumbnailTexture: '', startDate: iso(-DAY), endDate: iso(2 * DAY), pullCost: 50, storeId: 's1', catalogEntryId: 'c1', paymentOptionsKeys: ['0-TFT_TREASURE_TROVE_TOKEN'] }];
-  routes['/lol-inventory/v1/wallet/0'] = { TFT_TREASURE_TROVE_TOKEN: 100 };
-  routes['/lol-tft-troves/v1/roll-rewards'] = [{ name: 'Pequena Lenda Fulana', iconPath: '/r/1.png' }];
-  await mount();
-  act(() => tab('Reinos dos Tesouros').click());
-  act(() => [...root.querySelectorAll<HTMLButtonElement>('.rlc-ev-trove-rolls button')][0]!.click());
-  expect(root.querySelector('.rlc-veil')!.textContent).toContain('Gastar 50 Fichas do Tesouro em Reino Ativo?');
-  // Nada é enviado antes de confirmar.
-  expect(fetchMock.mock.calls.some((c) => String(c[0]).includes('/roll'))).toBe(false);
-  act(() => [...root.querySelectorAll<HTMLButtonElement>('.rlc-veil button')].find((b) => b.textContent === 'Girar 1x')!.click());
-  for (let i = 0; i < 4; i++) await settle();
-  const post = fetchMock.mock.calls.find((c) => c[0] === '/lol-tft-troves/v2/roll')!;
-  expect(JSON.parse(post[1].body)).toEqual({ storeId: 's1', catalogEntryId: 'c1', paymentOptionsKeys: ['0-TFT_TREASURE_TROVE_TOKEN'], quantity: 1 });
-  expect(root.querySelector('.rlc-ev-trove-got')!.textContent).toContain('Pequena Lenda Fulana');
-  expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-tft-troves/v1/roll-rewards' && c[1]?.method === 'DELETE')).toBe(true);
-});
-
-test('pendingClaims soma o pendente dos eventos ativos e do TFT', async () => {
-  routes['/lol-tft-pass/v1/active-passes'] = [TFT];
-  expect(await pendingClaims(fakeLcu())).toBe(3);
+test('pendingClaims soma o pendente dos eventos ativos', async () => {
+  expect(await pendingClaims(fakeLcu())).toBe(2);
 });
 
 test('sem nada ativo mostra o estado vazio', async () => {
@@ -317,47 +245,6 @@ test('passe: contagem a resgatar da trilha vence a do eventInfo; moeda da trilha
   expect(root.querySelector('.rlc-ev-xpnum img')!.getAttribute('src')).toBe('/i/fama.svg');
   expect(eventPass(event(), ITEMS, null, null, undefined, { unclaimed: 0 }).unclaimed).toBe(0);
   expect(eventPass(event(), ITEMS, null, null).unclaimed).toBe(2);
-});
-
-test('Reinos: client só com o giro v1 usa a oferta e a tabela do banner; sem nenhum giro, banner só para consulta', async () => {
-  const { endpoints } = await import('../../lcu/capabilities');
-  routes['/lol-tft-troves/v1/banners'] = [{ id: 'b1', name: 'Reino', backgroundTexture: '/b1.png', thumbnailTexture: '', startDate: iso(-DAY), endDate: iso(2 * DAY), pullCost: 50, storeId: 's1', catalogEntryId: 'c1', rollOffer: 'o1', status: { dropTableId: 'd1' } }];
-  routes['/lol-inventory/v1/wallet/0'] = { TFT_TREASURE_TROVE_TOKEN: 100 };
-  endpoints.value = new Set(['PostLolTftTrovesV1Roll']);
-  try {
-    await mount();
-    act(() => tab('Reinos dos Tesouros').click());
-    act(() => root.querySelector<HTMLButtonElement>('.rlc-ev-trove-rolls button')!.click());
-    act(() => [...root.querySelectorAll<HTMLButtonElement>('.rlc-veil button')].find((b) => b.textContent === 'Girar 1x')!.click());
-    await settle();
-    const post = fetchMock.mock.calls.find((c) => c[0] === '/lol-tft-troves/v1/roll')!;
-    expect(JSON.parse(post[1].body)).toEqual({ offerId: 'o1', numberOfRolls: 1, dropTableId: 'd1' });
-    render(null, root);
-    endpoints.value = new Set();
-    await mount();
-    act(() => tab('Reinos dos Tesouros').click());
-    expect(root.querySelector('.rlc-ev-trove-rolls')).toBeNull();
-  } finally {
-    endpoints.value = null;
-  }
-});
-
-test('Loja de Cristais: aba só com Cristais na carteira; comprar pede confirmação e relê a loja', async () => {
-  const shop = { data: [{ id: 's1', name: 'Sazonal', startTime: iso(-DAY), endTime: iso(3 * DAY), catalogEntries: [{ id: 'a', name: 'Chibi Fulana', displayMetadata: { tft: { pc: 'ASSETS/a.png' } }, purchaseUnits: [{ fulfillment: { ownedQuantity: 0, maxQuantity: 1 }, paymentOptions: [{ key: '0-tft_standard_coin', payments: [{ currencyId: 'db40bd66-f3ac-5bca-a104-2eebca8cc1d2', finalDelta: 3000 }] }] }] }] }] };
-  routes['/lol-inventory/v1/wallet/0'] = { tft_standard_coin: 3650 };
-  routes['/lol-marketplace/v1/products/tft/stores'] = shop;
-  await mount();
-  act(() => tab('Loja de Cristais').click());
-  await settle();
-  expect(root.querySelector('.rlc-rs-head h3')!.textContent).toBe('Sazonal');
-  expect(root.querySelector('.rlc-rs-item .rlc-rs-cost')!.textContent).toBe('3.000');
-  act(() => root.querySelector<HTMLButtonElement>('.rlc-rs-item button')!.click());
-  expect(root.querySelector('.rlc-veil')!.textContent).toContain('Comprar Chibi Fulana por 3.000 Cristais do Reino?');
-  expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-marketplace/v1/products/tft/purchases')).toBe(false);
-  render(null, root);
-  routes['/lol-inventory/v1/wallet/0'] = { RP: 5 };
-  await mount();
-  expect(tabs()).not.toContain('Loja de Cristais');
 });
 
 test('abas do LoL seguem o menu do client (navigation-button-data): ordem dele e evento novo de qualquer tipo entra', async () => {

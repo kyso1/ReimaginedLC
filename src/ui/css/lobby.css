@@ -38,7 +38,7 @@
 #rlc-root[data-motion='off'] .rlc-qpill, #rlc-root[data-motion='off'] .rlc-pos-picker { animation: none; }
 
 /* Membro que ainda não está pronto para a fila: coluna em cinza e apagada, com reticências pulsando devagar no centro. */
-#rlc-root .rlc-col[data-unready='true'] > .rlc-col-splash, #rlc-root .rlc-col[data-unready='true'] > .rlc-col-legend, #rlc-root .rlc-col[data-unready='true'] > .rlc-col-info { filter: grayscale(1); opacity: 0.45; transition: filter var(--rlc-motion-duration) var(--rlc-motion-easing), opacity var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-col[data-unready='true'] > .rlc-col-splash, #rlc-root .rlc-col[data-unready='true'] > .rlc-col-info { filter: grayscale(1); opacity: 0.45; transition: filter var(--rlc-motion-duration) var(--rlc-motion-easing), opacity var(--rlc-motion-duration) var(--rlc-motion-easing); }
 #rlc-root .rlc-col-wait { position: absolute; top: 50%; left: 50%; z-index: 2; display: flex; gap: 7px; padding: 10px 14px; border-radius: var(--rlc-radius-pill); background: var(--rlc-color-scrim, rgba(4, 6, 12, 0.6)); transform: translate(-50%, -50%); pointer-events: none; }
 #rlc-root .rlc-col-wait i { width: 7px; height: 7px; border-radius: 50%; background: var(--rlc-color-text); opacity: 0.35; animation: rlc-col-wait 1.4s ease-in-out infinite; }
 #rlc-root .rlc-col-wait i:nth-child(2) { animation-delay: 0.2s; }
@@ -57,8 +57,6 @@
 /* Sala personalizada: a primeira vaga vazia da faixa vermelha fica centrada; com o chat aberto, "Trocar de time" e
    "+ robô" sobem para fora dele. */
 #rlc-root .rlc-app[data-screen='lobby'][data-room-chat='open'] .rlc-stage[data-band='red'] > .rlc-col:first-child[data-empty='true'] { padding-bottom: 320px; }
-/* A arte central (tático do TFT) sobe junto, para o nome não ficar por cima dela. */
-#rlc-root .rlc-app[data-screen='lobby'][data-room-chat='open'] .rlc-stage:not([data-band='blue']) > .rlc-col:first-child:not([data-empty='true']) > .rlc-col-legend { padding-bottom: calc(20% + 180px); }
 
 /* Voz do grupo na barra: microfone (riscado quando mudo), quantos estão no canal e sair. */
 #rlc-root .rlc-voice { display: inline-flex; align-items: center; gap: 6px; }
@@ -80,7 +78,7 @@
 #rlc-root .rlc-voice-person[data-muted='true'] .rlc-voice-name { opacity: 0.6; }
 #rlc-root .rlc-voice-state { display: inline-grid; color: var(--rlc-color-dangerText, #f08a94); }
 
-/* Jogo Rápido: vagas (campeão com a rota no canto) sob o nome; o editor reaproveita a gaveta do TFT. */
+/* Jogo Rápido: vagas (campeão com a rota no canto) sob o nome; o editor usa a gaveta lateral (sheet.css). */
 #rlc-root .rlc-qp-strip { display: flex; justify-content: center; gap: 8px; margin-top: 6px; }
 #rlc-root .rlc-qp-slot { position: relative; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-sm); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.06)); color: var(--rlc-color-textMuted); font: inherit; font-size: 20px; }
 #rlc-root button.rlc-qp-slot { cursor: pointer; pointer-events: auto; }
@@ -127,3 +125,7 @@
 #rlc-root .rlc-qp-runes-edit:disabled { opacity: 0.5; cursor: default; }
 /* Editor de runas por cima da gaveta do Jogo Rápido (a gaveta já é posicionada). */
 #rlc-root .rlc-qp > .rlc-re, #rlc-root .rlc-qp > .rlc-lazy { position: absolute; inset: 0; z-index: 7; }
+
+/* Nome do membro: reticências quando não cabe. */
+#rlc-root .rlc-col-name { display: inline-flex; align-items: center; gap: 8px; }
+#rlc-root .rlc-col-nick { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
