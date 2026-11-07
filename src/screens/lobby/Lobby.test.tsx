@@ -252,6 +252,10 @@ test('membro que não está pronto fica apagado com reticências no centro', () 
     expect(cols[0]!.querySelector('.rlc-col-wait')).toBeNull();
     act(() => render(null, root));
   }
+
+  // Na fila a LCU põe todos como não prontos: ninguém fica apagado.
+  mount(withSignals({ lobby: ready(lobby([{ ...me, ready: false }, busy], me)), search: ready(search({ timeInQueue: 5 })) }));
+  expect(root.querySelector('[data-unready]')).toBeNull();
 });
 
 test('Arena: grade de times pelo subtime e posição da LCU, vaga livre leva para lá, convite na barra', async () => {

@@ -99,6 +99,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
       rankQueue={rankedQueueOf(config.queueId)}
       menu={m ? memberMenu(m, team) : null}
       empty={empty}
+      searching={lcu.search.value.data?.isCurrentlyInQueue === true}
       slots={quickPlay && m && !m.isBot ? <SlotStrip slots={m.playerSlots} champions={champions} onEdit={isLocal(m) ? (i) => setPanel({ qp: i }) : undefined} /> : undefined}
     />
   );

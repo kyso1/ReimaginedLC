@@ -40,9 +40,11 @@ interface ColumnProps {
   empty?: ComponentChildren;
   /** Jogo Rápido: as vagas (campeão e rota) do membro, abaixo do elo. */
   slots?: ComponentChildren;
+  /** Grupo na fila: a LCU marca todos como não prontos enquanto busca, e isso não é espera. */
+  searching?: boolean;
 }
 
-export function Column({ member, profile, name, splash: splashOf, isLocal = false, showPositions = false, scarce, forceScarce, label, editPositions = false, rankQueue = null, menu, empty, slots }: ColumnProps) {
+export function Column({ member, profile, name, splash: splashOf, isLocal = false, showPositions = false, scarce, forceScarce, label, editPositions = false, rankQueue = null, menu, empty, slots, searching = false }: ColumnProps) {
   const splash = useDecoded(useSplash(member, profile, splashOf));
   const resolved = useName(member, name);
   if (!member) {
@@ -64,7 +66,7 @@ export function Column({ member, profile, name, splash: splashOf, isLocal = fals
     </>
   );
   // Quem ainda não pode entrar na fila (atualizando, com o client ocupado) fica apagado com reticências no meio.
-  const waiting = member.ready === false && !member.isBot;
+  const waiting = member.ready === false && !member.isBot && !searching;
   return (
     <div class="rlc-col" data-local={isLocal ? 'true' : undefined} data-unready={waiting ? 'true' : undefined}>
       {waiting ? (
