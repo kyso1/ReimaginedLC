@@ -68,6 +68,13 @@ export function ReadyCheckOverlay({ rc, mode = 'sr', queueName, onRespond }: { r
   const remaining = Math.max(0, Math.ceil(READY_CHECK_SECONDS - rc.timer));
   const left = Math.max(0, Math.min(1, (READY_CHECK_SECONDS - rc.timer) / READY_CHECK_SECONDS));
   const busy = accept.pending || decline.pending;
+  // O aceite nativo é um aviso do gerenciador de camadas da Riot, que riotNotices.ts sobe acima da camada: marcado, ele
+  // fica por baixo do nosso (styles.css).
+  useEffect(() => {
+    const manager = document.getElementById('lol-uikit-layer-manager');
+    manager?.setAttribute('data-rlc-readycheck', '');
+    return () => manager?.removeAttribute('data-rlc-readycheck');
+  }, []);
   const animate = prefs.value.readyCheckAnim && prefs.value.motion !== 'off';
   const style = prefs.value.readyCheckStyle;
   return (

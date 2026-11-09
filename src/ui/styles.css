@@ -34,6 +34,9 @@
 #lol-uikit-layer-manager[data-rlc-notice] { position: fixed; inset: 0; width: auto; height: auto; z-index: 2147483050; pointer-events: none; }
 #lol-uikit-layer-manager-wrapper > .modal, .lol-uikit-vignette-celebration-layer > *, .lol-uikit-toast-celebration-layer > * { pointer-events: auto; }
 #lol-uikit-layer-manager[data-rlc-notice] lol-social-chat-window { visibility: hidden; }
+/* O aceite de partida nativo também é um `.modal` desse gerenciador: com o nosso aceite na tela (ReadyCheck.tsx marca
+   `data-rlc-readycheck`), ele volta para baixo. */
+#lol-uikit-layer-manager[data-rlc-notice][data-rlc-readycheck] { z-index: auto; }
 #rlc-root *, #rlc-root *::before, #rlc-root *::after { box-sizing: border-box; }
 
 #rlc-root .rlc-bg {

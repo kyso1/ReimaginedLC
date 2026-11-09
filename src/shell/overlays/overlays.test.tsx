@@ -46,6 +46,15 @@ test('aceite: Aceitar e Recusar chamam a LCU; mostra o tempo restante', () => {
   expect(fetchMock).toHaveBeenCalledWith('/lol-matchmaking/v1/ready-check/decline', { method: 'POST' });
 });
 
+test('aceite: marca o gerenciador da Riot enquanto aberto (o aceite nativo não sobe por cima do nosso)', () => {
+  const manager = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'lol-uikit-layer-manager' }));
+  act(() => render(<ReadyCheckOverlay rc={readyCheck()} />, root));
+  expect(manager.hasAttribute('data-rlc-readycheck')).toBe(true);
+  act(() => render(null, root));
+  expect(manager.hasAttribute('data-rlc-readycheck')).toBe(false);
+  manager.remove();
+});
+
 test('aceite: tempo restante nunca fica negativo', () => {
   act(() => render(<ReadyCheckOverlay rc={readyCheck({ timer: 14 })} />, root));
   expect(root.querySelector('.rlc-ring-count')!.textContent).toBe('0');
