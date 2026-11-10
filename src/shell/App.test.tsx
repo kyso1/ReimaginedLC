@@ -954,3 +954,24 @@ test('amigo em festa aberta: o menu dele tem Entrar na festa, que pede para entr
   await flush();
   expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-lobby/v2/party/festa-1/join' && c[1].method === 'POST')).toBe(true);
 });
+
+
+test.each(['profile', 'collection', 'settings'] as const)('Resultado fecha a vista %s e volta ao placar', async (view) => {
+  enabled.value = true;
+  phase.value = ready('EndOfGame');
+  const labels = { profile: 'Perfil', collection: 'Coleção', settings: 'Configurações' };
+  mount({
+    screens: { postgame: () => <div class="postgame-stub" /> },
+    views: { [view]: () => <div class="auxiliary-stub" /> },
+  });
+  await flush();
+  root.querySelector<HTMLButtonElement>(`.rlc-rail-item[aria-label="${labels[view]}"]`)!.click();
+  await flush();
+  expect(root.querySelector('.auxiliary-stub')).not.toBeNull();
+  expect(root.querySelector('.postgame-stub')).toBeNull();
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Resultado"]')!.click();
+  await flush();
+  expect(root.querySelector('.auxiliary-stub')).toBeNull();
+  expect(root.querySelector('.postgame-stub')).not.toBeNull();
+  expect(root.querySelector('.rlc-rail-item[aria-label="Resultado"]')!.getAttribute('aria-current')).toBe('page');
+});

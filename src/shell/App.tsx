@@ -334,7 +334,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
             // Jogar sempre à mão fora da partida (o Início só com o fundo esconde o botão grande): abre a escolha de modo.
             ...(screen === 'home' || screen === 'lobby' ? [{ id: 'play', label: t('play'), active: panel === 'modes', onSelect: () => setPanel(panel === 'modes' ? null : 'modes') }] : []),
             ...(lcu.lobby.value.data ? [{ id: 'lobby', label: t('lobby'), active: page === 'lobby' && !shownView, onSelect: () => (setView(null), setAtHome(false)) }] : []),
-            ...(RAIL[screen] ? [{ id: screen, label: t(RAIL[screen]!), active: page === screen && !shownView, onSelect: () => setAtHome(false) }] : []),
+            ...(RAIL[screen] ? [{ id: screen, label: t(RAIL[screen]!), active: page === screen && !shownView, onSelect: () => (setView(null), setAtHome(false)) }] : []),
             ...(free
               ? (Object.keys(VIEW_LABEL) as View[]).map((v) => ({
                   id: v,
