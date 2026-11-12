@@ -1186,5 +1186,11 @@
   "voiceYou": "you",
   "voiceMuted": "Mic muted",
   "voiceSpeaking": "speaking",
-  "voiceEmpty": "No one in the channel yet."
+  "voiceEmpty": "No one in the channel yet.",
+  "lootBulk": "Disenchant many",
+  "lootBulkHint": "Pick what becomes essence. Shards of champions you already own start selected.",
+  "lootBulkNone": "None",
+  "lootBulkEmpty": "Nothing selected",
+  "lootNotOwned": "Not owned",
+  "lootBulkConfirm": "Disenchant {n} items for {gain}? This cannot be undone."
 }

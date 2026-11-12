@@ -337,3 +337,38 @@ test('depois do craft relê o espólio na hora (a LCU não manda evento na lista
   await settle();
   expect(refresh).toHaveBeenCalled();
 });
+
+test('Desencantar vários: começa com fragmentos de campeão que a conta tem; confirma e manda uma receita por item com as cópias', async () => {
+  const dis = (over: Record<string, unknown>) => ({ disenchantLootName: 'CURRENCY_champion', disenchantRecipeName: 'CHAMPION_RENTAL_disenchant', disenchantValue: 100, itemStatus: 'OWNED', ...over });
+  const lcu = mount([
+    ...LOOT.filter((l) => !l.lootId.startsWith('CHAMPION')),
+    item('CHAMPION_RENTAL_266', 'CHAMPION', { type: 'CHAMPION_RENTAL', itemDesc: 'Aatrox', count: 2, ...dis({}) }),
+    item('CHAMPION_RENTAL_103', 'CHAMPION', { type: 'CHAMPION_RENTAL', itemDesc: 'Ahri', ...dis({ itemStatus: 'NONE', disenchantValue: 500 }) }),
+    item('CHAMPION_SKIN_RENTAL_234010', 'SKIN', { type: 'SKIN_RENTAL', itemDesc: 'Viego Dissonância', ...dis({ disenchantLootName: 'CURRENCY_cosmetic', disenchantRecipeName: 'SKIN_RENTAL_disenchant', disenchantValue: 270, itemStatus: 'NONE' }) }),
+  ]);
+  const refreshed = vi.fn(async () => {});
+  lcu.loot.refresh = refreshed;
+  await settle();
+  [...root.querySelectorAll<HTMLButtonElement>('.rlc-lt-tools button')].find((b) => b.textContent === 'Desencantar vários')!.click();
+  await settle();
+  const dialog = root.querySelector('.rlc-lt-bulk')!;
+  const pressed = () => [...dialog.querySelectorAll('.rlc-lt-tile[aria-pressed="true"]')].map((b) => b.getAttribute('aria-label'));
+  expect(pressed()).toEqual(['Aatrox']);
+  expect([...dialog.querySelectorAll('.rlc-lt-unowned')].length).toBe(2);
+  expect(dialog.querySelector('.rlc-lt-slot-count')!.textContent).toBe('+200 EA');
+  // Marca a skin: o ganho soma as duas essências.
+  act(() => [...dialog.querySelectorAll<HTMLButtonElement>('.rlc-lt-tile')].find((b) => b.getAttribute('aria-label') === 'Viego Dissonância')!.click());
+  expect(dialog.querySelector('.rlc-lt-slot-count')!.textContent).toBe('+200 EA · +270 EL');
+  act(() => [...dialog.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Desencantar ×3')!.click());
+  expect(root.querySelector('.rlc-veil .rlc-veil p')!.textContent).toBe('Desencantar 3 itens por +200 EA · +270 EL? Não tem volta.');
+  expect(fetchMock.mock.calls.some((c) => String(c[0]).includes('_disenchant/craft'))).toBe(false);
+  act(() => root.querySelector<HTMLButtonElement>('.rlc-veil .rlc-veil [data-variant="primary"]')!.click());
+  await settle();
+  const crafts = fetchMock.mock.calls.filter((c) => String(c[0]).includes('/craft')).map((c) => [c[0], JSON.parse(String(c[1].body))]);
+  expect(crafts).toEqual([
+    ['/lol-loot/v1/recipes/CHAMPION_RENTAL_disenchant/craft?repeat=2', ['CHAMPION_RENTAL_266']],
+    ['/lol-loot/v1/recipes/SKIN_RENTAL_disenchant/craft?repeat=1', ['CHAMPION_SKIN_RENTAL_234010']],
+  ]);
+  expect(root.querySelector('.rlc-lt-bulk')).toBeNull();
+  expect(refreshed).toHaveBeenCalled();
+});

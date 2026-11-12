@@ -151,6 +151,7 @@ function Craft({ lcu }: { lcu: Lcu }) {
   const [confirm, setConfirm] = useState<{ menu: LolLootContextMenu; loot: LolLootPlayerLoot; repeat: number; ids: string[] } | null>(null);
   const [reroll, setReroll] = useState<{ menu: LolLootContextMenu; loot: LolLootPlayerLoot; pool: string[] } | null>(null);
   const [reveal, setReveal] = useState<{ items: RevealItem[]; chest?: string } | null>(null);
+  const [bulk, setBulk] = useState(false);
   useEffect(loadLootStrings, []);
   // Cache do menu vale para um estado do espólio: qualquer mudança (chave nova, essência gasta) consulta de novo.
   const menus = useMemo<MenuCache>(() => new Map(), [lcu.loot.value]);
@@ -206,6 +207,9 @@ function Craft({ lcu }: { lcu: Lcu }) {
               ))}
             </select>
           </label>
+          <button type="button" class="rlc-button" data-variant="pill" disabled={!all.some(canDisenchant) || craft.pending} onClick={() => setBulk(true)}>
+            {t('lootBulk')}
+          </button>
         </div>
         <div class="rlc-lt-sections">
           {sections.map((s) => (
@@ -270,6 +274,16 @@ function Craft({ lcu }: { lcu: Lcu }) {
             setReroll(null);
           }}
           onCancel={() => setReroll(null)}
+        />
+      ) : null}
+      {bulk ? (
+        <Disenchant
+          loot={all}
+          onDone={() => {
+            setBulk(false);
+            void Promise.all([lcu.loot.refresh(), lcu.orangeEssence.refresh(), lcu.wallet.refresh()]).catch(() => {});
+          }}
+          onCancel={() => setBulk(false)}
         />
       ) : null}
       {reveal ? <Reveal title={t('lootReceived')} chest={reveal.chest} items={reveal.items} onClose={() => setReveal(null)} /> : null}
@@ -464,4 +478,92 @@ export function revealItems(r: LolLootPlayerLootUpdate | null): RevealItem[] {
     else byId.set(l.lootId, { name: lootName(l), art: l.tilePath || undefined, count, chase: rarityRank(l.rarity) >= 2 });
   }
   return [...byId.values()];
+}
+
+const canDisenchant = (l: LolLootPlayerLoot) => !!l.disenchantRecipeName && l.count > 0;
+/** Começa marcado só o fragmento de campeão que você já tem: o resto (campeão que falta, skins, eternos...) é escolha sua. */
+export const bulkDefault = (l: LolLootPlayerLoot) => lootGroup(l) === 'champions' && l.itemStatus === 'OWNED';
+/** Campeão ou skin que a conta ainda não tem: o fragmento serve para desbloquear. */
+const unowned = (l: LolLootPlayerLoot) => (lootGroup(l) === 'champions' || lootGroup(l) === 'skins') && l.itemStatus !== 'OWNED';
+
+/** Essência ganha por moeda (`CURRENCY_champion`, `CURRENCY_cosmetic`), contando cada cópia. */
+export function disenchantGain(list: LolLootPlayerLoot[]): Record<string, number> {
+  const sum: Record<string, number> = {};
+  for (const l of list) sum[l.disenchantLootName] = (sum[l.disenchantLootName] ?? 0) + (l.disenchantValue ?? 0) * l.count;
+  return sum;
+}
+
+/**
+ * Desencantar vários de uma vez: tudo que tem receita de desencantar, nas seções da Criação, com o ganho somado.
+ * Uma receita por item (`repeat` = cópias), uma depois da outra; o que falhar fica no espólio e a LCU já avisou.
+ */
+function Disenchant({ loot, onDone, onCancel }: { loot: LolLootPlayerLoot[]; onDone: () => void; onCancel: () => void }) {
+  const items = sortLoot(loot.filter(canDisenchant), 'name');
+  const [chosen, setChosen] = useState(() => new Set(items.filter(bulkDefault).map((l) => l.lootId)));
+  const [confirm, setConfirm] = useState(false);
+  const [done, setDone] = useState<number | null>(null);
+  useEscape(() => !confirm && done === null && onCancel());
+  const picked = items.filter((l) => chosen.has(l.lootId));
+  const n = new Intl.NumberFormat(locale());
+  const gain = Object.entries(disenchantGain(picked))
+    .filter(([, v]) => v)
+    .map(([k, v]) => `+${n.format(v)}${ESSENCE[k] ? ` ${t(ESSENCE[k]!)}` : ''}`)
+    .join(' · ');
+  const copies = picked.reduce((s, l) => s + l.count, 0);
+  const toggle = (ids: string[], on: boolean) => setChosen((c) => new Set(on ? [...c, ...ids] : [...c].filter((id) => !ids.includes(id))));
+  const run = async () => {
+    setConfirm(false);
+    setDone(0);
+    for (const l of picked) {
+      await request('POST', `/lol-loot/v1/recipes/${encodeURIComponent(l.disenchantRecipeName)}/craft?repeat=${l.count}`, [l.lootId]).catch(() => {});
+      setDone((d) => (d ?? 0) + 1);
+    }
+    onDone();
+  };
+  return (
+    <div class="rlc-veil" role="dialog" aria-modal="true" aria-label={t('lootBulk')}>
+      <div class="rlc-dialog rlc-lt-reroll rlc-lt-bulk">
+        <h2>{t('lootBulk')}</h2>
+        <p class="rlc-muted">{t('lootBulkHint')}</p>
+        <div class="rlc-lt-sections">
+          {GROUPS.map(([g, label]) => {
+            const list = items.filter((l) => lootGroup(l) === g);
+            if (!list.length) return null;
+            const ids = list.map((l) => l.lootId);
+            const full = ids.every((id) => chosen.has(id));
+            return (
+              <div key={g} class="rlc-lt-section">
+                <h3>
+                  {t(label)} <small>{list.length}</small>
+                  <button type="button" class="rlc-lt-bulk-all" disabled={done !== null} onClick={() => toggle(ids, !full)}>
+                    {full ? t('lootBulkNone') : t('lootAll')}
+                  </button>
+                </h3>
+                <div class="rlc-lt-grid rlc-lt-reroll-pool">
+                  {list.map((l) => (
+                    <button type="button" key={l.lootId} class="rlc-lt-tile" aria-label={lootName(l)} title={lootName(l)} aria-pressed={chosen.has(l.lootId)} data-rarity={rarityKey(l.rarity).toLowerCase() || undefined} disabled={done !== null} onClick={() => toggle([l.lootId], !chosen.has(l.lootId))}>
+                      {l.tilePath ? <img src={l.tilePath} alt="" loading="lazy" decoding="async" /> : null}
+                      {l.count > 1 ? <b class="rlc-lt-count">×{n.format(l.count)}</b> : null}
+                      {unowned(l) ? <i class="rlc-lt-unowned">{t('lootNotOwned')}</i> : null}
+                      <span>{lootName(l)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div class="rlc-dialog-actions">
+          <span class="rlc-muted rlc-lt-slot-count">{done !== null ? `${done}/${picked.length}` : gain || t('lootBulkEmpty')}</span>
+          <button type="button" class="rlc-button" data-variant="primary" disabled={!picked.length || done !== null} onClick={() => setConfirm(true)}>
+            {copies ? `${t('lootDisenchant')} ×${n.format(copies)}` : t('lootDisenchant')}
+          </button>
+          <button type="button" class="rlc-button" disabled={done !== null} onClick={onCancel}>
+            {t('cancel')}
+          </button>
+        </div>
+      </div>
+      {confirm ? <Confirm message={fill(t('lootBulkConfirm'), { n: n.format(copies), gain })} confirmLabel={t('lootDisenchant')} onConfirm={() => void run()} onCancel={() => setConfirm(false)} /> : null}
+    </div>
+  );
 }

@@ -192,3 +192,12 @@
 @keyframes rlc-chest-glow { to { opacity: 1; transform: scale(1.4); } }
 @keyframes rlc-burst { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(40); } }
 #rlc-root[data-motion='off'] .rlc-reveal-burst, #rlc-root[data-motion='reduced'] .rlc-reveal-burst { display: none; }
+
+/* Desencantar vários: seções roláveis dentro do diálogo; desmarcado fica apagado */
+#rlc-root .rlc-lt-bulk { min-height: 0; }
+#rlc-root .rlc-lt-bulk .rlc-lt-reroll-pool { max-height: none; overflow: visible; }
+#rlc-root .rlc-lt-bulk .rlc-lt-section h3 { display: flex; align-items: baseline; gap: 4px; }
+#rlc-root .rlc-lt-bulk-all { margin-left: auto; padding: 2px 10px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.2)); border-radius: var(--rlc-radius-pill, 99px); background: transparent; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); font: inherit; font-size: 11px; cursor: pointer; }
+#rlc-root .rlc-lt-bulk-all:hover { color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-lt-bulk .rlc-lt-tile[aria-pressed='false'] img { opacity: 0.4; filter: grayscale(0.7); }
+#rlc-root .rlc-lt-unowned { position: absolute; z-index: 1; top: 4px; left: 4px; padding: 1px 6px; border-radius: var(--rlc-radius-pill, 99px); background: var(--rlc-color-scrim, rgba(6, 8, 14, 0.7)); font-size: 10px; font-style: normal; font-weight: 700; }

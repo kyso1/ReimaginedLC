@@ -1186,5 +1186,11 @@
   "voiceYou": "você",
   "voiceMuted": "Microfone mudo",
   "voiceSpeaking": "falando",
-  "voiceEmpty": "Ninguém no canal ainda."
+  "voiceEmpty": "Ninguém no canal ainda.",
+  "lootBulk": "Desencantar vários",
+  "lootBulkHint": "Marque o que vira essência. Começa com os fragmentos de campeões que você já tem.",
+  "lootBulkNone": "Nenhum",
+  "lootBulkEmpty": "Nada marcado",
+  "lootNotOwned": "Não tenho",
+  "lootBulkConfirm": "Desencantar {n} itens por {gain}? Não tem volta."
 }
