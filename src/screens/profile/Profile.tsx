@@ -12,11 +12,12 @@ import { useDrawerClose } from '../modes/Modes';
 import { formatClock } from '../lobby/format';
 import { queueLabel } from '../modes/queues';
 import {
-  byDay, getJson, inFilter, kda, kdaRatio, laneOf, mine, niceStep, num, perks, playerName, relativeDay, teamGold, tierLabel,
+  byDay, getJson, inFilter, kda, kdaRatio, laneOf, mine, num, perks, playerName, relativeDay, tierLabel,
   type Game, type Participant, type Perk, type QueueFilter, type Timeline,
 } from './data';
 import { crestFromId, prestigeTheme, type BannerCatalog, type ChallengeSummary, type Look } from './look';
 import { Badge, IdentityModal, type Tab as IdentityTab } from './Identity';
+import { MatchCharts } from './MatchCharts';
 import { PlayerHover } from './PlayerHover';
 import { ReplayButton } from './ReplayButton';
 import { canReportFromHistory, PlayerMenu, ReportDialog, useReported, type EogTarget } from '../postgame/Report';
@@ -572,10 +573,7 @@ function MatchDetail({ lcu, puuid, gameId, originY, onBack }: { lcu: Lcu; puuid:
             </table>
           ) : null}
           {tab === 'charts' ? (
-            <div class="rlc-md-charts">
-              {timeline?.frames?.length ? <GoldChart game={game} timeline={timeline} /> : null}
-              <DamageBars game={game} me={me} icons={icons} />
-            </div>
+            <MatchCharts game={game} timeline={timeline} me={me} icons={icons} />
           ) : null}
         </>
       ) : (
@@ -690,94 +688,6 @@ export function Board({ game, me, icons, menuFor, lcu }: { game: Game; me: Parti
         );
       })}
     </>
-  );
-}
-
-// Medidas do gráfico em unidades do viewBox; o SVG escala inteiro (texto junto) sem distorcer.
-const W = 720;
-const H = 240;
-const PAD = { l: 52, r: 16, t: 12, b: 28 };
-
-/** Ouro somado de cada time minuto a minuto: eixo de ouro à esquerda, minutos embaixo, dica por minuto. */
-export function GoldChart({ game, timeline }: { game: Game; timeline: Timeline }) {
-  const teamOf = Object.fromEntries(game.participants.map((p) => [p.participantId, p.teamId]));
-  const { blue, red } = teamGold(timeline, teamOf);
-  const at = timeline.frames.map((f) => f.timestamp / 60000);
-  const lastMin = Math.max(1, at[at.length - 1] ?? 1);
-  const peak = Math.max(1, ...blue, ...red);
-  const step = niceStep(peak);
-  const top = Math.ceil(peak / step) * step;
-  const minStep = Math.max(1, niceStep(lastMin, 6));
-  const x = (m: number) => PAD.l + (m / lastMin) * (W - PAD.l - PAD.r);
-  const y = (v: number) => H - PAD.b - (v / top) * (H - PAD.t - PAD.b);
-  const pts = (series: number[]) => series.map((v, i) => `${x(at[i]!).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
-  const c = new Intl.NumberFormat(locale(), { notation: 'compact', maximumFractionDigits: 1 });
-  const yTicks = Array.from({ length: Math.round(top / step) + 1 }, (_, i) => i * step);
-  const xTicks = Array.from({ length: Math.floor(lastMin / minStep) + 1 }, (_, i) => i * minStep);
-  const end = (series: number[]) => series[series.length - 1] ?? 0;
-  return (
-    <figure class="rlc-md-chart">
-      <figcaption>
-        <b>{t('teamGold')}</b>
-        <span class="rlc-md-legend" data-team="100">{`${t('mdBlueTeam')} ${c.format(end(blue))}`}</span>
-        <span class="rlc-md-legend" data-team="200">{`${t('mdRedTeam')} ${c.format(end(red))}`}</span>
-      </figcaption>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('teamGold')}>
-        {yTicks.map((v) => (
-          <g key={`y${v}`} class="rlc-md-grid">
-            <line x1={PAD.l} x2={W - PAD.r} y1={y(v)} y2={y(v)} />
-            <text x={PAD.l - 8} y={y(v)} text-anchor="end" dominant-baseline="middle">
-              {c.format(v)}
-            </text>
-          </g>
-        ))}
-        {xTicks.map((m) => (
-          <text key={`x${m}`} class="rlc-md-axis" x={x(m)} y={H - 8} text-anchor="middle">
-            {`${m} min`}
-          </text>
-        ))}
-        <polyline points={pts(blue)} data-team="100" />
-        <polyline points={pts(red)} data-team="200" />
-        {at.map((m, i) => {
-          const x0 = x(Math.max(0, m - 0.5));
-          return (
-            <rect key={i} class="rlc-md-hit" x={x0} y={PAD.t} width={x(Math.min(lastMin, m + 0.5)) - x0} height={H - PAD.t - PAD.b}>
-              <title>{`${Math.round(m)} min · ${t('mdBlueTeam')} ${c.format(blue[i]!)} · ${t('mdRedTeam')} ${c.format(red[i]!)}`}</title>
-            </rect>
-          );
-        })}
-      </svg>
-    </figure>
-  );
-}
-
-/** Dano a campeões de cada jogador: uma barra por jogador, todas na escala do maior dano da partida. */
-export function DamageBars({ game, me, icons }: { game: Game; me: Participant | undefined; icons: Icons }) {
-  const n = new Intl.NumberFormat(locale());
-  const max = Math.max(1, ...game.participants.map(damageOf));
-  return (
-    <figure class="rlc-md-chart">
-      <figcaption>
-        <b>{t('mdDamageByPlayer')}</b>
-      </figcaption>
-      <ul class="rlc-md-bars">
-        {[...game.participants]
-          .sort((a, b) => a.teamId - b.teamId)
-          .map((p) => {
-            const ch = icons.champions.get(p.championId);
-            return (
-              <li key={p.participantId} data-team={p.teamId} data-me={p === me ? 'true' : undefined}>
-                {icon(ch?.icon, 'rlc-md-mini', ch?.name)}
-                <span class="rlc-md-barname">{playerName(game, p.participantId)}</span>
-                <span class="rlc-md-track">
-                  <span class="rlc-md-fill" style={{ width: `${(damageOf(p) / max) * 100}%` }} />
-                </span>
-                <span class="rlc-md-barval">{n.format(damageOf(p))}</span>
-              </li>
-            );
-          })}
-      </ul>
-    </figure>
   );
 }
 

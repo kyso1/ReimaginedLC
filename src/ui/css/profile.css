@@ -123,9 +123,10 @@
 #rlc-root .rlc-md-dmg .rlc-md-fill { display: block; height: 4px; margin-top: 4px; border-radius: 2px; background: var(--rlc-color-teamBlueLine, #5aa0ff); }
 #rlc-root .rlc-md-board[data-team='200'] .rlc-md-dmg .rlc-md-fill { background: var(--rlc-color-teamRedLine, #e66a6a); }
 
-/* Gráficos: ouro por time (linhas) ao lado do dano por jogador (barras); um embaixo do outro em tela estreita. */
-#rlc-root .rlc-md-charts { display: grid; grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr); gap: 16px; align-items: start; }
-@media (max-width: 1100px) { #rlc-root .rlc-md-charts { grid-template-columns: minmax(0, 1fr); } }
+/* Aba Gráficos: duas colunas; vantagem de ouro, jogadores e comparação ocupam a linha toda; uma coluna em tela estreita. */
+#rlc-root .rlc-mc { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+#rlc-root .rlc-mc-wide { grid-column: 1 / -1; }
+@media (max-width: 1100px) { #rlc-root .rlc-mc { grid-template-columns: minmax(0, 1fr); } }
 #rlc-root .rlc-md-chart { margin: 0; padding: 14px 16px; border-radius: var(--rlc-radius-md, 10px); background: var(--rlc-color-surface, rgba(20, 26, 43, 0.7)); }
 #rlc-root .rlc-md-chart figcaption { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 10px; }
 #rlc-root .rlc-md-chart figcaption b { margin-right: auto; font-size: 14px; }
@@ -259,3 +260,99 @@
 #rlc-root .rlc-replay:disabled { opacity: 0.6; cursor: default; }
 #rlc-root .rlc-replay[data-state='watch'], #rlc-root .rlc-replay[data-state='download'] { color: var(--rlc-color-text); }
 #rlc-root .rlc-replay-bar { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--rlc-color-accent); transition: width var(--rlc-motion-duration) var(--rlc-motion-easing); }
+
+/* Gráficos da partida (MatchCharts) */
+#rlc-root .rlc-mc-plot { position: relative; }
+#rlc-root .rlc-mc-cross { stroke: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.5)); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none; }
+#rlc-root .rlc-md-grid[data-zero='true'] line { stroke: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.35)); }
+#rlc-root .rlc-mc-tip { position: absolute; top: 4px; z-index: 2; display: flex; flex-direction: column; gap: 2px; min-width: 120px; max-width: 260px; padding: 8px 10px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.15)); border-radius: var(--rlc-radius-sm, 7px); background: var(--rlc-color-scrim, rgba(6, 8, 14, 0.92)); font-size: 12px; font-variant-numeric: tabular-nums; pointer-events: none; transform: translateX(12px); }
+#rlc-root .rlc-mc-tip[data-side='left'] { transform: translateX(calc(-100% - 12px)); }
+#rlc-root .rlc-mc-tip b { font-size: 12px; }
+#rlc-root .rlc-mc-tip span[data-team]::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--rlc-color-teamBlueLine, #5aa0ff); }
+#rlc-root .rlc-mc-tip span[data-team='200']::before { background: var(--rlc-color-teamRedLine, #e66a6a); }
+#rlc-root .rlc-mc-note { font-size: 12px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+#rlc-root .rlc-mc-key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 0; font-size: 12px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+#rlc-root figcaption .rlc-mc-key { margin: 0; }
+
+/* Vantagem de ouro: área de cada time entre a linha e o zero; marcas de objetivo embaixo (azul em cima, vermelho embaixo) */
+#rlc-root .rlc-md-chart polyline.rlc-mc-lead { stroke: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-mc-area { fill: var(--rlc-color-teamBlueLine, #5aa0ff); opacity: 0.28; }
+#rlc-root .rlc-mc-area[data-team='200'] { fill: var(--rlc-color-teamRedLine, #e66a6a); }
+#rlc-root .rlc-md-chart text.rlc-mc-obj { fill: var(--rlc-color-teamBlueLine, #5aa0ff); font-size: 14px; dominant-baseline: hanging; }
+#rlc-root .rlc-mc-ico { display: inline-grid; place-items: center; flex: none; width: 18px; height: 18px; font-size: 12px; line-height: 1; vertical-align: -4px; background-repeat: no-repeat; }
+#rlc-root .rlc-mc-ico[data-ico='sprite'] { background-image: url(/fe/lol-match-history/right_icons_grub.png); background-size: 18px auto; }
+#rlc-root .rlc-mc-ico[data-ico='kills'] { background: url(/fe/lol-match-history/kills.png) center / 14px no-repeat; }
+#rlc-root .rlc-mc-ico[data-ico='gold'] { background: url(/fe/lol-match-history/icon_gold.png) 50% 0 / 18px auto no-repeat; }
+#rlc-root .rlc-md-chart text.rlc-mc-obj[data-team='200'] { fill: var(--rlc-color-teamRedLine, #e66a6a); }
+
+/* Por jogador: linhas apagadas, as escolhidas com cor do time e nome no fim */
+#rlc-root .rlc-md-chart polyline.rlc-mc-dim { stroke: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.5)); stroke-width: 1; opacity: 0.3; }
+#rlc-root .rlc-md-chart polyline.rlc-mc-line { stroke-width: 2; }
+#rlc-root .rlc-md-chart polyline.rlc-mc-line[data-me='true'] { stroke-width: 3; }
+#rlc-root .rlc-md-chart text.rlc-mc-end { fill: var(--rlc-color-text, #fff); font-size: 12px; font-weight: 600; paint-order: stroke; stroke: var(--rlc-color-scrim, rgba(6, 8, 14, 0.9)); stroke-width: 3px; }
+#rlc-root .rlc-mc-who { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+#rlc-root .rlc-mc-who button { width: 32px; height: 32px; padding: 0; overflow: hidden; border: 2px solid transparent; border-radius: 50%; background: var(--rlc-color-shade, rgba(0, 0, 0, 0.3)); color: inherit; font: inherit; font-size: 11px; cursor: pointer; opacity: 0.45; transition: opacity var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-mc-who button[data-team='100'] + button[data-team='200'] { margin-left: 14px; }
+#rlc-root .rlc-mc-who button[aria-pressed='true'] { opacity: 1; border-color: var(--rlc-color-teamBlueLine, #5aa0ff); }
+#rlc-root .rlc-mc-who button[data-team='200'][aria-pressed='true'] { border-color: var(--rlc-color-teamRedLine, #e66a6a); }
+#rlc-root .rlc-mc-who button:hover { opacity: 0.85; }
+#rlc-root .rlc-mc-who img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Seletores de métrica em pílulas (o <select> nativo trava no client) */
+#rlc-root .rlc-mc-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+#rlc-root .rlc-mc-pills button { padding: 3px 10px; border: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.15)); border-radius: var(--rlc-radius-pill, 99px); background: transparent; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); font: inherit; font-size: 12px; cursor: pointer; }
+#rlc-root .rlc-mc-pills button:hover { color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-mc-pills button[aria-pressed='true'] { border-color: var(--rlc-color-accent, #c8a04a); color: var(--rlc-color-text, #fff); background: var(--rlc-color-hover, rgba(255, 255, 255, 0.08)); }
+#rlc-root .rlc-md-chart > .rlc-mc-pills { margin-bottom: 12px; }
+
+/* Duelo de rota: o sinal (+/−) e a seta dizem o lado; a cor só reforça */
+#rlc-root .rlc-mc-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+#rlc-root .rlc-mc-tile { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: var(--rlc-radius-sm, 7px); background: var(--rlc-color-shade, rgba(0, 0, 0, 0.25)); }
+#rlc-root .rlc-mc-tile small { font-size: 11px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); }
+#rlc-root .rlc-mc-tile b { font-size: 20px; }
+#rlc-root .rlc-mc-tile[data-sign='up'] b::after { content: ' ▲'; font-size: 11px; color: var(--rlc-color-win, #4fbf7a); }
+#rlc-root .rlc-mc-tile[data-sign='down'] b::after { content: ' ▼'; font-size: 11px; color: var(--rlc-color-danger, #e66a6a); }
+
+/* Abates por minuto */
+#rlc-root .rlc-mc-bar { fill: var(--rlc-color-teamBlueLine, #5aa0ff); pointer-events: none; }
+#rlc-root .rlc-mc-bar[data-team='200'] { fill: var(--rlc-color-teamRedLine, #e66a6a); }
+
+/* Mapa de abates: anel da cor do fundo separa pontos sobrepostos */
+#rlc-root .rlc-mc-map svg { max-width: 360px; margin: 0 auto; border-radius: var(--rlc-radius-md, 10px); }
+#rlc-root .rlc-mc-mapbg { fill: var(--rlc-color-shade, rgba(0, 0, 0, 0.3)); }
+#rlc-root .rlc-mc-kill { fill: var(--rlc-color-teamBlueLine, #5aa0ff); stroke: var(--rlc-color-surface, #141a2b); stroke-width: 4; }
+#rlc-root .rlc-mc-kill[data-team='200'] { fill: var(--rlc-color-teamRedLine, #e66a6a); }
+#rlc-root .rlc-mc-kill:hover { stroke: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-mc-death path { stroke: var(--rlc-color-teamBlueLine, #5aa0ff); stroke-width: 7; stroke-linecap: round; }
+#rlc-root .rlc-mc-death[data-team='200'] path { stroke: var(--rlc-color-teamRedLine, #e66a6a); }
+
+/* Comparação: dano em físico, mágico e verdadeiro, com fenda de 2px entre as partes */
+#rlc-root .rlc-mc-stack { display: flex; gap: 2px; height: 100%; }
+#rlc-root .rlc-mc-seg { flex-basis: 0; min-width: 2px; height: 100%; background: var(--rlc-mc-split); }
+#rlc-root .rlc-mc-seg:first-child { border-radius: 4px 0 0 4px; }
+#rlc-root .rlc-mc-seg:last-child { border-radius: 0 4px 4px 0; }
+#rlc-root .rlc-mc-seg:only-child { border-radius: 4px; }
+#rlc-root [data-split='0'] { --rlc-mc-split: var(--rlc-color-dmgPhysical, #c46524); }
+#rlc-root [data-split='1'] { --rlc-mc-split: var(--rlc-color-dmgMagic, #4a78e6); }
+#rlc-root [data-split='2'] { --rlc-mc-split: var(--rlc-color-dmgTrue, #2fa79b); }
+#rlc-root .rlc-mc-swatch::before { content: ''; display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; vertical-align: -1px; background: var(--rlc-mc-split); }
+#rlc-root .rlc-md-barval small { margin-left: 6px; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.6)); }
+
+/* Objetivos lado a lado */
+#rlc-root .rlc-mc-objs table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+#rlc-root .rlc-mc-objs col.rlc-mc-side { width: 30%; }
+#rlc-root .rlc-mc-objs th, #rlc-root .rlc-mc-objs td { height: 30px; padding: 4px 6px; border-bottom: 1px solid var(--rlc-color-border, rgba(255, 255, 255, 0.08)); vertical-align: middle; }
+#rlc-root .rlc-mc-objs tbody th { text-align: center; }
+#rlc-root .rlc-mc-objname { display: inline-grid; grid-template-columns: 18px auto; align-items: center; gap: 8px; min-width: 130px; text-align: left; }
+#rlc-root .rlc-mc-val { display: inline-flex; align-items: center; gap: 4px; }
+#rlc-root .rlc-mc-objs td:last-child .rlc-mc-val { flex-direction: row-reverse; }
+#rlc-root .rlc-mc-drake { width: 18px; height: 18px; }
+#rlc-root .rlc-mc-objs tbody th { font-weight: 400; color: var(--rlc-color-textMuted, rgba(255, 255, 255, 0.7)); text-align: center; }
+#rlc-root .rlc-mc-objs td:first-child, #rlc-root .rlc-mc-objs thead th:first-child { text-align: left; }
+#rlc-root .rlc-mc-objs td:last-child, #rlc-root .rlc-mc-objs thead th:last-child { text-align: right; }
+#rlc-root .rlc-mc-objs td[data-best='true'] { font-weight: 700; color: var(--rlc-color-text, #fff); }
+#rlc-root .rlc-mc-firsts { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; }
+#rlc-root .rlc-mc-firsts p { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+#rlc-root .rlc-mc-firsts p[data-team='200'] { align-items: flex-end; }
+/* Recorte do sprite das larvas: o <svg> interno não herda a largura total nem o overflow do gráfico */
+#rlc-root .rlc-md-chart svg svg.rlc-mc-obj { display: inline; width: 18px; height: 18px; overflow: hidden; }

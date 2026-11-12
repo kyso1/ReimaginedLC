@@ -10,7 +10,8 @@ import { crestUrl, Rank, rankedQueueOf } from '../../ui/Rank';
 import { useAction } from '../../ui/useAction';
 import { formatClock } from '../lobby/format';
 import { getJson, kda, mine, num, ordinal, playerName, tierLabel, type Game, type Participant, type Timeline } from '../profile/data';
-import { Board, DamageBars, GoldChart, icon, useFetched, useIcons, type Icons } from '../profile/Profile';
+import { Board, icon, useFetched, useIcons, type Icons } from '../profile/Profile';
+import { MatchCharts } from '../profile/MatchCharts';
 import { Loader } from '../../ui/Loader';
 
 // Chaves do bloco do fim de jogo → nomes do histórico; assim o placar e os gráficos do perfil servem aqui sem cópia.
@@ -177,10 +178,7 @@ export function PostGame({ lcu }: { lcu: Lcu }) {
                 <Board game={game} me={me} icons={icons} menuFor={menuFor} lcu={lcu} />
               </div>
             ) : (
-              <div class="rlc-md-charts">
-                {timeline?.frames?.length ? <GoldChart game={game} timeline={timeline} /> : null}
-                <DamageBars game={game} me={me} icons={icons} />
-              </div>
+              <MatchCharts game={game} timeline={timeline} me={me} icons={icons} />
             )}
           </div>
         ) : null}

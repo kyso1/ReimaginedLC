@@ -4,7 +4,8 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setLocale } from '../../i18n';
 import type { Lcu } from '../../lcu';
 import { fakeLcu, queue, ready } from '../../test/fixtures';
-import { relativeDay, teamGold } from './data';
+import { relativeDay } from './data';
+import { goldLead } from './matchStats';
 import { Profile, RankedCards } from './Profile';
 import { profileRequest } from '../../shell/nav';
 import { HOVER_DELAY_MS } from './PlayerHover';
@@ -229,11 +230,14 @@ test('detalhe da partida: placar com os dois times, estatísticas e gráfico de 
   expect(detail.textContent).toContain('12.500');
   act(() => btn('Gráficos').click());
   await settle();
-  expect(root.querySelectorAll('.rlc-md-chart polyline')).toHaveLength(2);
-  // Eixos legíveis: ouro em passos redondos a partir de 0 e minutos embaixo; legenda com o ouro final de cada time.
-  expect([...root.querySelectorAll('.rlc-md-grid text')].map((e) => e.textContent!.replace(/\s/g, ' '))).toEqual(['0', '500', '1 mil']);
-  expect([...root.querySelectorAll('.rlc-md-axis')].map((e) => e.textContent)).toEqual(['0 min', '1 min']);
-  expect([...root.querySelectorAll('.rlc-md-legend')].map((e) => e.textContent)).toEqual(['Time azul 900', 'Time vermelho 700']);
+  // Vantagem de ouro: uma linha só, com o zero no meio e o eixo em passos redondos para os dois lados.
+  const lead = root.querySelector('.rlc-mc-lead')!.closest('figure')!;
+  expect(lead.querySelectorAll('polyline')).toHaveLength(1);
+  expect([...lead.querySelectorAll('.rlc-md-grid text')].map((e) => e.textContent)).toEqual(['200', '100', '0', '100', '200']);
+  expect([...lead.querySelectorAll('.rlc-md-axis')].map((e) => e.textContent)).toEqual(['0 min', '1 min']);
+  expect(lead.querySelector('.rlc-mc-note')!.textContent).toBe('No fim: Time azul +200');
+  // Abates por minuto, mapa de abates, comparação e objetivos também aparecem.
+  expect([...root.querySelectorAll('.rlc-md-chart figcaption b')].map((b) => b.textContent)).toEqual(['Vantagem de ouro', 'Por jogador', 'Objetivos', 'Abates por minuto', 'Mapa de abates', 'Comparação']);
   // Dano por jogador: barras na escala do maior dano.
   expect([...root.querySelectorAll<HTMLElement>('.rlc-md-track .rlc-md-fill')].map((i) => i.style.width)).toEqual(['100%', `${(24000 / 31000) * 100}%`]);
   act(() => btn('‹ Histórico').click());
@@ -326,11 +330,11 @@ test('maestria: resumo, ordem por jogado há menos tempo, faixa do nível e prog
   expect([...root.querySelectorAll('.rlc-ms-champ')].map((c) => c.getAttribute('aria-label'))).toEqual(['Zed', 'Ahri']);
 });
 
-test('dia relativo e ouro por time', () => {
+test('dia relativo e vantagem de ouro', () => {
   const now = Date.UTC(2026, 9, 5, 18);
   expect(relativeDay(Date.UTC(2026, 9, 5, 9), now)).toBe('hoje');
   expect(relativeDay(Date.UTC(2026, 9, 4, 9), now)).toBe('ontem');
-  expect(teamGold(timeline as never, { 1: 100, 6: 200 })).toEqual({ blue: [500, 900], red: [500, 700], minutes: [0, 1] });
+  expect(goldLead(timeline as never, { 1: 100, 6: 200 })).toEqual([0, 200]);
 });
 
 test('histórico: roda de carregamento enquanto as partidas não chegam', async () => {

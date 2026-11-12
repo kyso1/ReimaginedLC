@@ -32,11 +32,57 @@ export interface Game {
   gameDuration: number;
   gameCreation: number;
   mapId?: number;
+  gameMode?: string;
   participants: Participant[];
+  teams?: TeamStats[];
   participantIdentities: Identity[];
 }
+export interface TeamStats {
+  teamId: number;
+  win?: string;
+  towerKills?: number;
+  inhibitorKills?: number;
+  dragonKills?: number;
+  baronKills?: number;
+  riftHeraldKills?: number;
+  hordeKills?: number;
+  firstBlood?: boolean;
+  firstTower?: boolean;
+  /** Assim mesmo, com o erro de digitação da LCU. */
+  firstDargon?: boolean;
+  firstDragon?: boolean;
+  firstBaron?: boolean;
+  firstInhibitor?: boolean;
+}
+/** Quadro de um jogador na linha do tempo (um por minuto). */
+export interface ParticipantFrame {
+  participantId: number;
+  totalGold: number;
+  currentGold?: number;
+  xp?: number;
+  level?: number;
+  minionsKilled?: number;
+  jungleMinionsKilled?: number;
+  position?: { x: number; y: number };
+}
+/** Evento da linha do tempo: `CHAMPION_KILL`, `ELITE_MONSTER_KILL` ou `BUILDING_KILL` (a LCU não manda os outros). */
+export interface TimelineEvent {
+  type: string;
+  timestamp: number;
+  killerId?: number;
+  killerTeamId?: number;
+  victimId?: number;
+  assistingParticipantIds?: number[];
+  position?: { x: number; y: number };
+  teamId?: number;
+  monsterType?: string;
+  monsterSubType?: string;
+  buildingType?: string;
+  towerType?: string;
+  laneType?: string;
+}
 export interface Timeline {
-  frames: Array<{ timestamp: number; participantFrames: Record<string, { participantId: number; totalGold: number }> }>;
+  frames: Array<{ timestamp: number; participantFrames: Record<string, ParticipantFrame>; events?: TimelineEvent[] }>;
 }
 
 export const num = (p: Participant | undefined, key: string) => Number(p?.stats?.[key] ?? 0);
@@ -88,23 +134,6 @@ export function relativeDay(ts: number, now = Date.now()): string {
   if (day(ts) === day(now)) return t('today');
   if (day(ts) === day(now - 86400000)) return t('yesterday');
   return new Date(ts).toLocaleDateString(locale(), { day: '2-digit', month: 'short' });
-}
-
-/** Ouro somado por time a cada quadro da linha do tempo (um por minuto). */
-export function teamGold(tl: Timeline, teamOf: Record<number, number>) {
-  const blue: number[] = [];
-  const red: number[] = [];
-  for (const f of tl.frames) {
-    let b = 0;
-    let r = 0;
-    for (const pf of Object.values(f.participantFrames)) {
-      if (teamOf[pf.participantId] === 100) b += pf.totalGold;
-      else if (teamOf[pf.participantId] === 200) r += pf.totalGold;
-    }
-    blue.push(b);
-    red.push(r);
-  }
-  return { blue, red, minutes: tl.frames.map((f) => Math.round(f.timestamp / 60000)) };
 }
 
 /** Passo "redondo" do eixo (1, 2 ou 5 × 10ⁿ) para caber em até `count` marcas até `max`. */
