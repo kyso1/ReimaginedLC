@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../docs/theme.schema.json",
+  "name": "vidro",
+  "label": "Vidro",
+  "version": 1,
+  "extends": null,
+  "tokens": {
+    "color.bg": "#0b1020",
+    "color.surface": "rgba(255, 255, 255, 0.12)",
+    "color.border": "rgba(255, 255, 255, 0.22)",
+    "color.text": "#ffffff",
+    "color.textMuted": "rgba(255, 255, 255, 0.75)",
+    "color.accent": "#ffffff",
+    "color.onAccent": "#1b1b2a",
+    "font.body": "Quicksand, system-ui, sans-serif",
+    "font.display": "Quicksand, system-ui, sans-serif",
+    "font.displayWeight": "650",
+    "radius.sm": "6px",
+    "radius.md": "10px",
+    "radius.pill": "999px",
+    "blur.surface": "10px",
+    "motion.duration": "320ms",
+    "motion.easing": "cubic-bezier(0.7, 0, 0.2, 1)"
+  },
+  "transition": "wipe",
+  "backgrounds": { "default": "/fe/lol-static-assets/2019-intro-background.jpg" },
+  "layouts": {}
+}
