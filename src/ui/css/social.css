@@ -295,3 +295,9 @@
 #rlc-root .rlc-move-groups { display: flex; flex-wrap: wrap; gap: 8px; }
 #rlc-root .rlc-move-new { display: flex; gap: 8px; }
 #rlc-root .rlc-move-new .rlc-input { flex: 1; min-width: 0; }
+
+/* Menu da pasta: ⋯ no título (aparece com o mouse), antes da seta; clique direito no título abre o mesmo menu */
+#rlc-root .rlc-rc-group-head { position: relative; }
+#rlc-root .rlc-rc-group-head > .rlc-col-menu { top: 50%; right: 58px; width: 22px; height: 22px; margin-top: -9px; font-size: 11px; opacity: 0; }
+#rlc-root .rlc-rc-group-head:hover > .rlc-col-menu, #rlc-root .rlc-rc-group-head > .rlc-col-menu[aria-expanded='true'], #rlc-root .rlc-rc-group-head > .rlc-col-menu:focus-visible { opacity: 1; }
+#rlc-root .rlc-rc:not([data-open='true']) .rlc-rc-group-head > .rlc-col-menu { display: none; }

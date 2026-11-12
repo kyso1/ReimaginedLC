@@ -81,7 +81,8 @@ test('expandida: pastas do client com online/total, offline na pasta Offline e o
   });
   act(() => render(<RightColumn lcu={lcu} open onOpen={noop} onClose={noop} />, root));
   expect(root.querySelector('.rlc-rc-name')!.textContent).toBe('Fulano#TAG');
-  expect(titles()).toEqual(['mamae 0/1', 'Geral 1/4', 'Offline 2']);
+  // Pasta vazia também aparece: é nela que se põe o primeiro amigo, e o menu dela precisa estar à mão.
+  expect(titles()).toEqual(['mamae 0/1', 'Geral 1/4', 'vazia 0/0', 'Offline 2']);
   // Pasta com alguém para jogar abre sozinha; Offline começa fechada.
   expect(names()).toEqual(['Jogando', 'Cel', 'Disc']);
   expect([...root.querySelectorAll('.rlc-rc-friend-main small')].map((s) => s.textContent)).toEqual(['Em jogo · Ranqueada Solo/Duo', 'No celular', 'Online no Discord']);
@@ -300,4 +301,61 @@ test('cabeçalho aberto usa a splash do fundo do meu perfil e troca quando o fun
   act(() => emit('/lol-summoner/v1/current-summoner/summoner-profile', 'Update', { backgroundSkinId: 266001 }));
   for (let i = 0; i < 6; i++) await settle();
   expect(banner()).toBe('url("/splash/266001.jpg")');
+});
+
+test('pastas: clique direito abre o menu; Geral só cria e reordena; renomear, apagar (com confirmação), subir e criar', async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+  vi.stubGlobal('fetch', fetchMock);
+  const groups = [{ id: 0, name: '**Default', priority: 4, isMetaGroup: false }, { id: 1, name: 'mamae', priority: 5, isMetaGroup: false }, { id: 2, name: 'duo', priority: 1, isMetaGroup: false }];
+  const lcu = withValues({ chatMe: ready(me), friendGroups: ready(groups), friends: ready([friend({ gameName: 'Zeca', availability: 'chat', groupId: 2 })]) });
+  act(() => render(<RightColumn lcu={lcu} open onOpen={noop} onClose={noop} />, root));
+  const head = (title: string) => [...root.querySelectorAll<HTMLElement>('.rlc-rc-group-head')].find((h) => h.querySelector('.rlc-rc-group-title')!.textContent!.startsWith(title))!;
+  const menu = (title: string) => {
+    act(() => void head(title).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })));
+    return [...root.querySelectorAll<HTMLButtonElement>('.rlc-menu button')];
+  };
+  const pick = (title: string, label: string) => {
+    const item = menu(title).find((b) => b.textContent === label)!;
+    act(() => item.click());
+  };
+  const calls = () => fetchMock.mock.calls.map((c) => [c[1]?.method ?? 'GET', c[0], c[1]?.body ? JSON.parse(String(c[1].body)) : undefined]);
+
+  expect(menu('Geral').map((b) => b.textContent)).toEqual(['Nova pasta', 'Mover para cima', 'Mover para baixo']);
+  act(() => root.querySelector<HTMLElement>('.rlc-menu-backdrop')!.click());
+  expect(menu('duo').map((b) => b.textContent)).toEqual(['Nova pasta', 'Renomear pasta', 'Mover para cima', 'Apagar pasta']);
+  act(() => root.querySelector<HTMLElement>('.rlc-menu-backdrop')!.click());
+
+  // Subir: a LCU recebe a ordem nova, por nome.
+  pick('duo', 'Mover para cima');
+  await act(async () => {});
+  expect(calls().at(-1)).toEqual(['PUT', '/lol-chat/v1/friend-groups/order', { groups: ['mamae', 'duo', '**Default'] }]);
+
+  // Renomear: nome igual a outra pasta não salva; nome livre manda a pasta com o nome novo.
+  pick('duo', 'Renomear pasta');
+  const input = () => root.querySelector<HTMLInputElement>('.rlc-move-friend input')!;
+  const type = (v: string) => act(() => {
+    input().value = v;
+    input().dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  type('Mamae');
+  expect(root.querySelector<HTMLButtonElement>('.rlc-move-friend [type="submit"]')!.disabled).toBe(true);
+  type('duoq');
+  await act(async () => void root.querySelector<HTMLFormElement>('.rlc-move-friend')!.requestSubmit());
+  expect(calls().at(-1)).toEqual(['PUT', '/lol-chat/v1/friend-groups/2', { ...groups[2], name: 'duoq' }]);
+  await act(async () => void (await new Promise((r) => setTimeout(r, 0))));
+  expect(root.querySelector('.rlc-move-friend')).toBeNull();
+
+  // Apagar pede confirmação antes do DELETE.
+  pick('duo', 'Apagar pasta');
+  expect(root.querySelector('.rlc-veil p')!.textContent).toBe('Apagar a pasta duo? Os amigos dela vão para Geral.');
+  expect(calls().some((c) => c[0] === 'DELETE')).toBe(false);
+  act(() => root.querySelector<HTMLButtonElement>('.rlc-veil [data-variant="primary"]')!.click());
+  expect(calls().at(-1)).toEqual(['DELETE', '/lol-chat/v1/friend-groups/2', undefined]);
+
+  // Nova pasta.
+  pick('Geral', 'Nova pasta');
+  type('clash');
+  await act(async () => void root.querySelector<HTMLFormElement>('.rlc-move-friend')!.requestSubmit());
+  expect(calls().at(-1)).toEqual(['POST', '/lol-chat/v1/friend-groups', { name: 'clash' }]);
+  vi.unstubAllGlobals();
 });

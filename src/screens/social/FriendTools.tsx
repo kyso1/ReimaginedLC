@@ -21,7 +21,8 @@ const savedFolders = (): Record<string, boolean> => {
  * Pasta recolhível da gaveta. Sem escolha guardada, segue `auto`; com `forceOpen` (busca) abre sem gravar.
  * Botão em vez de `<details>`: o `toggle` do details dispara também quando o código muda `open`, e gravaria o automático.
  */
-export function Folder({ id, title, count, auto, forceOpen = false, children }: { id: string; title: string; count: string; auto: boolean; forceOpen?: boolean; children: () => ComponentChildren }) {
+/** `menu`: ações da pasta (⋯ no título); o clique direito no título abre o mesmo menu. */
+export function Folder({ id, title, count, auto, forceOpen = false, menu, children }: { id: string; title: string; count: string; auto: boolean; forceOpen?: boolean; menu?: ComponentChildren; children: () => ComponentChildren }) {
   const [saved, setSaved] = useState<boolean | undefined>(() => savedFolders()[id]);
   const open = forceOpen || (saved ?? auto);
   const toggle = () => {
@@ -30,7 +31,17 @@ export function Folder({ id, title, count, auto, forceOpen = false, children }: 
   };
   return (
     <section class="rlc-rc-group" data-open={open ? 'true' : undefined}>
-      <button type="button" class="rlc-rc-row rlc-rc-group-title" aria-expanded={open} onClick={toggle}>
+      <div
+        class="rlc-rc-group-head"
+        onContextMenu={(e) => {
+          const more = e.currentTarget.querySelector<HTMLButtonElement>('.rlc-col-menu');
+          if (!more) return;
+          e.preventDefault();
+          more.click();
+        }}
+      >
+        {menu}
+        <button type="button" class="rlc-rc-row rlc-rc-group-title" aria-expanded={open} onClick={toggle}>
         <span class="rlc-rc-label">
           {title} <span class="rlc-rc-count">{count}</span>
         </span>
@@ -40,6 +51,7 @@ export function Folder({ id, title, count, auto, forceOpen = false, children }: 
           </svg>
         </span>
       </button>
+      </div>
       {open ? children() : null}
     </section>
   );

@@ -1256,5 +1256,15 @@
   "mcXp": "Experiência",
   "mcYourDeaths": "suas mortes",
   "mcYourKills": "seus abates e assistências",
-  "mcDragonOf": "Dragão ({e})"
+  "mcDragonOf": "Dragão ({e})",
+  "folderNew": "Nova pasta",
+  "folderRename": "Renomear pasta",
+  "folderUp": "Mover para cima",
+  "folderDown": "Mover para baixo",
+  "folderDelete": "Apagar pasta",
+  "folderDeleteConfirm": "Apagar a pasta {name}? Os amigos dela vão para Geral.",
+  "folderName": "Nome da pasta",
+  "folderCreate": "Criar",
+  "folderSave": "Salvar",
+  "folderExists": "Já existe uma pasta com esse nome."
 }

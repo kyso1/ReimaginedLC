@@ -1256,5 +1256,15 @@
   "mcXp": "Experience",
   "mcYourDeaths": "your deaths",
   "mcYourKills": "your kills and assists",
-  "mcDragonOf": "{e} Dragon"
+  "mcDragonOf": "{e} Dragon",
+  "folderNew": "New folder",
+  "folderRename": "Rename folder",
+  "folderUp": "Move up",
+  "folderDown": "Move down",
+  "folderDelete": "Delete folder",
+  "folderDeleteConfirm": "Delete the folder {name}? Its friends move to General.",
+  "folderName": "Folder name",
+  "folderCreate": "Create",
+  "folderSave": "Save",
+  "folderExists": "A folder with this name already exists."
 }

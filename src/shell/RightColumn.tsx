@@ -1,4 +1,4 @@
-import type { ComponentChildren } from 'preact';
+import { createPortal, type ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { t, type TextKey } from '../i18n';
 import type { Lcu } from '../lcu';
@@ -7,10 +7,12 @@ import type { LolChatGroupResource } from '../lcu/types';
 import { activityLine, FriendCard, friendName, isActive, PRESENCE_ORDER, presenceOf, profileIcon, type Friend } from '../screens/social/FriendCard';
 import { AddFriend, Folder, FriendRequests, StatusEditor } from '../screens/social/FriendTools';
 import { friendDrag } from '../screens/lobby/InviteFriends';
+import { MemberMenu } from '../screens/lobby/MemberMenu';
 import { getJson } from '../screens/profile/data';
 import { useAction } from '../ui/useAction';
 import { useDecoded } from '../ui/useDecoded';
 import { useEscape } from '../ui/useEscape';
+import { Confirm } from './overlays/Confirm';
 import { prefs, setPrefs } from './prefs';
 
 export { friendName, presenceOf, profileIcon, type Presence } from '../screens/social/FriendCard';
@@ -89,6 +91,7 @@ export function RightColumn({ lcu, open: wanted, onOpen, onClose, onFriend, onPr
   const [adding, setAdding] = useState(false);
   const [query, setQuery] = useState('');
   const [hover, setHover] = useState<{ friend: Friend; top: number } | null>(null);
+  const [editing, setEditing] = useState<FolderEdit | null>(null);
   const aside = useRef<HTMLElement>(null);
   const showCard = (f: Friend, row: HTMLElement) => {
     const box = aside.current!.getBoundingClientRect();
@@ -151,7 +154,7 @@ export function RightColumn({ lcu, open: wanted, onOpen, onClose, onFriend, onPr
             {open ? (
               <>
                 <FriendRequests lcu={lcu} />
-                <FriendFolders lcu={lcu} friends={friends} groups={lcu.friendGroups.value.data ?? []} query={query} avatar={avatar} onFriend={onFriend} menuFor={menuFor} onHover={showCard} onLeave={() => setHover(null)} />
+                <FriendFolders lcu={lcu} friends={friends} groups={lcu.friendGroups.value.data ?? []} query={query} avatar={avatar} onFriend={onFriend} menuFor={menuFor} onHover={showCard} onLeave={() => setHover(null)} onEdit={setEditing} />
               </>
             ) : (
               // Recolhida: só quem pode jogar agora, na mesma coluna em que fica o avatar na gaveta aberta.
@@ -180,6 +183,8 @@ export function RightColumn({ lcu, open: wanted, onOpen, onClose, onFriend, onPr
         </div>
       </div>
       {hovered ? <FriendCard key={hovered.id} lcu={lcu} friend={hovered} top={hover!.top} /> : null}
+      {/* Fora da gaveta (portal): ela pode fechar quando o mouse sai, e o diálogo continua. */}
+      {editing ? portal(<FolderDialog edit={editing} groups={lcu.friendGroups.value.data ?? []} onClose={() => setEditing(null)} />) : null}
     </aside>
   );
 }
@@ -194,13 +199,14 @@ interface FolderProps {
   menuFor?: (f: Friend) => ComponentChildren;
   onHover: (f: Friend, row: HTMLElement) => void;
   onLeave: () => void;
+  onEdit: (edit: FolderEdit) => void;
 }
 
 /**
  * Pastas do client em ordem de prioridade, com "online/total"; quem está offline vai para a pasta Offline no fim, como no client.
  * Aberta/fechada à mão fica guardada; sem escolha, abre a pasta que tem alguém para jogar. Busca por nome em todas.
  */
-function FriendFolders({ lcu, friends, groups, query, avatar, onFriend, menuFor, onHover, onLeave }: FolderProps) {
+function FriendFolders({ lcu, friends, groups, query, avatar, onFriend, menuFor, onHover, onLeave, onEdit }: FolderProps) {
   const q = query.trim().toLowerCase();
   const shown = q ? friends.filter((f) => friendName(f).toLowerCase().includes(q)) : friends;
   // Amigo numa pasta que a lista não trouxe ainda cai numa pasta com o nome que ele mesmo informa.
@@ -245,10 +251,11 @@ function FriendFolders({ lcu, friends, groups, query, avatar, onFriend, menuFor,
       {folders.map((g) => {
         const list = shown.filter((f) => f.groupId === g.id && presenceOf(f) !== 'offline');
         const total = friends.filter((f) => f.groupId === g.id);
-        if (!total.length || (q && !list.length)) return null;
+        // Pasta vazia aparece (para receber amigos e ter o menu); na busca, só as que têm resultado.
+        if ((!total.length && g.isMetaGroup) || (q && !list.length)) return null;
         const on = total.filter((f) => isActive(presenceOf(f))).length;
         return (
-          <Folder key={g.id} id={String(g.id)} title={groupLabel(g)} count={`${on}/${total.length}`} auto={on > 0} forceOpen={!!q}>
+          <Folder key={g.id} id={String(g.id)} title={groupLabel(g)} count={`${on}/${total.length}`} auto={on > 0} forceOpen={!!q} menu={<FolderMenu group={g} groups={groups} onEdit={onEdit} />}>
             {() => list.map(row)}
           </Folder>
         );
@@ -263,7 +270,7 @@ function FriendFolders({ lcu, friends, groups, query, avatar, onFriend, menuFor,
 }
 
 /**
- * Mover amigo de pasta. A pasta nova já nasce com ele: a coluna esconde pasta vazia, então criar sem mover ninguém não aparece.
+ * Mover amigo de pasta. A pasta nova já nasce com ele.
  * Nome igual ao de uma pasta que existe (sem diferenciar maiúsculas) move para ela em vez de criar outra.
  */
 export function MoveFriend({ lcu, friend, onClose }: { lcu: Lcu; friend: Friend; onClose: () => void }) {
@@ -316,6 +323,103 @@ export function MoveFriend({ lcu, friend, onClose }: { lcu: Lcu; friend: Friend;
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** No `#rlc-root` quando ele existe (fora da gaveta); sem ele (testes), no lugar. */
+const portal = (node: ComponentChildren) => {
+  const host = document.getElementById('rlc-root');
+  return host ? createPortal(node, host) : node;
+};
+
+export type FolderEdit ={ kind: 'new' } | { kind: 'rename' | 'delete'; group: LolChatGroupResource };
+
+const GROUPS = '/lol-chat/v1/friend-groups';
+const DEFAULT_GROUP = '**Default';
+
+/** Pastas que o jogador ordena, na ordem da tela (maior prioridade primeiro). */
+const userGroups = (groups: LolChatGroupResource[]) => groups.filter((g) => !g.isMetaGroup).sort((a, b) => b.priority - a.priority);
+
+/** Nova ordem com a pasta `name` trocada de lugar com a vizinha (`dir` -1 sobe, 1 desce); a LCU recebe os nomes. */
+export function reorder(groups: LolChatGroupResource[], name: string, dir: -1 | 1): string[] {
+  const names = userGroups(groups).map((g) => g.name);
+  const i = names.indexOf(name);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= names.length) return names;
+  [names[i], names[j]] = [names[j]!, names[i]!];
+  return names;
+}
+
+/**
+ * Ações da pasta: nova, renomear, subir, descer e apagar. A pasta Geral (`**Default`) é do client: não muda de nome
+ * nem é apagada. Pastas que a lista ainda não trouxe (só existem no amigo) ficam sem menu.
+ */
+function FolderMenu({ group: g, groups, onEdit }: { group: LolChatGroupResource; groups: LolChatGroupResource[]; onEdit: (edit: FolderEdit) => void }) {
+  const order = userGroups(groups);
+  const i = order.findIndex((x) => x.id === g.id);
+  if (i < 0) return null;
+  const fixed = g.name === DEFAULT_GROUP;
+  const move = (dir: -1 | 1) => void request('PUT', `${GROUPS}/order`, { groups: reorder(groups, g.name, dir) }).catch(() => {});
+  return (
+    <MemberMenu
+      items={[
+        { label: t('folderNew'), run: () => onEdit({ kind: 'new' }) },
+        ...(fixed ? [] : [{ label: t('folderRename'), run: () => onEdit({ kind: 'rename', group: g }) }]),
+        ...(i > 0 ? [{ label: t('folderUp'), run: () => move(-1) }] : []),
+        ...(i < order.length - 1 ? [{ label: t('folderDown'), run: () => move(1) }] : []),
+        ...(fixed ? [] : [{ label: t('folderDelete'), run: () => onEdit({ kind: 'delete', group: g }) }]),
+      ]}
+    />
+  );
+}
+
+/** Nome novo para a pasta (criar ou renomear), ou a confirmação de apagar. Os amigos da pasta apagada vão para Geral. */
+function FolderDialog({ edit, groups, onClose }: { edit: FolderEdit; groups: LolChatGroupResource[]; onClose: () => void }) {
+  const [name, setName] = useState(edit.kind === 'rename' ? edit.group.name : '');
+  useEscape(onClose);
+  const save = useAction(async (value: string) => {
+    if (edit.kind === 'rename') await request('PUT', `${GROUPS}/${edit.group.id}`, { ...edit.group, name: value });
+    else await request('POST', GROUPS, { name: value });
+    onClose();
+  });
+  if (edit.kind === 'delete') {
+    return (
+      <Confirm
+        message={t('folderDeleteConfirm').replace('{name}', edit.group.name)}
+        confirmLabel={t('folderDelete')}
+        onConfirm={() => {
+          void request('DELETE', `${GROUPS}/${edit.group.id}`).catch(() => {});
+          onClose();
+        }}
+        onCancel={onClose}
+      />
+    );
+  }
+  const value = name.trim();
+  const taken = groups.some((g) => g.name.toLowerCase() === value.toLowerCase() && !(edit.kind === 'rename' && g.id === edit.group.id)) || value.toLowerCase() === DEFAULT_GROUP.toLowerCase();
+  const same = edit.kind === 'rename' && value === edit.group.name;
+  return (
+    <div class="rlc-veil" role="dialog" aria-modal="true" aria-label={t(edit.kind === 'new' ? 'folderNew' : 'folderRename')}>
+      <form
+        class="rlc-dialog rlc-move-friend"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (value && !taken && !same) save.run(value);
+        }}
+      >
+        <p>{t(edit.kind === 'new' ? 'folderNew' : 'folderRename')}</p>
+        <input class="rlc-input" maxLength={40} placeholder={t('folderName')} aria-label={t('folderName')} value={name} onInput={(e) => setName(e.currentTarget.value)} autoFocus />
+        {taken ? <small class="rlc-muted">{t('folderExists')}</small> : null}
+        <div class="rlc-dialog-actions">
+          <button type="submit" class="rlc-button" data-variant="primary" disabled={!value || taken || same || save.pending}>
+            {t(edit.kind === 'new' ? 'folderCreate' : 'folderSave')}
+          </button>
+          <button type="button" class="rlc-button" onClick={onClose}>
+            {t('cancel')}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
