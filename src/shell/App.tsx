@@ -37,7 +37,7 @@ import { openParty } from '../screens/social/FriendCard';
 import { MemberMenu } from '../screens/lobby/MemberMenu';
 import type { LolChatFriendResource } from '../lcu/types';
 import { background, loadBg } from '../theme/background';
-import { RightColumn } from './RightColumn';
+import { MoveFriend, RightColumn } from './RightColumn';
 import { SpotifyWidget } from '../plugins/SpotifyWidget';
 import { pendingClaims } from '../screens/events/data';
 import { idle, lazyView } from './lazy';
@@ -133,6 +133,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   /** Conversas 1:1 abertas como abas e a que está à vista. */
   const [chat, setChat] = useState<{ open: boolean; active: string | null }>({ open: false, active: null });
   const [removing, setRemoving] = useState<LolChatFriendResource | null>(null);
+  const [moving, setMoving] = useState<LolChatFriendResource | null>(null);
   /** Perfil aberto: null é o próprio. */
   const [profilePuuid, setProfilePuuid] = useState<string | null>(null);
   /** Área das opções aberta por um atalho (o aviso de atualização abre em Geral); null é a tela inicial delas. */
@@ -282,6 +283,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
         },
         ...partyItem(f),
         ...(lcu.lobby.value.data ? [{ label: t('inviteToLobby'), run: () => void request('POST', '/lol-lobby/v2/lobby/invitations', [{ toSummonerId: f.summonerId }]).catch(() => {}) }] : []),
+        { label: t('friendMove'), run: () => setMoving(f) },
         { label: t('removeFriend'), run: () => setRemoving(f) },
       ]}
     />
@@ -410,6 +412,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
             onCancel={() => setRemoving(null)}
           />
         ) : null}
+        {moving ? <MoveFriend lcu={lcu} friend={moving} onClose={() => setMoving(null)} /> : null}
         {panel === 'modes' ? (
           <Modes
             queues={lcu.queues.value.data ?? []}

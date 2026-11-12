@@ -289,3 +289,9 @@
 #rlc-root .rlc-ctx[data-hidden='true'] { visibility: hidden; opacity: 0; pointer-events: none; transition: opacity 0.18s ease, visibility 0s linear 0.18s; }
 /* O fundo do mini perfil cobre também o respiro do topo (onde ficam minimizar/tela cheia/fechar): sem faixa cinza. */
 #rlc-root .rlc-rc-banner { top: -32px; }
+
+/* Mover amigo de pasta: pastas como pílulas, pasta nova embaixo */
+#rlc-root .rlc-move-friend { width: min(440px, calc(100vw - 32px)); }
+#rlc-root .rlc-move-groups { display: flex; flex-wrap: wrap; gap: 8px; }
+#rlc-root .rlc-move-new { display: flex; gap: 8px; }
+#rlc-root .rlc-move-new .rlc-input { flex: 1; min-width: 0; }

@@ -2,11 +2,14 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { t, type TextKey } from '../i18n';
 import type { Lcu } from '../lcu';
+import { request } from '../lcu/request';
 import type { LolChatGroupResource } from '../lcu/types';
 import { activityLine, FriendCard, friendName, isActive, PRESENCE_ORDER, presenceOf, profileIcon, type Friend } from '../screens/social/FriendCard';
 import { AddFriend, Folder, FriendRequests, StatusEditor } from '../screens/social/FriendTools';
 import { getJson } from '../screens/profile/data';
+import { useAction } from '../ui/useAction';
 import { useDecoded } from '../ui/useDecoded';
+import { useEscape } from '../ui/useEscape';
 import { prefs, setPrefs } from './prefs';
 
 export { friendName, presenceOf, profileIcon, type Presence } from '../screens/social/FriendCard';
@@ -254,5 +257,63 @@ function FriendFolders({ lcu, friends, groups, query, avatar, onFriend, menuFor,
         </Folder>
       ) : null}
     </>
+  );
+}
+
+/**
+ * Mover amigo de pasta. A pasta nova já nasce com ele: a coluna esconde pasta vazia, então criar sem mover ninguém não aparece.
+ * Nome igual ao de uma pasta que existe (sem diferenciar maiúsculas) move para ela em vez de criar outra.
+ */
+export function MoveFriend({ lcu, friend, onClose }: { lcu: Lcu; friend: Friend; onClose: () => void }) {
+  const [name, setName] = useState('');
+  useEscape(onClose);
+  const groups = (lcu.friendGroups.value.data ?? []).filter((g) => !g.isMetaGroup).sort((a, b) => b.priority - a.priority);
+  const move = useAction(async (target: { id: number } | { name: string }) => {
+    let id = 'id' in target ? target.id : undefined;
+    if (id === undefined) {
+      const wanted = (target as { name: string }).name;
+      await request('POST', '/lol-chat/v1/friend-groups', { name: wanted });
+      // A LCU não devolve a pasta criada: relê a lista para saber o id.
+      const list = await request<LolChatGroupResource[]>('GET', '/lol-chat/v1/friend-groups');
+      id = list?.find((g) => g.name === wanted)?.id;
+      if (id === undefined) return;
+    }
+    await request('PUT', `/lol-chat/v1/friends/${encodeURIComponent(friend.id)}`, { groupId: id });
+    onClose();
+  });
+  const typed = name.trim();
+  const same = groups.find((g) => groupLabel(g).toLowerCase() === typed.toLowerCase() || g.name.toLowerCase() === typed.toLowerCase());
+  return (
+    <div class="rlc-veil" role="dialog" aria-modal="true" aria-label={t('friendMoveTitle')}>
+      <div class="rlc-dialog rlc-move-friend">
+        <p>
+          {t('friendMoveTitle')}: <b>{friendName(friend)}</b>
+        </p>
+        <div class="rlc-move-groups">
+          {groups.map((g) => (
+            <button type="button" key={g.id} class="rlc-button" data-variant="pill" aria-pressed={g.id === friend.groupId} disabled={move.pending || g.id === friend.groupId} onClick={() => move.run({ id: g.id })}>
+              {groupLabel(g)}
+            </button>
+          ))}
+        </div>
+        <form
+          class="rlc-move-new"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (typed) move.run(same ? { id: same.id } : { name: typed });
+          }}
+        >
+          <input class="rlc-input" maxLength={40} placeholder={t('friendNewFolder')} aria-label={t('friendNewFolder')} value={name} onInput={(e) => setName(e.currentTarget.value)} />
+          <button type="submit" class="rlc-button" data-variant="primary" disabled={!typed || move.pending || same?.id === friend.groupId}>
+            {same ? t('friendMoveHere') : t('friendCreateMove')}
+          </button>
+        </form>
+        <div class="rlc-dialog-actions">
+          <button type="button" class="rlc-button" onClick={onClose}>
+            {t('cancel')}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

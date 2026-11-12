@@ -954,3 +954,44 @@ test('amigo em festa aberta: o menu dele tem Entrar na festa, que pede para entr
   await flush();
   expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-lobby/v2/party/festa-1/join' && c[1].method === 'POST')).toBe(true);
 });
+
+test('Mover para pasta: pasta existente move direto; nome novo cria a pasta e move o amigo para ela', async () => {
+  const groups = [{ id: 0, name: '**Default', priority: 4, isMetaGroup: false }, { id: 1, name: 'Duo', priority: 5, isMetaGroup: false }];
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url === '/lol-chat/v1/friend-groups' && init?.method === 'POST') groups.push({ id: 7, name: JSON.parse(String(init.body)).name, priority: 1, isMetaGroup: false });
+    if (url === '/lol-chat/v1/friend-groups' && init?.method === 'GET') return new Response(JSON.stringify(groups), { status: 200 });
+    return new Response(null, { status: 204 });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  enabled.value = true;
+  prefs.value = { ...DEFAULT_PREFS, socialPinned: true };
+  lcu.friendGroups.value = ready(groups as never);
+  lcu.friends.value = ready([friendFixture({ id: 'zeca@pvp.net', gameName: 'Zeca', availability: 'chat', groupId: 0 })]);
+  mount();
+  await flush();
+  const open = async () => {
+    root.querySelector<HTMLButtonElement>('.rlc-rc-friend .rlc-col-menu')!.click();
+    await flush();
+    [...root.querySelectorAll<HTMLButtonElement>('.rlc-menu button')].find((b) => b.textContent === 'Mover para pasta')!.click();
+    await flush();
+  };
+  const puts = () => fetchMock.mock.calls.filter((c) => c[0] === '/lol-chat/v1/friends/zeca%40pvp.net' && c[1]?.method === 'PUT').map((c) => JSON.parse(String(c[1]!.body)));
+  await open();
+  const pills = [...root.querySelectorAll<HTMLButtonElement>('.rlc-move-groups button')];
+  expect(pills.map((b) => b.textContent)).toEqual(['Duo', 'Geral']);
+  expect(pills[1]!.disabled).toBe(true);
+  pills[0]!.click();
+  await flush();
+  expect(puts()).toEqual([{ groupId: 1 }]);
+  expect(root.querySelector('.rlc-move-friend')).toBeNull();
+
+  await open();
+  const input = root.querySelector<HTMLInputElement>('.rlc-move-new input')!;
+  input.value = 'Clash';
+  input.dispatchEvent(new Event('input'));
+  await flush();
+  root.querySelector<HTMLFormElement>('.rlc-move-new')!.requestSubmit();
+  await flush();
+  expect(fetchMock.mock.calls.some((c) => c[0] === '/lol-chat/v1/friend-groups' && c[1]?.method === 'POST' && JSON.parse(String(c[1].body)).name === 'Clash')).toBe(true);
+  expect(puts()).toEqual([{ groupId: 1 }, { groupId: 7 }]);
+});
