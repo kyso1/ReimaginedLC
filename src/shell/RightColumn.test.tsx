@@ -82,10 +82,16 @@ test('expandida: pastas do client com online/total, offline na pasta Offline e o
   act(() => render(<RightColumn lcu={lcu} open onOpen={noop} onClose={noop} />, root));
   expect(root.querySelector('.rlc-rc-name')!.textContent).toBe('Fulano#TAG');
   // Pasta vazia também aparece: é nela que se põe o primeiro amigo, e o menu dela precisa estar à mão.
-  expect(titles()).toEqual(['mamae 0/1', 'Geral 1/4', 'vazia 0/0', 'Offline 2']);
+  // Offline de pasta criada fica na pasta (Mae em mamae); só os offline de Geral vão para Offline.
+  expect(titles()).toEqual(['mamae 0/1', 'Geral 1/4', 'vazia 0/0', 'Offline 1']);
   // Pasta com alguém para jogar abre sozinha; Offline começa fechada.
   expect(names()).toEqual(['Jogando', 'Cel', 'Disc']);
   expect([...root.querySelectorAll('.rlc-rc-friend-main small')].map((s) => s.textContent)).toEqual(['Em jogo · Ranqueada Solo/Duo', 'No celular', 'Online no Discord']);
+  // Abrindo as duas: Mae aparece em mamae e Off em Offline, cada um uma vez só.
+  const open = (title: string) => act(() => [...root.querySelectorAll<HTMLButtonElement>('.rlc-rc-group-title')].find((b) => b.textContent!.startsWith(title))!.click());
+  open('mamae');
+  open('Offline');
+  expect(names()).toEqual(['Mae', 'Jogando', 'Cel', 'Disc', 'Off']);
 });
 
 test('busca filtra em todas as pastas e abre as que têm resultado', () => {

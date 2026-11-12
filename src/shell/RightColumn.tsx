@@ -203,7 +203,8 @@ interface FolderProps {
 }
 
 /**
- * Pastas do client em ordem de prioridade, com "online/total"; quem está offline vai para a pasta Offline no fim, como no client.
+ * Pastas do client em ordem de prioridade, com "online/total". Como no client, quem está offline fica na pasta que você
+ * criou (depois dos online, já ordenados por presença); só os offline de Geral vão para a pasta Offline no fim.
  * Aberta/fechada à mão fica guardada; sem escolha, abre a pasta que tem alguém para jogar. Busca por nome em todas.
  */
 function FriendFolders({ lcu, friends, groups, query, avatar, onFriend, menuFor, onHover, onLeave, onEdit }: FolderProps) {
@@ -213,7 +214,8 @@ function FriendFolders({ lcu, friends, groups, query, avatar, onFriend, menuFor,
   const folders = [...groups];
   for (const f of friends) if (!folders.some((g) => g.id === f.groupId)) folders.push({ id: f.groupId, name: f.groupName, priority: -1, collapsed: false, isLocalized: false, isMetaGroup: false });
   folders.sort((a, b) => b.priority - a.priority);
-  const offline = shown.filter((f) => presenceOf(f) === 'offline');
+  const own = (f: Friend) => folders.some((g) => g.id === f.groupId && g.name !== DEFAULT_GROUP);
+  const offline = shown.filter((f) => presenceOf(f) === 'offline' && !own(f));
   const row = (f: Friend) => {
     const p = presenceOf(f);
     return (
@@ -249,7 +251,7 @@ function FriendFolders({ lcu, friends, groups, query, avatar, onFriend, menuFor,
   return (
     <>
       {folders.map((g) => {
-        const list = shown.filter((f) => f.groupId === g.id && presenceOf(f) !== 'offline');
+        const list = shown.filter((f) => f.groupId === g.id && (g.name !== DEFAULT_GROUP || presenceOf(f) !== 'offline'));
         const total = friends.filter((f) => f.groupId === g.id);
         // Pasta vazia aparece (para receber amigos e ter o menu); na busca, só as que têm resultado.
         if ((!total.length && g.isMetaGroup) || (q && !list.length)) return null;
