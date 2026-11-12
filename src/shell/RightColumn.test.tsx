@@ -308,6 +308,8 @@ test('pastas: clique direito abre o menu; Geral só cria e reordena; renomear, a
   vi.stubGlobal('fetch', fetchMock);
   const groups = [{ id: 0, name: '**Default', priority: 4, isMetaGroup: false }, { id: 1, name: 'mamae', priority: 5, isMetaGroup: false }, { id: 2, name: 'duo', priority: 1, isMetaGroup: false }];
   const lcu = withValues({ chatMe: ready(me), friendGroups: ready(groups), friends: ready([friend({ gameName: 'Zeca', availability: 'chat', groupId: 2 })]) });
+  const refresh = vi.fn(async () => {});
+  lcu.friendGroups.refresh = refresh;
   act(() => render(<RightColumn lcu={lcu} open onOpen={noop} onClose={noop} />, root));
   const head = (title: string) => [...root.querySelectorAll<HTMLElement>('.rlc-rc-group-head')].find((h) => h.querySelector('.rlc-rc-group-title')!.textContent!.startsWith(title))!;
   const menu = (title: string) => {
@@ -351,6 +353,10 @@ test('pastas: clique direito abre o menu; Geral só cria e reordena; renomear, a
   expect(calls().some((c) => c[0] === 'DELETE')).toBe(false);
   act(() => root.querySelector<HTMLButtonElement>('.rlc-veil [data-variant="primary"]')!.click());
   expect(calls().at(-1)).toEqual(['DELETE', '/lol-chat/v1/friend-groups/2', undefined]);
+  // A LCU avisa na URI da pasta, não na lista: a lista é relida para a pasta sumir.
+  refresh.mockClear();
+  await act(async () => void (await new Promise((r) => setTimeout(r, 0))));
+  expect(refresh).toHaveBeenCalled();
 
   // Nova pasta.
   pick('Geral', 'Nova pasta');

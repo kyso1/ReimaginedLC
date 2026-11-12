@@ -83,7 +83,7 @@ export function fakeLcu(over: Partial<Lcu> = {}): Lcu {
     invitations: signal(ready([])),
     queues: signal(ready([])),
     friends: signal(ready([])),
-    friendGroups: signal(ready([])),
+    friendGroups: Object.assign(signal(ready([])), { refresh: async () => {} }),
     customGames: { state: signal(ready([])), refresh: async () => {} },
     profile: async () => null,
     name: async () => null,

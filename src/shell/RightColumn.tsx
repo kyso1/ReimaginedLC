@@ -184,7 +184,7 @@ export function RightColumn({ lcu, open: wanted, onOpen, onClose, onFriend, onPr
       </div>
       {hovered ? <FriendCard key={hovered.id} lcu={lcu} friend={hovered} top={hover!.top} /> : null}
       {/* Fora da gaveta (portal): ela pode fechar quando o mouse sai, e o diálogo continua. */}
-      {editing ? portal(<FolderDialog edit={editing} groups={lcu.friendGroups.value.data ?? []} onClose={() => setEditing(null)} />) : null}
+      {editing ? portal(<FolderDialog edit={editing} groups={lcu.friendGroups.value.data ?? []} refresh={lcu.friendGroups.refresh} onClose={() => setEditing(null)} />) : null}
     </aside>
   );
 }
@@ -255,7 +255,7 @@ function FriendFolders({ lcu, friends, groups, query, avatar, onFriend, menuFor,
         if ((!total.length && g.isMetaGroup) || (q && !list.length)) return null;
         const on = total.filter((f) => isActive(presenceOf(f))).length;
         return (
-          <Folder key={g.id} id={String(g.id)} title={groupLabel(g)} count={`${on}/${total.length}`} auto={on > 0} forceOpen={!!q} menu={<FolderMenu group={g} groups={groups} onEdit={onEdit} />}>
+          <Folder key={g.id} id={String(g.id)} title={groupLabel(g)} count={`${on}/${total.length}`} auto={on > 0} forceOpen={!!q} menu={<FolderMenu group={g} groups={groups} refresh={lcu.friendGroups.refresh} onEdit={onEdit} />}>
             {() => list.map(row)}
           </Folder>
         );
@@ -282,6 +282,7 @@ export function MoveFriend({ lcu, friend, onClose }: { lcu: Lcu; friend: Friend;
     if (id === undefined) {
       const wanted = (target as { name: string }).name;
       await request('POST', '/lol-chat/v1/friend-groups', { name: wanted });
+      void lcu.friendGroups.refresh();
       // A LCU não devolve a pasta criada: relê a lista para saber o id.
       const list = await request<LolChatGroupResource[]>('GET', '/lol-chat/v1/friend-groups');
       id = list?.find((g) => g.name === wanted)?.id;
@@ -355,12 +356,15 @@ export function reorder(groups: LolChatGroupResource[], name: string, dir: -1 | 
  * Ações da pasta: nova, renomear, subir, descer e apagar. A pasta Geral (`**Default`) é do client: não muda de nome
  * nem é apagada. Pastas que a lista ainda não trouxe (só existem no amigo) ficam sem menu.
  */
-function FolderMenu({ group: g, groups, onEdit }: { group: LolChatGroupResource; groups: LolChatGroupResource[]; onEdit: (edit: FolderEdit) => void }) {
+function FolderMenu({ group: g, groups, refresh, onEdit }: { group: LolChatGroupResource; groups: LolChatGroupResource[]; refresh: () => Promise<void>; onEdit: (edit: FolderEdit) => void }) {
   const order = userGroups(groups);
   const i = order.findIndex((x) => x.id === g.id);
   if (i < 0) return null;
   const fixed = g.name === DEFAULT_GROUP;
-  const move = (dir: -1 | 1) => void request('PUT', `${GROUPS}/order`, { groups: reorder(groups, g.name, dir) }).catch(() => {});
+  const move = (dir: -1 | 1) =>
+    void request('PUT', `${GROUPS}/order`, { groups: reorder(groups, g.name, dir) })
+      .then(refresh)
+      .catch(() => {});
   return (
     <MemberMenu
       items={[
@@ -375,12 +379,14 @@ function FolderMenu({ group: g, groups, onEdit }: { group: LolChatGroupResource;
 }
 
 /** Nome novo para a pasta (criar ou renomear), ou a confirmação de apagar. Os amigos da pasta apagada vão para Geral. */
-function FolderDialog({ edit, groups, onClose }: { edit: FolderEdit; groups: LolChatGroupResource[]; onClose: () => void }) {
+/** Toda mudança relê a lista no fim: o evento da LCU vem na URI da pasta, não na lista. */
+function FolderDialog({ edit, groups, refresh, onClose }: { edit: FolderEdit; groups: LolChatGroupResource[]; refresh: () => Promise<void>; onClose: () => void }) {
   const [name, setName] = useState(edit.kind === 'rename' ? edit.group.name : '');
   useEscape(onClose);
   const save = useAction(async (value: string) => {
     if (edit.kind === 'rename') await request('PUT', `${GROUPS}/${edit.group.id}`, { ...edit.group, name: value });
     else await request('POST', GROUPS, { name: value });
+    void refresh();
     onClose();
   });
   if (edit.kind === 'delete') {
@@ -389,7 +395,9 @@ function FolderDialog({ edit, groups, onClose }: { edit: FolderEdit; groups: Lol
         message={t('folderDeleteConfirm').replace('{name}', edit.group.name)}
         confirmLabel={t('folderDelete')}
         onConfirm={() => {
-          void request('DELETE', `${GROUPS}/${edit.group.id}`).catch(() => {});
+          void request('DELETE', `${GROUPS}/${edit.group.id}`)
+            .then(refresh)
+            .catch(() => {});
           onClose();
         }}
         onCancel={onClose}

@@ -47,7 +47,7 @@ export interface Lcu {
   queues: Signal<StoreState<LolGameQueuesQueue[]>>;
   friends: Signal<StoreState<LolChatFriendResource[]>>;
   /** Pastas de amigos (a padrão vem como `**Default`). */
-  friendGroups: Signal<StoreState<LolChatGroupResource[]>>;
+  friendGroups: Signal<StoreState<LolChatGroupResource[]>> & { refresh: () => Promise<void> };
   /** Lista de salas personalizadas. Não tem eventos: muda só por `refresh`. */
   customGames: { state: Signal<StoreState<LolLobbyLobbyCustomGame[]>>; refresh: () => Promise<void> };
   /** Perfil público de um jogador, com cache por puuid durante a sessão. null se não houver. */
@@ -170,7 +170,8 @@ export function createLcu(doc: Document = document): Lcu {
     invitations: createStore('/lol-lobby/v2/received-invitations', socket),
     queues: createStore('/lol-game-queues/v1/queues', socket),
     friends: createListStore('/lol-chat/v1/friends', socket),
-    friendGroups: createStore('/lol-chat/v1/friend-groups', socket),
+    // Criar, renomear e apagar pasta avisam na URI da pasta (`/friend-groups/{id}`), não na lista: relê a lista.
+    friendGroups: refreshOnPrefix(createStore('/lol-chat/v1/friend-groups', socket), socket, '/lol-chat/v1/friend-groups/'),
     customGames: {
       state: games,
       refresh: async () => {
