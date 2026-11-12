@@ -7,6 +7,21 @@ import { useEscape } from '../../ui/useEscape';
 
 const UNAVAILABLE = new Set(['offline', 'mobile']);
 
+/** Tipo do arrasto de amigo (gaveta de amigos para o lobby): leva o `summonerId`. */
+export const FRIEND_DRAG = 'application/x-rlc-friend';
+
+/** Linha ou avatar de amigo arrastável até o lobby para convidar. */
+export function friendDrag(f: Pick<LolChatFriendResource, 'summonerId'>): { draggable?: boolean; onDragStart?: (e: DragEvent) => void } {
+  if (!f.summonerId) return {};
+  return {
+    draggable: true,
+    onDragStart: (e) => {
+      e.dataTransfer?.setData(FRIEND_DRAG, String(f.summonerId));
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'copy';
+    },
+  };
+}
+
 /** Amigos online que não estão no lobby. Escolher um envia o convite e fecha. */
 export function InviteFriends({ friends, exclude, onClose }: { friends: LolChatFriendResource[]; exclude: Set<string>; onClose: () => void }) {
   const [query, setQuery] = useState('');

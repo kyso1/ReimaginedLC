@@ -6,6 +6,7 @@ import { request } from '../lcu/request';
 import type { LolChatGroupResource } from '../lcu/types';
 import { activityLine, FriendCard, friendName, isActive, PRESENCE_ORDER, presenceOf, profileIcon, type Friend } from '../screens/social/FriendCard';
 import { AddFriend, Folder, FriendRequests, StatusEditor } from '../screens/social/FriendTools';
+import { friendDrag } from '../screens/lobby/InviteFriends';
 import { getJson } from '../screens/profile/data';
 import { useAction } from '../ui/useAction';
 import { useDecoded } from '../ui/useDecoded';
@@ -157,7 +158,7 @@ export function RightColumn({ lcu, open: wanted, onOpen, onClose, onFriend, onPr
               friends
                 .filter((f) => isActive(presenceOf(f)))
                 .map((f) => (
-                  <div key={f.puuid || f.id} class="rlc-rc-row">
+                  <div key={f.puuid || f.id} class="rlc-rc-row" {...friendDrag(f)}>
                     <button type="button" class="rlc-rc-cell rlc-rc-avatar" data-group={presenceOf(f)} aria-label={friendName(f)} title={friendName(f)} onClick={() => onFriend?.(f)}>
                       {avatar(f)}
                     </button>
@@ -214,6 +215,7 @@ function FriendFolders({ lcu, friends, groups, query, avatar, onFriend, menuFor,
         key={f.puuid || f.id}
         class="rlc-rc-row rlc-rc-friend"
         data-group={p}
+        {...friendDrag(f)}
         onMouseEnter={(e) => onHover(f, e.currentTarget)}
         onMouseLeave={onLeave}
         // Clique direito abre o mesmo menu do ⋯ da linha.

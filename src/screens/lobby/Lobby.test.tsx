@@ -279,3 +279,28 @@ test('Arena: grade de times pelo subtime e posição da LCU, vaga livre leva par
   expect(put[1].method).toBe('PUT');
   expect(JSON.parse(put[1].body)).toEqual({ subteamIndex: 4, intraSubteamPosition: 2 });
 });
+
+test('amigo arrastado da gaveta e solto no lobby recebe convite; quem já está no lobby ou sem permissão de convidar, não', () => {
+  const drag = (type: 'dragover' | 'drop', id: number, types = ['application/x-rlc-friend']) => {
+    const e = new Event(type, { bubbles: true, cancelable: true });
+    Object.defineProperty(e, 'dataTransfer', { value: { types, getData: (k: string) => (k === 'application/x-rlc-friend' ? String(id) : ''), dropEffect: 'none' } });
+    act(() => void root.querySelector('.rlc-lobby')!.dispatchEvent(e));
+    return e;
+  };
+  const invites = () => fetchMock.mock.calls.filter((c) => c[0] === '/lol-lobby/v2/lobby/invitations').map((c) => JSON.parse(String(c[1].body)));
+  mount(withSignals({}));
+  expect(drag('dragover', 99, ['text/plain']).defaultPrevented).toBe(false);
+  expect(drag('dragover', 99).defaultPrevented).toBe(true);
+  expect(root.querySelector('.rlc-lobby')!.getAttribute('data-drop')).toBe('true');
+  drag('drop', 99);
+  expect(root.querySelector('.rlc-lobby')!.getAttribute('data-drop')).toBeNull();
+  drag('drop', zeca.summonerId);
+  expect(invites()).toEqual([[{ toSummonerId: 99 }]]);
+
+  render(null, root);
+  fetchMock.mockClear();
+  mount(withSignals({ lobby: ready(lobby([zeca, me], zeca)) }));
+  expect(drag('dragover', 99).defaultPrevented).toBe(false);
+  drag('drop', 99);
+  expect(invites()).toEqual([]);
+});

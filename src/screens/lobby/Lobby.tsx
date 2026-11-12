@@ -13,7 +13,7 @@ import { rankedQueueOf } from '../../ui/Rank';
 import { useAction } from '../../ui/useAction';
 import { BotPicker, useBots } from './BotPicker';
 import { formatClock, useClock } from './format';
-import { InviteFriends } from './InviteFriends';
+import { FRIEND_DRAG, InviteFriends } from './InviteFriends';
 import { MemberMenu } from './MemberMenu';
 import { arenaTeams, Column, Stage, type Participant } from './Stage';
 import { arenaTeamSize } from '../champselect/logic';
@@ -32,6 +32,7 @@ export const lobbyPanelOpen = signal(false);
 /** Lobby no layout Palco: uma coluna por vaga e a barra flutuante com fila e busca. */
 export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
   const [panel, setPanel] = useState<null | 'invite' | { botTeam: number } | { qp: 0 | 1 }>(null);
+  const [dropping, setDropping] = useState(false);
   const [champions, setChampions] = useState<Map<number, Champion>>(new Map());
   const quickPlay = lcu.lobby.value.data?.gameConfig.showQuickPlaySlotSelection === true;
   useEffect(() => {
@@ -55,6 +56,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
   const local = data.localMember;
   const config = data.gameConfig;
   const leader = local.isLeader;
+  const canInvite = leader || local.allowedInviteOthers;
   const isLocal = (m: Participant) => m.summonerId === local.summonerId;
 
   const memberMenu = (m: Participant, team: number = m.teamId) =>
@@ -213,7 +215,27 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
 
   return (
     // Entrada: colunas sobem uma a uma saindo do desfoque, a barra por último (só ao montar a tela).
-    <section class="rlc-lobby" data-custom={config.isCustom ? 'true' : undefined} data-enter={prefs.value.lobbyAnim && prefs.value.motion !== 'off' ? 'true' : undefined}>
+    <section
+      class="rlc-lobby"
+      data-custom={config.isCustom ? 'true' : undefined}
+      data-enter={prefs.value.lobbyAnim && prefs.value.motion !== 'off' ? 'true' : undefined}
+      data-drop={dropping ? 'true' : undefined}
+      // Amigo arrastado da gaveta: soltar em qualquer ponto do lobby convida (quem já está aqui é ignorado).
+      onDragOver={(e) => {
+        if (!canInvite || !e.dataTransfer?.types.includes(FRIEND_DRAG)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        if (!dropping) setDropping(true);
+      }}
+      onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setDropping(false)}
+      onDrop={(e) => {
+        setDropping(false);
+        const id = Number(e.dataTransfer?.getData(FRIEND_DRAG));
+        if (!canInvite || !id) return;
+        e.preventDefault();
+        if (!data.members.some((m) => m.summonerId === id)) void request('POST', '/lol-lobby/v2/lobby/invitations', [{ toSummonerId: id }]).catch(() => {});
+      }}
+    >
       {stage}
       {bar}
       {panel === 'invite' ? <InviteFriends friends={lcu.friends.value.data ?? []} exclude={new Set(data.members.map((m) => m.puuid))} onClose={() => setPanel(null)} /> : null}
