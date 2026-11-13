@@ -459,6 +459,48 @@ test('em fila, Início leva à tela inicial com a pílula de fila; Lobby (ou a p
   expect(root.querySelector('.lobby-stub')).not.toBeNull();
 });
 
+test('no lobby, Início e depois Confirmar na tela de modos volta ao lobby (trocar de fila não muda a fase)', async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
+  enabled.value = true;
+  phase.value = ready('Lobby');
+  lcu.lobby.value = ready(lobbyFixture([leaderFixture()]));
+  lcu.queues.value = ready([queue({ id: 400, name: 'Normal (escolha)' })]);
+  mount({ screens: { home: () => <div class="home-stub" />, lobby: LobbyStub } });
+  await flush();
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Início"]')!.click();
+  await flush();
+  expect(root.querySelector('.home-stub')).not.toBeNull();
+  root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Jogar"]')!.click();
+  await flush();
+  [...root.querySelectorAll('button')].find((b) => b.textContent?.includes('Confirmar'))!.click();
+  await flush();
+  expect(root.querySelector('.rlc-modes')).toBeNull();
+  expect(root.querySelector('.lobby-stub')).not.toBeNull();
+  expect(root.querySelector('.home-stub')).toBeNull();
+  vi.unstubAllGlobals();
+});
+
+test('entrar num lobby (convite aceito) com a Loja aberta leva ao lobby; a Loja aberta já no lobby fica ao entrar na fila', async () => {
+  enabled.value = true;
+  const views = { store: () => <div class="store-stub" /> };
+  mount({ views, screens: { home: () => <div class="home-stub" />, lobby: LobbyStub } });
+  await flush();
+  const store = () => root.querySelector<HTMLButtonElement>('.rlc-rail-item[aria-label="Loja"]')!;
+  store().click();
+  await flush();
+  expect(root.querySelector('.store-stub')).not.toBeNull();
+  lcu.lobby.value = ready(lobbyFixture([leaderFixture()]));
+  phase.value = ready('Lobby');
+  await flush();
+  expect(root.querySelector('.store-stub')).toBeNull();
+  expect(root.querySelector('.lobby-stub')).not.toBeNull();
+  store().click();
+  await flush();
+  phase.value = ready('Matchmaking');
+  await flush();
+  expect(root.querySelector('.store-stub')).not.toBeNull();
+});
+
 test('trilho navega para Perfil, Coleção e Configurações fora do fluxo de partida; Início volta', async () => {
   enabled.value = true;
   const Profile = () => <div class="stub-profile" />;

@@ -39,8 +39,9 @@ const setup = (games: LolLobbyLobbyCustomGame[] = []) => {
     queue({ id: 3200, name: 'Howling Abyss Blind Custom', gameSelectCategory: 'CreateCustom', mapId: 12, gameMode: 'ARAM', gameTypeConfig: { id: 1 } as never }),
   ]);
   const onClose = vi.fn();
-  act(() => render(<CustomBrowser lcu={lcu} onClose={onClose} />, root));
-  return { lcu, onClose };
+  const onLobby = vi.fn();
+  act(() => render(<CustomBrowser lcu={lcu} onClose={onClose} onLobby={onLobby} />, root));
+  return { lcu, onClose, onLobby };
 };
 
 test('ao abrir atualiza a lista; mostra nome literal, jogadores e cadeado', () => {
@@ -55,11 +56,12 @@ test('ao abrir atualiza a lista; mostra nome literal, jogadores e cadeado', () =
 });
 
 test('entrar: sala antiga pelo id da sala; com senha pede e envia a senha', async () => {
-  setup([game({ id: 7 }), game({ id: 8, hasPassword: true })]);
+  const { onLobby } = setup([game({ id: 7 }), game({ id: 8, hasPassword: true })]);
   act(() => root.querySelectorAll<HTMLButtonElement>('.rlc-room')[0]!.click());
   act(() => btn('Entrar').click());
   expect(fetchMock).toHaveBeenCalledWith('/lol-lobby/v1/custom-games/7/join', expect.objectContaining({ method: 'POST', body: '{"asSpectator":false}' }));
   await settle();
+  expect(onLobby).toHaveBeenCalledOnce();
   act(() => root.querySelectorAll<HTMLButtonElement>('.rlc-room')[1]!.click());
   type(input('Senha da sala') as HTMLInputElement, 'abc');
   act(() => btn('Entrar').click());
@@ -79,8 +81,8 @@ test('sem salas mostra o aviso', () => {
   expect(root.textContent).toContain('Nenhuma sala aberta');
 });
 
-test('criar: nome vazio desabilita; cria com o corpo da fila escolhida e fecha', async () => {
-  const { onClose } = setup();
+test('criar: nome vazio desabilita; cria com o corpo da fila escolhida e vai para o lobby', async () => {
+  const { onClose, onLobby } = setup();
   expect(btn('Criar').disabled).toBe(true);
   type(input('Nome da sala') as HTMLInputElement, 'Minha sala');
   type(input('Modo'), '3200');
@@ -92,5 +94,6 @@ test('criar: nome vazio desabilita; cria com o corpo da fila escolhida e fecha',
     customGameLobby: { lobbyName: 'Minha sala', lobbyPassword: '', configuration: { gameMode: 'ARAM', mapId: 12, mutators: { id: 1 }, spectatorPolicy: 'NotAllowed', teamSize: 3 } },
   });
   await settle();
-  expect(onClose).toHaveBeenCalledOnce();
+  expect(onLobby).toHaveBeenCalledOnce();
+  expect(onClose).not.toHaveBeenCalled();
 });
