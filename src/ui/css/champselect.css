@@ -51,6 +51,10 @@
 #rlc-root .rlc-cs-side[data-side='theirs'] .rlc-cs-meta { align-items: flex-end; text-align: right; }
 #rlc-root .rlc-cs-side[data-side='theirs'] .rlc-cs-status { font-size: 13px; color: var(--rlc-color-text); }
 #rlc-root .rlc-cs-side[data-side='theirs'] .rlc-cs-cell[data-empty='true'] .rlc-cs-status { font-size: 11px; color: var(--rlc-color-textMuted); }
+/* Ordem de escolha (1 = primeira da partida) na borda de fora: antes do nome aliado, depois do status inimigo. */
+#rlc-root .rlc-cs-order { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; margin-right: 6px; padding: 0 4px; border: 1px solid var(--rlc-color-border); border-radius: 8px; font-size: 10px; font-weight: 700; line-height: 1; color: var(--rlc-color-text); vertical-align: 1px; }
+#rlc-root .rlc-cs-side[data-side='theirs'] .rlc-cs-order { margin: 0 0 0 6px; }
+#rlc-root .rlc-cs-cell[data-active='true'] .rlc-cs-order { border-color: var(--rlc-color-highlight, #ffd36b); color: var(--rlc-color-highlight, #ffd36b); }
 #rlc-root .rlc-cs-cell .rlc-col-menu { position: absolute; top: 50%; right: -28px; width: 22px; height: 22px; margin-top: -11px; font-size: 11px; }
 
 /* Banimentos: fileira pequena e apagada sob os cartões. */

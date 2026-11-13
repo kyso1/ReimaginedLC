@@ -17,6 +17,8 @@ interface TeamProps {
   bans: number[];
   /** Vagas agindo agora e o que fazem. */
   active: Map<number, 'ban' | 'pick'>;
+  /** Ordem de escolha por vaga (1 = primeira da partida), enquanto a vaga não travou. */
+  order?: Map<number, number>;
   localCellId: number;
   champions: Map<number, Champion>;
   spells: Map<number, Spell>;
@@ -37,15 +39,15 @@ interface TeamProps {
  * Coluna de um time: um cartão de vidro por vaga, com a splash do campeão entrando pelo lado de fora, e os banimentos
  * numa fileira pequena embaixo. Inimigos ficam espelhados e sem nome: só o campeão ou o que estão fazendo.
  */
-export function Team({ cells, side, bans, active, localCellId, champions, spells, name, splash, menuFor, rankQueue = null, real, extra = [] }: TeamProps) {
+export function Team({ cells, side, bans, active, order, localCellId, champions, spells, name, splash, menuFor, rankQueue = null, real, extra = [] }: TeamProps) {
   return (
     <div class="rlc-cs-side" data-side={side}>
       <div class="rlc-cs-team">
         {cells.map((c) =>
           side === 'mine' ? (
-            <Slot key={c.cellId} cell={c} acting={active.get(c.cellId)} local={c.cellId === localCellId} champions={champions} spells={spells} name={name} splash={splash} menu={menuFor?.(c)} rankQueue={rankQueue} real={real?.get(c.cellId)} />
+            <Slot key={c.cellId} cell={c} acting={active.get(c.cellId)} order={order?.get(c.cellId)} local={c.cellId === localCellId} champions={champions} spells={spells} name={name} splash={splash} menu={menuFor?.(c)} rankQueue={rankQueue} real={real?.get(c.cellId)} />
           ) : (
-            <Foe key={c.cellId} cell={c} acting={active.get(c.cellId)} champions={champions} splash={splash} />
+            <Foe key={c.cellId} cell={c} acting={active.get(c.cellId)} order={order?.get(c.cellId)} champions={champions} splash={splash} />
           ),
         )}
       </div>
@@ -155,7 +157,18 @@ function useCellArt(cell: Cell, splash: Lcu['game']['splash']): string | null {
 
 const Art = ({ url, locked }: { url: string | null; locked: boolean }) => (url ? <span class="rlc-cs-art" data-locked={locked ? 'true' : undefined} style={{ backgroundImage: `url("${url}")` }} aria-hidden="true" /> : null);
 
-function Slot({ cell, acting, local, champions, spells, name, splash, menu, rankQueue, real }: { cell: Cell; acting?: 'ban' | 'pick'; local: boolean; champions: Map<number, Champion>; spells: Map<number, Spell>; name: Lcu['name']; splash: Lcu['game']['splash']; menu?: ComponentChildren; rankQueue: string | null; real?: RealName }) {
+/** Número da vez de escolher (1 = primeira escolha da partida). */
+const Order = ({ n }: { n?: number }) => {
+  if (!n) return null;
+  const label = t('csPickOrder').replace('{n}', String(n));
+  return (
+    <span class="rlc-cs-order" role="img" aria-label={label} title={label}>
+      {n}
+    </span>
+  );
+};
+
+function Slot({ cell, acting, order, local, champions, spells, name, splash, menu, rankQueue, real }: { cell: Cell; acting?: 'ban' | 'pick'; order?: number; local: boolean; champions: Map<number, Champion>; spells: Map<number, Spell>; name: Lcu['name']; splash: Lcu['game']['splash']; menu?: ComponentChildren; rankQueue: string | null; real?: RealName }) {
   const shown = displayedChampion(cell);
   const champ = shown ? champions.get(shown.championId) : undefined;
   const label = useCellName(cell, name);
@@ -175,6 +188,7 @@ function Slot({ cell, acting, local, champions, spells, name, splash, menu, rank
       ) : null}
       <div class="rlc-cs-meta">
         <span class="rlc-cs-name" title={real ? `${real.gameName}#${real.tagLine}` : undefined}>
+          <Order n={order} />
           {real ? real.gameName : label}
           {real?.tagLine ? <small class="rlc-cs-tag">#{real.tagLine}</small> : null}
         </span>
@@ -198,7 +212,7 @@ function Slot({ cell, acting, local, champions, spells, name, splash, menu, rank
 }
 
 /** Vaga inimiga: só o campeão (ou "escolhendo…"), como no client. */
-function Foe({ cell, acting, champions, splash }: { cell: Cell; acting?: 'ban' | 'pick'; champions: Map<number, Champion>; splash: Lcu['game']['splash'] }) {
+function Foe({ cell, acting, order, champions, splash }: { cell: Cell; acting?: 'ban' | 'pick'; order?: number; champions: Map<number, Champion>; splash: Lcu['game']['splash'] }) {
   const shown = displayedChampion(cell);
   const champ = shown ? champions.get(shown.championId) : undefined;
   const art = useCellArt(cell, splash);
@@ -207,7 +221,10 @@ function Foe({ cell, acting, champions, splash }: { cell: Cell; acting?: 'ban' |
     <div class="rlc-cs-cell" data-active={acting ? 'true' : undefined} data-empty={champ ? undefined : 'true'}>
       <Art url={art} locked={shown?.locked === true} />
       <div class="rlc-cs-meta">
-        <span class="rlc-cs-status">{status}</span>
+        <span class="rlc-cs-status">
+          {status}
+          <Order n={order} />
+        </span>
       </div>
     </div>
   );

@@ -9,7 +9,7 @@ import { ChampionGrid, Drawer, LANES, type Lane } from './Drawer';
 import { Loadout, SkinCarousel, skinOf } from './Loadout';
 import { RuneEditor, useApplyOnLock, type RecoContext } from './RuneEditor';
 import { Bench, SubsetCards, SwapCards, swapMenu } from './Swaps';
-import { actingCells, allyWants, arenaBans, arenaSubteams, arenaTeamSize, bansByTeam, BRAVERY, displayedChampion, laneOpponent, myTurn, remainingSeconds, selectPhase, unavailable, type SelectPhase, type Session } from './logic';
+import { actingCells, allyWants, arenaBans, arenaSubteams, arenaTeamSize, bansByTeam, BRAVERY, displayedChampion, laneOpponent, myTurn, pickOrder, remainingSeconds, selectPhase, unavailable, type SelectPhase, type Session } from './logic';
 import { useRealNames } from './names';
 import { ArenaTeams, BRAVERY_BG, Team } from './Teams';
 import { MapSide, useMapArt, useMapRules } from './MapSide';
@@ -137,6 +137,7 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   const allowed = (turn?.kind === 'ban' ? lcu.bannable.value.data : lcu.pickable.value.data) ?? [];
   const bans = arenaMode ? arenaBans(session, arenaSize) : bansByTeam(session);
   const active = actingCells(session);
+  const order = pickOrder(session);
   // Banidos e escolhidos por outro ficam na grade, cinza e sem clique (a LCU pode mandá-los ainda como disponíveis).
   const blocked = unavailable(session);
   const braveryOn = arenaMode && turn?.kind === 'pick';
@@ -193,7 +194,7 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
       <span class="rlc-cs-timebar" aria-hidden="true">
         <i style={{ width: `${Math.min(100, (seconds / total) * 100)}%` }} />
       </span>
-      <Team cells={myCells} side="mine" bans={bans.mine} active={active} localCellId={session.localPlayerCellId} champions={champions} spells={spells} name={lcu.name} splash={lcu.game.splash} real={real.byCell} extra={real.extra} rankQueue={rankedQueueOf(lcu.gameflowSession.value.data?.gameData?.queue?.id) ?? 'RANKED_SOLO_5x5'} menuFor={(c) => (c.cellId === session.localPlayerCellId ? null : swapMenu(session, c))} />
+      <Team cells={myCells} side="mine" bans={bans.mine} active={active} order={order} localCellId={session.localPlayerCellId} champions={champions} spells={spells} name={lcu.name} splash={lcu.game.splash} real={real.byCell} extra={real.extra} rankQueue={rankedQueueOf(lcu.gameflowSession.value.data?.gameData?.queue?.id) ?? 'RANKED_SOLO_5x5'} menuFor={(c) => (c.cellId === session.localPlayerCellId ? null : swapMenu(session, c))} />
       <div class="rlc-cs-center">
         <header class="rlc-cs-head">
           <p class="rlc-cs-clock">
@@ -253,7 +254,7 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
       {arenaMode ? (
         <ArenaTeams subteams={subteams.filter((g) => !g.mine)} champions={champions} bans={bans.theirs} active={active} />
       ) : (
-        <Team cells={session.theirTeam} side="theirs" bans={bans.theirs} active={active} localCellId={-1} champions={champions} spells={spells} name={lcu.name} splash={lcu.game.splash} />
+        <Team cells={session.theirTeam} side="theirs" bans={bans.theirs} active={active} order={order} localCellId={-1} champions={champions} spells={spells} name={lcu.name} splash={lcu.game.splash} />
       )}
       <SwapCards session={session} />
       <footer class="rlc-cs-bar">

@@ -77,6 +77,28 @@ test('cartões dos aliados com nome e ícone da rota; inimigos sem nome, só o c
   expect(theirs!.textContent).not.toContain('Zeca');
 });
 
+test('ordem de escolha: número em cada vaga dos dois times até travar; a primeira escolha da partida é o 1', async () => {
+  setup(
+    session({
+      myTeam: [me, ally],
+      theirTeam: [enemy],
+      actions: [[action({ actorCellId: 5, isAllyAction: false, isInProgress: true })], [action({ actorCellId: 0 }), action({ actorCellId: 1 })]],
+    }),
+  );
+  await settle();
+  const [mine, theirs] = root.querySelectorAll('.rlc-cs-team');
+  expect([...mine!.querySelectorAll('.rlc-cs-order')].map((b) => b.textContent)).toEqual(['2', '3']);
+  const first = theirs!.querySelector('.rlc-cs-order')!;
+  expect(first.textContent).toBe('1');
+  expect(first.getAttribute('aria-label')).toBe('1ª escolha');
+});
+
+test('escolha às cegas não mostra ordem de escolha', async () => {
+  setup(pickTurn());
+  await settle();
+  expect(root.querySelector('.rlc-cs-order')).toBeNull();
+});
+
 test('palco: splash ao fundo, fase e tempo, nome grande, aliados à esquerda, inimigos à direita e barra com Travar', async () => {
   setup(session({ myTeam: [{ ...me, championPickIntent: 103 }, cell({ cellId: 1, championId: 266 })], theirTeam: [enemy], actions: [[action({ id: 6, type: 'pick', isInProgress: true, championId: 103 })]] }));
   await settle();
