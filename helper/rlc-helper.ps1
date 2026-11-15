@@ -12,7 +12,7 @@
   the previous size: Riot's client doesn't have this, and the page can't move or resize its own window.
 #>
 $ErrorActionPreference = 'Stop'
-$Version = '4'
+$Version = '5'
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type @"
@@ -22,7 +22,7 @@ public static class RlcWin {
   [DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr p, EnumCb cb, IntPtr l);
   [DllImport("user32.dll")] static extern int GetClassName(IntPtr h, StringBuilder s, int n);
   [DllImport("user32.dll")] static extern IntPtr GetParent(IntPtr h);
-  [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int w, int hh, uint f);
+  [DllImport("user32.dll", SetLastError = true)] static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int w, int hh, uint f);
   [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
   [DllImport("user32.dll")] static extern bool IsZoomed(IntPtr h);
   [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int c);
@@ -33,9 +33,11 @@ public static class RlcWin {
   const uint NOZORDER_NOACTIVATE = 0x14;
   public static int[] Rect(IntPtr h) { RECT r; GetWindowRect(h, out r); return new[] { r.L, r.T, r.R - r.L, r.B - r.T }; }
   // The Riot window (RCLIENT) doesn't resize the Chromium area by itself: resize its two child windows too.
-  public static void Place(IntPtr main, int x, int y, int w, int h) {
+  // Returns the Win32 error (0 = done). 5 = access denied: the client runs as administrator and this helper doesn't
+  // (Windows blocks a normal process from moving an elevated window).
+  public static int Place(IntPtr main, int x, int y, int w, int h) {
     if (IsZoomed(main)) ShowWindow(main, 9);
-    SetWindowPos(main, IntPtr.Zero, x, y, w, h, NOZORDER_NOACTIVATE);
+    if (!SetWindowPos(main, IntPtr.Zero, x, y, w, h, NOZORDER_NOACTIVATE)) return Marshal.GetLastWin32Error();
     EnumChildWindows(main, (c, l) => {
       if (GetParent(c) != main) return true;
       var s = new StringBuilder(64); GetClassName(c, s, 64);
@@ -43,6 +45,7 @@ public static class RlcWin {
       if (k == "Chrome_WidgetWin_0" || k == "CefBrowserWindow") SetWindowPos(c, IntPtr.Zero, 0, 0, w, h, NOZORDER_NOACTIVATE);
       return true;
     }, IntPtr.Zero);
+    return 0;
   }
 }
 "@
@@ -57,33 +60,35 @@ function Get-WorkArea($hwnd) {
   return @($wa.X, $wa.Y, $wa.Width, $wa.Height)
 }
 
+# Both return why it failed ('' = done): 'nowindow', 'elevated' (client running as administrator), 'failed', 'size'.
+function Get-PlaceReason($err) { if ($err -eq 0) { '' } elseif ($err -eq 5) { 'elevated' } else { 'failed' } }
+
 function Invoke-Maximize {
   $hwnd = Get-ClientWindow
-  if ($hwnd -eq [IntPtr]::Zero) { return $false }
+  if ($hwnd -eq [IntPtr]::Zero) { return 'nowindow' }
   $wa = Get-WorkArea $hwnd
   $now = [RlcWin]::Rect($hwnd)
   $already = ($now[0] -eq $wa[0] -and $now[1] -eq $wa[1] -and $now[2] -eq $wa[2] -and $now[3] -eq $wa[3])
   if (-not $already) { $script:Restore = $now }
-  [RlcWin]::Place($hwnd, $wa[0], $wa[1], $wa[2], $wa[3])
-  return $true
+  return Get-PlaceReason ([RlcWin]::Place($hwnd, $wa[0], $wa[1], $wa[2], $wa[3]))
 }
 
 # Without the previous size (e.g. the helper restarted while the window was maximized): use the size the client
 # sends (Riot's own window size), centered. Only accepts values that fit the work area.
 function Invoke-Restore($w, $h) {
   $hwnd = Get-ClientWindow
-  if ($hwnd -eq [IntPtr]::Zero) { return $false }
+  if ($hwnd -eq [IntPtr]::Zero) { return 'nowindow' }
   $r = $script:Restore
   if (-not $r) {
     $wa = Get-WorkArea $hwnd
     $iw = 0; $ih = 0
-    if (-not ([int]::TryParse([string]$w, [ref]$iw) -and [int]::TryParse([string]$h, [ref]$ih))) { return $false }
-    if ($iw -lt 640 -or $ih -lt 360 -or $iw -gt $wa[2] -or $ih -gt $wa[3]) { return $false }
+    if (-not ([int]::TryParse([string]$w, [ref]$iw) -and [int]::TryParse([string]$h, [ref]$ih))) { return 'size' }
+    if ($iw -lt 640 -or $ih -lt 360 -or $iw -gt $wa[2] -or $ih -gt $wa[3]) { return 'size' }
     $r = @(($wa[0] + [int](($wa[2] - $iw) / 2)), ($wa[1] + [int](($wa[3] - $ih) / 2)), $iw, $ih)
   }
-  [RlcWin]::Place($hwnd, $r[0], $r[1], $r[2], $r[3])
-  $script:Restore = $null
-  return $true
+  $why = Get-PlaceReason ([RlcWin]::Place($hwnd, $r[0], $r[1], $r[2], $r[3]))
+  if (-not $why) { $script:Restore = $null }
+  return $why
 }
 # Ports the client tries, in this order (some machines have ports reserved by the system).
 $Ports = @(38611, 41847, 45219, 47863)
@@ -293,8 +298,8 @@ while ($listener.IsListening) {
       if ($target -and (Test-Path $target)) { Send-File $req $res $target } else { $res.StatusCode = 404 }
     } elseif (($path -eq '/v1/window/maximize' -or $path -eq '/v1/window/restore') -and $req.HttpMethod -eq 'POST') {
       if (-not $fromClient) { $res.StatusCode = 403; continue }
-      $done = if ($path -eq '/v1/window/maximize') { Invoke-Maximize } else { Invoke-Restore $req.QueryString['w'] $req.QueryString['h'] }
-      Send-Json $res @{ ok = [bool]$done }
+      $why = if ($path -eq '/v1/window/maximize') { Invoke-Maximize } else { Invoke-Restore $req.QueryString['w'] $req.QueryString['h'] }
+      Send-Json $res @{ ok = (-not $why); reason = [string]$why }
     } elseif ($path -eq '/v1/open-user-folder' -and $req.HttpMethod -eq 'POST') {
       if (-not $fromClient) { $res.StatusCode = 403; continue }
       Start-Process explorer.exe (Get-UserFolder)

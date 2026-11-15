@@ -6,6 +6,7 @@ import type { Lcu } from '../../lcu';
 import type { LolGameQueuesQueue } from '../../lcu/types';
 import { PillMenu } from '../../ui/PillMenu';
 import { crestUrl, Rank } from '../../ui/Rank';
+import { withLosses } from '../../lcu/opgg';
 import { useDecoded } from '../../ui/useDecoded';
 import { useEscape } from '../../ui/useEscape';
 import { useDrawerClose } from '../modes/Modes';
@@ -84,7 +85,16 @@ export function Profile({ lcu, puuid }: { lcu: Lcu; puuid: string }) {
   const pick = (k: Tab) => (sheet ? setLeaving(k === tab ? 'summary' : k) : setTab(k));
   const id = encodeURIComponent(puuid);
   const summoner = useFetched<Summoner>(`/lol-summoner/v2/summoners/puuid/${id}`);
-  const ranked = useFetched<Ranked>(`/lol-ranked/v1/ranked-stats/${id}`);
+  const fetchedRanked = useFetched<Ranked>(`/lol-ranked/v1/ranked-stats/${id}`);
+  // Derrotas escondidas pela LCU (outros jogadores) vêm do op.gg; até lá, o que a LCU mandou.
+  const [ranked, setRanked] = useState<Ranked | null>(null);
+  useEffect(() => {
+    setRanked(fetchedRanked);
+    if (!fetchedRanked) return;
+    let live = true;
+    void withLosses(puuid, fetchedRanked.queueMap).then((queueMap) => live && queueMap !== fetchedRanked.queueMap && setRanked({ ...fetchedRanked, queueMap: queueMap ?? undefined }));
+    return () => void (live = false);
+  }, [fetchedRanked, puuid]);
   const summary = useFetched<ChallengeSummary>(`/lol-challenges/v1/summary-player-data/player/${id}`);
   // Catálogo de estandartes (com imagem e nome); serve para qualquer jogador.
   const banners = useFetched<BannerCatalog>('/lol-regalia/v3/inventory/REGALIA_BANNER');

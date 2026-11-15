@@ -48,4 +48,5 @@ test('lápis abre o editor de runas; ao fechar, a vaga recebe a página que mudo
   expect((puts[0] as Slot[])[0]!.perks).toBe(JSON.stringify({ perkIds: [8112, 8139], perkStyle: 8100, perkSubStyle: 8300 }));
   render(null, root);
   root.remove();
-});
+  // Limite do teste acima das esperas de dentro (10 s + 5 s): a primeira carga do editor sob a suíte inteira passava dos 5 s padrão.
+}, 20000);

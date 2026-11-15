@@ -1,0 +1,1287 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seleção Arena: simulação completa</title>
+<!--
+  Simulação da seleção de campeões da Arena (gameMode CHERRY, mapa 30) do começo ao fim, com todas as animações.
+  Oito duplas, dezesseis jogadores, todos contra todos. Você é o Fulano, do Time Poro, com o Zeca de parceiro.
+  Mesmo estilo e mesma barra de controle de cs-picks-ban.html (Solo/Duo); arquivo independente.
+
+  Regras do modo que mudam a tela (em relação à ranqueada):
+  - Não há rotas nem runas (os aumentos vêm durante a partida): a barra de baixo mostra só os feitiços (Flash + Fuga).
+  - Banimento por jogador: os dezesseis banem ao mesmo tempo e cada ban aparece no canto do retrato de quem baniu.
+  - Favoritos da torcida: um conjunto de campeões marcado com o selo dourado; quem escolhe um deles começa com bônus.
+  - Ousadia: em vez de escolher, o jogador recebe um campeão aleatório, travado na hora, com bônus (selo laranja).
+  - A sua dupla aparece grande à esquerda; as outras sete, compactas à direita, cada uma na cor do seu time.
+  Suposições (o que eu não sei ao certo do cliente atual e escolhi algo plausível): a ordem de escolha (quatro rodadas,
+  duas duplas por rodada, a sua na terceira; os campeões do outro time só aparecem ao travar), a quantidade de favoritos (5),
+  os nomes e as cores dos times, os tempos de cada fase e o ban repetido (aqui nenhum se repete). A variante de trios não entra.
+
+  Linha do tempo (uns 73 s em 1x):
+  1. Partida encontrada: os dezesseis aceitam, o anel estoura e a tela abre.
+  2. Arena: cena 3D (WebGL 1, neste arquivo): ilha flutuante com o piso de areia, muro, arquibancada com a torcida piscando,
+     braseiros, bandeiras e holofotes varrendo o piso. A câmera chega girando, as peças sobem do centro para fora,
+     as sete duplas caem nos pedestais em volta e a sua cai por último, no centro.
+  3. Banimento: as colunas entram, a tela esquenta de leve para o vermelho, a grade abre; o parceiro mostra a intenção,
+     você busca "ze" e bane o Zed. Os bans das outras duplas travam escondidos (ponto vermelho no retrato).
+  4. Revelação: os dezesseis bans viram dupla a dupla no centro (cartão gira, risco vermelho, rachadura, tremida)
+     e cada um voa para o retrato de quem baniu.
+  5. Escolha: primeiro a torcida apresenta os favoritos no centro e eles sobem para o cabeçalho. Depois, quatro rodadas:
+     quem está na vez pulsa com a barra do tempo; cada trava toma o palco. Na rodada 2 alguém vai de Ousadia: a roleta
+     gira no centro, para no campeão sorteado e ele entra com clarão. Na rodada 3 é a sua dupla: o parceiro trava,
+     você filtra por favoritos, escolhe a Ahri e trava: a câmera mergulha no centro da arena, clarão, splash em cor cheia.
+  6. Preparação: carrossel de skins, feitiços, contagem (sem runas).
+  7. Saída: a tela se desmonta e entra o "Carregando partida" com os dezesseis campeões agrupados em oito duplas.
+
+  Como é feito, pensando no cliente (Chromium 108, CEF):
+  - Um roteiro: lista de passos (tempo, função). Cada passo só muda estado (classe, data-*, texto); o movimento vem de
+    transições CSS presas ao estado e de animações de um disparo (fx()). Por isso dá para pausar, acelerar e pular de fase.
+  - A cena 3D é função pura do relógio do roteiro (entrada, órbita lenta, mergulho): pausa, velocidade e pulo valem para ela.
+    2 draw calls (uma malha facetada com luz por vértice no shader, um lote de pontos somados), nenhuma textura,
+    e ela só é desenhada enquanto aparece. Os marcadores das duplas são HTML por cima (8 transforms por quadro).
+  - Só transform e opacity animam em áreas grandes. Sem backdrop-filter em cima de coisa que se mexe, sem mix-blend-mode,
+    sem CSS novo (nesting, :has, color-mix), sem bibliotecas. prefers-reduced-motion: roteiro igual, sem movimento.
+  - Sem arte da Riot no repositório: imagens por link do Data Dragon. Nomes fictícios.
+  A barra de baixo (tocar, recomeçar, velocidade, fases) é só do mockup.
+-->
+<style>
+  :root {
+    --bg: #070b16; --text: #eef2ff; --muted: #8a93b5; --border: rgba(255,255,255,.14);
+    --blue: #5aa0ff; --red: #ff5f6d; --gold: #e2bd6b;
+    --accent: var(--blue);
+    --colw: clamp(220px, 18vw, 300px);
+    --cl: calc(94px + var(--colw)); --cr: calc(30px + var(--colw)); /* bordas da área central */
+    --ease: cubic-bezier(.2,.8,.2,1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #04060d; color: var(--text); font: 14px/1.35 'Segoe UI', system-ui, sans-serif; overflow: hidden; }
+  button { font: inherit; color: inherit; }
+  .frame { position: relative; width: 100vw; height: calc(100vh - 46px); min-height: 560px; overflow: hidden;
+    background: radial-gradient(ellipse 70% 60% at 50% 45%, #121a30 0%, var(--bg) 72%); }
+  .frame[data-phase='ban'], .frame[data-phase='reveal'] { --accent: var(--red); }
+  .frame.instant *, .frame.instant *::before, .frame.instant *::after { transition: none !important; }
+
+  /* ── Palco central: splash grande de quem está agindo ── */
+  .stage { position: absolute; left: var(--cl); right: var(--cr); top: 0; bottom: 0; overflow: hidden; opacity: 0; transition: opacity .5s ease; }
+  .frame[data-stage] .stage { opacity: 1; }
+  .frame[data-stage='off'] .stage { opacity: 0; }
+  .arts { position: absolute; inset: 0 -3%; transition: transform .7s var(--ease), filter .45s ease; }
+  .art { position: absolute; inset: 0; background: center 16%/cover no-repeat; opacity: 0; transition: opacity .45s ease; }
+  .art.on { opacity: 1; }
+  .frame[data-stage='dim'] .arts { filter: saturate(.18) brightness(.5); }
+  .frame[data-stage='ban'] .arts { filter: grayscale(1) brightness(.5); }
+  .frame[data-stage='banned'] .arts { filter: grayscale(1) brightness(.3); }
+  .frame[data-stage='skin'] .arts { filter: brightness(.55); }
+  .frame.open .arts { transform: translate(11%, -11%); }
+  .shade { position: absolute; inset: 0; background:
+    linear-gradient(90deg, #070b16 0%, rgba(7,11,22,0) 17%, rgba(7,11,22,0) 83%, #070b16 100%),
+    linear-gradient(180deg, rgba(7,11,22,.9) 0%, rgba(7,11,22,.25) 22%, rgba(7,11,22,0) 46%, rgba(7,11,22,.8) 80%, #070b16 100%); }
+  .foeglow { position: absolute; inset: 0; opacity: 0; transition: opacity .5s; background: radial-gradient(ellipse 60% 55% at 100% 45%, rgba(255,70,90,.22), transparent 70%); }
+  .frame[data-stage='foe'] .foeglow { opacity: 1; animation: breathe 2.4s ease-in-out infinite; }
+  .slash { position: absolute; left: 12%; right: 12%; top: 40%; height: 4px; border-radius: 4px; background: var(--red); box-shadow: 0 0 26px 2px rgba(255,60,80,.7);
+    transform: rotate(-14deg) scaleX(0); transition: transform .35s cubic-bezier(.6,0,.2,1); }
+  .frame[data-stage='banned'] .slash { transform: rotate(-14deg) scaleX(1); }
+  .nameplate { position: absolute; left: 0; right: 0; bottom: 104px; text-align: center; text-shadow: 0 2px 18px rgba(0,0,0,.85); }
+  .nameplate small { display: block; font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
+  .nameplate b { display: block; font-size: clamp(44px, 5.4vw, 84px); line-height: 1.02; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+  .nameplate i { display: block; width: 120px; height: 2px; margin: 10px auto 8px; background: var(--muted); opacity: .5; transition: background .4s, opacity .4s, transform .5s var(--ease); transform: scaleX(.4); }
+  .nameplate em { display: block; font-style: normal; font-size: 14px; color: #c9d1ee; }
+  .frame[data-stage='full'] .nameplate i { background: var(--gold); opacity: 1; transform: none; }
+  .frame[data-stage='full'] .nameplate small { color: var(--gold); }
+  .frame[data-stage='foe'] .nameplate i, .frame[data-stage='foefull'] .nameplate i, .frame[data-stage='ban'] .nameplate i, .frame[data-stage='banned'] .nameplate i { background: var(--red); opacity: 1; transform: none; }
+  .frame[data-stage='foe'] .nameplate small, .frame[data-stage='foefull'] .nameplate small, .frame[data-stage='ban'] .nameplate small, .frame[data-stage='banned'] .nameplate small { color: var(--red); }
+  .frame[data-stage='foe'] .nameplate b { color: rgba(255,255,255,.22); }
+  .frame[data-stage='skin'] .nameplate { opacity: 0; }
+  /* Com a grade aberta o nome sobe para a faixa entre o cabeçalho e a grade, à esquerda; o rosto fica à direita. */
+  .frame.open .nameplate { left: 26px; right: auto; bottom: auto; top: 136px; text-align: left; }
+  .frame.open .nameplate b { font-size: clamp(30px, 3.4vw, 52px); }
+  .frame.open .nameplate i { margin: 7px 0 6px; transform-origin: left; }
+  .np-in { animation: npIn .5s var(--ease); }
+  @keyframes npIn { from { opacity: 0; transform: translateY(14px) scale(1.06); } }
+  .slam { animation: slam .9s var(--ease); }
+  @keyframes slam { from { transform: scale(1.16); opacity: .2; } }
+  .divefx { animation: divefx 1.3s cubic-bezier(.5,0,.9,.4); }
+  @keyframes divefx { to { transform: scale(1.5); } }
+
+  /* ── Tom vermelho do banimento: vinheta leve + fio de luz no topo. Só opacity anima. ── */
+  .heat { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .7s ease;
+    background:
+      radial-gradient(ellipse 85% 75% at 50% 50%, transparent 56%, rgba(190, 25, 50, .26) 100%),
+      linear-gradient(180deg, rgba(160, 18, 40, .15), transparent 32%, transparent 74%, rgba(160, 18, 40, .09)); }
+  .heat::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--red); box-shadow: 0 0 22px 3px rgba(255, 60, 80, .55); }
+  .frame[data-phase='ban'] .heat, .frame[data-phase='reveal'] .heat { opacity: 1; animation: breathe 3.2s ease-in-out infinite; }
+  @keyframes breathe { 50% { opacity: .72; } }
+
+  .rail { position: absolute; left: 0; top: 0; bottom: 0; width: 64px; background: rgba(10,12,22,.7); border-right: 1px solid var(--border); }
+
+  /* ── Cabeçalho: fase, tempo e bans ── */
+  .head { position: absolute; top: 14px; left: var(--cl); right: var(--cr); text-align: center; transition: opacity .5s, transform .5s var(--ease); text-shadow: 0 2px 14px rgba(0,0,0,.85); }
+  .frame[data-phase='found'] .head, .frame[data-phase='exit'] .head { opacity: 0; transform: translateY(-24px); }
+  .head small { display: block; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .head b { display: block; font-size: 27px; font-weight: 700; transition: color .5s; }
+  .frame[data-phase='ban'] .head b, .frame[data-phase='reveal'] .head b { color: #ffd3d8; text-shadow: 0 0 22px rgba(255, 70, 90, .5); }
+  .title-in { animation: titleIn .55s var(--ease); }
+  @keyframes titleIn { from { opacity: 0; transform: translateY(10px) scale(1.08); } }
+  .timer { width: 280px; height: 3px; margin: 8px auto 0; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
+  .timer i { display: block; height: 100%; background: var(--accent); transform-origin: left; transition: background .5s; }
+  .bans { display: flex; justify-content: center; gap: 26px; margin-top: 11px; transition: opacity .5s, transform .5s var(--ease); }
+  .frame[data-phase='found'] .bans, .frame[data-phase='plan'] .bans { opacity: 0; transform: translateY(-8px); }
+  .bans div { display: flex; gap: 5px; }
+  .ban { position: relative; width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border); background: rgba(255,255,255,.04) center/cover; }
+  .ban.known { border-color: rgba(255,95,109,.6); }
+  .ban.hid::before { content: ''; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px; border-radius: 50%; background: var(--red); animation: breathe 1.4s ease-in-out infinite; }
+  .ban.done { filter: grayscale(1) brightness(.7); }
+  .ban.done::after { content: ''; position: absolute; left: -2px; right: -2px; top: 50%; height: 2px; margin-top: -1px; background: var(--red); transform: rotate(-45deg); }
+  .pop { animation: pop .45s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes pop { from { transform: scale(.5); opacity: 0; } }
+
+  /* ── Colunas dos times ── */
+  .team { position: absolute; top: 14px; bottom: 14px; width: var(--colw); display: flex; flex-direction: column; gap: 8px; }
+  .team.ally { left: 80px; }
+  .team.foe { right: 16px; }
+  .team h3 { margin: 0 0 2px; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--blue); transition: opacity .5s; }
+  .team.foe h3 { color: var(--red); text-align: right; }
+  .card { position: relative; flex: 1; min-height: 0; max-height: 142px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: #0d1324;
+    display: flex; align-items: flex-end; padding: 10px 12px; transition: transform .6s var(--ease) var(--d, 0s), opacity .5s ease var(--d, 0s); }
+  .card:nth-of-type(2) { --d: .06s; } .card:nth-of-type(3) { --d: .12s; } .card:nth-of-type(4) { --d: .18s; } .card:nth-of-type(5) { --d: .24s; }
+  .frame[data-cols='0'] .team.ally .card { transform: translateX(-70px); opacity: 0; }
+  .frame[data-cols='0'] .team.foe .card { transform: translateX(70px); opacity: 0; }
+  .frame[data-cols='0'] .team h3 { opacity: 0; }
+  .c-art { position: absolute; inset: 0; background: center 20%/cover no-repeat; transition: filter .5s ease, opacity .4s ease; }
+  .card[data-state='empty'] .c-art { opacity: 0; }
+  .card[data-state='hover'] .c-art { filter: saturate(.25) brightness(.7); }
+  .c-veil { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(7,11,22,.92) 0%, rgba(7,11,22,.45) 55%, rgba(7,11,22,.1)); }
+  .team.foe .c-veil { background: linear-gradient(270deg, rgba(7,11,22,.92) 0%, rgba(7,11,22,.45) 55%, rgba(7,11,22,.1)); }
+  .c-q { position: absolute; right: 22px; top: 50%; margin-top: -30px; font-size: 44px; line-height: 60px; color: rgba(255,255,255,.12); font-weight: 700; transition: opacity .3s; }
+  .team.foe .c-q { right: auto; left: 22px; }
+  .card:not([data-state='empty']) .c-q { opacity: 0; }
+  .c-sweep { position: absolute; top: 0; bottom: 0; left: -60%; width: 60%; opacity: 0; pointer-events: none;
+    background: linear-gradient(100deg, transparent, rgba(255,240,200,.75) 50%, transparent); }
+  .team.foe .c-sweep { background: linear-gradient(100deg, transparent, rgba(255,150,160,.75) 50%, transparent); }
+  .sweep { animation: sweep .7s ease-out; }
+  @keyframes sweep { from { opacity: 1; transform: translateX(0); } to { opacity: 1; transform: translateX(280%); } }
+  .c-edge { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--gold); transform: scaleY(0); transition: transform .45s var(--ease); }
+  .team.foe .c-edge { left: auto; right: 0; background: var(--red); }
+  .team.foe .card[data-state='locked'] .who em { color: #ff9aa3; }
+  .card[data-state='locked'] .c-edge { transform: none; }
+  .who { position: relative; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .team.foe .card { justify-content: flex-end; text-align: right; }
+  .who b { font-size: 16px; white-space: nowrap; }
+  .who b u { text-decoration: none; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: #fff; color: #10131f; font-size: 10px; font-weight: 700; letter-spacing: .06em; vertical-align: 2px; }
+  .who em { font-style: normal; font-size: 12px; color: var(--muted); white-space: nowrap; transition: color .4s; }
+  .card[data-state='locked'] .who em { color: var(--gold); }
+  .rise { animation: rise .5s var(--ease); }
+  @keyframes rise { from { transform: translateY(12px); opacity: 0; } }
+  .role { position: absolute; top: 10px; left: 12px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; background: rgba(7,11,22,.75); border: 1px solid var(--border); }
+  .ri { width: 18px; height: 18px; fill: currentColor; display: block; }
+  .chip .ri, .f-box em .ri { display: inline-block; width: 14px; height: 14px; margin-right: 5px; vertical-align: -2.5px; }
+  .ld .role { top: 7px; left: 7px; }
+  .team.foe .role { left: auto; right: 12px; }
+  .spells { position: absolute; top: 10px; right: 12px; display: flex; gap: 3px; opacity: 0; transition: opacity .4s .2s; }
+  .card[data-state='locked'] .spells { opacity: 1; }
+  .spells i { width: 18px; height: 18px; border-radius: 4px; background: center/cover; border: 1px solid var(--border); }
+  /* Vez de quem: anel pulsando (só opacity) e barra do tempo. */
+  .card::after { content: ''; position: absolute; inset: 0; border-radius: 11px; border: 2px solid var(--accent); box-shadow: inset 0 0 22px -4px var(--accent); opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .card.turn::after { opacity: 1; animation: ring 1.5s ease-in-out infinite; }
+  @keyframes ring { 50% { opacity: .45; } }
+  .team.foe .card { --accent: var(--red); }
+  .c-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.12); opacity: 0; }
+  .card.turn .c-bar { opacity: 1; }
+  .c-bar i { display: block; height: 100%; background: var(--accent); transform-origin: left; }
+  .lockpop { animation: lockpop .5s var(--ease); }
+  @keyframes lockpop { from { transform: scale(1.045); } }
+  .art-in { animation: artIn .45s ease-out; }
+  @keyframes artIn { from { opacity: 0; transform: scale(1.1); } }
+  .art-foe { animation: artFoe .6s var(--ease); }
+  @keyframes artFoe { from { opacity: 0; transform: translateX(28%) scale(1.15); } }
+  /* Intenção de banir: retrato com o X; ao travar o ban, apaga e ganha o risco. */
+  .intent { position: absolute; right: 12px; bottom: 10px; width: 38px; height: 38px; border-radius: 8px; border: 1px solid rgba(255,95,109,.7); background: center/cover; opacity: 0; transform: scale(.6); transition: opacity .3s, transform .35s cubic-bezier(.3,1.6,.5,1); }
+  .intent.on { opacity: 1; transform: none; }
+  .intent::after { content: '✕'; position: absolute; right: -6px; top: -6px; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; font-size: 10px; color: #fff; font-weight: 700; background: var(--red); box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+  .intent.locked { filter: grayscale(1) brightness(.75); }
+  .intent.locked::before { content: ''; position: absolute; left: -3px; right: -3px; top: 50%; height: 2px; margin-top: -1px; background: var(--red); transform: rotate(-45deg); }
+  .frame[data-phase='pick'] .intent, .frame[data-phase='final'] .intent, .frame[data-phase='exit'] .intent { opacity: 0; transform: scale(.6); }
+
+  /* Fala do chat da sala, ao lado do cartão. */
+  .say { position: absolute; max-width: 220px; padding: 6px 11px; border-radius: 12px 12px 12px 2px; background: #1a2340; border: 1px solid var(--border); font-size: 12.5px; box-shadow: 0 8px 22px rgba(0,0,0,.5); opacity: 0; animation: say 3.4s ease both; pointer-events: none; }
+  .say b { color: var(--blue); font-weight: 600; margin-right: 4px; }
+  @keyframes say { 0% { opacity: 0; transform: translateX(-10px) scale(.9); } 8%, 86% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-6px); } }
+
+  /* ── Grade de campeões ── */
+  .drawer { position: absolute; left: var(--cl); right: var(--cr); top: calc(134px + 16vh); bottom: 88px; border-radius: 14px; border: 1px solid var(--border);
+    background: rgba(9,12,22,.9); padding: 14px; display: flex; flex-direction: column; gap: 10px;
+    opacity: 0; transform: translateY(30px) scale(.985); pointer-events: none; transition: opacity .35s ease, transform .5s var(--ease), border-color .5s; }
+  .frame.open .drawer { opacity: 1; transform: none; }
+  .frame[data-phase='ban'] .drawer { border-color: rgba(255, 95, 109, .32); }
+  .drawer header { display: flex; gap: 8px; align-items: center; }
+  .search { flex: 1; min-width: 90px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; overflow: hidden; }
+  .search.typed { color: var(--text); border-color: var(--accent); }
+  .search.typed::after { content: ''; display: inline-block; width: 1px; height: 14px; margin-left: 2px; vertical-align: -2px; background: var(--text); animation: caret 1s steps(2) infinite; }
+  @keyframes caret { 50% { opacity: 0; } }
+  .chip { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); font-size: 12px; white-space: nowrap; }
+  .chip.on { background: #fff; color: #10131f; }
+  .grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 10px; align-content: start; overflow: hidden; padding: 3px;
+    -webkit-mask-image: linear-gradient(180deg, #000 82%, transparent); }
+  .grid figure { margin: 0; text-align: center; font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .grid img { width: 100%; aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--border); display: block; margin-bottom: 2px; background: #0d1324; transition: transform .2s; }
+  .grid figure.sel { color: var(--text); }
+  .grid figure.sel img { outline: 2px solid var(--accent); outline-offset: 2px; transform: scale(1.06); }
+  .grid figure.gone { color: rgba(255,255,255,.25); }
+  .grid figure.gone img { filter: grayscale(1) brightness(.4); }
+  .grid-in { animation: gridIn .3s ease-out; }
+  @keyframes gridIn { from { opacity: 0; transform: translateY(8px); } }
+
+  /* ── Barra de baixo ── */
+  .bottom { position: absolute; left: var(--cl); right: var(--cr); bottom: 14px; height: 62px; display: flex; gap: 10px; align-items: center; padding: 0 14px;
+    border: 1px solid var(--border); border-radius: 14px; background: rgba(9,12,22,.88); transition: opacity .45s, transform .5s var(--ease); }
+  .frame[data-phase='found'] .bottom, .frame[data-phase='reveal'] .bottom, .frame[data-phase='exit'] .bottom { opacity: 0; transform: translateY(30px); }
+  .info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden; }
+  .info img { width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--border); flex: none; }
+  .info .fav { position: relative; }
+  .info .fav.sel { outline: 2px solid #fff; outline-offset: 2px; }
+  .info div { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .info div b { display: block; font-size: 15px; }
+  .info div span, .info > span { font-size: 12px; color: var(--muted); }
+  .pill { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: transparent; white-space: nowrap; }
+  .sp { display: flex; gap: 4px; }
+  .sp img { width: 34px; height: 34px; border-radius: 7px; border: 1px solid var(--border); display: block; }
+  .go { padding: 10px 32px; border-radius: 999px; border: 0; font-weight: 700; background: #fff; color: #10131f; white-space: nowrap; transition: background .4s, color .4s, opacity .4s, transform .15s; }
+  .frame[data-phase='ban'] .go { background: var(--red); color: #fff; }
+  .go.off { opacity: .35; }
+  .go.done { background: transparent; color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); opacity: 1; }
+  .press { animation: press .3s ease-out; }
+  @keyframes press { from { transform: scale(.9); } }
+
+  /* ── Revelação dos bans ── */
+  .reveal { position: absolute; left: var(--cl); right: var(--cr); top: 150px; bottom: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 26px;
+    opacity: 0; pointer-events: none; transition: opacity .4s; }
+  .reveal.on { opacity: 1; }
+  .rv-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 14px; }
+  .rv-row > span { flex: 0 0 100%; text-align: center; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--blue); transition: opacity .3s; }
+  .rv-row.foe > span { color: var(--red); }
+  .reveal.home .rv-row > span, .reveal.home .rv label { opacity: 0; }
+  .rv { position: relative; width: clamp(76px, 6.6vw, 104px); transform-origin: 0 0; transition: transform .65s cubic-bezier(.5,0,.2,1); perspective: 600px; }
+  .rv-in { position: relative; width: 100%; aspect-ratio: 1; transform-style: preserve-3d; transition: transform .5s cubic-bezier(.4,.1,.2,1.2); }
+  .rv.up .rv-in { transform: rotateY(180deg); }
+  .rv-back, .rv-front { position: absolute; inset: 0; border-radius: 12px; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; }
+  .rv-back { display: grid; place-items: center; font-size: 34px; font-weight: 700; color: rgba(255,95,109,.5); border: 1px solid rgba(255,95,109,.35); background: #150d16; }
+  .rv-front { transform: rotateY(180deg); border: 1px solid rgba(255,95,109,.6); background: #0d1324 center/cover; }
+  .rv-img { position: absolute; inset: 0; background: center/cover; transition: filter .4s; }
+  .rv.struck .rv-img { filter: grayscale(1) brightness(.55); }
+  .rv-front::after { content: ''; position: absolute; left: -12%; right: -12%; top: 50%; height: 4px; margin-top: -2px; background: var(--red); box-shadow: 0 0 12px rgba(255,60,80,.9);
+    transform: rotate(-45deg) scaleX(0); transition: transform .22s cubic-bezier(.7,0,.3,1); }
+  .rv.struck .rv-front::after { transform: rotate(-45deg) scaleX(1); }
+  .rv svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .rv path { fill: none; stroke: rgba(255,255,255,.75); stroke-width: 1.4; stroke-linejoin: bevel; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset .35s ease-out .08s; }
+  .rv.struck path { stroke-dashoffset: 0; }
+  .rv label { display: block; margin-top: 6px; text-align: center; font-size: 12px; color: var(--muted); opacity: 0; white-space: nowrap; transition: opacity .3s; }
+  .rv.up label { opacity: 1; }
+  .shake { animation: shake .32s linear; }
+  @keyframes shake { 20% { transform: translate(-4px, 2px) rotate(-2deg); } 45% { transform: translate(4px, -2px) rotate(2deg); } 70% { transform: translate(-2px, 1px); } }
+
+  /* ── Preparação: carrossel de skins ── */
+  .finale { position: absolute; left: var(--cl); right: var(--cr); top: 132px; bottom: 90px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+    opacity: 0; transform: translateY(20px); pointer-events: none; transition: opacity .5s, transform .6s var(--ease); }
+  .frame[data-phase='final'] .finale { opacity: 1; transform: none; }
+  .car { position: relative; flex: 1; min-height: 0; width: 100%; }
+  .skin { position: absolute; left: 50%; top: 4%; height: 92%; aspect-ratio: 308/560; border-radius: 14px; overflow: hidden; border: 1px solid var(--border);
+    background: #0d1324 center top/cover; transition: transform .55s var(--ease), opacity .45s, border-color .4s; box-shadow: 0 18px 40px rgba(0,0,0,.6); }
+  .skin.cur { border-color: var(--gold); }
+  .car-nav { position: absolute; top: 50%; width: 38px; height: 38px; margin-top: -19px; border-radius: 50%; border: 1px solid var(--border); background: rgba(9,12,22,.85); display: grid; place-items: center; font-size: 18px; }
+  .car-nav.prev { left: 6px; } .car-nav.next { right: 6px; }
+  .skin-name { text-align: center; text-shadow: 0 2px 14px rgba(0,0,0,.85); }
+  .skin-name b { display: block; font-size: 22px; }
+  .skin-name span { font-size: 12px; color: var(--muted); letter-spacing: .12em; text-transform: uppercase; }
+  .dots { display: flex; gap: 6px; justify-content: center; margin-top: 6px; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.25); transition: background .3s, transform .3s; }
+  .dots i.on { background: var(--gold); transform: scale(1.4); }
+  .rune { display: flex; align-items: center; gap: 8px; }
+  .rune img { width: 40px; height: 40px; flex: none; border: 0; border-radius: 50%; background: #0d1324; }
+  .rune img.sub { width: 20px; height: 20px; margin-left: -16px; align-self: flex-end; }
+
+  /* ── Clarão do travamento ── */
+  .flash { position: absolute; inset: 0; opacity: 0; pointer-events: none; background: radial-gradient(ellipse 60% 60% at 50% 46%, #fff 0%, rgba(255,226,160,.85) 30%, rgba(255,200,110,0) 72%); }
+  .flashfx { animation: flashfx .8s ease-out; }
+  @keyframes flashfx { 0% { opacity: 0; } 16% { opacity: 1; } 100% { opacity: 0; } }
+
+  /* ── Partida encontrada ── */
+  .found { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse 55% 55% at 50% 50%, #15203d 0%, #070b16 75%); transition: opacity .6s ease, transform .8s cubic-bezier(.5,0,.2,1); }
+  .found.out { opacity: 0; transform: scale(1.5); pointer-events: none; }
+  .f-box { position: relative; width: 330px; height: 330px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .f-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(90,160,255,.3); }
+  .f-ring::before { content: ''; position: absolute; inset: -9px; border-radius: 50%; border: 2px dashed rgba(90,160,255,.45); animation: spin 14s linear infinite; }
+  .f-ring::after { content: ''; position: absolute; inset: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,.14); border-top-color: var(--blue); animation: spin 2.4s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .found.ok .f-ring { border-color: var(--gold); transition: border-color .3s; }
+  .f-burst { position: absolute; inset: 0; border-radius: 50%; border: 3px solid var(--gold); opacity: 0; }
+  .burst { animation: burst .8s ease-out; }
+  @keyframes burst { from { opacity: 1; transform: scale(.9); } to { opacity: 0; transform: scale(1.7); } }
+  .f-box small { position: relative; color: var(--muted); letter-spacing: .2em; text-transform: uppercase; font-size: 11px; }
+  .f-box b { position: relative; font-size: 28px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; margin: 6px 0 2px; line-height: 1.1; }
+  .f-box em { position: relative; font-style: normal; color: #c9d1ee; font-size: 13px; }
+  .pips { position: relative; display: flex; gap: 5px; margin: 16px 0; }
+  .pips i { width: 14px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.15); transition: background .25s, transform .25s; }
+  .pips i.on { background: #58e0a0; transform: scaleY(1.5); }
+  .accept { position: relative; padding: 9px 34px; border-radius: 999px; border: 0; background: #fff; color: #10131f; font-weight: 700; transition: background .3s, color .3s; }
+  .found.ok .accept { background: var(--gold); }
+
+  /* ── Carregando partida ── */
+  .loading { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; padding: 18px 0; background: radial-gradient(ellipse 70% 60% at 50% 50%, #101831 0%, #05070e 78%);
+    opacity: 0; pointer-events: none; transition: opacity .7s ease; }
+  .loading.on { opacity: 1; }
+  .ld-row { flex: 1; min-height: 0; display: flex; gap: 12px; justify-content: center; }
+  .ld { position: relative; height: 100%; aspect-ratio: 308/560; border-radius: 10px; overflow: hidden; border: 1px solid rgba(90,160,255,.5); background: #0d1324 center top/cover; }
+  .ld-row.foe .ld { border-color: rgba(255,95,109,.5); }
+  .ld.me { border-color: var(--gold); box-shadow: 0 0 26px -6px var(--gold); }
+  .ld span { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 8px 7px; font-size: 12px; text-align: center; background: linear-gradient(transparent, rgba(5,7,14,.95)); }
+  .ld span b { display: block; font-size: 13px; }
+  .ld-up { animation: ldUp .7s var(--ease) backwards; }
+  @keyframes ldUp { from { opacity: 0; transform: translateY(40px) scale(.94); } }
+  .ld-down { animation: ldDown .7s var(--ease) backwards; }
+  @keyframes ldDown { from { opacity: 0; transform: translateY(-40px) scale(.94); } }
+  .ld-mid { display: flex; align-items: center; gap: 16px; width: min(760px, 70%); }
+  .ld-mid b { font-size: 22px; font-weight: 800; letter-spacing: .1em; color: var(--gold); }
+  .ld-mid small { color: var(--muted); letter-spacing: .14em; text-transform: uppercase; font-size: 11px; white-space: nowrap; }
+  .prog { flex: 1; height: 3px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
+  .prog i { display: block; height: 100%; background: var(--gold); transform-origin: left; transform: scaleX(0); }
+
+  /* ── Cursor simulado ── */
+  .cursor { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; pointer-events: none; transition: transform .6s cubic-bezier(.35,.1,.2,1), opacity .3s; }
+  .cursor.on { opacity: 1; }
+  .cursor svg { position: absolute; left: -3px; top: -2px; width: 22px; height: 22px; filter: drop-shadow(0 2px 3px rgba(0,0,0,.6)); }
+  .cursor i { position: absolute; left: -16px; top: -16px; width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff; opacity: 0; }
+  .ping { animation: ping .45s ease-out; }
+  @keyframes ping { from { opacity: .9; transform: scale(.3); } to { opacity: 0; transform: scale(1.3); } }
+
+  /* ── Controles do mockup (não fazem parte da tela) ── */
+  .mock { position: fixed; left: 0; right: 0; bottom: 0; height: 46px; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: #0b0f1c; border-top: 1px solid var(--border); font-size: 12px; }
+  .mock button { height: 28px; padding: 0 11px; border-radius: 7px; border: 1px solid var(--border); background: #161c30; cursor: pointer; white-space: nowrap; }
+  .mock button[aria-pressed='true'] { background: #fff; color: #10131f; }
+  .mock .sep { width: 1px; height: 22px; background: var(--border); }
+  .track { flex: 1; display: flex; gap: 3px; min-width: 0; }
+  .track button { position: relative; overflow: hidden; padding: 0 4px; min-width: 0; text-overflow: ellipsis; background: #121728; }
+  .track button i { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: rgba(90,160,255,.35); transform-origin: left; transform: scaleX(0); }
+  .track button span { position: relative; }
+  .track button.now { border-color: var(--blue); }
+  .mock time { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 84px; text-align: right; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+  /* ── Cena 3D (canvas WebGL atrás de tudo) e marcadores em HTML por cima dela ── */
+  .scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; opacity: 0; pointer-events: none; transition: opacity .6s ease; }
+  .frame[data-scene='on'] .scene { opacity: 1; }
+  .frame[data-scene='dim'] .scene { opacity: .34; }
+  .frame.dive .scene { transition-duration: .25s; }
+  .pins { position: absolute; inset: 0; z-index: 0; pointer-events: none; font-size: clamp(10px, 1.45vh, 13px); opacity: 0; transition: opacity .3s; }
+  .frame[data-scene='on'] .pins { opacity: 1; }
+  .frame.dive .pins, .frame.nogl .pins { opacity: 0; }
+  .pin { position: absolute; left: 0; top: 0; will-change: transform; }
+  .pin-in { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%); opacity: 0; }
+  .pin.on .pin-in { opacity: 1; animation: drop .55s cubic-bezier(.3,1.5,.5,1) both; }
+  @keyframes drop { from { transform: translate(-50%, calc(-100% - 70px)); opacity: 0; } 60% { opacity: 1; } }
+  .faces { display: flex; gap: .3em; }
+  .face { position: relative; width: 3.6em; height: 3.6em; border-radius: 50%; border: 2px solid var(--team, var(--blue)); background: #0b1324 center/cover; display: grid; place-items: center; color: var(--muted);
+    box-shadow: 0 0 0 3px rgba(6,9,20,.75), 0 8px 18px rgba(0,0,0,.7); }
+  .tag { margin-top: .45em; padding: .15em .75em; border-radius: 999px; background: rgba(8,12,22,.9); border: 1px solid var(--border); white-space: nowrap; }
+  .tag i { font-style: normal; color: var(--muted); }
+  .tag u { text-decoration: none; margin-left: .5em; padding: 0 .5em; border-radius: 999px; background: #fff; color: #10131f; font-size: .8em; font-weight: 700; letter-spacing: .06em; }
+  .stem { width: 2px; height: var(--stem, 22px); background: linear-gradient(var(--team, var(--blue)), transparent); }
+  .pin.me .face { width: 4.4em; height: 4.4em; border-color: #fff; box-shadow: 0 0 0 3px rgba(6,9,20,.75), 0 0 22px rgba(255,236,190,.55), 0 8px 18px rgba(0,0,0,.7); }
+  .pin.me .tag { border-color: rgba(255,255,255,.5); }
+  .pin.me .stem { background: linear-gradient(#fff, transparent); }
+  .frame[data-phase='enter'] .bottom { opacity: 0; transform: translateY(30px); }
+  /* Retrato em voo (FLIP): só transform. */
+  .flyer { position: absolute; left: 0; top: 0; z-index: 60; transform-origin: 0 0; border-radius: 8px; background: #0d1324 center top/cover; box-shadow: 0 10px 26px rgba(0,0,0,.6); pointer-events: none;
+    transition: transform .55s cubic-bezier(.5,0,.2,1); }
+  .poplate { animation: pop .45s cubic-bezier(.3,1.6,.5,1) .5s backwards; }
+  /* Retrato pequeno do campeão atual no canto do cartão. */
+  .c-ic { position: absolute; top: 10px; left: 12px; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: rgba(7,11,22,.75) center/cover; opacity: 0; transition: opacity .3s; }
+  .card:not([data-state='empty']) .c-ic { opacity: 1; }
+
+  /* ══ Arena ══ Paleta própria (roxo e ouro). À esquerda a sua dupla; à direita as outras sete, compactas. */
+  :root { --blue: #b58cff; --brave: #ff9d4d; }
+  .frame { background: radial-gradient(ellipse 70% 60% at 50% 45%, #261b40 0%, #070b16 74%); }
+  .found { background: radial-gradient(ellipse 55% 55% at 50% 50%, #2a1d47 0%, #070b16 75%); }
+  .f-ring { border-color: rgba(181,140,255,.3); } .f-ring::before { border-color: rgba(181,140,255,.45); }
+  .pips i { width: 11px; }
+  .loading { background: radial-gradient(ellipse 70% 60% at 50% 50%, #1d1433 0%, #05070e 78%); }
+  .team.ally h3 { color: var(--gold); }
+  .team.foe h3 { color: var(--muted); }
+  .team.ally .card { max-height: 280px; }
+  .ico { width: 14px; height: 14px; fill: currentColor; display: inline-block; vertical-align: -2px; }
+
+  /* ── Ordem de escolha: quatro rodadas, duas duplas por rodada ── */
+  .rounds { margin-top: 4px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(13,19,36,.8); transition: transform .6s var(--ease) .12s, opacity .5s ease .12s; }
+  .frame[data-cols='0'] .rounds { transform: translateX(-70px); opacity: 0; }
+  .rounds h4 { margin: 0 0 6px; font-size: 11px; font-weight: 400; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .rd { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 12.5px; white-space: nowrap; opacity: .55; transition: opacity .4s; }
+  .rd b { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; border: 1px solid var(--border); transition: background .4s, color .4s; }
+  .rd i { font-style: normal; }
+  .rd.now { opacity: 1; } .rd.now b { background: #fff; color: #10131f; border-color: #fff; }
+  .rd.done { opacity: .3; }
+
+  /* ── As outras duplas: uma linha por dupla, na cor do time ── */
+  .duo { position: relative; flex: 1; min-height: 0; max-height: 104px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: #0d1324; padding: 7px 10px 7px 13px;
+    display: flex; flex-direction: column; justify-content: center; gap: 6px; --accent: var(--tc); transition: transform .6s var(--ease) var(--d, 0s), opacity .5s ease var(--d, 0s); }
+  .duo:nth-of-type(2) { --d: .05s; } .duo:nth-of-type(3) { --d: .1s; } .duo:nth-of-type(4) { --d: .15s; } .duo:nth-of-type(5) { --d: .2s; } .duo:nth-of-type(6) { --d: .25s; } .duo:nth-of-type(7) { --d: .3s; }
+  .frame[data-cols='0'] .duo { transform: translateX(70px); opacity: 0; }
+  .duo::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--tc); }
+  .duo::after { content: ''; position: absolute; inset: 0; border-radius: 11px; border: 2px solid var(--tc); box-shadow: inset 0 0 22px -4px var(--tc); opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .duo.turn::after { opacity: 1; animation: ring 1.5s ease-in-out infinite; }
+  .duo.turn .c-bar { opacity: 1; }
+  .duo header { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; white-space: nowrap; }
+  .duo header b { color: var(--tc); letter-spacing: .04em; }
+  .duo header em { font-style: normal; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+  .dps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .dp { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .dp-ic { position: relative; flex: none; width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--border); background: rgba(255,255,255,.04) center/cover; display: grid; place-items: center; font-style: normal; font-weight: 700; color: rgba(255,255,255,.2); }
+  .dp.locked .dp-ic { border-color: var(--tc); color: transparent; }
+  .dp.rolling .dp-ic { border-color: var(--brave); animation: ring .5s ease-in-out infinite; }
+  .dp span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted); transition: color .3s; }
+  .dp.locked span { color: var(--text); }
+  /* Ban de cada jogador: quadradinho no canto do retrato. */
+  .dp-ban { position: absolute; right: -6px; bottom: -5px; width: 17px; height: 17px; border-radius: 5px; border: 1px solid var(--border); background: #0d1324 center/cover; opacity: 0; }
+  .dp-ban.hid, .dp-ban.done { opacity: 1; }
+  .dp-ban.hid::before { content: ''; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; margin: -2.5px; border-radius: 50%; background: var(--red); animation: breathe 1.4s ease-in-out infinite; }
+  .dp-ban.done { filter: grayscale(1) brightness(.8); border-color: rgba(255,95,109,.6); }
+  .dp-ban.done::after { content: ''; position: absolute; left: -2px; right: -2px; top: 50%; height: 2px; margin-top: -1px; background: var(--red); transform: rotate(-45deg); }
+  /* Selos: favorito da torcida (ouro) e Ousadia (laranja). */
+  .badge { position: absolute; left: -5px; top: -5px; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; background: var(--gold); color: #10131f; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+  .badge.brave { background: var(--brave); }
+  .badge svg { width: 11px; height: 11px; fill: currentColor; }
+  .who .badge { position: static; display: inline-grid; margin-left: 6px; vertical-align: -3px; }
+
+  /* ── Favoritos da torcida: apresentados no centro, depois sobem para o cabeçalho ── */
+  .favs { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 10px; opacity: 0; transform: translateY(-8px); transition: opacity .4s .35s, transform .5s var(--ease) .35s; }
+  .frame.favson .favs { opacity: 1; transform: none; }
+  .frame[data-phase='final'] .favs, .frame[data-phase='exit'] .favs { opacity: 0; transition-delay: 0s; }
+  .favs > span { margin-right: 6px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+  .fv { position: relative; width: 34px; height: 34px; border-radius: 8px; border: 1px solid rgba(226,189,107,.7); background: #0d1324 center/cover; transition: filter .4s; }
+  .fv.taken { filter: grayscale(1) brightness(.45); }
+  .favshow { position: absolute; left: var(--cl); right: var(--cr); top: 30%; display: flex; justify-content: center; gap: clamp(10px, 1.6vw, 22px); pointer-events: none; opacity: 0; transition: opacity .3s; }
+  .favshow.on { opacity: 1; }
+  .fvb { position: relative; width: clamp(74px, 7.4vw, 116px); text-align: center; font-size: 13px; }
+  .fvb i { display: block; width: 100%; aspect-ratio: 1; margin-bottom: 7px; border-radius: 16px; border: 2px solid var(--gold); background: #0d1324 center/cover; box-shadow: 0 0 34px -6px var(--gold), 0 14px 30px rgba(0,0,0,.6); }
+  .favshow.on .fvb { animation: favIn .6s cubic-bezier(.3,1.5,.5,1) backwards; }
+  .fvb:nth-child(2) { animation-delay: .12s !important; } .fvb:nth-child(3) { animation-delay: .24s !important; } .fvb:nth-child(4) { animation-delay: .36s !important; } .fvb:nth-child(5) { animation-delay: .48s !important; }
+  @keyframes favIn { from { opacity: 0; transform: translateY(40px) scale(.6) rotate(-8deg); } }
+  .favshow.home .fvb { opacity: 0; transition: opacity .15s; }
+  .grid figure { position: relative; }
+  .grid figure .badge { left: auto; right: -3px; top: -4px; }
+  .grid figure.fav img { border-color: var(--gold); }
+
+  /* ── Ousadia: a roleta de retratos gira no centro e para no campeão sorteado ── */
+  .reel { position: absolute; left: calc((var(--cl) + 100% - var(--cr)) / 2); top: 36%; width: 150px; height: 150px; margin: -75px 0 0 -75px; border-radius: 22px; overflow: hidden; border: 2px solid var(--brave); background: #0d1324;
+    box-shadow: 0 0 50px -6px var(--brave), 0 18px 40px rgba(0,0,0,.6); opacity: 0; transform: scale(.6); pointer-events: none; transition: opacity .3s, transform .45s cubic-bezier(.3,1.5,.5,1); }
+  .reel.on { opacity: 1; transform: none; }
+  .reel div { transition: transform 1.75s cubic-bezier(.12,.65,.2,1); }
+  .reel.spin div { transform: translateY(-1500px); }
+  .reel i { display: block; height: 150px; background: center/cover; }
+  .frame[data-stage='brave'] .foeglow, .frame[data-stage='bravefull'] .foeglow { opacity: 1; background: radial-gradient(ellipse 52% 52% at 50% 40%, rgba(255,157,77,.3), transparent 70%); }
+  .frame[data-stage='brave'] .nameplate i, .frame[data-stage='bravefull'] .nameplate i { background: var(--brave); opacity: 1; transform: none; }
+  .frame[data-stage='brave'] .nameplate small, .frame[data-stage='bravefull'] .nameplate small { color: var(--brave); }
+  .frame[data-stage='fav'] .nameplate i { background: var(--gold); opacity: 1; transform: none; }
+  .frame[data-stage='fav'] .nameplate small { color: var(--gold); }
+  .pill.brave { border-color: rgba(255,157,77,.6); color: var(--brave); display: none; }
+  .frame[data-phase='pick'] .pill.brave { display: block; }
+  .pill.norune { color: var(--muted); font-size: 12px; }
+
+  /* ── Revelação: dezesseis bans em oito duplas ── */
+  .rv-grid { display: grid; grid-template-columns: repeat(4, auto); gap: 20px clamp(16px, 2vw, 30px); }
+  .rv-duo { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; }
+  .rv-duo > span { flex: 0 0 100%; text-align: center; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--tc); transition: opacity .3s; }
+  .reveal.home .rv-duo > span { opacity: 0; }
+  .rv { width: clamp(52px, 4.6vw, 78px); }
+  .rv-back { font-size: 24px; }
+  .rv label { font-size: 11px; margin-top: 4px; }
+
+  /* ── Carregando: dezesseis campeões em oito duplas ── */
+  /* Altura do retrato: o que couber em duas fileiras, limitado pela largura de quatro duplas lado a lado. */
+  .ld-grid { --lh: min(20vw, calc((100vh - 46px - 152px) / 2)); display: grid; grid-template-columns: repeat(4, auto); gap: 12px 22px; justify-content: center; }
+  .ld-duo { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .ld-duo > small { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--tc); }
+  .ld-pair { display: flex; gap: 6px; }
+  .ld-duo .ld { height: var(--lh); width: calc(var(--lh) * .55); aspect-ratio: auto; border-color: var(--tc); }
+  .ld-duo.mine > small { color: var(--gold); }
+
+  /* Marcadores da cena: uma dupla por pedestal. */
+  .pin .face { width: 2.7em; height: 2.7em; }
+  .pin.me .face { width: 3.8em; height: 3.8em; }
+  .pin .tag b { color: var(--team); font-weight: 600; }
+  /* O seu ban e o do parceiro continuam no cartão depois do banimento (como os das outras duplas). */
+  .frame[data-phase='pick'] .intent.on, .frame[data-phase='final'] .intent.on { opacity: 1; transform: none; }
+  @media (max-width: 1400px) { .pill.norune { display: none; } }
+</style>
+</head>
+<body>
+<!-- Selos: favorito da torcida (três cabeças) e Ousadia (chama). -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-crowd" viewBox="0 0 24 24"><circle cx="12" cy="7" r="3.2"/><path d="M6.2 21v-3a5.8 5.8 0 0 1 11.6 0v3z"/><circle cx="4.8" cy="10" r="2.3"/><path d="M1 20v-2.4a3.9 3.9 0 0 1 5-3.7A7.6 7.6 0 0 0 4.4 18v2z"/><circle cx="19.2" cy="10" r="2.3"/><path d="M23 20v-2.4a3.9 3.9 0 0 0-5-3.7 7.6 7.6 0 0 1 1.6 4.1v2z"/></symbol>
+  <symbol id="i-brave" viewBox="0 0 24 24"><path d="M13 2c.6 3.6 5 5.6 5 11a6 6 0 0 1-12 0c0-2.4 1.1-4 2.4-5.2.2 1.8.9 2.8 2 3.4C10.2 8 10.8 5 13 2z"/></symbol>
+</svg>
+<div class="frame instant" id="frame" data-phase="found" data-cols="0" data-scene="off">
+  <canvas id="gl" class="scene" aria-hidden="true"></canvas>
+  <div class="pins" id="pins"></div>
+  <div class="stage">
+    <div class="arts"><div class="art"></div><div class="art"></div></div>
+    <div class="foeglow"></div>
+    <div class="shade"></div>
+    <div class="slash"></div>
+    <div class="nameplate" id="np"><small id="npSub"></small><b id="npName"></b><i></i><em id="npTitle"></em></div>
+  </div>
+  <div class="reel" id="reel"><div id="reelStrip"></div></div>
+  <div class="heat"></div>
+  <div class="rail"></div>
+
+  <section class="team ally" id="ally"></section>
+  <section class="team foe" id="foe"></section>
+
+  <div class="head">
+    <small id="sub"></small>
+    <b id="title"></b>
+    <div class="timer"><i id="tbar"></i></div>
+    <div class="favs" id="favs"></div>
+  </div>
+
+  <div class="favshow" id="favshow"></div>
+
+  <div class="drawer">
+    <header><span class="search" id="search">Buscar campeão</span><span class="chip on" data-role="all">Todos</span><span class="chip" data-role="fav"><svg class="ico"><use href="#i-crowd"/></svg> Favoritos da torcida</span></header>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="finale">
+    <div class="car" id="car"><span class="car-nav prev">‹</span><span class="car-nav next" id="carNext">›</span></div>
+    <div class="skin-name"><span>Skin</span><b id="skinName"></b><div class="dots" id="dots"></div></div>
+  </div>
+
+  <div class="bottom"><div class="info" id="info"></div><div class="sp" id="sp"></div><span class="pill norune">Sem runas · aumentos na partida</span><button class="pill brave" id="brave"><svg class="ico"><use href="#i-brave"/></svg> Ousadia</button><button class="go" id="go"></button></div>
+
+  <div class="reveal" id="reveal"></div>
+  <div class="flash" id="flash"></div>
+
+  <div class="found" id="found">
+    <div class="f-box">
+      <div class="f-ring"></div><div class="f-burst" id="burst"></div>
+      <small>Arena</small><b>Partida<br>encontrada</b><em>Anéis da Fúria · 8 duplas</em>
+      <div class="pips" id="pips"></div>
+      <button class="accept" id="accept">Aceitar</button>
+    </div>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="ld-mid"><small>Carregando partida</small><div class="prog"><i id="prog"></i></div><b>ARENA</b><div class="prog"><i id="prog2"></i></div><small>8 duplas</small></div>
+    <div class="ld-grid" id="ldGrid"></div>
+  </div>
+
+  <div class="cursor" id="cursor"><i></i><svg viewBox="0 0 22 22"><path d="M3 2l15 7.5-6.4 1.9L9.6 18z" fill="#fff" stroke="#10131f" stroke-width="1.2" stroke-linejoin="round"/></svg></div>
+</div>
+
+<div class="mock" role="group" aria-label="Controles da simulação">
+  <button id="mPlay" title="Tocar ou pausar (espaço)">Pausar</button>
+  <button id="mRestart">Recomeçar</button>
+  <span class="sep"></span>
+  <button data-speed="1" aria-pressed="true">1x</button><button data-speed="2" aria-pressed="false">2x</button><button data-speed="4" aria-pressed="false">4x</button>
+  <span class="sep"></span>
+  <div class="track" id="track"></div>
+  <time id="mTime">0:00</time>
+</div>
+
+<script>
+'use strict';
+/* ───────── Dados e utilitários ───────── */
+const V = '15.1.1', DD = 'https://ddragon.leagueoflegends.com/cdn/';
+const icon = (c) => DD + V + '/img/champion/' + c + '.png';
+const splash = (c, n) => DD + 'img/champion/centered/' + c + '_' + (n || 0) + '.jpg';
+const tall = (c, n) => DD + 'img/champion/loading/' + c + '_' + (n || 0) + '.jpg';
+const spell = (s) => DD + V + '/img/spell/Summoner' + s + '.png';
+const NICE = { LeeSin: 'Lee Sin', MasterYi: 'Master Yi', JarvanIV: 'Jarvan IV', Kaisa: "Kai'Sa", MissFortune: 'Miss Fortune', Leblanc: 'LeBlanc' };
+const nice = (c) => NICE[c] || c;
+const SKINS = [[0, 'Ahri'], [1, 'Ahri Dinastia'], [3, 'Ahri Raposa de Fogo'], [4, 'Ahri Popstar'], [7, 'Ahri Fliperama'], [14, 'Ahri Guardiã Estelar']];
+
+const $ = (id) => document.getElementById(id);
+const frame = $('frame'), cursor = $('cursor');
+const arts = [...frame.querySelectorAll('.art')];
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let instant = true; // aplicando passos sem movimento (ao pular de fase ou com movimento reduzido)
+// Animação de um disparo: recomeça a classe. Ao pular de fase não dispara (o estado final é o natural do elemento).
+function fx(el, cls) { if (instant || !el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const bg = (url) => 'background-image:url(' + url + ')';
+
+/* ───────── Roteiro: passos em ordem de tempo (ms). Cada passo só muda estado; o movimento é do CSS. ───────── */
+const steps = [], marks = []; let T = 0, clock = 0;
+const at = (dt, fn) => steps.push({ t: T + dt, fn: fn });
+const wait = (ms) => { T += ms; };
+const mark = (id, label) => marks.push({ id: id, label: label, t: T });
+
+/* ───────── Peças comuns da tela ───────── */
+let timer = null, turnBars = [], artUrl = '', artIdx = 0, skinIdx = 0, phaseNow = '', subText = '';
+function phase(p) { phaseNow = p; frame.dataset.phase = p; }
+// Cena 3D: 'on' (inteira, com marcadores), 'dim' (fundo apagado) ou 'off' (não desenha).
+function scene(mode) { frame.dataset.scene = mode; }
+function head(title, label, secs, total) {
+  if ($('title').textContent !== title) { $('title').textContent = title; fx($('title'), 'title-in'); }
+  timer = { label: label, secs: secs, total: total || 30, start: clock }; drawTimer();
+}
+// Texto e barras do tempo (a do cabeçalho e a de quem está na vez). Um transform por quadro.
+function drawTimer() {
+  if (!timer) return;
+  let txt = timer.label, frac = 1;
+  if (timer.secs) { const left = Math.max(0, timer.secs - (clock - timer.start) / 1000); txt += ' · 0:' + String(Math.ceil(left)).padStart(2, '0'); frac = left / timer.total; }
+  if (txt !== subText) $('sub').textContent = subText = txt;
+  const tf = 'scaleX(' + frac.toFixed(4) + ')';
+  $('tbar').style.transform = tf; turnBars.forEach((b) => { b.style.transform = tf; });
+}
+const status = (c, txt) => { c.querySelector('.who em').textContent = txt; };
+function cardArt(c, champ, cls) { const a = c.querySelector('.c-art'); a.style.backgroundImage = 'url(' + splash(champ) + ')'; fx(a, cls || 'art-in'); }
+
+/* Palco central: splash grande de quem está agindo */
+function stage(champ, mode, sub, slam, skin, title) {
+  frame.dataset.stage = mode;
+  if (champ) {
+    const url = splash(champ, skin);
+    if (url !== artUrl) { artUrl = url; arts[artIdx].classList.remove('on'); artIdx ^= 1; arts[artIdx].style.backgroundImage = 'url(' + url + ')'; arts[artIdx].classList.add('on'); }
+    if (slam) fx(arts[artIdx], 'slam');
+    $('npName').textContent = nice(champ); $('npTitle').textContent = title || EPITHET[champ] || '';
+  } else { arts.forEach((a) => a.classList.remove('on')); artUrl = ''; }
+  $('npSub').textContent = sub || ''; fx($('np'), 'np-in');
+}
+function stageText(mode, sub, name, title) { frame.dataset.stage = mode; arts.forEach((a) => a.classList.remove('on')); artUrl = ''; $('npSub').textContent = sub; $('npName').textContent = name; $('npTitle').textContent = title || ''; fx($('np'), 'np-in'); }
+
+/* Skins: o cartão atual no centro, os vizinhos menores e apagados. Só transform e opacity. */
+function buildSkins() {
+  const car = $('car'); car.querySelectorAll('.skin').forEach((e) => e.remove());
+  SKINS.forEach(([n]) => { const el = document.createElement('div'); el.className = 'skin'; el.style.backgroundImage = 'url(' + tall('Ahri', n) + ')'; car.insertBefore(el, car.firstChild); });
+  $('dots').innerHTML = '<i></i>'.repeat(SKINS.length);
+  setSkin(0, true);
+}
+function setSkin(k, silent) {
+  skinIdx = k;
+  const els = [...$('car').querySelectorAll('.skin')].reverse();
+  els.forEach((el, i) => { const o = i - k, a = Math.abs(o);
+    el.style.transform = 'translateX(calc(-50% + ' + (o * 62 - Math.sign(o) * a * (a - 1) * 6) + '%)) scale(' + (1 - a * .16) + ')';
+    el.style.opacity = a > 2 ? 0 : 1 - a * .38; el.style.zIndex = 10 - a; el.classList.toggle('cur', !o); });
+  $('skinName').textContent = SKINS[k][1]; fx($('skinName'), 'rise');
+  [...$('dots').children].forEach((d, i) => d.classList.toggle('on', i === k));
+  if (!silent) stage('Ahri', 'skin', '', false, SKINS[k][0]);
+}
+
+/* Cursor simulado, falas e voo de um retrato de um lugar para outro */
+function cursorTo(target, ax, ay) {
+  if (!target) { cursor.classList.remove('on'); return; }
+  const el = typeof target === 'string' ? frame.querySelector(target) : target; if (!el) return;
+  const r = el.getBoundingClientRect();
+  cursor.style.transform = 'translate3d(' + Math.round(r.left + r.width * (ax == null ? .5 : ax)) + 'px,' + Math.round(r.top + r.height * (ay == null ? .6 : ay)) + 'px,0)';
+  cursor.classList.add('on');
+}
+function click(el) { fx(cursor.firstElementChild, 'ping'); if (el) fx(el, 'press'); }
+function say(anchor, name, text) {
+  if (instant) return;
+  const c = anchor.getBoundingClientRect(), el = document.createElement('div');
+  el.className = 'say'; el.innerHTML = '<b>' + esc(name) + '</b>' + esc(text);
+  el.style.left = (c.right + 10) + 'px'; el.style.top = (c.top + 8) + 'px';
+  el.addEventListener('animationend', () => el.remove()); frame.append(el);
+}
+// FLIP: um retrato sai de `from` e pousa em `to` (só transform). Ao pular de fase não voa.
+function fly(from, to, url) {
+  if (instant) return;
+  const a = from.getBoundingClientRect(), b = to.getBoundingClientRect(); if (!a.width) return;
+  const el = document.createElement('i'); el.className = 'flyer';
+  el.style.cssText = 'width:' + a.width + 'px;height:' + a.height + 'px;background-image:url(' + url + ');transform:translate3d(' + a.left + 'px,' + a.top + 'px,0)';
+  frame.append(el); void el.offsetWidth;
+  el.style.transform = 'translate3d(' + b.left + 'px,' + b.top + 'px,0) scale(' + (b.width / a.width) + ',' + (b.height / a.height) + ')';
+  el.addEventListener('transitionend', () => el.remove());
+}
+// Limpa o que os passos criam solto na tela (ao recomeçar).
+function resetCommon(pips) {
+  timer = null; turnBars = []; artUrl = ''; artIdx = 0; skinIdx = 0; subText = '';
+  frame.className = 'frame' + (instant ? ' instant' : ''); frame.dataset.cols = '0'; frame.dataset.stage = 'off'; frame.dataset.scene = 'off';
+  arts.forEach((a) => { a.className = 'art'; });
+  $('found').className = 'found'; $('accept').textContent = 'Aceitar'; $('pips').innerHTML = '<i></i>'.repeat(pips);
+  $('loading').className = 'loading';
+  frame.querySelectorAll('.say, .flyer').forEach((e) => e.remove());
+  cursor.className = 'cursor'; cursor.style.transform = 'translate3d(' + frame.clientWidth / 2 + 'px,' + frame.clientHeight * .8 + 'px,0)';
+  $('prog').style.transform = $('prog2').style.transform = '';
+  buildSkins(); phase('found'); head('', '');
+}
+// Partida encontrada: os outros aceitam, você por último, o anel estoura.
+function foundSteps(n) {
+  for (let i = 0; i < n - 1; i++) at(300 + i * (1260 / (n - 1)), () => $('pips').children[i].classList.add('on'));
+  at(700, () => cursorTo('#accept'));
+  at(1500, () => { click($('accept')); $('accept').textContent = 'Aceita'; $('found').classList.add('ok'); $('pips').children[n - 1].classList.add('on'); });
+  at(2000, () => { fx($('burst'), 'burst'); cursorTo(null); });
+  wait(2500);
+}
+
+/* ───────── WebGL 1 mínimo: programa, buffers, câmera e construtor de malhas facetadas ───────── */
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+const outCubic = (x) => 1 - Math.pow(1 - clamp01(x), 3);
+const smooth = (x) => { x = clamp01(x); return x * x * (3 - 2 * x); };
+const canvas = $('gl');
+const gl = canvas.getContext('webgl', { antialias: true, alpha: true, premultipliedAlpha: true });
+// Pedaços de shader comuns: ruído e a entrada com passagem do ponto (0 → 1).
+const GLSL = `
+precision highp float;
+uniform float uTime, uIn, uAmb;
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
+  return mix(mix(hash(i), hash(i+vec2(1.,0.)), f.x), mix(hash(i+vec2(0.,1.)), hash(i+vec2(1.,1.)), f.x), f.y); }
+float back(float c){ float g = c-1.; return 1. + 2.2*g*g*g + 1.2*g*g; }
+`;
+const SPRITE_FS = `precision mediump float; varying vec4 vC;
+void main(){ float f = max(1.-length(gl_PointCoord-.5)*2., 0.); gl_FragColor = vec4(vC.rgb*f*f*vC.a, 0.); }`;
+function program(vs, fs) {
+  const p = gl.createProgram();
+  [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]].forEach(([type, src]) => {
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    gl.attachShader(p, s);
+  });
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  p.u = {};
+  for (let i = 0, n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS); i < n; i++) { const name = gl.getActiveUniform(p, i).name.replace('[0]', ''); p.u[name] = gl.getUniformLocation(p, name); }
+  return p;
+}
+function buffer(data) { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW); return b; }
+// Liga os atributos de um buffer intercalado: [nome, tamanho]...
+function attribs(p, buf, layout) {
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  const stride = layout.reduce((n, a) => n + a[1], 0) * 4; let off = 0;
+  layout.forEach(([name, size]) => { const loc = gl.getAttribLocation(p, name); if (loc >= 0) { gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, gl.FLOAT, false, stride, off); } off += size * 4; });
+}
+
+/* Câmera em órbita */
+const FOV = 0.46;
+function persp(f, a, n, fa) { const t = 1 / Math.tan(f / 2); return [t / a, 0, 0, 0, 0, t, 0, 0, 0, 0, (fa + n) / (n - fa), -1, 0, 0, 2 * fa * n / (n - fa), 0]; }
+function look(e, c) {
+  let fx = c[0] - e[0], fy = c[1] - e[1], fz = c[2] - e[2]; const fl = Math.hypot(fx, fy, fz); fx /= fl; fy /= fl; fz /= fl;
+  let sx = -fz, sz = fx; const sl = Math.hypot(sx, sz); sx /= sl; sz /= sl;
+  const ux = -sz * fy, uy = sz * fx - sx * fz, uz = sx * fy;
+  return [sx, ux, -fx, 0, 0, uy, -fy, 0, sz, uz, -fz, 0, -(sx * e[0] + sz * e[2]), -(ux * e[0] + uy * e[1] + uz * e[2]), fx * e[0] + fy * e[1] + fz * e[2], 1];
+}
+function mul(a, b) { const o = new Float32Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3]; return o; }
+function camera(yaw, elev, dist, aspect, tgt, far) {
+  const eye = [tgt[0] + dist * Math.cos(elev) * Math.cos(yaw), tgt[1] + dist * Math.sin(elev), tgt[2] + dist * Math.cos(elev) * Math.sin(yaw)];
+  return mul(persp(FOV, aspect, 40, far), look(eye, tgt));
+}
+const ndc = (m, x, y, z) => { const w = m[3] * x + m[7] * y + m[11] * z + m[15]; return [(m[0] * x + m[4] * y + m[8] * z + m[12]) / w, (m[1] * x + m[5] * y + m[9] * z + m[13]) / w]; };
+// Distância em que os pontos dados cabem no retângulo livre da tela, e o deslocamento para centrar ali.
+let W = 1, Hh = 1;
+function fitCam(pts, yaw, elev, tgt, x0, y0, x1, y1) {
+  const r = frame.getBoundingClientRect(); W = r.width; Hh = r.height;
+  const dpr = Math.min(devicePixelRatio || 1, 1.5);
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(Hh * dpr);
+  const box = (d) => { const m = camera(yaw, elev, d, W / Hh, tgt, d * 4); let a = 9, b = -9, c = 9, e = -9;
+    pts.forEach((p) => { const q = ndc(m, p[0], p[1], p[2]); a = Math.min(a, q[0]); b = Math.max(b, q[0]); c = Math.min(c, q[1]); e = Math.max(e, q[1]); }); return [a, b, c, e]; };
+  let lo = 300, hi = 12000;
+  for (let i = 0; i < 24; i++) { const d = (lo + hi) / 2, b = box(d); if ((b[1] - b[0]) * W / 2 > x1 - x0 || (b[3] - b[2]) * Hh / 2 > y1 - y0) lo = d; else hi = d; }
+  const b = box(hi);
+  return { dist: hi, shift: [((x0 + x1) / W - 1) - (b[0] + b[1]) / 2, (1 - (y0 + y1) / Hh) - (b[2] + b[3]) / 2] };
+}
+
+/* Malhas: um buffer só. Por vértice: posição 3, normal 3, cor 3, (atraso da entrada, tipo, âncora x, âncora z) 4 */
+const MV = [], SV = []; let PAR = [0, 0, 0, 0];
+let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+const mulc = (c, f) => [c[0] * f, c[1] * f, c[2] * f];
+function tri(A, B, C, cA, cB, cC, o) {
+  let nx = (B[1] - A[1]) * (C[2] - A[2]) - (B[2] - A[2]) * (C[1] - A[1]), ny = (B[2] - A[2]) * (C[0] - A[0]) - (B[0] - A[0]) * (C[2] - A[2]), nz = (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]);
+  const l = Math.hypot(nx, ny, nz); if (!l) return;
+  nx /= l; ny /= l; nz /= l;
+  if (nx * o[0] + ny * o[1] + nz * o[2] < 0) { nx = -nx; ny = -ny; nz = -nz; } // normal sempre para fora
+  [[A, cA], [B, cB], [C, cC]].forEach(([P, c]) => MV.push(P[0], P[1], P[2], nx, ny, nz, c[0], c[1], c[2], PAR[0], PAR[1], PAR[2], PAR[3]));
+}
+// Tronco de cone facetado em volta de b (r1 = 0 vira cone). rot gira as facetas; cap fecha em cima; inv = faces viradas para dentro.
+function cone(b, n, r0, y0, r1, y1, c0, c1, cap, rot, inv) {
+  for (let i = 0; i < n; i++) {
+    const a0 = i / n * 6.2832 + (rot || 0), a1 = (i + 1) / n * 6.2832 + (rot || 0), am = (a0 + a1) / 2, o = inv ? [-Math.cos(am), 0.3, -Math.sin(am)] : [Math.cos(am), 0.3, Math.sin(am)];
+    const P = (a, r, y) => [b[0] + Math.cos(a) * r, b[1] + y, b[2] + Math.sin(a) * r];
+    const p0 = P(a0, r0, y0), p1 = P(a1, r0, y0), p2 = P(a1, r1, y1), p3 = P(a0, r1, y1);
+    tri(p0, p1, p2, c0, c0, c1, o); tri(p0, p2, p3, c0, c1, c1, o);
+    if (cap) tri([b[0], b[1] + y1, b[2]], p3, p2, c1, c1, c1, [0, 1, 0]);
+  }
+}
+// Caixa alinhada aos eixos: tampa e quatro lados.
+function box(x0, x1, y0, y1, z0, z1, top, side) {
+  const q = (a, b, c, d, col, o) => { tri(a, b, c, col, col, col, o); tri(a, c, d, col, col, col, o); };
+  q([x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1], top, [0, 1, 0]);
+  q([x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], side, [0, 0, -1]); q([x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1], side, [0, 0, 1]);
+  q([x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0], mulc(side, .8), [-1, 0, 0]); q([x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0], mulc(side, .8), [1, 0, 0]);
+}
+// Pontos somados à cena: posição 3, cor 3, (tamanho, fase, tipo, atraso) 4
+const spr = (x, y, z, c, size, kind, delay) => SV.push(x, y, z, c[0], c[1], c[2], size, rnd(), kind, delay || 0);
+// Malha: as peças sobem do fundo com atraso (aPar.x); tipo 2 = cristal que gira e flutua; tipo 3 = pano que balança.
+const MESH_VS = GLSL + `
+attribute vec3 aPos, aNor, aCol; attribute vec4 aPar; uniform mat4 uPV; uniform vec2 uShift;
+varying vec3 vW, vN, vC; varying float vK, vA;
+void main(){
+  float k = clamp((uIn-aPar.x)/.3, 0., 1.); vec3 p = aPos, n = aNor;
+  if (aPar.y > 1.5 && aPar.y < 2.5) { float a = uTime*.9 + aPar.z*.02, c = cos(a), s = sin(a);
+    p.xz = aPar.zw + mat2(c,s,-s,c)*(p.xz-aPar.zw); n.xz = mat2(c,s,-s,c)*n.xz; p.y += sin(uTime*1.7+aPar.w*.03)*3.; }
+  else if (aPar.y > 2.5 && aPar.y < 3.5) p.xz += normalize(aPar.zw)*sin(uTime*2.4+aPar.z*.05+p.y*.07)*5.;
+  p.y -= (1.-back(k))*260.;
+  vW = p; vN = n; vC = aCol; vK = aPar.y; vA = k;
+  gl_Position = uPV*vec4(p, 1.); gl_Position.xy += uShift*gl_Position.w; }`;
+const MESH_LAYOUT = [['aPos', 3], ['aNor', 3], ['aCol', 3], ['aPar', 4]], SPRITE_LAYOUT = [['aPos', 3], ['aCol', 3], ['aP', 4]];
+// Um quadro: malha opaca e depois os pontos somados. `set` recebe as uniforms de cada programa.
+function render(progs, bufs, PV, sh, set) {
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  [progs.mesh, progs.sprite].forEach((p, i) => {
+    gl.useProgram(p); gl.uniformMatrix4fv(p.u.uPV, false, PV); gl.uniform2f(p.u.uShift, sh[0], sh[1]); set(p.u, i);
+    if (!i) { attribs(p, bufs.mv, MESH_LAYOUT); gl.drawArrays(gl.TRIANGLES, 0, MV.length / 13); }
+    else { gl.uniform1f(p.u.uPx, canvas.height / 2 / Math.tan(FOV / 2)); attribs(p, bufs.sv, SPRITE_LAYOUT); gl.enable(gl.BLEND); gl.depthMask(false); gl.drawArrays(gl.POINTS, 0, SV.length / 10); gl.disable(gl.BLEND); gl.depthMask(true); }
+    for (let k = 0; k < 8; k++) gl.disableVertexAttribArray(k); // atributos de um programa não ficam ligados para o outro
+  });
+}
+// Marcador em HTML preso a um ponto do chão.
+function placePin(pin, PV, sh, x, y, z) {
+  const q = ndc(PV, x, y, z), px = Math.round((q[0] + sh[0] + 1) / 2 * W), py = Math.round((1 - (q[1] + sh[1])) / 2 * Hh);
+  pin.style.transform = 'translate3d(' + px + 'px,' + py + 'px,0)'; pin.style.zIndex = py;
+}
+
+/* ───────── Dados da Arena ───────── */
+const EPITHET = { Ahri: 'a Raposa de Nove Caudas', Zed: 'o Mestre das Sombras', Akali: 'a Assassina Renegada', Galio: 'o Colosso', Alistar: 'o Minotauro', Amumu: 'a Múmia Triste', Jax: 'o Grão-Mestre das Armas',
+  Sett: 'o Chefe', Vayne: 'a Caçadora Noturna', Lulu: 'a Fada Feiticeira', Fiora: 'a Grande Duelista', Zyra: 'a Ascensão dos Espinhos', Kaisa: 'a Filha do Vazio', Viego: 'o Rei Destruído',
+  Brand: 'a Vingança Ardente', Camille: 'a Sombra de Aço', Janna: 'a Fúria da Tormenta', Ekko: 'o Garoto que Estilhaçou o Tempo', Leona: 'a Alvorada Radiante' };
+const hex = (h) => [1, 3, 5].map((i) => parseInt(h.substr(i, 2), 16) / 255);
+// As oito duplas na ordem de escolha. me = você; brave = vai de Ousadia.
+const TEAMS = [
+  { name: 'Lobo', color: '#6fa8ff', players: [{ name: 'Beltrano', ban: 'Yasuo', pick: 'Sett' }, { name: 'Sicrano', ban: 'Shaco', pick: 'Vayne' }] },
+  { name: 'Gromp', color: '#58d6a0', players: [{ name: 'Fulana', ban: 'Teemo', pick: 'Lulu' }, { name: 'Ciclano', ban: 'Pyke', pick: 'Fiora' }] },
+  { name: 'Krug', color: '#e09a5a', players: [{ name: 'Mengano', ban: 'Darius', pick: 'Amumu', brave: true }, { name: 'Zutano', ban: 'MasterYi', pick: 'Jax' }] },
+  { name: 'Corvo', color: '#c58bff', players: [{ name: 'Perengano', ban: 'Draven', pick: 'Zyra' }, { name: 'Tico', ban: 'Blitzcrank', pick: 'Kaisa' }] },
+  { name: 'Poro', color: '#e2bd6b', players: [{ name: 'Fulano', ban: 'Zed', pick: 'Ahri', me: true }, { name: 'Zeca', ban: 'Morgana', pick: 'Alistar' }] },
+  { name: 'Sentinela', color: '#ff7a8a', players: [{ name: 'Teco', ban: 'Fizz', pick: 'Viego' }, { name: 'Juca', ban: 'Katarina', pick: 'Brand' }] },
+  { name: 'Aronguejo', color: '#4fd0e0', players: [{ name: 'Chico', ban: 'Zac', pick: 'Camille' }, { name: 'Nando', ban: 'Nautilus', pick: 'Janna' }] },
+  { name: 'Acólito', color: '#b6c2d9', players: [{ name: 'Lia', ban: 'Riven', pick: 'Ekko' }, { name: 'Duda', ban: 'Annie', pick: 'Leona' }] },
+];
+const MY = 4, OTHERS = [0, 1, 2, 3, 5, 6, 7], ROUNDS = [[0, 1], [2, 3], [4, 5], [6, 7]];
+const FAVS = ['Ahri', 'Jax', 'Galio', 'Zilean', 'Gragas'];
+const REEL = ['Teemo', 'Garen', 'Zoe', 'Sona', 'Graves', 'Lux', 'Ziggs', 'Irelia', 'Nami', 'Ashe']; // o que passa na roleta da Ousadia
+const SPELLS = ['CherryFlash', 'CherryHold'];
+const POOL = ['Aatrox', 'Ahri', 'Akali', 'Alistar', 'Amumu', 'Annie', 'Ashe', 'Blitzcrank', 'Brand', 'Braum', 'Caitlyn', 'Camille', 'Darius', 'Diana', 'Draven', 'Ekko', 'Ezreal', 'Fiora', 'Fizz', 'Galio', 'Garen', 'Gragas', 'Graves', 'Irelia', 'Janna', 'JarvanIV', 'Jax', 'Jinx', 'Kaisa', 'Karma', 'Katarina', 'LeeSin', 'Leblanc', 'Leona', 'Lulu', 'Lux', 'Malphite', 'MasterYi', 'MissFortune', 'Morgana', 'Nami', 'Nautilus', 'Orianna', 'Pyke', 'Riven', 'Sett', 'Shaco', 'Sona', 'Syndra', 'Teemo', 'Thresh', 'Vayne', 'Vi', 'Viego', 'Yasuo', 'Yone', 'Zac', 'Zed', 'Zeri', 'Ziggs', 'Zilean', 'Zoe', 'Zyra'];
+const PRELOAD = [].concat(TEAMS.map((tm) => tm.players.map((p) => [splash(p.pick), tall(p.pick), icon(p.ban), icon(p.pick)])).flat(), ['Akali', 'Zed', 'Galio'].map((c) => splash(c)), REEL.map((c) => icon(c)), SKINS.map(([n]) => splash('Ahri', n))).flat();
+
+/* ───────── Cena: a arena (ilha flutuante; o centro é a origem) ───────── */
+const TAU = 6.2832, O = [0, 0, 0];
+const SPOT_TEAM = OTHERS.concat([MY]); // sete pedestais em volta e a sua dupla no centro
+const SPOTS = OTHERS.map((t, i) => { const a = i / 7 * TAU + 0.5; return [Math.cos(a) * 318, Math.sin(a) * 318]; }).concat([[0, 0]]);
+const PIN_AT = OTHERS.map((t, i) => 2.5 + i * 0.2).concat([4.4]); // quando cada dupla cai (s); a sua por último
+const ELEV = 0.8, TGT = [0, 40, 0];
+const par = (r, kind, ax, az) => { PAR = [r / 760 * 0.9, kind || 0, ax || 0, az || 0]; }; // as peças sobem do centro para fora
+const STONE = [0.36, 0.31, 0.5], SAND = [0.5, 0.4, 0.36];
+par(80, 0); cone(O, 22, 705, -40, 230, -540, [0.2, 0.16, 0.3], [0.05, 0.04, 0.1]);                         // rocha por baixo
+par(0, 1); cone(O, 44, 432, -40, 432, 0, mulc(SAND, 0.5), SAND, true);                                     // piso de areia
+par(40, 0); cone(O, 8, 122, 0, 110, 9, [0.4, 0.32, 0.2], [0.74, 0.6, 0.36], true, 0.39);                   // tablado do centro
+SPOTS.slice(0, 7).forEach(([x, z], i) => { const c = hex(TEAMS[OTHERS[i]].color); par(318, 0); cone([x, 0, z], 6, 56, 0, 48, 8, mulc(c, 0.3), [0.3 + c[0] * 0.2, 0.27 + c[1] * 0.2, 0.4 + c[2] * 0.2], true); });
+// Muro e arquibancada: degraus em anel (a face de dentro é a que a câmera vê).
+par(432, 0); cone(O, 40, 432, 0, 432, 58, mulc(STONE, 0.5), STONE, false, 0, true); cone(O, 40, 432, 58, 462, 58, mulc(STONE, 1.25), mulc(STONE, 1.25));
+[[462, 58, 95], [540, 95, 135], [620, 135, 180]].forEach(([r, y0, y1], j) => {
+  par(r, 0); cone(O, 40, r, y0, r, y1, mulc(STONE, 0.45), mulc(STONE, 0.75), false, 0, true);
+  par(r, 4); cone(O, 40, r, y1, r + (j < 2 ? 78 : 82), y1, mulc(STONE, 0.7), mulc(STONE, 0.9));
+  for (let i = 0; i < 190; i++) { const a = rnd() * TAU, rr = r + 12 + rnd() * 58, c = [[1, 0.8, 0.5], [0.8, 0.6, 1], [1, 1, 1], [1, 0.5, 0.6]][i % 4]; spr(Math.cos(a) * rr, y1 + 7, Math.sin(a) * rr, mulc(c, 0.9), 12 + rnd() * 7, 3, r / 760 * 0.9); } // torcida
+});
+par(700, 0); cone(O, 40, 702, -40, 702, 180, [0.12, 0.1, 0.2], mulc(STONE, 0.7));
+// Braseiros no muro e bandeiras dos times no alto da arquibancada.
+for (let i = 0; i < 8; i++) {
+  const a = (i + 0.5) / 8 * TAU, x = Math.cos(a) * 447, z = Math.sin(a) * 447;
+  par(447, 0); cone([x, 58, z], 6, 5, 0, 12, 13, [0.2, 0.16, 0.26], [0.42, 0.34, 0.3], true);
+  spr(x, 80, z, [1, 0.5, 0.18], 95, 1, PAR[0]); for (let k = 0; k < 5; k++) spr(x + (rnd() - 0.5) * 12, 70, z + (rnd() - 0.5) * 12, [1, 0.6, 0.2], 12, 2, PAR[0]);
+}
+for (let i = 0; i < 16; i++) {
+  const a = i / 16 * TAU, cx = Math.cos(a), sz = Math.sin(a), x = cx * 696, z = sz * 696, c = hex(TEAMS[i % 8].color);
+  par(700, 0); cone([x, 180, z], 4, 4, 0, 3, 156, [0.3, 0.26, 0.4], [0.55, 0.5, 0.66]);
+  par(700, 3, x, z); tri([x, 330, z], [x, 268, z], [x - sz * 78, 296, z + cx * 78], c, mulc(c, 0.8), mulc(c, 0.6), [-cx, 0.2, -sz]);
+}
+for (let i = 0; i < 80; i++) spr((rnd() - 0.5) * 820, 40 + rnd() * 280, (rnd() - 0.5) * 820, [1, 0.85, 0.55], 8 + rnd() * 6, 0);
+spr(0, 24, 0, [0.5, 0.38, 0.16], 240, 1, 0);
+
+const MESH_FS = GLSL + `
+uniform vec3 uL; uniform vec4 uSpots[8]; uniform vec3 uCols[8];
+varying vec3 vW, vN, vC; varying float vK, vA;
+void main(){
+  vec3 n = normalize(vN), alb = vC, col; float diff = max(dot(n, uL), 0.), det = noise(vW.xz*.08), r = length(vW.xz), ang = atan(vW.z, vW.x);
+  if (vK > 1.5 && vK < 2.5) col = vC*(.8+.9*diff) + vec3(.3)*pow(diff, 6.);
+  else if (vK > 2.5 && vK < 3.5) col = vC*(.6+.55*diff);                                                   // bandeiras
+  else {
+    alb *= .82 + .36*det;
+    if (vK > .5 && vK < 1.5) {                                                                            // areia: anéis e raios dourados
+      float rings = smoothstep(3., 0., abs(r-140.)) + smoothstep(3., 0., abs(r-235.)) + smoothstep(3., 0., abs(r-372.)) + smoothstep(5., 0., abs(r-418.));
+      float rays = smoothstep(2.6, 0., abs(fract(ang/6.2832*16. + .5) - .5)*r*.3927)*step(140., r)*step(r, 418.);
+      alb *= 1. - .22*smoothstep(.4, .62, noise(vW.xz*.02));
+      alb = mix(alb, vec3(.9,.72,.42), clamp(rings + rays*.6, 0., 1.)*.6);
+    } else if (vK > 3.5) alb *= .78 + .22*step(.5, fract(r/13.));                                          // fileiras da arquibancada
+    else if (abs(r-432.) < 4. && vW.y < 44.) alb = mix(alb, vec3(.03,.02,.06), smoothstep(.075, .055, abs(fract(ang/6.2832*8.) - .5))); // portões no muro
+    col = alb*(vec3(.3,.26,.46) + vec3(1.12,.98,.84)*diff);
+    if (vK < 1.5 && n.y > .9 && r < 440.) {
+      float da = sin(ang - uTime*.3); col += col*exp(-da*da*42.)*.75*smoothstep(70., 210., r)*uAmb;          // holofotes varrendo o piso
+      for (int i = 0; i < 8; i++) { vec4 s = uSpots[i]; float age = uTime-s.z; if (age < 0.) continue;       // anéis embaixo das duplas, na cor do time
+        float d = distance(vW.xz, s.xy), R = s.w;
+        float ring = smoothstep(4., 0., abs(d-R))*.9 + smoothstep(R, 0., d)*.26;
+        float shock = smoothstep(8., 0., abs(d-age*260.))*max(1.-age/.7, 0.)*1.4;
+        float k = fract(age*.55), pulse = R > 50. ? smoothstep(5., 0., abs(d-R-k*60.))*(1.-k) : 0.;
+        col += uCols[i]*(ring+shock+pulse); }
+    }
+  }
+  col = mix(col, vec3(.05,.03,.1), smoothstep(-60., -420., vW.y)*.9);                                      // a rocha escurece para baixo...
+  float a = vA*(1. - smoothstep(-380., -530., vW.y));                                                      // ...e some no vazio
+  gl_FragColor = vec4(col*a, a);
+}`;
+// Pontos: 0 poeira dourada, 1 brilho que pulsa, 2 fagulha do braseiro, 3 torcida (pisca e pula).
+const SPRITE_VS = GLSL + `
+attribute vec3 aPos, aCol; attribute vec4 aP; uniform mat4 uPV; uniform vec2 uShift; uniform float uPx;
+varying vec4 vC;
+void main(){ vec3 p = aPos; float a = 1., born = clamp((uIn-aP.w-.25)/.2, 0., 1.);
+  if (aP.z < .5) { p += vec3(sin(uTime*.2+aP.y*9.)*40., sin(uTime*.33+aP.y*5.)*20., cos(uTime*.17+aP.y*7.)*40.); a = (.2 + .6*pow(.5+.5*sin(uTime*1.3+aP.y*40.), 2.))*uAmb; }
+  else if (aP.z < 1.5) a = (.7 + .3*sin(uTime*2.+aP.y*6.28))*born;
+  else if (aP.z < 2.5) { float k = fract(uTime*.5+aP.y); p.y += k*60.; p.x += sin(uTime*2.+aP.y*20.)*4.; a = sin(k*3.1416)*born; }
+  else { p.y += abs(sin(uTime*(2.+aP.y*2.)+aP.y*40.))*5.; a = (.3 + .7*pow(.5+.5*sin(uTime*(1.5+aP.y*3.)+aP.y*50.), 3.))*born; }
+  gl_Position = uPV*vec4(p, 1.); gl_Position.xy += uShift*gl_Position.w;
+  gl_PointSize = clamp(aP.x*uPx/gl_Position.w, 1., 256.); vC = vec4(aCol, a); }`;
+
+let progs, bufs, cam = { dist: 3000, shift: [0, 0] }, pins = [], ENTER_AT = 0, DIVE_AT = Infinity;
+const LIGHT = (() => { const l = Math.hypot(0.4, 0.85, 0.35); return [-0.4 / l, 0.85 / l, 0.35 / l]; })();
+const COLS = [].concat(...SPOT_TEAM.map((t) => hex(TEAMS[t].color)));
+function setupScene() {
+  progs = { mesh: program(MESH_VS, MESH_FS), sprite: program(SPRITE_VS, SPRITE_FS) };
+  bufs = { mv: buffer(MV), sv: buffer(SV) };
+  gl.enable(gl.DEPTH_TEST); gl.clearColor(0, 0, 0, 0); gl.blendFunc(gl.ONE, gl.ONE);
+}
+function fitScene() {
+  const pts = []; for (let i = 0; i < 12; i++) { const a = i / 12 * TAU, x = Math.cos(a) * 705, z = Math.sin(a) * 705; pts.push([x, -40, z], [x, 180, z], [x, 336, z]); }
+  cam = fitCam(pts, 1.9, ELEV, TGT, 88, 104, frame.clientWidth - 24, frame.clientHeight - 14);
+}
+function drawScene() {
+  const t = reduced ? 100 : clock / 1000, e = reduced ? 99 : (clock - ENTER_AT) / 1000; // e = segundos desde o começo da entrada
+  // Câmera: chega girando de cima e de longe; depois segue numa órbita lenta em volta da arena.
+  const k = outCubic(e / 3.2);
+  let yaw = 1.9 + (reduced ? 0 : t * 0.03) + (1 - k) * 1.3, elev = ELEV + (1 - k) * 0.5;
+  let d = cam.dist * (1 + (1 - k) * 0.9), tgt = TGT, sh = cam.shift; const far = d * 4;
+  // Mergulho (ao travar): a câmera desce girando até o centro, onde está a sua dupla.
+  const dv = reduced || clock < DIVE_AT ? 0 : smooth((clock - DIVE_AT) / 1300);
+  if (dv > 0) { tgt = [0, TGT[1] * (1 - dv) + 12 * dv, 0]; yaw += dv * 0.7; elev += (0.46 - elev) * dv; d *= Math.pow(620 / d, dv); sh = [sh[0] * (1 - dv), sh[1] * (1 - dv)]; }
+  const PV = camera(yaw, elev, d, W / Hh, tgt, far);
+  pins.forEach((pin, i) => { pin.classList.toggle('on', e >= PIN_AT[i]); placePin(pin, PV, sh, SPOTS[i][0], 9, SPOTS[i][1]); });
+  render(progs, bufs, PV, sh, (u, isSprite) => {
+    gl.uniform1f(u.uTime, t); gl.uniform1f(u.uIn, clamp01((e - 0.2) / 2.3) * 1.25); gl.uniform1f(u.uAmb, smooth((e - 1.6) / 1.2));
+    if (isSprite) return;
+    gl.uniform3fv(u.uL, LIGHT); gl.uniform3fv(u.uCols, COLS);
+    gl.uniform4fv(u.uSpots, [].concat(...SPOTS.map(([x, z], i) => [x, z, reduced ? 0 : ENTER_AT / 1000 + PIN_AT[i] + 0.3, i === 7 ? 70 : 34])));
+  });
+}
+
+/* ───────── Estado da tela ───────── */
+let cards, rows, gone, sel, filter, banned;
+const grid = $('grid'), reveal = $('reveal');
+const P = (t, k) => TEAMS[t].players[k];
+const dp = (t, k) => rows[t].querySelectorAll('.dp')[k];
+const banSlot = (t, k) => (t === MY ? cards[k].querySelector('.intent') : rows[t].querySelectorAll('.dp-ban')[k]);
+const rowNote = (t, txt) => { rows[t].querySelector('header em').textContent = txt; };
+const BADGE = (kind) => '<i class="badge' + (kind === 'brave' ? ' brave' : '') + '"><svg viewBox="0 0 24 24"><use href="#i-' + kind + '"/></svg></i>';
+const teamTag = (t) => '<i style="color:' + TEAMS[t].color + '">' + TEAMS[t].name + (t === MY ? ' (você)' : '') + '</i>';
+
+function reset() {
+  resetCommon(16);
+  gone = new Set(); sel = null; filter = { q: '', role: 'all' }; banned = {}; rows = {};
+  const col = $('ally'); col.innerHTML = '<h3>Sua dupla · Time ' + TEAMS[MY].name + '</h3>';
+  cards = TEAMS[MY].players.map((p) => { const el = document.createElement('article'); el.className = 'card'; el.dataset.state = 'empty';
+    el.innerHTML = '<div class="c-art"></div><div class="c-veil"></div><span class="c-q">?</span><div class="c-sweep"></div>' +
+      '<span class="spells">' + SPELLS.map((s) => '<i style="' + bg(spell(s)) + '"></i>').join('') + '</span>' +
+      '<div class="who"><b>' + esc(p.name) + (p.me ? '<u>VOCÊ</u>' : '') + '</b><em></em></div><span class="intent"></span><span class="c-edge"></span><span class="c-bar"><i></i></span>';
+    col.append(el); return el; });
+  col.insertAdjacentHTML('beforeend', '<div class="rounds"><h4>Ordem de escolha</h4>' + ROUNDS.map((r, i) => '<div class="rd"><b>' + (i + 1) + '</b><span>' + r.map(teamTag).join(' · ') + '</span></div>').join('') + '</div>');
+  const foe = $('foe'); foe.innerHTML = '<h3>Outras duplas</h3>';
+  OTHERS.forEach((t) => { const el = document.createElement('article'); el.className = 'duo'; el.style.setProperty('--tc', TEAMS[t].color);
+    el.innerHTML = '<header><b>Time ' + TEAMS[t].name + '</b><em></em></header><div class="dps">' + TEAMS[t].players.map((p) => '<div class="dp"><i class="dp-ic">?<i class="dp-ban"></i></i><span>' + esc(p.name) + '</span></div>').join('') + '</div><span class="c-bar"><i></i></span>';
+    foe.append(el); rows[t] = el; });
+  $('favs').innerHTML = '<span><svg class="ico"><use href="#i-crowd"/></svg> Favoritos da torcida</span>' + FAVS.map((c) => '<i class="fv" data-c="' + c + '" style="' + bg(icon(c)) + '"></i>').join('');
+  $('favshow').className = 'favshow'; $('favshow').innerHTML = FAVS.map((c) => '<div class="fvb"><i style="' + bg(icon(c)) + '"></i>' + nice(c) + '</div>').join('');
+  $('reel').className = 'reel'; $('reelStrip').innerHTML = '';
+  reveal.className = 'reveal'; reveal.innerHTML = '';
+  $('search').className = 'search'; $('search').textContent = 'Buscar campeão';
+  $('pins').innerHTML = SPOT_TEAM.map((t) => { const tm = TEAMS[t], mine = t === MY;
+    return '<div class="pin' + (mine ? ' me' : '') + '" style="--team:' + tm.color + ';--stem:' + (mine ? 30 : 16) + 'px"><div class="pin-in"><div class="faces"><div class="face">?</div><div class="face">?</div></div>' +
+      '<span class="tag"><b>' + tm.name + '</b>' + (mine ? '<u>VOCÊ</u>' : '') + '</span><div class="stem"></div></div></div>'; }).join('');
+  pins = [...$('pins').children];
+  $('ldGrid').innerHTML = '';
+  setChip('all'); renderGrid(); bottom('wait'); round(-1);
+}
+
+/* Grade */
+function renderGrid() {
+  const favsOn = frame.classList.contains('favson');
+  const list = POOL.filter((c) => (!filter.q || nice(c).toLowerCase().startsWith(filter.q)) && (filter.role === 'all' || FAVS.includes(c)));
+  grid.innerHTML = list.map((c) => { const fav = favsOn && FAVS.includes(c);
+    return '<figure data-c="' + c + '" class="' + (fav ? 'fav ' : '') + (gone.has(c) ? 'gone ' : '') + (c === sel ? 'sel' : '') + '"><img src="' + icon(c) + '" alt="">' + (fav ? BADGE('crowd') : '') + '<figcaption>' + nice(c) + '</figcaption></figure>'; }).join('');
+  fx(grid, 'grid-in');
+}
+function markGrid() { grid.querySelectorAll('figure').forEach((f) => { f.classList.toggle('gone', gone.has(f.dataset.c)); f.classList.toggle('sel', f.dataset.c === sel); }); }
+const cell = (c) => grid.querySelector('[data-c="' + c + '"] img');
+function setChip(role) { filter.role = role; frame.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c.dataset.role === role)); }
+function type(q) { filter.q = q; const s = $('search'); s.textContent = q; s.classList.add('typed'); renderGrid(); }
+function openDrawer(on) { frame.classList.toggle('open', on); }
+// Campeão saiu (banido ou travado): apaga na grade e na faixa dos favoritos.
+function take(champ) { gone.add(champ); markGrid(); const f = $('favs').querySelector('[data-c="' + champ + '"]'); if (f) f.classList.add('taken'); }
+
+/* Barra de baixo */
+function info(champ, line) { $('info').innerHTML = (champ ? '<img src="' + icon(champ) + '" alt="">' : '') + '<div><b>' + (champ ? nice(champ) : line) + '</b><span>' + (champ ? line : '') + '</span></div>'; }
+function bottom(mode, champ) {
+  const go = $('go'); go.className = 'go';
+  $('sp').innerHTML = mode === 'pick' || mode === 'final' ? SPELLS.map((s) => '<img src="' + spell(s) + '" alt="">').join('') : '';
+  if (mode === 'ban') { info(champ, champ ? 'Banir este campeão' : 'Escolha quem banir'); go.textContent = 'Banir'; if (!champ) go.classList.add('off'); }
+  else if (mode === 'wait') { info(null, champ || 'Aguardando a rodada da sua dupla'); go.textContent = 'Travar'; go.classList.add('off'); }
+  else if (mode === 'pick') { if (champ) info(champ, FAVS.includes(champ) ? 'Favorito da torcida · começa com bônus' : EPITHET[champ] || ''); else info(null, 'Sua vez: escolha um campeão ou vá de Ousadia'); go.textContent = 'Travar'; if (!champ) go.classList.add('off'); }
+  else { info('Ahri', 'Travada · favorita da torcida, começa com bônus'); go.textContent = 'Travado ✓'; go.classList.add('done'); }
+}
+function round(r) { frame.querySelectorAll('.rd').forEach((el, i) => { el.classList.toggle('now', i === r); el.classList.toggle('done', r > i); }); }
+
+/* Banimento: um por jogador */
+function banIntent(k, champ) { const c = cards[k], b = c.querySelector('.intent'); b.style.backgroundImage = 'url(' + icon(champ) + ')'; b.className = 'intent on'; status(c, 'quer banir ' + nice(champ)); }
+function banLock(t, k) {
+  if (t === MY) { const p = P(t, k), c = cards[k]; banIntent(k, p.ban); c.querySelector('.intent').classList.add('locked'); status(c, 'baniu ' + nice(p.ban)); gone.add(p.ban); markGrid(); return; }
+  const s = banSlot(t, k); s.className = 'dp-ban hid'; fx(s, 'pop'); // dos outros só se sabe que baniram
+  banned[t] = (banned[t] || 0) + 1; rowNote(t, banned[t] === 2 ? 'bans travados' : '1 de 2 baniu');
+}
+function buildReveal() {
+  reveal.innerHTML = '<div class="rv-grid">' + TEAMS.map((tm, t) => '<div class="rv-duo" style="--tc:' + tm.color + '"><span>' + (t === MY ? 'Sua dupla' : 'Time ' + tm.name) + '</span>' + tm.players.map((p) =>
+    '<div class="rv"><div class="rv-in"><div class="rv-back">?</div><div class="rv-front"><div class="rv-img" style="' + bg(icon(p.ban)) + '"></div>' +
+    '<svg viewBox="0 0 100 100" preserveAspectRatio="none"><path pathLength="1" d="M8 4 L30 30 L22 44 L52 58 L44 74 L72 80 L94 98"/><path pathLength="1" d="M52 58 L78 40 L96 44"/></svg></div></div><label>' + nice(p.ban) + '</label></div>').join('') + '</div>').join('') + '</div>';
+  reveal.className = 'reveal on';
+}
+const rv = (t, k) => reveal.querySelectorAll('.rv')[t * 2 + k];
+const each = (fn) => TEAMS.forEach((tm, t) => tm.players.forEach((p, k) => fn(t, k, p)));
+// Cada ban revelado voa para o retrato de quem baniu (FLIP: mede o destino e anima só o transform).
+function flyHome() {
+  reveal.classList.add('home');
+  each((t, k) => { const el = rv(t, k); el.style.transform = ''; const a = el.getBoundingClientRect(), b = banSlot(t, k).getBoundingClientRect();
+    el.style.transform = 'translate(' + (b.left - a.left) + 'px,' + (b.top - a.top) + 'px) scale(' + (b.width / a.width) + ')'; });
+}
+function bansDone() {
+  reveal.className = 'reveal';
+  each((t, k, p) => { if (t !== MY) { const s = banSlot(t, k); s.style.backgroundImage = 'url(' + icon(p.ban) + ')'; s.className = 'dp-ban done'; } take(p.ban); });
+  OTHERS.forEach((t) => rowNote(t, ''));
+}
+
+/* Favoritos da torcida */
+function favAnnounce() { $('favshow').className = 'favshow on'; stageText('fav', 'A torcida escolheu', 'Favoritos', 'Quem for de favorito começa a partida com bônus'); }
+function favHome() {
+  [...$('favshow').children].forEach((el, i) => fly(el.firstChild, $('favs').querySelectorAll('.fv')[i], icon(FAVS[i])));
+  $('favshow').classList.add('home'); frame.classList.add('favson'); renderGrid();
+}
+
+/* Escolha */
+function turn(list) {
+  frame.querySelectorAll('.turn').forEach((e) => e.classList.remove('turn'));
+  list.forEach((t) => {
+    if (t === MY) cards.forEach((c) => { if (c.dataset.state !== 'locked') { c.classList.add('turn'); status(c, c.dataset.champ ? nice(c.dataset.champ) + ' · escolhendo…' : 'escolhendo…'); } });
+    else { rows[t].classList.add('turn'); rowNote(t, 'escolhendo…'); }
+  });
+  turnBars = [...frame.querySelectorAll('.turn .c-bar i')];
+}
+// Outra dupla travou: retrato na linha do time, selo se for favorito ou Ousadia, e o palco é dela (quiet = não toma o palco).
+function lockFoe(t, k, quiet) {
+  const p = P(t, k), el = dp(t, k), ic = el.querySelector('.dp-ic'), fav = FAVS.includes(p.pick);
+  ic.style.backgroundImage = 'url(' + icon(p.pick) + ')'; el.className = 'dp locked'; fx(ic, 'pop');
+  if (p.brave || fav) ic.insertAdjacentHTML('beforeend', BADGE(p.brave ? 'brave' : 'crowd'));
+  take(p.pick);
+  const done = rows[t].querySelectorAll('.dp.locked').length === 2; rowNote(t, done ? 'travado' : '1 de 2 travou');
+  if (done) { rows[t].classList.remove('turn'); turnBars = [...frame.querySelectorAll('.turn .c-bar i')]; }
+  if (!quiet) stage(p.pick, p.brave ? 'bravefull' : 'foefull', p.name + (p.brave ? ' foi de Ousadia' : ' travou') + ' · Time ' + TEAMS[t].name + (fav ? ' · favorito da torcida' : ''), true);
+}
+// Ousadia: a roleta gira no centro e para no campeão sorteado.
+function braveStart(t, k) {
+  const p = P(t, k); dp(t, k).classList.add('rolling'); rowNote(t, p.name + ': Ousadia!');
+  const strip = $('reelStrip'); strip.innerHTML = REEL.concat([p.pick]).map((c) => '<i style="' + bg(icon(c)) + '"></i>').join('');
+  $('reel').className = 'reel on'; void strip.offsetWidth; $('reel').classList.add('spin');
+  stageText('brave', 'Ousadia · ' + p.name + ' · Time ' + TEAMS[t].name, '? ? ?', 'Campeão aleatório, travado na hora, com bônus');
+}
+function braveEnd(t, k) { $('reel').className = 'reel'; fx($('flash'), 'flashfx'); lockFoe(t, k); }
+// Sua dupla: passar o mouse = splash apagada no cartão; travar = cor cheia, varredura de luz, filete dourado.
+function hoverMine(k, champ) { const c = cards[k]; cardArt(c, champ); c.dataset.state = 'hover'; c.dataset.champ = champ; status(c, nice(champ) + ' · escolhendo…'); }
+function lockMine(k, quiet) {
+  const p = P(MY, k), c = cards[k], fav = FAVS.includes(p.pick);
+  if (c.dataset.champ !== p.pick) cardArt(c, p.pick);
+  c.dataset.state = 'locked'; c.dataset.champ = p.pick; c.classList.remove('turn'); status(c, nice(p.pick) + (fav ? ' · favorita da torcida' : ''));
+  if (fav) c.querySelector('.who b').insertAdjacentHTML('beforeend', BADGE('crowd'));
+  fx(c, 'lockpop'); fx(c.querySelector('.c-sweep'), 'sweep'); fx(c.querySelector('.who'), 'rise');
+  turnBars = [...frame.querySelectorAll('.turn .c-bar i')]; take(p.pick);
+  if (!quiet) stage(p.pick, 'full', (p.me ? 'Você travou' : p.name + ' travou') + (fav ? ' · favorita da torcida' : ''), true);
+}
+
+/* Carregando: oito duplas */
+function buildLoading() {
+  $('ldGrid').innerHTML = TEAMS.map((tm, t) => '<div class="ld-duo' + (t === MY ? ' mine' : '') + '" style="--tc:' + tm.color + '"><small>' + (t === MY ? 'Sua dupla · ' : '') + 'Time ' + tm.name + '</small><div class="ld-pair">' +
+    tm.players.map((p, k) => '<div class="ld ' + (p.me ? 'me ' : '') + (instant ? '' : 'ld-up') + '" style="animation-delay:' + (.2 + t * .09 + k * .05) + 's;' + bg(tall(p.pick, p.me ? SKINS[skinIdx][0] : 0)) + '"><span><b>' + nice(p.pick) + '</b>' + esc(p.name) + '</span></div>').join('') + '</div></div>').join('');
+  $('loading').classList.add('on');
+}
+function frameTick() {}
+
+/* ───────── Roteiro ───────── */
+// 1 · Partida encontrada
+mark('found', 'Partida encontrada');
+foundSteps(16);
+
+// 2 · Arena: as oito duplas entram
+mark('enter', 'Arena');
+ENTER_AT = T;
+at(0, () => { phase('enter'); $('found').classList.add('out'); scene('on'); head('Arena', 'Anéis da Fúria · 8 duplas, todos contra todos'); });
+wait(8000);
+
+// 3 · Banimento: os dezesseis banem ao mesmo tempo; a tela esquenta
+mark('ban', 'Banimento');
+at(0, () => {
+  phase('ban'); scene('off'); frame.dataset.cols = '1'; head('Fase de banimento', 'Cada jogador bane um campeão', 27);
+  sel = null; renderGrid(); openDrawer(true); bottom('ban'); stageText('ban', 'Banimento', 'Quem sai?', 'Os dezesseis banem ao mesmo tempo');
+});
+OTHERS.forEach((t, i) => [0, 1].forEach((k) => at(1500 + ((i * 2 + k) * 5 % 14) * 570, () => banLock(t, k))));
+at(900, () => banIntent(1, 'Morgana'));
+at(1300, () => cursorTo(cell('Akali')));
+at(1700, () => say(cards[1], 'Zeca', 'bane o Zed pra mim'));
+at(2000, () => { sel = 'Akali'; markGrid(); banIntent(0, 'Akali'); bottom('ban', 'Akali'); stage('Akali', 'ban', 'Banir'); });
+at(3300, () => cursorTo('#search', .2));
+at(3900, () => { click(); type(''); });
+at(4200, () => type('z'));
+at(4600, () => type('ze'));
+at(5100, () => cursorTo(cell('Zed')));
+at(5800, () => { sel = 'Zed'; markGrid(); banIntent(0, 'Zed'); bottom('ban', 'Zed'); stage('Zed', 'ban', 'Banir'); });
+at(6500, () => cursorTo('#go'));
+at(7200, () => { click($('go')); banLock(MY, 0); sel = null; openDrawer(false); stage('Zed', 'banned', 'Banido por você'); bottom('wait', 'Aguardando os outros banimentos'); $('go').textContent = 'Banido ✓'; cursorTo(null); });
+at(7800, () => banLock(MY, 1));
+wait(10300);
+
+// 4 · Revelação dos dezesseis bans, dupla a dupla
+mark('reveal', 'Revelação');
+at(0, () => { phase('reveal'); scene('dim'); head('Banimentos revelados', 'Dezesseis campeões fora da partida'); stage(null, 'off'); buildReveal(); $('search').className = 'search'; $('search').textContent = 'Buscar campeão'; filter.q = ''; });
+TEAMS.forEach((tm, t) => {
+  at(500 + t * 320, () => { rv(t, 0).classList.add('up'); rv(t, 1).classList.add('up'); });
+  at(880 + t * 320, () => [0, 1].forEach((k) => { const el = rv(t, k); el.classList.add('struck'); fx(el, 'shake'); }));
+});
+at(4200, flyHome);
+at(4850, bansDone);
+wait(5200);
+
+// 5 · Escolha: a torcida apresenta os favoritos e depois vêm as quatro rodadas
+mark('pick', 'Escolha');
+at(0, () => { phase('pick'); head('Favoritos da torcida', 'Quem escolher um deles começa com bônus'); bottom('wait'); renderGrid(); favAnnounce(); });
+at(2300, favHome);
+at(2900, () => { $('favshow').className = 'favshow'; });
+wait(3400);
+const others = (r, sub) => { round(r); head('Fase de escolha', 'Rodada ' + (r + 1) + ' de 4 · ' + sub, 27); turn(ROUNDS[r]); stageText('foe', 'Rodada ' + (r + 1), '? ? ?', 'Só aparece quando travar'); };
+at(0, () => { scene('off'); others(0, 'Lobo e Gromp escolhem'); });
+at(1100, () => lockFoe(0, 0));
+at(2000, () => lockFoe(1, 0));
+at(2900, () => lockFoe(0, 1));
+at(3700, () => lockFoe(1, 1));
+wait(4800);
+// Rodada 2: alguém vai de Ousadia
+at(0, () => others(1, 'Krug e Corvo escolhem'));
+at(900, () => lockFoe(3, 0));
+at(1900, () => braveStart(2, 0));
+at(3750, () => braveEnd(2, 0));
+at(5100, () => lockFoe(2, 1));
+at(6100, () => lockFoe(3, 1));
+wait(7300);
+// Rodada 3: a sua dupla (com o Time Sentinela)
+at(0, () => { round(2); head('Fase de escolha', 'Rodada 3 de 4 · sua vez de escolher', 27); turn(ROUNDS[2]); sel = null; renderGrid(); openDrawer(true); bottom('pick'); stageText('dim', 'Rodada 3 · sua dupla', 'Sua vez', 'Escolha um campeão ou vá de Ousadia'); });
+at(500, () => hoverMine(1, 'Alistar'));
+at(700, () => cursorTo('.chip[data-role="fav"]'));
+at(1300, () => { click(); setChip('fav'); renderGrid(); });
+at(1800, () => cursorTo(cell('Galio')));
+const mine = (c) => { sel = c; markGrid(); hoverMine(0, c); bottom('pick', c); stage(c, 'dim', 'Sua vez · favorito da torcida'); };
+at(2400, () => mine('Galio'));
+at(2800, () => lockFoe(5, 0, true));
+at(3100, () => lockMine(1, true));
+at(3500, () => cursorTo(cell('Ahri')));
+at(4100, () => mine('Ahri'));
+at(4500, () => say(cards[1], 'Zeca', 'boa, favorita da torcida'));
+at(5100, () => cursorTo('#go'));
+// Travar: a grade fecha, a câmera mergulha no centro da arena, clarão, splash em cor cheia.
+DIVE_AT = T + 5900;
+at(5900, () => {
+  click($('go')); openDrawer(false); cursorTo(null); bottom('wait', 'Travando…');
+  if (gl && !reduced) { frame.dataset.stage = 'off'; frame.classList.add('dive'); scene('on'); }
+  else fx(arts[artIdx], 'divefx'); // sem WebGL: aproxima a splash no lugar do mergulho
+});
+at(7150, () => fx($('flash'), 'flashfx'));
+at(7250, () => { scene('off'); frame.classList.remove('dive'); lockMine(0); bottom('wait', 'Ahri travada · favorita da torcida'); $('go').textContent = 'Travado ✓'; $('go').className = 'go done'; head('Fase de escolha', 'Você travou a Ahri'); });
+at(8300, () => lockFoe(5, 1, true));
+wait(9600);
+// Rodada 4
+at(0, () => others(3, 'Aronguejo e Acólito escolhem'));
+at(1000, () => lockFoe(6, 0));
+at(1800, () => lockFoe(7, 0));
+at(2700, () => lockFoe(7, 1));
+at(3500, () => lockFoe(6, 1));
+wait(4700);
+
+// 6 · Preparação: skins e feitiços, contagem (sem runas)
+mark('final', 'Preparação');
+const FINAL_S = 11;
+at(0, () => { phase('final'); round(4); frame.querySelectorAll('.turn').forEach((e) => e.classList.remove('turn')); head('Prepare-se', 'A partida começa em', FINAL_S, FINAL_S); bottom('final'); setSkin(0); });
+at(1100, () => cursorTo('#carNext'));
+[1800, 2600, 3400, 5200, 6000].forEach((t, k) => at(t, () => { click($('carNext')); setSkin(k + 1); }));
+at(6900, () => cursorTo(null));
+[3, 2, 1].forEach((n) => at((FINAL_S - n) * 1000, () => { $('title').textContent = String(n); fx($('title'), 'title-in'); }));
+wait(FINAL_S * 1000);
+
+// 7 · Saída: a tela se desmonta e entra o carregamento com as oito duplas
+mark('exit', 'Saída');
+const EXIT_S = 6.5;
+at(0, () => { phase('exit'); frame.dataset.cols = '0'; frame.dataset.stage = 'full'; $('npSub').textContent = ''; fx(arts[artIdx], 'divefx'); fx($('flash'), 'flashfx'); });
+at(700, buildLoading);
+wait(EXIT_S * 1000);
+
+/* ───────── Tocador ───────── */
+const END = T;
+steps.sort((a, b) => a.t - b.t); // o roteiro é escrito por assunto; aqui fica em ordem de tempo (a ordem de escrita desempata)
+let idx = 0, playing = true, speed = 1, lastTs = 0, rateNow = 1, drawnAt = -1;
+function runSteps() { while (idx < steps.length && steps[idx].t <= clock) steps[idx++].fn(); }
+// Pular: recomeça e aplica os passos até o tempo pedido, sem transições.
+function seek(t) {
+  instant = true; frame.classList.add('instant'); clock = 0; reset(); idx = 0; clock = t; runSteps();
+  void frame.offsetWidth; instant = reduced; if (!reduced) frame.classList.remove('instant');
+  playing = true; drawnAt = -1; hud();
+}
+function tick(ts) {
+  const dt = Math.min(250, ts - lastTs); lastTs = ts;
+  if (playing) { clock += dt * speed; runSteps(); if (clock >= END) { clock = END; playing = false; } }
+  drawTimer(); frameTick();
+  if (phaseNow === 'exit') { const k = clamp01((clock - (END - EXIT_S * 1000) - 900) / (EXIT_S * 1000 - 1400)); $('prog').style.transform = $('prog2').style.transform = 'scaleX(' + k.toFixed(4) + ')'; }
+  // A cena 3D segue o mesmo relógio (pausa, velocidade e pulo de fase valem para ela). Parada ou escondida, não redesenha.
+  if (gl && frame.dataset.scene !== 'off' && clock !== drawnAt) { drawnAt = clock; drawScene(); }
+  // Velocidade e pausa também valem para as animações e transições CSS em curso.
+  const r = playing ? speed : 0;
+  if (r !== 1 || rateNow !== 1) { document.getAnimations().forEach((a) => { if (a.playbackRate !== r) a.playbackRate = r; }); rateNow = r; }
+  hud();
+  requestAnimationFrame(tick);
+}
+
+/* Controles do mockup */
+const track = $('track'); let hudKey = '';
+marks.forEach((m, i) => { const b = document.createElement('button'); b.innerHTML = '<i></i><span>' + m.label + '</span>'; b.style.flex = ((marks[i + 1] ? marks[i + 1].t : END) - m.t) + ' 1 0'; b.title = 'Pular para ' + m.label; b.addEventListener('click', () => seek(m.t)); track.append(b); });
+const fmt = (ms) => Math.floor(ms / 60000) + ':' + String(Math.floor(ms / 1000) % 60).padStart(2, '0');
+function hud() {
+  marks.forEach((m, i) => { const end = marks[i + 1] ? marks[i + 1].t : END, k = clamp01((clock - m.t) / (end - m.t)); track.children[i].firstChild.style.transform = 'scaleX(' + k.toFixed(3) + ')'; });
+  const cur = marks.filter((m) => m.t <= clock).length - 1, key = cur + '|' + playing + '|' + Math.floor(clock / 1000);
+  if (key === hudKey) return; hudKey = key;
+  [...track.children].forEach((b, i) => b.classList.toggle('now', i === cur));
+  $('mPlay').textContent = clock >= END ? 'Rever' : playing ? 'Pausar' : 'Tocar';
+  $('mTime').textContent = fmt(clock) + ' / ' + fmt(END);
+}
+const toggle = () => { if (clock >= END) seek(0); else playing = !playing; };
+$('mPlay').addEventListener('click', toggle);
+$('mRestart').addEventListener('click', () => seek(0));
+addEventListener('keydown', (e) => { if (e.code === 'Space') { e.preventDefault(); toggle(); } });
+document.querySelectorAll('[data-speed]').forEach((b) => b.addEventListener('click', () => { speed = +b.dataset.speed; document.querySelectorAll('[data-speed]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
+addEventListener('resize', () => { if (gl) fitScene(); drawnAt = -1; if (phaseNow === 'final') setSkin(skinIdx, true); });
+
+if (gl) { setupScene(); fitScene(); } else frame.classList.add('nogl');
+PRELOAD.forEach((u) => { new Image().src = u; }); // imagens já no cache antes de aparecerem
+seek(0);
+requestAnimationFrame((ts) => { lastTs = ts; tick(ts); });
+</script>
+</body>
+</html>

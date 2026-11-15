@@ -158,3 +158,23 @@ test('restaurar manda o tamanho da janela da Riot (para quando o auxiliar perdeu
     document.documentElement.style.removeProperty('zoom');
   }
 });
+
+test('client como administrador: o auxiliar responde "elevated"; avisa uma vez e não marca como maximizada', async () => {
+  const error = vi.fn();
+  vi.stubGlobal('Toast', { error });
+  vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+    if (url === `${BASE}/v1/status`) return new Response(JSON.stringify({ app: 'reimaginedlc-fundos', version: '5' }));
+    if (url === `${BASE}/v1/token`) return new Response(JSON.stringify({ token: 'b'.repeat(64) }));
+    if (url.startsWith(`${BASE}/v1/window/`) && init?.method === 'POST') return new Response(JSON.stringify({ ok: false, reason: 'elevated' }));
+    throw new TypeError('recusado');
+  });
+  stop = startWindow();
+  await flush();
+  toggleMaximize();
+  await flush();
+  toggleMaximize();
+  toggleMaximize();
+  await flush();
+  expect(isMaximized.value).toBe(false);
+  expect(error).toHaveBeenCalledTimes(1);
+});

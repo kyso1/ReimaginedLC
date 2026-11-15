@@ -14,8 +14,9 @@ import { useAction } from '../../ui/useAction';
 import { BotPicker, useBots } from './BotPicker';
 import { formatClock, useClock } from './format';
 import { FRIEND_DRAG, InviteFriends } from './InviteFriends';
+import { Invites } from './Invites';
 import { MemberMenu } from './MemberMenu';
-import { arenaTeams, Column, Stage, type Participant } from './Stage';
+import { arenaTeams, Column, Invited, Stage, type Participant } from './Stage';
 import { arenaTeamSize } from '../champselect/logic';
 import { QuickPlayEditor, quickPlayProblem, SlotStrip } from './QuickPlay';
 import type { Champion } from '../../data/gamedata';
@@ -96,6 +97,7 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
       showPositions={!config.isCustom && config.showPositionSelector}
       scarce={data.scarcePositions ?? []}
       forceScarce={config.shouldForceScarcePositionSelection === true}
+      primaryOnly={data.members.length >= 5}
       label={m?.isBot ? (bots.find((b) => b.id === m.botChampionId)?.name ?? t('bot')) : undefined}
       editPositions={m ? isLocal(m) : false}
       rankQueue={rankedQueueOf(config.queueId)}
@@ -191,7 +193,28 @@ export function Lobby({ lcu, onModes }: { lcu: Lcu; onModes: () => void }) {
       );
     } else {
       const slots = Array.from({ length: Math.max(config.maxLobbySize, data.members.length) }, (_, i) => data.members[i] ?? null);
-      stage = <Stage>{slots.map((m, i) => column(m, `empty-${i}`, inviteSlot))}</Stage>;
+      // Convidados que ainda não responderam aparecem nas primeiras vagas livres, como no client da Riot; o Convidar
+      // continua na vaga (pode haver mais convites que vagas).
+      const pending = (data.invitations ?? []).filter((v) => v.state === 'Pending' && !data.members.some((m) => m.puuid === v.toPuuid));
+      stage = (
+        <Stage>
+          {slots.map((m, i) => {
+            const invite = pending[i - data.members.length];
+            return column(
+              m,
+              `empty-${i}`,
+              invite ? (
+                <>
+                  <Invited invite={invite} name={lcu.name} />
+                  {inviteSlot}
+                </>
+              ) : (
+                inviteSlot
+              ),
+            );
+          })}
+        </Stage>
+      );
     }
     bar = (
       <LobbyBar
@@ -328,6 +351,12 @@ export function LobbyBar({ lcu, title, subtitle, onTitle, leader, partyType, sta
             {t('leave')}
           </button>
         ) : null}
+        {/* A LCU lista o próprio jogador (quem criou a sala) como convite aceito: fica de fora. */}
+        <Invites
+          invitations={(lcu.lobby.value.data?.invitations ?? []).filter((v) => v.toPuuid !== lcu.lobby.value.data?.localMember.puuid)}
+          name={lcu.name}
+          canInvite={leader || lcu.lobby.value.data?.localMember.allowedInviteOthers === true}
+        />
         <Voice lcu={lcu} />
         <div class="rlc-bar-end">
           {searching ? (

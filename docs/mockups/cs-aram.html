@@ -1,0 +1,1117 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seleção ARAM: simulação completa</title>
+<!--
+  Simulação da seleção de campeões do ARAM (Howling Abyss, mapa 12, gameMode ARAM) do começo ao fim, com todas as animações.
+  Você é o Fulano. Mesmo estilo e mesma barra de controle de cs-picks-ban.html (Solo/Duo); arquivo independente.
+
+  Regras do modo que mudam a tela (em relação à ranqueada):
+  - Não há banimento, rota, posição nem planejamento no mapa do Rift. O time inimigo fica oculto até o carregamento,
+    por isso não existe coluna da direita: o centro ocupa a largura toda.
+  - Cartas de campeão: cada jogador recebe 3 campeões aleatórios; a terceira é a "carta da sorte" (aqui com borda dourada).
+    Quem escolhe uma manda as outras duas para o banco.
+  - Banco: dez vagas compartilhadas pelo time. Qualquer um troca o campeão atual por um do banco (o antigo vai para a vaga);
+    depois de trocar há uma espera curta antes de poder pegar outro. Aliados também trocam entre si.
+  - Ninguém "trava": a escolha vale quando o tempo acaba. Feitiço padrão: Flash + Marca (bola de neve). Runas normais.
+  Suposições (o que eu não sei ao certo do cliente atual e escolhi algo plausível): quantidade exata de cartas (3), o destino
+  das cartas não escolhidas (banco), a duração da espera do banco (4 s) e os tempos de cada fase.
+
+  Linha do tempo (uns 48 s em 1x):
+  1. Partida encontrada: os dez aceitam, o anel estoura e a tela abre.
+  2. Howling Abyss: cena 3D (WebGL 1, neste arquivo): a câmera chega girando, a ponte se monta laje a laje da sua base
+     até a inimiga, as agulhas de gelo sobem do abismo, a névoa de guerra recua até o meio, neve ao vento; seu time cai na ponte.
+  3. Cartas: a cena fica de fundo; a coluna do time entra; suas três cartas são distribuídas, viram uma a uma (a da sorte por
+     último, com brilho). Os aliados viram as deles em miniatura e escolhem. Você passa o mouse (splash apagada no palco) e
+     escolhe o Ziggs: a carta voa para o seu cartão e as outras duas voam para o banco.
+  4. Banco: aliados pegam campeões do banco (o retrato voa da vaga para o cartão e o antigo volta). Você pega a Ahri:
+     a câmera mergulha na ponte, clarão, splash em cor cheia; o banco entra em espera (barra esvaziando).
+     Depois dois aliados trocam de campeão entre si.
+  5. Preparação: carrossel de skins, runas e feitiços na barra, contagem.
+  6. Saída: a tela se desmonta e entra o "Carregando partida" com os dez campeões (o inimigo aparece só aqui).
+
+  Como é feito, pensando no cliente (Chromium 108, CEF):
+  - Um roteiro: lista de passos (tempo, função). Cada passo só muda estado (classe, data-*, texto); o movimento vem de
+    transições CSS presas ao estado e de animações de um disparo (fx()). Por isso dá para pausar, acelerar e pular de fase.
+  - A cena 3D é função pura do relógio do roteiro (entrada, deriva, mergulho): pausa, velocidade e pulo valem para ela.
+    2 draw calls (uma malha facetada com luz por vértice no shader, um lote de pontos somados), nenhuma textura,
+    e ela só é desenhada enquanto aparece. Os marcadores do time são HTML por cima (5 transforms por quadro).
+  - Só transform e opacity animam em áreas grandes. Sem backdrop-filter em cima de coisa que se mexe, sem mix-blend-mode,
+    sem CSS novo (nesting, :has, color-mix), sem bibliotecas. prefers-reduced-motion: roteiro igual, sem movimento.
+  - Sem arte da Riot no repositório: imagens por link do Data Dragon. Nomes fictícios.
+  A barra de baixo (tocar, recomeçar, velocidade, fases) é só do mockup.
+-->
+<style>
+  :root {
+    --bg: #070b16; --text: #eef2ff; --muted: #8a93b5; --border: rgba(255,255,255,.14);
+    --blue: #5aa0ff; --red: #ff5f6d; --gold: #e2bd6b;
+    --accent: var(--blue);
+    --colw: clamp(220px, 18vw, 300px);
+    --cl: calc(94px + var(--colw)); --cr: calc(30px + var(--colw)); /* bordas da área central */
+    --ease: cubic-bezier(.2,.8,.2,1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #04060d; color: var(--text); font: 14px/1.35 'Segoe UI', system-ui, sans-serif; overflow: hidden; }
+  button { font: inherit; color: inherit; }
+  .frame { position: relative; width: 100vw; height: calc(100vh - 46px); min-height: 560px; overflow: hidden;
+    background: radial-gradient(ellipse 70% 60% at 50% 45%, #121a30 0%, var(--bg) 72%); }
+  .frame[data-phase='ban'], .frame[data-phase='reveal'] { --accent: var(--red); }
+  .frame.instant *, .frame.instant *::before, .frame.instant *::after { transition: none !important; }
+
+  /* ── Palco central: splash grande de quem está agindo ── */
+  .stage { position: absolute; left: var(--cl); right: var(--cr); top: 0; bottom: 0; overflow: hidden; opacity: 0; transition: opacity .5s ease; }
+  .frame[data-stage] .stage { opacity: 1; }
+  .frame[data-stage='off'] .stage { opacity: 0; }
+  .arts { position: absolute; inset: 0 -3%; transition: transform .7s var(--ease), filter .45s ease; }
+  .art { position: absolute; inset: 0; background: center 16%/cover no-repeat; opacity: 0; transition: opacity .45s ease; }
+  .art.on { opacity: 1; }
+  .frame[data-stage='dim'] .arts { filter: saturate(.18) brightness(.5); }
+  .frame[data-stage='ban'] .arts { filter: grayscale(1) brightness(.5); }
+  .frame[data-stage='banned'] .arts { filter: grayscale(1) brightness(.3); }
+  .frame[data-stage='skin'] .arts { filter: brightness(.55); }
+  .frame.open .arts { transform: translate(11%, -11%); }
+  .shade { position: absolute; inset: 0; background:
+    linear-gradient(90deg, #070b16 0%, rgba(7,11,22,0) 17%, rgba(7,11,22,0) 83%, #070b16 100%),
+    linear-gradient(180deg, rgba(7,11,22,.9) 0%, rgba(7,11,22,.25) 22%, rgba(7,11,22,0) 46%, rgba(7,11,22,.8) 80%, #070b16 100%); }
+  .foeglow { position: absolute; inset: 0; opacity: 0; transition: opacity .5s; background: radial-gradient(ellipse 60% 55% at 100% 45%, rgba(255,70,90,.22), transparent 70%); }
+  .frame[data-stage='foe'] .foeglow { opacity: 1; animation: breathe 2.4s ease-in-out infinite; }
+  .slash { position: absolute; left: 12%; right: 12%; top: 40%; height: 4px; border-radius: 4px; background: var(--red); box-shadow: 0 0 26px 2px rgba(255,60,80,.7);
+    transform: rotate(-14deg) scaleX(0); transition: transform .35s cubic-bezier(.6,0,.2,1); }
+  .frame[data-stage='banned'] .slash { transform: rotate(-14deg) scaleX(1); }
+  .nameplate { position: absolute; left: 0; right: 0; bottom: 104px; text-align: center; text-shadow: 0 2px 18px rgba(0,0,0,.85); }
+  .nameplate small { display: block; font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
+  .nameplate b { display: block; font-size: clamp(44px, 5.4vw, 84px); line-height: 1.02; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+  .nameplate i { display: block; width: 120px; height: 2px; margin: 10px auto 8px; background: var(--muted); opacity: .5; transition: background .4s, opacity .4s, transform .5s var(--ease); transform: scaleX(.4); }
+  .nameplate em { display: block; font-style: normal; font-size: 14px; color: #c9d1ee; }
+  .frame[data-stage='full'] .nameplate i { background: var(--gold); opacity: 1; transform: none; }
+  .frame[data-stage='full'] .nameplate small { color: var(--gold); }
+  .frame[data-stage='foe'] .nameplate i, .frame[data-stage='foefull'] .nameplate i, .frame[data-stage='ban'] .nameplate i, .frame[data-stage='banned'] .nameplate i { background: var(--red); opacity: 1; transform: none; }
+  .frame[data-stage='foe'] .nameplate small, .frame[data-stage='foefull'] .nameplate small, .frame[data-stage='ban'] .nameplate small, .frame[data-stage='banned'] .nameplate small { color: var(--red); }
+  .frame[data-stage='foe'] .nameplate b { color: rgba(255,255,255,.22); }
+  .frame[data-stage='skin'] .nameplate { opacity: 0; }
+  /* Com a grade aberta o nome sobe para a faixa entre o cabeçalho e a grade, à esquerda; o rosto fica à direita. */
+  .frame.open .nameplate { left: 26px; right: auto; bottom: auto; top: 136px; text-align: left; }
+  .frame.open .nameplate b { font-size: clamp(30px, 3.4vw, 52px); }
+  .frame.open .nameplate i { margin: 7px 0 6px; transform-origin: left; }
+  .np-in { animation: npIn .5s var(--ease); }
+  @keyframes npIn { from { opacity: 0; transform: translateY(14px) scale(1.06); } }
+  .slam { animation: slam .9s var(--ease); }
+  @keyframes slam { from { transform: scale(1.16); opacity: .2; } }
+  .divefx { animation: divefx 1.3s cubic-bezier(.5,0,.9,.4); }
+  @keyframes divefx { to { transform: scale(1.5); } }
+
+  /* ── Tom vermelho do banimento: vinheta leve + fio de luz no topo. Só opacity anima. ── */
+  .heat { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .7s ease;
+    background:
+      radial-gradient(ellipse 85% 75% at 50% 50%, transparent 56%, rgba(190, 25, 50, .26) 100%),
+      linear-gradient(180deg, rgba(160, 18, 40, .15), transparent 32%, transparent 74%, rgba(160, 18, 40, .09)); }
+  .heat::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--red); box-shadow: 0 0 22px 3px rgba(255, 60, 80, .55); }
+  .frame[data-phase='ban'] .heat, .frame[data-phase='reveal'] .heat { opacity: 1; animation: breathe 3.2s ease-in-out infinite; }
+  @keyframes breathe { 50% { opacity: .72; } }
+
+  .rail { position: absolute; left: 0; top: 0; bottom: 0; width: 64px; background: rgba(10,12,22,.7); border-right: 1px solid var(--border); }
+
+  /* ── Cabeçalho: fase, tempo e bans ── */
+  .head { position: absolute; top: 14px; left: var(--cl); right: var(--cr); text-align: center; transition: opacity .5s, transform .5s var(--ease); text-shadow: 0 2px 14px rgba(0,0,0,.85); }
+  .frame[data-phase='found'] .head, .frame[data-phase='exit'] .head { opacity: 0; transform: translateY(-24px); }
+  .head small { display: block; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .head b { display: block; font-size: 27px; font-weight: 700; transition: color .5s; }
+  .frame[data-phase='ban'] .head b, .frame[data-phase='reveal'] .head b { color: #ffd3d8; text-shadow: 0 0 22px rgba(255, 70, 90, .5); }
+  .title-in { animation: titleIn .55s var(--ease); }
+  @keyframes titleIn { from { opacity: 0; transform: translateY(10px) scale(1.08); } }
+  .timer { width: 280px; height: 3px; margin: 8px auto 0; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
+  .timer i { display: block; height: 100%; background: var(--accent); transform-origin: left; transition: background .5s; }
+  .bans { display: flex; justify-content: center; gap: 26px; margin-top: 11px; transition: opacity .5s, transform .5s var(--ease); }
+  .frame[data-phase='found'] .bans, .frame[data-phase='plan'] .bans { opacity: 0; transform: translateY(-8px); }
+  .bans div { display: flex; gap: 5px; }
+  .ban { position: relative; width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border); background: rgba(255,255,255,.04) center/cover; }
+  .ban.known { border-color: rgba(255,95,109,.6); }
+  .ban.hid::before { content: ''; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px; border-radius: 50%; background: var(--red); animation: breathe 1.4s ease-in-out infinite; }
+  .ban.done { filter: grayscale(1) brightness(.7); }
+  .ban.done::after { content: ''; position: absolute; left: -2px; right: -2px; top: 50%; height: 2px; margin-top: -1px; background: var(--red); transform: rotate(-45deg); }
+  .pop { animation: pop .45s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes pop { from { transform: scale(.5); opacity: 0; } }
+
+  /* ── Colunas dos times ── */
+  .team { position: absolute; top: 14px; bottom: 14px; width: var(--colw); display: flex; flex-direction: column; gap: 8px; }
+  .team.ally { left: 80px; }
+  .team.foe { right: 16px; }
+  .team h3 { margin: 0 0 2px; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--blue); transition: opacity .5s; }
+  .team.foe h3 { color: var(--red); text-align: right; }
+  .card { position: relative; flex: 1; min-height: 0; max-height: 142px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: #0d1324;
+    display: flex; align-items: flex-end; padding: 10px 12px; transition: transform .6s var(--ease) var(--d, 0s), opacity .5s ease var(--d, 0s); }
+  .card:nth-of-type(2) { --d: .06s; } .card:nth-of-type(3) { --d: .12s; } .card:nth-of-type(4) { --d: .18s; } .card:nth-of-type(5) { --d: .24s; }
+  .frame[data-cols='0'] .team.ally .card { transform: translateX(-70px); opacity: 0; }
+  .frame[data-cols='0'] .team.foe .card { transform: translateX(70px); opacity: 0; }
+  .frame[data-cols='0'] .team h3 { opacity: 0; }
+  .c-art { position: absolute; inset: 0; background: center 20%/cover no-repeat; transition: filter .5s ease, opacity .4s ease; }
+  .card[data-state='empty'] .c-art { opacity: 0; }
+  .card[data-state='hover'] .c-art { filter: saturate(.25) brightness(.7); }
+  .c-veil { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(7,11,22,.92) 0%, rgba(7,11,22,.45) 55%, rgba(7,11,22,.1)); }
+  .team.foe .c-veil { background: linear-gradient(270deg, rgba(7,11,22,.92) 0%, rgba(7,11,22,.45) 55%, rgba(7,11,22,.1)); }
+  .c-q { position: absolute; right: 22px; top: 50%; margin-top: -30px; font-size: 44px; line-height: 60px; color: rgba(255,255,255,.12); font-weight: 700; transition: opacity .3s; }
+  .team.foe .c-q { right: auto; left: 22px; }
+  .card:not([data-state='empty']) .c-q { opacity: 0; }
+  .c-sweep { position: absolute; top: 0; bottom: 0; left: -60%; width: 60%; opacity: 0; pointer-events: none;
+    background: linear-gradient(100deg, transparent, rgba(255,240,200,.75) 50%, transparent); }
+  .team.foe .c-sweep { background: linear-gradient(100deg, transparent, rgba(255,150,160,.75) 50%, transparent); }
+  .sweep { animation: sweep .7s ease-out; }
+  @keyframes sweep { from { opacity: 1; transform: translateX(0); } to { opacity: 1; transform: translateX(280%); } }
+  .c-edge { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--gold); transform: scaleY(0); transition: transform .45s var(--ease); }
+  .team.foe .c-edge { left: auto; right: 0; background: var(--red); }
+  .team.foe .card[data-state='locked'] .who em { color: #ff9aa3; }
+  .card[data-state='locked'] .c-edge { transform: none; }
+  .who { position: relative; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .team.foe .card { justify-content: flex-end; text-align: right; }
+  .who b { font-size: 16px; white-space: nowrap; }
+  .who b u { text-decoration: none; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: #fff; color: #10131f; font-size: 10px; font-weight: 700; letter-spacing: .06em; vertical-align: 2px; }
+  .who em { font-style: normal; font-size: 12px; color: var(--muted); white-space: nowrap; transition: color .4s; }
+  .card[data-state='locked'] .who em { color: var(--gold); }
+  .rise { animation: rise .5s var(--ease); }
+  @keyframes rise { from { transform: translateY(12px); opacity: 0; } }
+  .role { position: absolute; top: 10px; left: 12px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; background: rgba(7,11,22,.75); border: 1px solid var(--border); }
+  .ri { width: 18px; height: 18px; fill: currentColor; display: block; }
+  .chip .ri, .f-box em .ri { display: inline-block; width: 14px; height: 14px; margin-right: 5px; vertical-align: -2.5px; }
+  .ld .role { top: 7px; left: 7px; }
+  .team.foe .role { left: auto; right: 12px; }
+  .spells { position: absolute; top: 10px; right: 12px; display: flex; gap: 3px; opacity: 0; transition: opacity .4s .2s; }
+  .card[data-state='locked'] .spells { opacity: 1; }
+  .spells i { width: 18px; height: 18px; border-radius: 4px; background: center/cover; border: 1px solid var(--border); }
+  /* Vez de quem: anel pulsando (só opacity) e barra do tempo. */
+  .card::after { content: ''; position: absolute; inset: 0; border-radius: 11px; border: 2px solid var(--accent); box-shadow: inset 0 0 22px -4px var(--accent); opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .card.turn::after { opacity: 1; animation: ring 1.5s ease-in-out infinite; }
+  @keyframes ring { 50% { opacity: .45; } }
+  .team.foe .card { --accent: var(--red); }
+  .c-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.12); opacity: 0; }
+  .card.turn .c-bar { opacity: 1; }
+  .c-bar i { display: block; height: 100%; background: var(--accent); transform-origin: left; }
+  .lockpop { animation: lockpop .5s var(--ease); }
+  @keyframes lockpop { from { transform: scale(1.045); } }
+  .art-in { animation: artIn .45s ease-out; }
+  @keyframes artIn { from { opacity: 0; transform: scale(1.1); } }
+  .art-foe { animation: artFoe .6s var(--ease); }
+  @keyframes artFoe { from { opacity: 0; transform: translateX(28%) scale(1.15); } }
+  /* Intenção de banir: retrato com o X; ao travar o ban, apaga e ganha o risco. */
+  .intent { position: absolute; right: 12px; bottom: 10px; width: 38px; height: 38px; border-radius: 8px; border: 1px solid rgba(255,95,109,.7); background: center/cover; opacity: 0; transform: scale(.6); transition: opacity .3s, transform .35s cubic-bezier(.3,1.6,.5,1); }
+  .intent.on { opacity: 1; transform: none; }
+  .intent::after { content: '✕'; position: absolute; right: -6px; top: -6px; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; font-size: 10px; color: #fff; font-weight: 700; background: var(--red); box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+  .intent.locked { filter: grayscale(1) brightness(.75); }
+  .intent.locked::before { content: ''; position: absolute; left: -3px; right: -3px; top: 50%; height: 2px; margin-top: -1px; background: var(--red); transform: rotate(-45deg); }
+  .frame[data-phase='pick'] .intent, .frame[data-phase='final'] .intent, .frame[data-phase='exit'] .intent { opacity: 0; transform: scale(.6); }
+
+  /* Fala do chat da sala, ao lado do cartão. */
+  .say { position: absolute; max-width: 220px; padding: 6px 11px; border-radius: 12px 12px 12px 2px; background: #1a2340; border: 1px solid var(--border); font-size: 12.5px; box-shadow: 0 8px 22px rgba(0,0,0,.5); opacity: 0; animation: say 3.4s ease both; pointer-events: none; }
+  .say b { color: var(--blue); font-weight: 600; margin-right: 4px; }
+  @keyframes say { 0% { opacity: 0; transform: translateX(-10px) scale(.9); } 8%, 86% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-6px); } }
+
+  /* ── Barra de baixo ── */
+  .bottom { position: absolute; left: var(--cl); right: var(--cr); bottom: 14px; height: 62px; display: flex; gap: 10px; align-items: center; padding: 0 14px;
+    border: 1px solid var(--border); border-radius: 14px; background: rgba(9,12,22,.88); transition: opacity .45s, transform .5s var(--ease); }
+  .frame[data-phase='found'] .bottom, .frame[data-phase='reveal'] .bottom, .frame[data-phase='exit'] .bottom { opacity: 0; transform: translateY(30px); }
+  .info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden; }
+  .info img { width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--border); flex: none; }
+  .info .fav { position: relative; }
+  .info .fav.sel { outline: 2px solid #fff; outline-offset: 2px; }
+  .info div { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .info div b { display: block; font-size: 15px; }
+  .info div span, .info > span { font-size: 12px; color: var(--muted); }
+  .pill { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: transparent; white-space: nowrap; }
+  .sp { display: flex; gap: 4px; }
+  .sp img { width: 34px; height: 34px; border-radius: 7px; border: 1px solid var(--border); display: block; }
+  .go { padding: 10px 32px; border-radius: 999px; border: 0; font-weight: 700; background: #fff; color: #10131f; white-space: nowrap; transition: background .4s, color .4s, opacity .4s, transform .15s; }
+  .frame[data-phase='ban'] .go { background: var(--red); color: #fff; }
+  .go.off { opacity: .35; }
+  .go.done { background: transparent; color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); opacity: 1; }
+  .press { animation: press .3s ease-out; }
+  @keyframes press { from { transform: scale(.9); } }
+
+  /* ── Preparação: carrossel de skins ── */
+  .finale { position: absolute; left: var(--cl); right: var(--cr); top: 132px; bottom: 90px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+    opacity: 0; transform: translateY(20px); pointer-events: none; transition: opacity .5s, transform .6s var(--ease); }
+  .frame[data-phase='final'] .finale { opacity: 1; transform: none; }
+  .car { position: relative; flex: 1; min-height: 0; width: 100%; }
+  .skin { position: absolute; left: 50%; top: 4%; height: 92%; aspect-ratio: 308/560; border-radius: 14px; overflow: hidden; border: 1px solid var(--border);
+    background: #0d1324 center top/cover; transition: transform .55s var(--ease), opacity .45s, border-color .4s; box-shadow: 0 18px 40px rgba(0,0,0,.6); }
+  .skin.cur { border-color: var(--gold); }
+  .car-nav { position: absolute; top: 50%; width: 38px; height: 38px; margin-top: -19px; border-radius: 50%; border: 1px solid var(--border); background: rgba(9,12,22,.85); display: grid; place-items: center; font-size: 18px; }
+  .car-nav.prev { left: 6px; } .car-nav.next { right: 6px; }
+  .skin-name { text-align: center; text-shadow: 0 2px 14px rgba(0,0,0,.85); }
+  .skin-name b { display: block; font-size: 22px; }
+  .skin-name span { font-size: 12px; color: var(--muted); letter-spacing: .12em; text-transform: uppercase; }
+  .dots { display: flex; gap: 6px; justify-content: center; margin-top: 6px; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.25); transition: background .3s, transform .3s; }
+  .dots i.on { background: var(--gold); transform: scale(1.4); }
+  .rune { display: flex; align-items: center; gap: 8px; }
+  .rune img { width: 40px; height: 40px; flex: none; border: 0; border-radius: 50%; background: #0d1324; }
+  .rune img.sub { width: 20px; height: 20px; margin-left: -16px; align-self: flex-end; }
+
+  /* ── Clarão do travamento ── */
+  .flash { position: absolute; inset: 0; opacity: 0; pointer-events: none; background: radial-gradient(ellipse 60% 60% at 50% 46%, #fff 0%, rgba(255,226,160,.85) 30%, rgba(255,200,110,0) 72%); }
+  .flashfx { animation: flashfx .8s ease-out; }
+  @keyframes flashfx { 0% { opacity: 0; } 16% { opacity: 1; } 100% { opacity: 0; } }
+
+  /* ── Partida encontrada ── */
+  .found { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse 55% 55% at 50% 50%, #15203d 0%, #070b16 75%); transition: opacity .6s ease, transform .8s cubic-bezier(.5,0,.2,1); }
+  .found.out { opacity: 0; transform: scale(1.5); pointer-events: none; }
+  .f-box { position: relative; width: 330px; height: 330px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .f-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(90,160,255,.3); }
+  .f-ring::before { content: ''; position: absolute; inset: -9px; border-radius: 50%; border: 2px dashed rgba(90,160,255,.45); animation: spin 14s linear infinite; }
+  .f-ring::after { content: ''; position: absolute; inset: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,.14); border-top-color: var(--blue); animation: spin 2.4s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .found.ok .f-ring { border-color: var(--gold); transition: border-color .3s; }
+  .f-burst { position: absolute; inset: 0; border-radius: 50%; border: 3px solid var(--gold); opacity: 0; }
+  .burst { animation: burst .8s ease-out; }
+  @keyframes burst { from { opacity: 1; transform: scale(.9); } to { opacity: 0; transform: scale(1.7); } }
+  .f-box small { position: relative; color: var(--muted); letter-spacing: .2em; text-transform: uppercase; font-size: 11px; }
+  .f-box b { position: relative; font-size: 28px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; margin: 6px 0 2px; line-height: 1.1; }
+  .f-box em { position: relative; font-style: normal; color: #c9d1ee; font-size: 13px; }
+  .pips { position: relative; display: flex; gap: 5px; margin: 16px 0; }
+  .pips i { width: 14px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.15); transition: background .25s, transform .25s; }
+  .pips i.on { background: #58e0a0; transform: scaleY(1.5); }
+  .accept { position: relative; padding: 9px 34px; border-radius: 999px; border: 0; background: #fff; color: #10131f; font-weight: 700; transition: background .3s, color .3s; }
+  .found.ok .accept { background: var(--gold); }
+
+  /* ── Carregando partida ── */
+  .loading { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; padding: 18px 0; background: radial-gradient(ellipse 70% 60% at 50% 50%, #101831 0%, #05070e 78%);
+    opacity: 0; pointer-events: none; transition: opacity .7s ease; }
+  .loading.on { opacity: 1; }
+  .ld-row { flex: 1; min-height: 0; display: flex; gap: 12px; justify-content: center; }
+  .ld { position: relative; height: 100%; aspect-ratio: 308/560; border-radius: 10px; overflow: hidden; border: 1px solid rgba(90,160,255,.5); background: #0d1324 center top/cover; }
+  .ld-row.foe .ld { border-color: rgba(255,95,109,.5); }
+  .ld.me { border-color: var(--gold); box-shadow: 0 0 26px -6px var(--gold); }
+  .ld span { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 8px 7px; font-size: 12px; text-align: center; background: linear-gradient(transparent, rgba(5,7,14,.95)); }
+  .ld span b { display: block; font-size: 13px; }
+  .ld-up { animation: ldUp .7s var(--ease) backwards; }
+  @keyframes ldUp { from { opacity: 0; transform: translateY(40px) scale(.94); } }
+  .ld-down { animation: ldDown .7s var(--ease) backwards; }
+  @keyframes ldDown { from { opacity: 0; transform: translateY(-40px) scale(.94); } }
+  .ld-mid { display: flex; align-items: center; gap: 16px; width: min(760px, 70%); }
+  .ld-mid b { font-size: 22px; font-weight: 800; letter-spacing: .1em; color: var(--gold); }
+  .ld-mid small { color: var(--muted); letter-spacing: .14em; text-transform: uppercase; font-size: 11px; white-space: nowrap; }
+  .prog { flex: 1; height: 3px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
+  .prog i { display: block; height: 100%; background: var(--gold); transform-origin: left; transform: scaleX(0); }
+
+  /* ── Cursor simulado ── */
+  .cursor { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; pointer-events: none; transition: transform .6s cubic-bezier(.35,.1,.2,1), opacity .3s; }
+  .cursor.on { opacity: 1; }
+  .cursor svg { position: absolute; left: -3px; top: -2px; width: 22px; height: 22px; filter: drop-shadow(0 2px 3px rgba(0,0,0,.6)); }
+  .cursor i { position: absolute; left: -16px; top: -16px; width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff; opacity: 0; }
+  .ping { animation: ping .45s ease-out; }
+  @keyframes ping { from { opacity: .9; transform: scale(.3); } to { opacity: 0; transform: scale(1.3); } }
+
+  /* ── Controles do mockup (não fazem parte da tela) ── */
+  .mock { position: fixed; left: 0; right: 0; bottom: 0; height: 46px; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: #0b0f1c; border-top: 1px solid var(--border); font-size: 12px; }
+  .mock button { height: 28px; padding: 0 11px; border-radius: 7px; border: 1px solid var(--border); background: #161c30; cursor: pointer; white-space: nowrap; }
+  .mock button[aria-pressed='true'] { background: #fff; color: #10131f; }
+  .mock .sep { width: 1px; height: 22px; background: var(--border); }
+  .track { flex: 1; display: flex; gap: 3px; min-width: 0; }
+  .track button { position: relative; overflow: hidden; padding: 0 4px; min-width: 0; text-overflow: ellipsis; background: #121728; }
+  .track button i { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: rgba(90,160,255,.35); transform-origin: left; transform: scaleX(0); }
+  .track button span { position: relative; }
+  .track button.now { border-color: var(--blue); }
+  .mock time { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 84px; text-align: right; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+  /* ── Cena 3D (canvas WebGL atrás de tudo) e marcadores em HTML por cima dela ── */
+  .scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; opacity: 0; pointer-events: none; transition: opacity .6s ease; }
+  .frame[data-scene='on'] .scene { opacity: 1; }
+  .frame[data-scene='dim'] .scene { opacity: .34; }
+  .frame.dive .scene { transition-duration: .25s; }
+  .pins { position: absolute; inset: 0; z-index: 0; pointer-events: none; font-size: clamp(10px, 1.45vh, 13px); opacity: 0; transition: opacity .3s; }
+  .frame[data-scene='on'] .pins { opacity: 1; }
+  .frame.dive .pins, .frame.nogl .pins { opacity: 0; }
+  .pin { position: absolute; left: 0; top: 0; will-change: transform; }
+  .pin-in { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%); opacity: 0; }
+  .pin.on .pin-in { opacity: 1; animation: drop .55s cubic-bezier(.3,1.5,.5,1) both; }
+  @keyframes drop { from { transform: translate(-50%, calc(-100% - 70px)); opacity: 0; } 60% { opacity: 1; } }
+  .faces { display: flex; gap: .3em; }
+  .face { position: relative; width: 3.6em; height: 3.6em; border-radius: 50%; border: 2px solid var(--team, var(--blue)); background: #0b1324 center/cover; display: grid; place-items: center; color: var(--muted);
+    box-shadow: 0 0 0 3px rgba(6,9,20,.75), 0 8px 18px rgba(0,0,0,.7); }
+  .tag { margin-top: .45em; padding: .15em .75em; border-radius: 999px; background: rgba(8,12,22,.9); border: 1px solid var(--border); white-space: nowrap; }
+  .tag i { font-style: normal; color: var(--muted); }
+  .tag u { text-decoration: none; margin-left: .5em; padding: 0 .5em; border-radius: 999px; background: #fff; color: #10131f; font-size: .8em; font-weight: 700; letter-spacing: .06em; }
+  .stem { width: 2px; height: var(--stem, 22px); background: linear-gradient(var(--team, var(--blue)), transparent); }
+  .pin.me .face { width: 4.4em; height: 4.4em; border-color: #fff; box-shadow: 0 0 0 3px rgba(6,9,20,.75), 0 0 22px rgba(255,236,190,.55), 0 8px 18px rgba(0,0,0,.7); }
+  .pin.me .tag { border-color: rgba(255,255,255,.5); }
+  .pin.me .stem { background: linear-gradient(#fff, transparent); }
+  .frame[data-phase='enter'] .bottom { opacity: 0; transform: translateY(30px); }
+  /* Retrato em voo (FLIP): só transform. */
+  .flyer { position: absolute; left: 0; top: 0; z-index: 60; transform-origin: 0 0; border-radius: 8px; background: #0d1324 center top/cover; box-shadow: 0 10px 26px rgba(0,0,0,.6); pointer-events: none;
+    transition: transform .55s cubic-bezier(.5,0,.2,1); }
+  .poplate { animation: pop .45s cubic-bezier(.3,1.6,.5,1) .5s backwards; }
+  /* Retrato pequeno do campeão atual no canto do cartão. */
+  .c-ic { position: absolute; top: 10px; left: 12px; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: rgba(7,11,22,.75) center/cover; opacity: 0; transition: opacity .3s; }
+  .card:not([data-state='empty']) .c-ic { opacity: 1; }
+
+  /* ══ ARAM ══ Sem coluna inimiga (o outro time fica oculto até o carregamento): o centro vai até a borda direita. */
+  :root { --ice: #9fd8ff; --cr: 30px; }
+  .frame { background: radial-gradient(ellipse 70% 60% at 50% 45%, #14253f 0%, #070b16 74%); }
+  .team h3 { color: var(--ice); }
+  .card { max-height: 150px; }
+
+  /* ── Banco de campeões: dez vagas no cabeçalho ── */
+  .bench { position: relative; display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 11px; transition: opacity .5s, transform .5s var(--ease); }
+  .frame[data-phase='found'] .bench, .frame[data-phase='enter'] .bench, .frame[data-phase='final'] .bench, .frame[data-phase='exit'] .bench { opacity: 0; transform: translateY(-8px); }
+  .bench > span { margin-right: 6px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .bs { position: relative; width: 40px; height: 40px; border-radius: 8px; border: 1px dashed var(--border); background: rgba(255,255,255,.03) center/cover; transition: transform .2s, opacity .3s; }
+  .bs.full { border: 1px solid rgba(159,216,255,.5); }
+  .bs.sel { outline: 2px solid #fff; outline-offset: 2px; transform: scale(1.12); }
+  .bench.cooling .bs { opacity: .38; }
+  /* Espera entre uma troca e outra: barra esvaziando. */
+  .cd { position: absolute; left: 50%; top: 100%; width: 260px; margin: 8px 0 0 -130px; display: flex; align-items: center; gap: 8px; font-style: normal; font-size: 11px; color: var(--ice); white-space: nowrap; opacity: 0; transition: opacity .3s; }
+  .bench.cooling .cd { opacity: 1; }
+  .cd u { flex: 1; height: 3px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
+  .cd u i { display: block; height: 100%; background: var(--ice); transform-origin: left; }
+
+  /* ── Suas cartas: distribuídas de baixo, viram uma a uma; a terceira é a carta da sorte ── */
+  .deal { position: absolute; left: var(--cl); right: var(--cr); top: 176px; bottom: 96px; display: flex; justify-content: center; align-items: center; gap: clamp(14px, 2.2vw, 34px); pointer-events: none; }
+  .dc { position: relative; height: 100%; max-height: 430px; aspect-ratio: 308/560; perspective: 1200px; opacity: 0; transform: translateY(70vh) rotate(12deg); transition: transform .7s var(--ease) var(--d, 0s), opacity .3s ease var(--d, 0s); }
+  .dc:nth-child(2) { --d: .13s; } .dc:nth-child(3) { --d: .26s; }
+  .deal.in .dc { opacity: 1; transform: none; }
+  .deal.done .dc { --d: 0s; transition-duration: .35s; }
+  .deal.in .dc.sel { transform: translateY(-16px) scale(1.05); }
+  .deal .dc.gone { opacity: 0; transition: opacity .12s; }
+  .dc-in { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .6s cubic-bezier(.4,.1,.2,1.2); }
+  .dc.up .dc-in { transform: rotateY(180deg); }
+  .dc-back, .dc-front { position: absolute; inset: 0; border-radius: 14px; overflow: hidden; border: 1px solid rgba(159,216,255,.35); backface-visibility: hidden; -webkit-backface-visibility: hidden; box-shadow: 0 18px 40px rgba(0,0,0,.6); }
+  .dc-back { display: grid; place-items: center; background:
+    repeating-linear-gradient(45deg, rgba(159,216,255,.08) 0 2px, transparent 2px 16px),
+    repeating-linear-gradient(-45deg, rgba(159,216,255,.08) 0 2px, transparent 2px 16px),
+    linear-gradient(160deg, #17294b, #0a1224); }
+  .dc-back::after { content: ''; width: 44%; aspect-ratio: 1; border: 2px solid rgba(159,216,255,.55); transform: rotate(45deg); background: #0d1830; box-shadow: inset 0 0 0 7px #0d1830, inset 0 0 0 9px rgba(159,216,255,.3); }
+  .dc-front { transform: rotateY(180deg); background: #0d1324 center top/cover; }
+  .dc-front span { position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 12px 12px; text-align: center; background: linear-gradient(transparent, rgba(5,7,14,.95)); }
+  .dc-front small { display: block; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  .dc-front b { font-size: 20px; }
+  .dc.sel .dc-front { border-color: #fff; }
+  .dc.luck .dc-back, .dc.luck .dc-front { border-color: var(--gold); }
+  .dc.luck .dc-back { background:
+    repeating-linear-gradient(45deg, rgba(226,189,107,.12) 0 2px, transparent 2px 16px),
+    repeating-linear-gradient(-45deg, rgba(226,189,107,.12) 0 2px, transparent 2px 16px),
+    linear-gradient(160deg, #3a2f18, #14100a); }
+  .dc.luck .dc-back::after { border-color: var(--gold); background: #1c160c; box-shadow: inset 0 0 0 7px #1c160c, inset 0 0 0 9px rgba(226,189,107,.4); }
+  .dc.luck .dc-front small { color: var(--gold); }
+  .dc.luck::before { content: ''; position: absolute; inset: -22px; z-index: -1; border-radius: 30px; opacity: 0; transition: opacity .6s .3s; background: radial-gradient(ellipse at center, rgba(226,189,107,.5), transparent 68%); }
+  .dc.luck.up::before { opacity: 1; }
+  .lucky { animation: lucky .7s var(--ease); }
+  @keyframes lucky { 35% { transform: translateY(-10px) scale(1.09); } }
+
+  /* Enquanto as cartas estão na mesa o nome do palco não aparece (ficaria atrás delas). */
+  .frame[data-phase='cards']:not(.picked) .nameplate { opacity: 0; }
+
+  /* Cartas dos aliados, em miniatura no cartão de cada um. */
+  .offer { position: absolute; right: 12px; bottom: 10px; display: flex; gap: 4px; transition: opacity .35s; }
+  .offer i { width: 30px; height: 30px; border-radius: 7px; border: 1px solid rgba(159,216,255,.35); background: #14233f center/cover; }
+  .offer i.luck { border-color: var(--gold); }
+  .offer.done { opacity: 0; }
+
+  /* Aviso de troca entre aliados. */
+  .toast { position: absolute; left: calc(var(--cl) + 18px); top: 44%; display: flex; align-items: center; gap: 10px; padding: 10px 16px 10px 10px; border-radius: 14px; border: 1px solid rgba(159,216,255,.5); background: #111a33; box-shadow: 0 18px 44px rgba(0,0,0,.65);
+    opacity: 0; transform: translateX(-24px) scale(.94); transform-origin: left center; pointer-events: none; transition: opacity .35s, transform .45s cubic-bezier(.3,1.4,.5,1); }
+  .toast.on { opacity: 1; transform: none; }
+  .toast img { width: 40px; height: 40px; border-radius: 9px; border: 1px solid var(--border); }
+  .toast svg { width: 22px; height: 22px; fill: none; stroke: var(--ice); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .toast span { font-size: 13px; margin-left: 4px; }
+  .toast span small { display: block; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="frame instant" id="frame" data-phase="found" data-cols="0" data-scene="off">
+  <canvas id="gl" class="scene" aria-hidden="true"></canvas>
+  <div class="pins" id="pins"></div>
+  <div class="stage">
+    <div class="arts"><div class="art"></div><div class="art"></div></div>
+    <div class="foeglow"></div>
+    <div class="shade"></div>
+    <div class="slash"></div>
+    <div class="nameplate" id="np"><small id="npSub"></small><b id="npName"></b><i></i><em id="npTitle"></em></div>
+  </div>
+  <div class="rail"></div>
+
+  <section class="team ally" id="ally"></section>
+
+  <div class="head">
+    <small id="sub"></small>
+    <b id="title"></b>
+    <div class="timer"><i id="tbar"></i></div>
+    <div class="bench" id="bench"></div>
+  </div>
+
+  <div class="deal" id="deal"></div>
+
+  <div class="finale">
+    <div class="car" id="car"><span class="car-nav prev">‹</span><span class="car-nav next" id="carNext">›</span></div>
+    <div class="skin-name"><span>Skin</span><b id="skinName"></b><div class="dots" id="dots"></div></div>
+  </div>
+
+  <div class="bottom"><div class="info" id="info"></div><div class="sp" id="sp"></div><button class="pill" id="runes">Runas</button><button class="go" id="go"></button></div>
+
+  <div class="toast" id="toast"></div>
+  <div class="flash" id="flash"></div>
+
+  <div class="found" id="found">
+    <div class="f-box">
+      <div class="f-ring"></div><div class="f-burst" id="burst"></div>
+      <small>ARAM</small><b>Partida<br>encontrada</b><em>Howling Abyss · uma rota</em>
+      <div class="pips" id="pips"></div>
+      <button class="accept" id="accept">Aceitar</button>
+    </div>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="ld-row foe" id="ldFoe"></div>
+    <div class="ld-mid"><small>Carregando partida</small><div class="prog"><i id="prog"></i></div><b>VS</b><div class="prog"><i id="prog2"></i></div><small>Howling Abyss</small></div>
+    <div class="ld-row" id="ldAlly"></div>
+  </div>
+
+  <div class="cursor" id="cursor"><i></i><svg viewBox="0 0 22 22"><path d="M3 2l15 7.5-6.4 1.9L9.6 18z" fill="#fff" stroke="#10131f" stroke-width="1.2" stroke-linejoin="round"/></svg></div>
+</div>
+
+<div class="mock" role="group" aria-label="Controles da simulação">
+  <button id="mPlay" title="Tocar ou pausar (espaço)">Pausar</button>
+  <button id="mRestart">Recomeçar</button>
+  <span class="sep"></span>
+  <button data-speed="1" aria-pressed="true">1x</button><button data-speed="2" aria-pressed="false">2x</button><button data-speed="4" aria-pressed="false">4x</button>
+  <span class="sep"></span>
+  <div class="track" id="track"></div>
+  <time id="mTime">0:00</time>
+</div>
+
+<script>
+'use strict';
+/* ───────── Dados e utilitários ───────── */
+const V = '15.1.1', DD = 'https://ddragon.leagueoflegends.com/cdn/';
+const icon = (c) => DD + V + '/img/champion/' + c + '.png';
+const splash = (c, n) => DD + 'img/champion/centered/' + c + '_' + (n || 0) + '.jpg';
+const tall = (c, n) => DD + 'img/champion/loading/' + c + '_' + (n || 0) + '.jpg';
+const spell = (s) => DD + V + '/img/spell/Summoner' + s + '.png';
+const NICE = { LeeSin: 'Lee Sin', MasterYi: 'Master Yi', JarvanIV: 'Jarvan IV', Kaisa: "Kai'Sa", MissFortune: 'Miss Fortune', Leblanc: 'LeBlanc' };
+const nice = (c) => NICE[c] || c;
+const SKINS = [[0, 'Ahri'], [1, 'Ahri Dinastia'], [3, 'Ahri Raposa de Fogo'], [4, 'Ahri Popstar'], [7, 'Ahri Fliperama'], [14, 'Ahri Guardiã Estelar']];
+
+const $ = (id) => document.getElementById(id);
+const frame = $('frame'), cursor = $('cursor');
+const arts = [...frame.querySelectorAll('.art')];
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let instant = true; // aplicando passos sem movimento (ao pular de fase ou com movimento reduzido)
+// Animação de um disparo: recomeça a classe. Ao pular de fase não dispara (o estado final é o natural do elemento).
+function fx(el, cls) { if (instant || !el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const bg = (url) => 'background-image:url(' + url + ')';
+
+/* ───────── Roteiro: passos em ordem de tempo (ms). Cada passo só muda estado; o movimento é do CSS. ───────── */
+const steps = [], marks = []; let T = 0, clock = 0;
+const at = (dt, fn) => steps.push({ t: T + dt, fn: fn });
+const wait = (ms) => { T += ms; };
+const mark = (id, label) => marks.push({ id: id, label: label, t: T });
+
+/* ───────── Peças comuns da tela ───────── */
+let timer = null, turnBars = [], artUrl = '', artIdx = 0, skinIdx = 0, phaseNow = '', subText = '';
+function phase(p) { phaseNow = p; frame.dataset.phase = p; }
+// Cena 3D: 'on' (inteira, com marcadores), 'dim' (fundo apagado) ou 'off' (não desenha).
+function scene(mode) { frame.dataset.scene = mode; }
+function head(title, label, secs, total) {
+  if ($('title').textContent !== title) { $('title').textContent = title; fx($('title'), 'title-in'); }
+  timer = { label: label, secs: secs, total: total || 30, start: clock }; drawTimer();
+}
+// Texto e barras do tempo (a do cabeçalho e a de quem está na vez). Um transform por quadro.
+function drawTimer() {
+  if (!timer) return;
+  let txt = timer.label, frac = 1;
+  if (timer.secs) { const left = Math.max(0, timer.secs - (clock - timer.start) / 1000); txt += ' · 0:' + String(Math.ceil(left)).padStart(2, '0'); frac = left / timer.total; }
+  if (txt !== subText) $('sub').textContent = subText = txt;
+  const tf = 'scaleX(' + frac.toFixed(4) + ')';
+  $('tbar').style.transform = tf; turnBars.forEach((b) => { b.style.transform = tf; });
+}
+const status = (c, txt) => { c.querySelector('.who em').textContent = txt; };
+function cardArt(c, champ, cls) { const a = c.querySelector('.c-art'); a.style.backgroundImage = 'url(' + splash(champ) + ')'; fx(a, cls || 'art-in'); }
+
+/* Palco central: splash grande de quem está agindo */
+function stage(champ, mode, sub, slam, skin, title) {
+  frame.dataset.stage = mode;
+  if (champ) {
+    const url = splash(champ, skin);
+    if (url !== artUrl) { artUrl = url; arts[artIdx].classList.remove('on'); artIdx ^= 1; arts[artIdx].style.backgroundImage = 'url(' + url + ')'; arts[artIdx].classList.add('on'); }
+    if (slam) fx(arts[artIdx], 'slam');
+    $('npName').textContent = nice(champ); $('npTitle').textContent = title || EPITHET[champ] || '';
+  } else { arts.forEach((a) => a.classList.remove('on')); artUrl = ''; }
+  $('npSub').textContent = sub || ''; fx($('np'), 'np-in');
+}
+function stageText(mode, sub, name, title) { frame.dataset.stage = mode; arts.forEach((a) => a.classList.remove('on')); artUrl = ''; $('npSub').textContent = sub; $('npName').textContent = name; $('npTitle').textContent = title || ''; fx($('np'), 'np-in'); }
+
+/* Skins: o cartão atual no centro, os vizinhos menores e apagados. Só transform e opacity. */
+function buildSkins() {
+  const car = $('car'); car.querySelectorAll('.skin').forEach((e) => e.remove());
+  SKINS.forEach(([n]) => { const el = document.createElement('div'); el.className = 'skin'; el.style.backgroundImage = 'url(' + tall('Ahri', n) + ')'; car.insertBefore(el, car.firstChild); });
+  $('dots').innerHTML = '<i></i>'.repeat(SKINS.length);
+  setSkin(0, true);
+}
+function setSkin(k, silent) {
+  skinIdx = k;
+  const els = [...$('car').querySelectorAll('.skin')].reverse();
+  els.forEach((el, i) => { const o = i - k, a = Math.abs(o);
+    el.style.transform = 'translateX(calc(-50% + ' + (o * 62 - Math.sign(o) * a * (a - 1) * 6) + '%)) scale(' + (1 - a * .16) + ')';
+    el.style.opacity = a > 2 ? 0 : 1 - a * .38; el.style.zIndex = 10 - a; el.classList.toggle('cur', !o); });
+  $('skinName').textContent = SKINS[k][1]; fx($('skinName'), 'rise');
+  [...$('dots').children].forEach((d, i) => d.classList.toggle('on', i === k));
+  if (!silent) stage('Ahri', 'skin', '', false, SKINS[k][0]);
+}
+
+/* Cursor simulado, falas e voo de um retrato de um lugar para outro */
+function cursorTo(target, ax, ay) {
+  if (!target) { cursor.classList.remove('on'); return; }
+  const el = typeof target === 'string' ? frame.querySelector(target) : target; if (!el) return;
+  const r = el.getBoundingClientRect();
+  cursor.style.transform = 'translate3d(' + Math.round(r.left + r.width * (ax == null ? .5 : ax)) + 'px,' + Math.round(r.top + r.height * (ay == null ? .6 : ay)) + 'px,0)';
+  cursor.classList.add('on');
+}
+function click(el) { fx(cursor.firstElementChild, 'ping'); if (el) fx(el, 'press'); }
+function say(anchor, name, text) {
+  if (instant) return;
+  const c = anchor.getBoundingClientRect(), el = document.createElement('div');
+  el.className = 'say'; el.innerHTML = '<b>' + esc(name) + '</b>' + esc(text);
+  el.style.left = (c.right + 10) + 'px'; el.style.top = (c.top + 8) + 'px';
+  el.addEventListener('animationend', () => el.remove()); frame.append(el);
+}
+// FLIP: um retrato sai de `from` e pousa em `to` (só transform). Ao pular de fase não voa.
+function fly(from, to, url) {
+  if (instant) return;
+  const a = from.getBoundingClientRect(), b = to.getBoundingClientRect(); if (!a.width) return;
+  const el = document.createElement('i'); el.className = 'flyer';
+  el.style.cssText = 'width:' + a.width + 'px;height:' + a.height + 'px;background-image:url(' + url + ');transform:translate3d(' + a.left + 'px,' + a.top + 'px,0)';
+  frame.append(el); void el.offsetWidth;
+  el.style.transform = 'translate3d(' + b.left + 'px,' + b.top + 'px,0) scale(' + (b.width / a.width) + ',' + (b.height / a.height) + ')';
+  el.addEventListener('transitionend', () => el.remove());
+}
+// Limpa o que os passos criam solto na tela (ao recomeçar).
+function resetCommon(pips) {
+  timer = null; turnBars = []; artUrl = ''; artIdx = 0; skinIdx = 0; subText = '';
+  frame.className = 'frame' + (instant ? ' instant' : ''); frame.dataset.cols = '0'; frame.dataset.stage = 'off'; frame.dataset.scene = 'off';
+  arts.forEach((a) => { a.className = 'art'; });
+  $('found').className = 'found'; $('accept').textContent = 'Aceitar'; $('pips').innerHTML = '<i></i>'.repeat(pips);
+  $('loading').className = 'loading';
+  frame.querySelectorAll('.say, .flyer').forEach((e) => e.remove());
+  cursor.className = 'cursor'; cursor.style.transform = 'translate3d(' + frame.clientWidth / 2 + 'px,' + frame.clientHeight * .8 + 'px,0)';
+  $('prog').style.transform = $('prog2').style.transform = '';
+  buildSkins(); phase('found'); head('', '');
+}
+// Partida encontrada: os outros aceitam, você por último, o anel estoura.
+function foundSteps(n) {
+  for (let i = 0; i < n - 1; i++) at(300 + i * (1260 / (n - 1)), () => $('pips').children[i].classList.add('on'));
+  at(700, () => cursorTo('#accept'));
+  at(1500, () => { click($('accept')); $('accept').textContent = 'Aceita'; $('found').classList.add('ok'); $('pips').children[n - 1].classList.add('on'); });
+  at(2000, () => { fx($('burst'), 'burst'); cursorTo(null); });
+  wait(2500);
+}
+
+/* ───────── WebGL 1 mínimo: programa, buffers, câmera e construtor de malhas facetadas ───────── */
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+const outCubic = (x) => 1 - Math.pow(1 - clamp01(x), 3);
+const smooth = (x) => { x = clamp01(x); return x * x * (3 - 2 * x); };
+const canvas = $('gl');
+const gl = canvas.getContext('webgl', { antialias: true, alpha: true, premultipliedAlpha: true });
+// Pedaços de shader comuns: ruído e a entrada com passagem do ponto (0 → 1).
+const GLSL = `
+precision highp float;
+uniform float uTime, uIn, uAmb;
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
+  return mix(mix(hash(i), hash(i+vec2(1.,0.)), f.x), mix(hash(i+vec2(0.,1.)), hash(i+vec2(1.,1.)), f.x), f.y); }
+float back(float c){ float g = c-1.; return 1. + 2.2*g*g*g + 1.2*g*g; }
+`;
+const SPRITE_FS = `precision mediump float; varying vec4 vC;
+void main(){ float f = max(1.-length(gl_PointCoord-.5)*2., 0.); gl_FragColor = vec4(vC.rgb*f*f*vC.a, 0.); }`;
+function program(vs, fs) {
+  const p = gl.createProgram();
+  [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]].forEach(([type, src]) => {
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    gl.attachShader(p, s);
+  });
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  p.u = {};
+  for (let i = 0, n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS); i < n; i++) { const name = gl.getActiveUniform(p, i).name.replace('[0]', ''); p.u[name] = gl.getUniformLocation(p, name); }
+  return p;
+}
+function buffer(data) { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW); return b; }
+// Liga os atributos de um buffer intercalado: [nome, tamanho]...
+function attribs(p, buf, layout) {
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  const stride = layout.reduce((n, a) => n + a[1], 0) * 4; let off = 0;
+  layout.forEach(([name, size]) => { const loc = gl.getAttribLocation(p, name); if (loc >= 0) { gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, gl.FLOAT, false, stride, off); } off += size * 4; });
+}
+
+/* Câmera em órbita */
+const FOV = 0.46;
+function persp(f, a, n, fa) { const t = 1 / Math.tan(f / 2); return [t / a, 0, 0, 0, 0, t, 0, 0, 0, 0, (fa + n) / (n - fa), -1, 0, 0, 2 * fa * n / (n - fa), 0]; }
+function look(e, c) {
+  let fx = c[0] - e[0], fy = c[1] - e[1], fz = c[2] - e[2]; const fl = Math.hypot(fx, fy, fz); fx /= fl; fy /= fl; fz /= fl;
+  let sx = -fz, sz = fx; const sl = Math.hypot(sx, sz); sx /= sl; sz /= sl;
+  const ux = -sz * fy, uy = sz * fx - sx * fz, uz = sx * fy;
+  return [sx, ux, -fx, 0, 0, uy, -fy, 0, sz, uz, -fz, 0, -(sx * e[0] + sz * e[2]), -(ux * e[0] + uy * e[1] + uz * e[2]), fx * e[0] + fy * e[1] + fz * e[2], 1];
+}
+function mul(a, b) { const o = new Float32Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3]; return o; }
+function camera(yaw, elev, dist, aspect, tgt, far) {
+  const eye = [tgt[0] + dist * Math.cos(elev) * Math.cos(yaw), tgt[1] + dist * Math.sin(elev), tgt[2] + dist * Math.cos(elev) * Math.sin(yaw)];
+  return mul(persp(FOV, aspect, 40, far), look(eye, tgt));
+}
+const ndc = (m, x, y, z) => { const w = m[3] * x + m[7] * y + m[11] * z + m[15]; return [(m[0] * x + m[4] * y + m[8] * z + m[12]) / w, (m[1] * x + m[5] * y + m[9] * z + m[13]) / w]; };
+// Distância em que os pontos dados cabem no retângulo livre da tela, e o deslocamento para centrar ali.
+let W = 1, Hh = 1;
+function fitCam(pts, yaw, elev, tgt, x0, y0, x1, y1) {
+  const r = frame.getBoundingClientRect(); W = r.width; Hh = r.height;
+  const dpr = Math.min(devicePixelRatio || 1, 1.5);
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(Hh * dpr);
+  const box = (d) => { const m = camera(yaw, elev, d, W / Hh, tgt, d * 4); let a = 9, b = -9, c = 9, e = -9;
+    pts.forEach((p) => { const q = ndc(m, p[0], p[1], p[2]); a = Math.min(a, q[0]); b = Math.max(b, q[0]); c = Math.min(c, q[1]); e = Math.max(e, q[1]); }); return [a, b, c, e]; };
+  let lo = 300, hi = 12000;
+  for (let i = 0; i < 24; i++) { const d = (lo + hi) / 2, b = box(d); if ((b[1] - b[0]) * W / 2 > x1 - x0 || (b[3] - b[2]) * Hh / 2 > y1 - y0) lo = d; else hi = d; }
+  const b = box(hi);
+  return { dist: hi, shift: [((x0 + x1) / W - 1) - (b[0] + b[1]) / 2, (1 - (y0 + y1) / Hh) - (b[2] + b[3]) / 2] };
+}
+
+/* Malhas: um buffer só. Por vértice: posição 3, normal 3, cor 3, (atraso da entrada, tipo, âncora x, âncora z) 4 */
+const MV = [], SV = []; let PAR = [0, 0, 0, 0];
+let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+const mulc = (c, f) => [c[0] * f, c[1] * f, c[2] * f];
+function tri(A, B, C, cA, cB, cC, o) {
+  let nx = (B[1] - A[1]) * (C[2] - A[2]) - (B[2] - A[2]) * (C[1] - A[1]), ny = (B[2] - A[2]) * (C[0] - A[0]) - (B[0] - A[0]) * (C[2] - A[2]), nz = (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]);
+  const l = Math.hypot(nx, ny, nz); if (!l) return;
+  nx /= l; ny /= l; nz /= l;
+  if (nx * o[0] + ny * o[1] + nz * o[2] < 0) { nx = -nx; ny = -ny; nz = -nz; } // normal sempre para fora
+  [[A, cA], [B, cB], [C, cC]].forEach(([P, c]) => MV.push(P[0], P[1], P[2], nx, ny, nz, c[0], c[1], c[2], PAR[0], PAR[1], PAR[2], PAR[3]));
+}
+// Tronco de cone facetado em volta de b (r1 = 0 vira cone). rot gira as facetas; cap fecha em cima; inv = faces viradas para dentro.
+function cone(b, n, r0, y0, r1, y1, c0, c1, cap, rot, inv) {
+  for (let i = 0; i < n; i++) {
+    const a0 = i / n * 6.2832 + (rot || 0), a1 = (i + 1) / n * 6.2832 + (rot || 0), am = (a0 + a1) / 2, o = inv ? [-Math.cos(am), 0.3, -Math.sin(am)] : [Math.cos(am), 0.3, Math.sin(am)];
+    const P = (a, r, y) => [b[0] + Math.cos(a) * r, b[1] + y, b[2] + Math.sin(a) * r];
+    const p0 = P(a0, r0, y0), p1 = P(a1, r0, y0), p2 = P(a1, r1, y1), p3 = P(a0, r1, y1);
+    tri(p0, p1, p2, c0, c0, c1, o); tri(p0, p2, p3, c0, c1, c1, o);
+    if (cap) tri([b[0], b[1] + y1, b[2]], p3, p2, c1, c1, c1, [0, 1, 0]);
+  }
+}
+// Caixa alinhada aos eixos: tampa e quatro lados.
+function box(x0, x1, y0, y1, z0, z1, top, side) {
+  const q = (a, b, c, d, col, o) => { tri(a, b, c, col, col, col, o); tri(a, c, d, col, col, col, o); };
+  q([x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1], top, [0, 1, 0]);
+  q([x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], side, [0, 0, -1]); q([x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1], side, [0, 0, 1]);
+  q([x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0], mulc(side, .8), [-1, 0, 0]); q([x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0], mulc(side, .8), [1, 0, 0]);
+}
+// Pontos somados à cena: posição 3, cor 3, (tamanho, fase, tipo, atraso) 4
+const spr = (x, y, z, c, size, kind, delay) => SV.push(x, y, z, c[0], c[1], c[2], size, rnd(), kind, delay || 0);
+// Malha: as peças sobem do fundo com atraso (aPar.x); tipo 2 = cristal que gira e flutua; tipo 3 = pano que balança.
+const MESH_VS = GLSL + `
+attribute vec3 aPos, aNor, aCol; attribute vec4 aPar; uniform mat4 uPV; uniform vec2 uShift;
+varying vec3 vW, vN, vC; varying float vK, vA;
+void main(){
+  float k = clamp((uIn-aPar.x)/.3, 0., 1.); vec3 p = aPos, n = aNor;
+  if (aPar.y > 1.5 && aPar.y < 2.5) { float a = uTime*.9 + aPar.z*.02, c = cos(a), s = sin(a);
+    p.xz = aPar.zw + mat2(c,s,-s,c)*(p.xz-aPar.zw); n.xz = mat2(c,s,-s,c)*n.xz; p.y += sin(uTime*1.7+aPar.w*.03)*3.; }
+  else if (aPar.y > 2.5 && aPar.y < 3.5) p.xz += normalize(aPar.zw)*sin(uTime*2.4+aPar.z*.05+p.y*.07)*5.;
+  p.y -= (1.-back(k))*260.;
+  vW = p; vN = n; vC = aCol; vK = aPar.y; vA = k;
+  gl_Position = uPV*vec4(p, 1.); gl_Position.xy += uShift*gl_Position.w; }`;
+const MESH_LAYOUT = [['aPos', 3], ['aNor', 3], ['aCol', 3], ['aPar', 4]], SPRITE_LAYOUT = [['aPos', 3], ['aCol', 3], ['aP', 4]];
+// Um quadro: malha opaca e depois os pontos somados. `set` recebe as uniforms de cada programa.
+function render(progs, bufs, PV, sh, set) {
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  [progs.mesh, progs.sprite].forEach((p, i) => {
+    gl.useProgram(p); gl.uniformMatrix4fv(p.u.uPV, false, PV); gl.uniform2f(p.u.uShift, sh[0], sh[1]); set(p.u, i);
+    if (!i) { attribs(p, bufs.mv, MESH_LAYOUT); gl.drawArrays(gl.TRIANGLES, 0, MV.length / 13); }
+    else { gl.uniform1f(p.u.uPx, canvas.height / 2 / Math.tan(FOV / 2)); attribs(p, bufs.sv, SPRITE_LAYOUT); gl.enable(gl.BLEND); gl.depthMask(false); gl.drawArrays(gl.POINTS, 0, SV.length / 10); gl.disable(gl.BLEND); gl.depthMask(true); }
+    for (let k = 0; k < 8; k++) gl.disableVertexAttribArray(k); // atributos de um programa não ficam ligados para o outro
+  });
+}
+// Marcador em HTML preso a um ponto do chão.
+function placePin(pin, PV, sh, x, y, z) {
+  const q = ndc(PV, x, y, z), px = Math.round((q[0] + sh[0] + 1) / 2 * W), py = Math.round((1 - (q[1] + sh[1])) / 2 * Hh);
+  pin.style.transform = 'translate3d(' + px + 'px,' + py + 'px,0)'; pin.style.zIndex = py;
+}
+
+/* ───────── Dados do ARAM ───────── */
+const EPITHET = { Ahri: 'a Raposa de Nove Caudas', Ziggs: 'o Especialista em Hexplosivos', Sona: 'a Mestra das Cordas', Veigar: 'o Pequeno Mestre do Mal', Garen: 'o Poder de Demacia',
+  Malphite: 'o Fragmento do Monólito', Brand: 'a Vingança Ardente', Jinx: 'o Gatilho Desenfreado', Lux: 'a Dama da Luz', Nautilus: 'o Titã das Profundezas' };
+// offer = as três cartas (a terceira é a da sorte); pick = a que a pessoa escolhe. me = você.
+const ALLY = [
+  { name: 'Zeca', offer: ['Garen', 'Malphite', 'Teemo'], pick: 'Garen' },
+  { name: 'Beltrano', offer: ['LeeSin', 'Brand', 'Ahri'], pick: 'Brand' },
+  { name: 'Fulano', offer: ['Sona', 'Ziggs', 'Veigar'], pick: 'Ziggs', me: true },
+  { name: 'Sicrano', offer: ['Jinx', 'Ashe', 'Nautilus'], pick: 'Jinx' },
+  { name: 'Fulana', offer: ['Lulu', 'Blitzcrank', 'Lux'], pick: 'Lux' },
+];
+const FOE = ['Vi', 'Syndra', 'Caitlyn', 'Leona', 'Yasuo'];
+const FINAL = ['Jinx', 'Brand', 'Ahri', 'Malphite', 'Nautilus']; // como o time termina (para o carregamento)
+const ME = 2, BENCH_N = 10, CD_S = 4, SPELLS = ['Flash', 'Snowball'];
+const RUNE = DD + 'img/perk-images/Styles/Domination/Electrocute/Electrocute.png', RUNE2 = DD + 'img/perk-images/Styles/7202_Sorcery.png';
+const PRELOAD = [].concat(ALLY.map((p) => p.offer.map((c) => icon(c))), ALLY[ME].offer.map((c) => [tall(c), splash(c)]), FINAL.map((c) => [splash(c), tall(c)]), FOE.map((c) => tall(c)), SKINS.map(([n]) => splash('Ahri', n))).flat();
+
+/* ───────── Cena: Howling Abyss (x ao longo da ponte: sua base em -900, a inimiga em +900) ───────── */
+const BLUE = [0.36, 0.63, 1], RED = [0.95, 0.42, 0.48];
+const SPOTS = [[-800, -28], [-650, 30], [-235, 14], [-520, -30], [-385, 30]]; // onde cada aliado fica na ponte (você mais à frente)
+const PIN_AT = [2.7, 2.85, 3.6, 3.0, 3.15];                                  // quando cada marcador cai (s); o seu por último
+const YAW = 2.2, ELEV = 0.7, TGT = [0, -60, 0];
+const par = (x, kind, ax, az) => { PAR = [(x + 1250) / 2500 * 0.9, kind || 0, ax || 0, az || 0]; }; // a ponte se monta da sua base até a inimiga
+// Lajes da ponte, parapeito quebrado, vigas e pilares que somem no abismo.
+for (let i = 0; i < 12; i++) {
+  const x = -660 + i * 110, v = 0.9 + rnd() * 0.2;
+  par(x, 1); box(x, x + 108, -22, 0, -80, 80, mulc([0.4, 0.46, 0.6], v), mulc([0.2, 0.24, 0.34], v));
+  par(x, 0);
+  [-1, 1].forEach((s) => { if (rnd() < 0.78) { const h = 9 + rnd() * 7; box(x + 5, x + 100, 0, h, s > 0 ? 72 : -80, s > 0 ? 80 : -72, [0.5, 0.56, 0.68], [0.28, 0.33, 0.45]); } });
+  if (i % 2 === 0) { box(x + 34, x + 76, -44, -22, -68, 68, [0.2, 0.24, 0.34], [0.15, 0.18, 0.27]);
+    [-1, 1].forEach((s) => cone([x + 55, 0, s * 54], 6, 24, -44, 11, -560, [0.2, 0.24, 0.34], [0.07, 0.09, 0.15])); }
+}
+// Bases: plataforma de oito lados sobre uma rocha invertida, torres, inibidor e nexus.
+function tower(x, z, team) {
+  const b = [x, 0, z], st = [0.42 + team[0] * 0.14, 0.45 + team[1] * 0.14, 0.52 + team[2] * 0.14];
+  par(x, 0); cone(b, 6, 18, 0, 15, 8, mulc(st, 0.55), mulc(st, 0.7), true); cone(b, 6, 11, 8, 7.5, 58, mulc(st, 0.75), st); cone(b, 6, 12, 58, 12, 65, team, mulc(team, 0.8), true);
+  par(x, 2, x, z); cone(b, 4, 0, 72, 9, 88, mulc(team, 0.8), team); cone(b, 4, 9, 88, 0, 104, team, mulc(team, 1.3));
+  spr(x, 88, z, mulc(team, 0.7), 70, 1, PAR[0]);
+}
+[[-1, BLUE], [1, RED]].forEach(([s, team]) => {
+  const bx = s * 900;
+  par(bx, 1); cone([bx, 0, 0], 8, 216, -70, 236, 0, [0.16, 0.2, 0.3], [0.38, 0.44, 0.58], true, 0.3927);
+  par(bx, 0); cone([bx, 0, 0], 8, 216, -70, 70, -560, [0.2, 0.24, 0.34], [0.06, 0.08, 0.14], false, 0.3927);
+  tower(s * 150, s * -56, team); tower(s * 470, s * -56, team); tower(s * 820, s * 96, team); tower(s * 820, s * -96, team);
+  par(bx, 0); cone([s * 740, 0, s * 52], 6, 20, 0, 16, 10, [0.3, 0.34, 0.45], [0.4, 0.45, 0.58], true);
+  par(bx, 2, s * 740, s * 52); cone([s * 740, 0, s * 52], 4, 0, 18, 12, 36, mulc(team, 0.8), team); cone([s * 740, 0, s * 52], 4, 12, 36, 0, 56, team, mulc(team, 1.3));
+  par(bx, 0); cone([s * 960, 0, 0], 8, 38, 0, 34, 9, [0.22, 0.25, 0.32], [0.36, 0.4, 0.5], true); cone([s * 960, 0, 0], 8, 22, 9, 17, 18, mulc(team, 0.5), mulc(team, 0.75), true);
+  par(bx, 2, s * 960, 0); cone([s * 960, 0, 0], 4, 0, 30, 20, 62, mulc(team, 0.8), team); cone([s * 960, 0, 0], 4, 20, 62, 0, 100, team, mulc(team, 1.35));
+  spr(s * 960, 64, 0, mulc(team, 0.7), 190, 1, PAR[0]); spr(s * 740, 36, s * 52, mulc(team, 0.6), 60, 1, PAR[0]);
+});
+// Paredões do abismo: agulhas de gelo dos dois lados e atrás das bases.
+function spire(x, z, r, top) {
+  par(x, 0); const v = 0.8 + rnd() * 0.4, n = 5 + (rnd() * 2 | 0), rot = rnd() * 6;
+  const mid = top - (top + 560) * (0.3 + rnd() * 0.2);
+  cone([x, 0, z], n, r, -560, r * 0.66, mid, [0.05, 0.07, 0.12], mulc([0.17, 0.23, 0.35], v), false, rot);
+  cone([x, 0, z], n, r * 0.66, mid, r * 0.24, top, mulc([0.17, 0.23, 0.35], v), mulc([0.4, 0.5, 0.66], v), true, rot);
+}
+// O lado de cá da câmera (z > 0) fica abaixo da ponte para não tapá-la; o de lá sobe e fecha o fundo.
+for (let i = 0; i < 210; i++) { const s = i % 2 ? 1 : -1, d = Math.pow(rnd(), 1.4), x = -1350 + rnd() * 2700, z = s * (250 + d * 420);
+  spire(x, z, 50 + rnd() * 70, s > 0 ? -330 + rnd() * 170 + d * 110 : -120 + rnd() * 120 + d * 170); }
+for (let i = 0; i < 30; i++) { const s = i % 2 ? 1 : -1; spire(s * (1200 + rnd() * 220), -240 + rnd() * 480, 50 + rnd() * 50, s > 0 ? 20 + rnd() * 220 : -200 + rnd() * 160); }
+// Neve ao vento, relíquias de vida e bruma no fundo do abismo.
+for (let i = 0; i < 260; i++) spr(-1300 + rnd() * 2600, 0, -420 + rnd() * 900, [0.9, 0.96, 1], 8 + rnd() * 9, 0);
+[[-560, 60], [-300, -60], [300, 60], [560, -60]].forEach(([x, z]) => { spr(x, 14, z, [0.3, 0.9, 0.55], 54, 1, (x + 1250) / 2500 * 0.9); for (let k = 0; k < 4; k++) spr(x + (rnd() - 0.5) * 24, 4, z + (rnd() - 0.5) * 24, [0.4, 1, 0.6], 11, 2); });
+for (let i = 0; i < 46; i++) spr(-1200 + rnd() * 2400, -230 - rnd() * 220, -200 + rnd() * 400, [0.2, 0.33, 0.52], 250, 3);
+
+const MESH_FS = GLSL + `
+uniform vec3 uL; uniform vec4 uSpots[5]; uniform float uFog;
+varying vec3 vW, vN, vC; varying float vK, vA;
+void main(){
+  vec3 n = normalize(vN), alb = vC, col; float diff = max(dot(n, uL), 0.), det = noise(vW.xz*.09);
+  // Névoa de guerra: cobre a metade inimiga, com borda de nuvem que se mexe.
+  float fog = smoothstep(uFog, uFog+320., vW.x + (noise(vW.xz*.006 + vec2(uTime*.03, -uTime*.02))-.5)*260.);
+  if (vK > 1.5 && vK < 2.5) { col = vC*(.8+.9*diff) + vec3(.3)*pow(diff, 6.); fog *= .45; }
+  else {
+    alb *= .8 + .4*det;
+    float edge = 0.;
+    if (vK > .5) {                                                                      // piso: lajes e anéis das bases
+      vec2 g = abs(fract(vec2(vW.x/55., vW.z/40. + floor(vW.x/55.)*.5)) - .5);
+      alb *= 1. - smoothstep(.44, .5, max(g.x, g.y))*.4;
+      float bd = min(distance(vW.xz, vec2(-900., 0.)), distance(vW.xz, vec2(900., 0.)));
+      alb += (vW.x < 0. ? vec3(.36,.63,1.) : vec3(.95,.42,.48))*(smoothstep(4., 0., abs(bd-205.)) + smoothstep(4., 0., abs(bd-125.)))*.55*step(bd, 232.);
+      edge = smoothstep(36., 80., abs(vW.z))*.45*step(abs(vW.x), 670.) - .26;
+    }
+    float snow = smoothstep(.5, .85, n.y)*smoothstep(.4, .68, noise(vW.xz*.03 + 7.) + (vK > .5 ? edge : .14)); // neve no que olha para cima
+    alb = mix(alb, vec3(.86,.93,1.), snow*.85);
+    col = alb*(vec3(.26,.34,.52) + vec3(1.2,1.1,1.)*diff);
+    if (vK > .5) for (int i = 0; i < 5; i++) { vec4 s = uSpots[i]; float age = uTime-s.z; if (age < 0.) continue;   // anéis embaixo dos aliados
+      float d = distance(vW.xz, s.xy); vec3 c = s.w > .5 ? vec3(1.,.93,.75) : vec3(.36,.63,1.);
+      float ring = smoothstep(4., 0., abs(d-24.))*.9 + smoothstep(24., 0., d)*.3;
+      float shock = smoothstep(8., 0., abs(d-age*260.))*max(1.-age/.7, 0.)*1.6;
+      float k = fract(age*.55), pulse = s.w > .5 ? smoothstep(5., 0., abs(d-24.-k*64.))*(1.-k) : 0.;
+      col += c*(ring+shock+pulse); }
+  }
+  float g = dot(col, vec3(.3,.59,.11));
+  col = mix(col, mix(vec3(g), col, .3)*.42 + vec3(.03,.05,.09), fog*.9);
+  col = mix(col, vec3(.03,.07,.14), smoothstep(-30., -430., vW.y)*.9);                    // o abismo escurece para baixo...
+  float a = vA*(1. - smoothstep(-400., -560., vW.y));                                     // ...e some no fundo da tela
+  gl_FragColor = vec4(col*a, a);
+}`;
+// Pontos: 0 neve ao vento, 1 brilho que pulsa (nasce com a peça), 2 fagulha que sobe, 3 bruma.
+const SPRITE_VS = GLSL + `
+attribute vec3 aPos, aCol; attribute vec4 aP; uniform mat4 uPV; uniform vec2 uShift; uniform float uPx;
+varying vec4 vC;
+void main(){ vec3 p = aPos; float a = 1.;
+  if (aP.z < .5) { float f = fract(aP.y + uTime*(.06+aP.y*.05)); p.y = 420. - f*760.; p.x += f*520. - 260. + sin(uTime*.8+aP.y*40.)*18.; p.z -= f*160.; a = sin(f*3.1416)*.85*uAmb; }
+  else if (aP.z < 1.5) a = (.72 + .28*sin(uTime*1.6+aP.y*6.28))*clamp((uIn-aP.w-.25)/.2, 0., 1.);
+  else if (aP.z < 2.5) { float k = fract(uTime*.13+aP.y); p.y += k*70.; p.x += sin(uTime+aP.y*20.)*5.; a = sin(k*3.1416)*uAmb; }
+  else { p.x += sin(uTime*.11+aP.y*6.)*140.; p.z += cos(uTime*.09+aP.y*9.)*60.; a = (.16 + .06*sin(uTime*.5+aP.y*20.))*uAmb; }
+  gl_Position = uPV*vec4(p, 1.); gl_Position.xy += uShift*gl_Position.w;
+  gl_PointSize = clamp(aP.x*uPx/gl_Position.w, 1., 256.); vC = vec4(aCol, a); }`;
+
+let progs, bufs, cam = { dist: 3000, shift: [0, 0] }, pins = [], ENTER_AT = 0, DIVE_AT = Infinity;
+const LIGHT = (() => { const l = Math.hypot(0.5, 0.8, 0.42); return [-0.5 / l, 0.8 / l, 0.42 / l]; })();
+function setupScene() {
+  progs = { mesh: program(MESH_VS, MESH_FS), sprite: program(SPRITE_VS, SPRITE_FS) };
+  bufs = { mv: buffer(MV), sv: buffer(SV) };
+  gl.enable(gl.DEPTH_TEST); gl.clearColor(0, 0, 0, 0); gl.blendFunc(gl.ONE, gl.ONE);
+}
+function fitScene() {
+  cam = fitCam([[-1140, 0, -236], [-1140, 0, 236], [1140, 0, -236], [1140, 0, 236], [-960, 110, 0], [960, 110, 0], [0, -330, 0]], YAW, ELEV, TGT, 88, 124, W0() - 24, H0() - 60);
+}
+const W0 = () => frame.clientWidth, H0 = () => frame.clientHeight;
+function drawScene() {
+  const t = reduced ? 100 : clock / 1000, e = reduced ? 99 : (clock - ENTER_AT) / 1000; // e = segundos desde o começo da entrada
+  // Câmera: chega girando de cima e de longe; depois deriva devagar.
+  const k = outCubic(e / 3), idle = reduced ? 0 : 1;
+  let yaw = YAW + (1 - k) * 0.9 + idle * Math.sin(t * 0.21) * 0.035, elev = ELEV + (1 - k) * 0.45 + idle * Math.sin(t * 0.17) * 0.012;
+  let d = cam.dist * (1 + (1 - k) * 0.8), tgt = TGT, sh = cam.shift; const far = d * 4;
+  // Mergulho (ao pegar a Ahri): a câmera desce girando até o seu lugar na ponte.
+  const dv = reduced || clock < DIVE_AT ? 0 : smooth((clock - DIVE_AT) / 1300);
+  if (dv > 0) { const [mx, mz] = SPOTS[ME]; tgt = [mx * dv, TGT[1] * (1 - dv), mz * dv]; yaw += dv * 0.5; elev += (0.42 - elev) * dv; d *= Math.pow(300 / d, dv); sh = [sh[0] * (1 - dv), sh[1] * (1 - dv)]; }
+  const PV = camera(yaw, elev, d, W / Hh, tgt, far);
+  pins.forEach((pin, i) => { pin.classList.toggle('on', e >= PIN_AT[i]); placePin(pin, PV, sh, SPOTS[i][0], 0, SPOTS[i][1]); });
+  render(progs, bufs, PV, sh, (u, isSprite) => {
+    gl.uniform1f(u.uTime, t); gl.uniform1f(u.uIn, clamp01((e - 0.2) / 2.3) * 1.25); gl.uniform1f(u.uAmb, smooth((e - 1.6) / 1.2));
+    if (isSprite) return;
+    gl.uniform3fv(u.uL, LIGHT); gl.uniform1f(u.uFog, -1500 + 1560 * smooth((e - 0.3) / 2.2)); // a névoa recua até o meio da ponte
+    gl.uniform4fv(u.uSpots, [].concat(...SPOTS.map(([x, z], i) => [x, z, reduced ? 0 : ENTER_AT / 1000 + PIN_AT[i] + 0.3, i === ME ? 1 : 0])));
+  });
+}
+
+/* ───────── Estado da tela ───────── */
+let cards, champs, bench, cdAt, cdTxt;
+const slotEl = (k) => $('bench').querySelectorAll('.bs')[k];
+const slotOf = (champ) => slotEl(bench.indexOf(champ));
+const dcard = (k) => $('deal').children[k];
+const ic = (i) => cards[i].querySelector('.c-ic');
+const SWAP_SVG = '<svg viewBox="0 0 24 24"><path d="M4 8h15l-4-4M20 16H5l4 4"/></svg>';
+
+function reset() {
+  resetCommon(10);
+  champs = ALLY.map(() => null); bench = Array(BENCH_N).fill(null); cdAt = -1; cdTxt = '';
+  const col = $('ally'); col.innerHTML = '<h3>Seu time · Howling Abyss</h3>';
+  cards = ALLY.map((p) => { const el = document.createElement('article'); el.className = 'card'; el.dataset.state = 'empty';
+    el.innerHTML = '<div class="c-art"></div><div class="c-veil"></div><span class="c-q">?</span><div class="c-sweep"></div><i class="c-ic"></i>' +
+      '<span class="spells">' + SPELLS.map((s) => '<i style="' + bg(spell(s)) + '"></i>').join('') + '</span>' +
+      '<div class="who"><b>' + esc(p.name) + (p.me ? '<u>VOCÊ</u>' : '') + '</b><em></em></div>' +
+      (p.me ? '' : '<span class="offer"><i></i><i></i><i class="luck"></i></span>') + '<span class="c-edge"></span>';
+    col.append(el); return el; });
+  $('bench').className = 'bench';
+  $('bench').innerHTML = '<span>Banco</span>' + '<i class="bs"></i>'.repeat(BENCH_N) + '<em class="cd"><span id="cdTxt"></span><u><i id="cdBar"></i></u></em>';
+  $('deal').className = 'deal';
+  $('deal').innerHTML = ALLY[ME].offer.map((c, k) => '<div class="dc' + (k === 2 ? ' luck' : '') + '"><div class="dc-in"><div class="dc-back"></div><div class="dc-front" style="' + bg(tall(c)) + '">' +
+    '<span><small>' + (k === 2 ? 'Carta da sorte' : 'Carta ' + (k + 1)) + '</small><b>' + nice(c) + '</b></span></div></div></div>').join('');
+  $('toast').className = 'toast';
+  $('pins').innerHTML = ALLY.map((p, i) => '<div class="pin' + (p.me ? ' me' : '') + '" style="--stem:' + (p.me ? 30 : 20 + i * 4) + 'px"><div class="pin-in"><div class="face">?</div>' +
+    '<span class="tag">' + esc(p.name) + (p.me ? '<u>VOCÊ</u>' : '') + '</span><div class="stem"></div></div></div>').join('');
+  pins = [...$('pins').children];
+  $('ldAlly').innerHTML = $('ldFoe').innerHTML = '';
+  bottom('wait');
+}
+
+/* Cartões do time */
+// Define o campeão de alguém: cor cheia, varredura de luz, filete dourado, retrato no canto.
+function setChamp(i, champ, note) {
+  const c = cards[i]; champs[i] = champ;
+  cardArt(c, champ); c.dataset.state = 'locked'; ic(i).style.backgroundImage = 'url(' + icon(champ) + ')'; status(c, nice(champ) + (note ? ' · ' + note : ''));
+  fx(c, 'lockpop'); fx(c.querySelector('.c-sweep'), 'sweep'); fx(c.querySelector('.who'), 'rise');
+}
+// Aliado vira uma das cartas em miniatura.
+function offerFlip(i, k) { const m = cards[i].querySelectorAll('.offer i')[k]; m.style.backgroundImage = 'url(' + icon(ALLY[i].offer[k]) + ')'; fx(m, 'pop'); }
+// Aliado escolhe uma carta: as outras duas vão para o banco.
+function pickCard(i) {
+  const p = ALLY[i], minis = cards[i].querySelectorAll('.offer i');
+  p.offer.forEach((c, k) => { if (c !== p.pick) benchAdd(c, minis[k]); });
+  cards[i].querySelector('.offer').classList.add('done'); setChamp(i, p.pick);
+}
+
+/* Banco */
+function benchAdd(champ, from) {
+  const k = bench.indexOf(null), s = slotEl(k); bench[k] = champ;
+  if (from) fly(from, s, from.classList.contains('dc') ? tall(champ) : icon(champ));
+  s.style.backgroundImage = 'url(' + icon(champ) + ')'; s.className = 'bs full'; fx(s, from ? 'poplate' : 'pop');
+}
+// Troca com o banco: o retrato sai da vaga e pousa no cartão; o campeão antigo faz o caminho de volta.
+function benchTake(i, champ) {
+  const k = bench.indexOf(champ), s = slotEl(k), old = champs[i];
+  fly(s, ic(i), icon(champ)); fly(ic(i), s, icon(old));
+  bench[k] = old; s.style.backgroundImage = 'url(' + icon(old) + ')'; s.className = 'bs full'; fx(s, 'poplate');
+  setChamp(i, champ, 'pegou do banco');
+}
+function hoverBench(champ) { $('bench').querySelectorAll('.bs').forEach((s) => s.classList.remove('sel')); slotOf(champ).classList.add('sel'); stage(champ, 'dim', 'No banco · passe o mouse para ver'); bottom('bench', champ); }
+function cooldown() { cdAt = clock; $('bench').classList.add('cooling'); }
+// Troca entre dois aliados.
+function trade(a, b) {
+  const ca = champs[a], cb = champs[b];
+  fly(ic(a), ic(b), icon(ca)); fly(ic(b), ic(a), icon(cb));
+  setChamp(a, cb, 'trocou com ' + ALLY[b].name); setChamp(b, ca, 'trocou com ' + ALLY[a].name);
+  $('toast').innerHTML = '<img src="' + icon(ca) + '" alt="">' + SWAP_SVG + '<img src="' + icon(cb) + '" alt=""><span><b>' + esc(ALLY[a].name) + '</b> e <b>' + esc(ALLY[b].name) + '</b> trocaram<small>' + nice(ca) + ' por ' + nice(cb) + '</small></span>';
+  $('toast').classList.add('on');
+}
+
+/* Suas cartas */
+function hoverCard(k) {
+  const c = ALLY[ME].offer[k];
+  [...$('deal').children].forEach((el, j) => el.classList.toggle('sel', j === k));
+  stage(c, 'dim', k === 2 ? 'Carta da sorte' : 'Sua carta'); bottom('card', c);
+}
+// Você escolhe: a carta voa para o seu cartão e as outras duas para o banco.
+function chooseMine() {
+  const p = ALLY[ME];
+  p.offer.forEach((c, k) => { const el = dcard(k); if (c === p.pick) fly(el, ic(ME), tall(c)); else benchAdd(c, el); el.classList.add('gone'); });
+  frame.classList.add('picked'); setChamp(ME, p.pick); stage(p.pick, 'full', 'Você escolheu', true); bottom('bench');
+}
+
+/* Barra de baixo */
+function info(champ, line) { $('info').innerHTML = (champ ? '<img src="' + icon(champ) + '" alt="">' : '') + '<div><b>' + (champ ? nice(champ) : line) + '</b><span>' + (champ ? line : '') + '</span></div>'; }
+function bottom(mode, champ) {
+  const go = $('go'); go.className = 'go'; $('runes').textContent = 'Runas';
+  $('sp').innerHTML = mode === 'wait' ? '' : SPELLS.map((s) => '<img src="' + spell(s) + '" alt="">').join('');
+  if (mode === 'wait') { info(null, 'Distribuindo as cartas'); go.textContent = 'Escolher'; go.classList.add('off'); }
+  else if (mode === 'card') { info(champ, EPITHET[champ] || ''); go.textContent = 'Escolher'; }
+  else if (mode === 'bench') {
+    if (champ) info(champ, 'No banco · troca pelo seu ' + nice(champs[ME])); else info(champs[ME], 'Seu campeão · dá para trocar com o banco');
+    go.textContent = 'Pegar do banco'; if (!champ) go.classList.add('off');
+  } else { // final: resumo de runas e feitiços
+    $('info').innerHTML = '<div class="rune"><img src="' + RUNE + '" alt=""><img class="sub" src="' + RUNE2 + '" alt=""></div><div><b>Eletrocutar</b><span>Dominação + Feitiçaria · página "Ahri ARAM"</span></div>';
+    $('runes').textContent = 'Editar runas'; go.textContent = 'Pronto ✓'; go.classList.add('done');
+  }
+}
+
+/* Carregando */
+function buildLoading() {
+  const cardOf = (c, name, i, foe, me) => '<div class="ld ' + (me ? 'me ' : '') + (instant ? '' : foe ? 'ld-down' : 'ld-up') + '" style="animation-delay:' + (.25 + i * .09 + (foe ? .3 : 0)) + 's;' + bg(tall(c, me ? SKINS[skinIdx][0] : 0)) + '"><span><b>' + nice(c) + '</b>' + name + '</span></div>';
+  $('ldAlly').innerHTML = ALLY.map((p, i) => cardOf(champs[i] || FINAL[i], esc(p.name), i, false, p.me)).join('');
+  $('ldFoe').innerHTML = FOE.map((c, i) => cardOf(c, 'Inimigo ' + (i + 1), i, true)).join('');
+  $('loading').classList.add('on');
+}
+// Por quadro: a espera do banco.
+function frameTick() {
+  if (cdAt < 0) return;
+  const left = CD_S - (clock - cdAt) / 1000;
+  if (left <= 0) { cdAt = -1; $('bench').classList.remove('cooling'); return; }
+  $('cdBar').style.transform = 'scaleX(' + (left / CD_S).toFixed(4) + ')';
+  const txt = 'Banco liberado em 0:0' + Math.ceil(left); if (txt !== cdTxt) $('cdTxt').textContent = cdTxt = txt;
+}
+
+/* ───────── Roteiro ───────── */
+// 1 · Partida encontrada
+mark('found', 'Partida encontrada');
+foundSteps(10);
+
+// 2 · Howling Abyss: a ponte se monta e o time cai nela
+mark('enter', 'Howling Abyss');
+ENTER_AT = T;
+at(0, () => { phase('enter'); $('found').classList.add('out'); scene('on'); head('Howling Abyss', 'ARAM · uma rota, sem banimentos'); });
+wait(6600);
+
+// 3 · Cartas: três para cada um, a terceira é a da sorte
+mark('cards', 'Cartas');
+at(0, () => { phase('cards'); scene('dim'); frame.dataset.cols = '1'; head('Suas cartas', 'Escolha um campeão', 26); bottom('wait'); cards.forEach((c) => status(c, 'vendo as cartas…')); });
+at(400, () => $('deal').classList.add('in'));
+ALLY.forEach((p, i) => { if (!p.me) [0, 1, 2].forEach((k) => at(1000 + i * 130 + k * 300, () => offerFlip(i, k))); });
+at(1400, () => dcard(0).classList.add('up'));
+at(1750, () => dcard(1).classList.add('up'));
+at(2500, () => { $('deal').classList.add('done'); dcard(2).classList.add('up'); fx(dcard(2), 'lucky'); bottom('card', null); info(null, 'Passe o mouse para ver cada carta'); });
+at(3000, () => cursorTo(dcard(0)));
+at(3500, () => hoverCard(0));
+at(3800, () => pickCard(0));
+at(4500, () => cursorTo(dcard(2)));
+at(5000, () => hoverCard(2));
+at(5300, () => pickCard(3));
+at(5700, () => say(cards[4], 'Fulana', 'vai de Ziggs, falta poke'));
+at(6200, () => cursorTo(dcard(1)));
+at(6700, () => hoverCard(1));
+at(7300, () => cursorTo('#go'));
+at(8000, () => { click($('go')); chooseMine(); cursorTo(null); });
+at(8600, () => pickCard(1));
+at(9300, () => pickCard(4));
+wait(10600);
+
+// 4 · Banco: trocas com o banco (com espera) e entre aliados
+mark('bench', 'Banco');
+at(0, () => { phase('bench'); scene('off'); $('deal').classList.remove('in'); head('Banco de campeões', 'Troque com o banco ou com um aliado', 22); bottom('bench'); stage(champs[ME], 'full', 'Seu campeão'); });
+at(900, () => benchTake(0, 'Malphite'));
+at(1900, () => say(cards[4], 'Fulana', 'tem Ahri no banco!'));
+at(2500, () => cursorTo(slotOf('Ahri'), .5, .7));
+at(3100, () => hoverBench('Ahri'));
+at(3500, () => benchTake(4, 'Nautilus'));
+at(4000, () => cursorTo('#go'));
+// Pegar do banco: a câmera mergulha na ponte, clarão, splash em cor cheia; o banco entra em espera.
+DIVE_AT = T + 4700;
+at(4700, () => {
+  click($('go')); cursorTo(null); $('go').classList.add('off');
+  if (gl && !reduced) { frame.dataset.stage = 'off'; frame.classList.add('dive'); scene('on'); }
+  else fx(arts[artIdx], 'divefx'); // sem WebGL: aproxima a splash no lugar do mergulho
+});
+at(5950, () => fx($('flash'), 'flashfx'));
+at(6050, () => { scene('off'); frame.classList.remove('dive'); $('bench').querySelectorAll('.bs').forEach((s) => s.classList.remove('sel')); benchTake(ME, 'Ahri'); cooldown(); stage('Ahri', 'full', 'Você pegou do banco', true); bottom('bench'); head('Banco de campeões', 'Você trocou o Ziggs pela Ahri', 22); });
+at(8300, () => trade(0, 3));
+at(10700, () => $('toast').classList.remove('on'));
+wait(11400);
+
+// 5 · Preparação: skins, runas e feitiços, contagem
+mark('final', 'Preparação');
+const FINAL_S = 11;
+at(0, () => { phase('final'); head('Prepare-se', 'A partida começa em', FINAL_S, FINAL_S); bottom('final'); setSkin(0); });
+at(1100, () => cursorTo('#carNext'));
+[1800, 2600, 3400, 5200, 6000].forEach((t, k) => at(t, () => { click($('carNext')); setSkin(k + 1); }));
+at(6900, () => cursorTo(null));
+[3, 2, 1].forEach((n) => at((FINAL_S - n) * 1000, () => { $('title').textContent = String(n); fx($('title'), 'title-in'); }));
+wait(FINAL_S * 1000);
+
+// 6 · Saída: a tela se desmonta e entra o carregamento
+mark('exit', 'Saída');
+const EXIT_S = 6.5;
+at(0, () => { phase('exit'); frame.dataset.cols = '0'; frame.dataset.stage = 'full'; $('npSub').textContent = ''; fx(arts[artIdx], 'divefx'); fx($('flash'), 'flashfx'); });
+at(700, buildLoading);
+wait(EXIT_S * 1000);
+
+/* ───────── Tocador ───────── */
+const END = T;
+steps.sort((a, b) => a.t - b.t); // o roteiro é escrito por assunto; aqui fica em ordem de tempo (a ordem de escrita desempata)
+let idx = 0, playing = true, speed = 1, lastTs = 0, rateNow = 1, drawnAt = -1;
+function runSteps() { while (idx < steps.length && steps[idx].t <= clock) steps[idx++].fn(); }
+// Pular: recomeça e aplica os passos até o tempo pedido, sem transições.
+function seek(t) {
+  instant = true; frame.classList.add('instant'); clock = 0; reset(); idx = 0; clock = t; runSteps();
+  void frame.offsetWidth; instant = reduced; if (!reduced) frame.classList.remove('instant');
+  playing = true; drawnAt = -1; hud();
+}
+function tick(ts) {
+  const dt = Math.min(250, ts - lastTs); lastTs = ts;
+  if (playing) { clock += dt * speed; runSteps(); if (clock >= END) { clock = END; playing = false; } }
+  drawTimer(); frameTick();
+  if (phaseNow === 'exit') { const k = clamp01((clock - (END - EXIT_S * 1000) - 900) / (EXIT_S * 1000 - 1400)); $('prog').style.transform = $('prog2').style.transform = 'scaleX(' + k.toFixed(4) + ')'; }
+  // A cena 3D segue o mesmo relógio (pausa, velocidade e pulo de fase valem para ela). Parada ou escondida, não redesenha.
+  if (gl && frame.dataset.scene !== 'off' && clock !== drawnAt) { drawnAt = clock; drawScene(); }
+  // Velocidade e pausa também valem para as animações e transições CSS em curso.
+  const r = playing ? speed : 0;
+  if (r !== 1 || rateNow !== 1) { document.getAnimations().forEach((a) => { if (a.playbackRate !== r) a.playbackRate = r; }); rateNow = r; }
+  hud();
+  requestAnimationFrame(tick);
+}
+
+/* Controles do mockup */
+const track = $('track'); let hudKey = '';
+marks.forEach((m, i) => { const b = document.createElement('button'); b.innerHTML = '<i></i><span>' + m.label + '</span>'; b.style.flex = ((marks[i + 1] ? marks[i + 1].t : END) - m.t) + ' 1 0'; b.title = 'Pular para ' + m.label; b.addEventListener('click', () => seek(m.t)); track.append(b); });
+const fmt = (ms) => Math.floor(ms / 60000) + ':' + String(Math.floor(ms / 1000) % 60).padStart(2, '0');
+function hud() {
+  marks.forEach((m, i) => { const end = marks[i + 1] ? marks[i + 1].t : END, k = clamp01((clock - m.t) / (end - m.t)); track.children[i].firstChild.style.transform = 'scaleX(' + k.toFixed(3) + ')'; });
+  const cur = marks.filter((m) => m.t <= clock).length - 1, key = cur + '|' + playing + '|' + Math.floor(clock / 1000);
+  if (key === hudKey) return; hudKey = key;
+  [...track.children].forEach((b, i) => b.classList.toggle('now', i === cur));
+  $('mPlay').textContent = clock >= END ? 'Rever' : playing ? 'Pausar' : 'Tocar';
+  $('mTime').textContent = fmt(clock) + ' / ' + fmt(END);
+}
+const toggle = () => { if (clock >= END) seek(0); else playing = !playing; };
+$('mPlay').addEventListener('click', toggle);
+$('mRestart').addEventListener('click', () => seek(0));
+addEventListener('keydown', (e) => { if (e.code === 'Space') { e.preventDefault(); toggle(); } });
+document.querySelectorAll('[data-speed]').forEach((b) => b.addEventListener('click', () => { speed = +b.dataset.speed; document.querySelectorAll('[data-speed]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
+addEventListener('resize', () => { if (gl) fitScene(); drawnAt = -1; if (phaseNow === 'final') setSkin(skinIdx, true); });
+
+if (gl) { setupScene(); fitScene(); } else frame.classList.add('nogl');
+PRELOAD.forEach((u) => { new Image().src = u; }); // imagens já no cache antes de aparecerem
+seek(0);
+requestAnimationFrame((ts) => { lastTs = ts; tick(ts); });
+</script>
+</body>
+</html>

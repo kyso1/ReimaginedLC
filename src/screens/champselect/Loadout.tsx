@@ -27,8 +27,10 @@ export const CHROMA_HIDE_MS = 160;
  * Carrossel de skins desbloqueadas do campeão sob a splash; cromas desbloqueadas da skin selecionada ao lado.
  * Com o ROSE conectado (`rose`), entram também as skins e cromas não possuídas e os mods da skin: essas vão só para o
  * ROSE (`pick` guarda a skin escolhida para o palco), nunca para a LCU.
+ * `flow` (preparação): as mesmas skins em cartões grandes, a escolhida no centro e as vizinhas menores e apagadas, com
+ * setas e pontos. O centro é a skin que a LCU confirmou: clicar numa vizinha pede a troca e o carrossel anda quando ela volta.
  */
-export function SkinCarousel({ skins, me, rose = false, pick = null, onPick }: { skins: Skin[]; me: Cell; rose?: boolean; pick?: number | null; onPick?: (id: number | null) => void }) {
+export function SkinCarousel({ skins, me, rose = false, pick = null, onPick, flow = false }: { skins: Skin[]; me: Cell; rose?: boolean; pick?: number | null; onPick?: (id: number | null) => void; flow?: boolean }) {
   const apply = useAction((selectedSkinId: number) => request('PATCH', MY_SELECTION, { selectedSkinId }));
   const shown = skins.filter((s) => !s.disabled && (s.unlocked || rose));
   const parent = skinOf(shown, pick ?? me.selectedSkinId);
@@ -84,8 +86,28 @@ export function SkinCarousel({ skins, me, rose = false, pick = null, onPick }: {
   };
   const popList = hovered ? chromasOf(hovered.skin, true) : [];
   const popCurrent = popList.find((c) => c.id === peek) ?? popList.find((c) => c.id === (chroma?.id ?? me.selectedSkinId)) ?? popList[0];
+  // Carrossel grande: posição de cada cartão pela distância até o escolhido. Só `transform` e `opacity`.
+  const at = Math.max(0, parent ? shown.indexOf(parent) : 0);
+  const flowStyle = (i: number) => {
+    const o = i - at;
+    const a = Math.abs(o);
+    return { transform: `translateX(calc(-50% + ${o * 62 - Math.sign(o) * a * (a - 1) * 6}%)) scale(${1 - Math.min(a, 3) * 0.16})`, opacity: a > 2 ? 0 : 1 - a * 0.38, zIndex: 10 - Math.min(a, 9), pointerEvents: a > 2 ? 'none' : undefined };
+  };
+  const modButtons = mods.map((m) => {
+    const on = roseModSelected.value === m.id;
+    return (
+      <button type="button" key={m.id} class="rlc-cs-skin rlc-cs-mod" data-rose="" aria-label={m.name} title={m.name} aria-pressed={on} onClick={() => selectRoseMod(me.championId, modSkin, on ? null : m)}>
+        {m.thumbnailUrl ? <img src={m.thumbnailUrl} alt="" /> : <span class="rlc-cs-mod-name">{m.name}</span>}
+        <span class="rlc-cs-rose-badge">{t('roseCustom')}</span>
+      </button>
+    );
+  });
+  const step = (by: number) => {
+    const next = shown[at + by];
+    if (next) chooseSkin(next);
+  };
   return (
-    <div class="rlc-cs-carousel" ref={carousel}>
+    <div class="rlc-cs-carousel" data-flow={flow ? 'true' : undefined} ref={carousel}>
       {hovered ? (
         <div class="rlc-cs-chroma-pop" data-solo={popCurrent ? undefined : 'true'} style={{ left: `${hovered.x}px` }} role="group" aria-label={popCurrent ? `${t('csChromas')} · ${hovered.skin.name}` : hovered.skin.name} onMouseEnter={keep} onMouseLeave={hideSoon}>
           {popCurrent ? (
@@ -132,13 +154,19 @@ export function SkinCarousel({ skins, me, rose = false, pick = null, onPick }: {
       ) : null}
       {previewing ? <SkinPreview championId={me.championId} skinId={previewing} onClose={() => setPreviewing(null)} /> : null}
       <div class="rlc-cs-skins">
-        {shown.map((s) => (
+        {flow ? (
+          <button type="button" class="rlc-cs-flow-nav" data-dir="prev" aria-label={t('previous')} title={t('previous')} disabled={apply.pending || at <= 0} onClick={() => step(-1)}>
+            ‹
+          </button>
+        ) : null}
+        {shown.map((s, i) => (
           <button
             type="button"
             key={s.id}
             class="rlc-cs-skin"
             data-rose={s.unlocked ? undefined : ''}
             data-chromas={chromasOf(s, true).length ? 'true' : undefined}
+            style={flow ? flowStyle(i) : undefined}
             aria-label={s.name}
             title={s.name}
             aria-pressed={s === parent}
@@ -153,16 +181,28 @@ export function SkinCarousel({ skins, me, rose = false, pick = null, onPick }: {
             {s.unlocked ? null : <span class="rlc-cs-rose-badge">ROSE</span>}
           </button>
         ))}
-        {mods.map((m) => {
-          const on = roseModSelected.value === m.id;
-          return (
-            <button type="button" key={m.id} class="rlc-cs-skin rlc-cs-mod" data-rose="" aria-label={m.name} title={m.name} aria-pressed={on} onClick={() => selectRoseMod(me.championId, modSkin, on ? null : m)}>
-              {m.thumbnailUrl ? <img src={m.thumbnailUrl} alt="" /> : <span class="rlc-cs-mod-name">{m.name}</span>}
-              <span class="rlc-cs-rose-badge">{t('roseCustom')}</span>
-            </button>
-          );
-        })}
+        {flow ? (
+          <button type="button" class="rlc-cs-flow-nav" data-dir="next" aria-label={t('next')} title={t('next')} disabled={apply.pending || at >= shown.length - 1} onClick={() => step(1)}>
+            ›
+          </button>
+        ) : (
+          modButtons
+        )}
       </div>
+      {flow ? (
+        <div class="rlc-cs-flow-foot">
+          <span class="rlc-cs-flow-label">{t('tabSkins')}</span>
+          <b key={parent?.id} class="rlc-cs-flow-name">
+            {chroma?.name ?? parent?.name ?? ''}
+          </b>
+          <span class="rlc-cs-flow-dots" aria-hidden="true">
+            {shown.map((s, i) => (
+              <i key={s.id} data-on={i === at ? 'true' : undefined} />
+            ))}
+          </span>
+          {modButtons.length ? <div class="rlc-cs-flow-mods">{modButtons}</div> : null}
+        </div>
+      ) : null}
       {parent && chromas.length ? (
         <div class="rlc-cs-chromas">
           {chromas.map((c) => (
@@ -256,12 +296,26 @@ export function WardPicker({ summonerId }: { summonerId: number | null | undefin
   );
 }
 
+/** Runa principal da página atual (ícone e nome), da lista de runas do client. */
+function useKeystone(id: number | undefined): { name: string; iconPath: string } | null {
+  const [perk, setPerk] = useState<{ name: string; iconPath: string } | null>(null);
+  useEffect(() => {
+    setPerk(null);
+    if (!id) return;
+    let live = true;
+    void getJson<Array<{ id: number; name: string; iconPath: string }>>('/lol-perks/v1/perks').then((list) => live && setPerk(list?.find((p) => p.id === id) ?? null));
+    return () => void (live = false);
+  }, [id]);
+  return perk;
+}
+
 /**
  * Feitiços, runas e sentinela na barra de baixo, sempre visível como no client: dois feitiços, o nome da página atual,
  * o botão que abre o editor de runas e a sentinela.
  * Escolher no slot o feitiço do outro slot troca os dois, como no client da Riot.
  */
-export function Loadout({ me, spells, gameMode, pageName, onRunes, summonerId, runes = true, ward = true }: { me: Cell; spells: Map<number, Spell>; gameMode: string | null; pageName: string | null; onRunes: () => void; summonerId?: number | null; runes?: boolean; ward?: boolean }) {
+export function Loadout({ me, spells, gameMode, pageName, keystone, onRunes, summonerId, runes = true, ward = true }: { me: Cell; spells: Map<number, Spell>; gameMode: string | null; pageName: string | null; keystone?: number; onRunes: () => void; summonerId?: number | null; runes?: boolean; ward?: boolean }) {
+  const rune = useKeystone(runes ? keystone : undefined);
   const [open, setOpen] = useState<1 | 2 | null>(null);
   const setSpells = useAction((body: { spell1Id?: number; spell2Id?: number }) => request('PATCH', MY_SELECTION, body));
   const available = [...spells.values()].filter((s) => !gameMode || s.gameModes.includes(gameMode)).sort((a, b) => a.name.localeCompare(b.name));
@@ -303,6 +357,7 @@ export function Loadout({ me, spells, gameMode, pageName, onRunes, summonerId, r
       </div>
       {!runes ? null : (
         <div class="rlc-cs-runes">
+          {rune?.iconPath ? <img class="rlc-cs-keystone" src={rune.iconPath} alt={rune.name} title={rune.name} /> : null}
           <span class="rlc-cs-page-name">{pageName ?? t('runeNoPage')}</span>
           <button type="button" class="rlc-button" data-variant="pill" onClick={onRunes}>
             {t('runeOpen')}

@@ -1,0 +1,898 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seleção: simulação completa</title>
+<!--
+  Simulação da seleção de campeões ranqueada (Solo/Duo, 5v5) do começo ao fim, com todas as animações.
+  Você é o Fulano, meio, lado azul, terceiro a escolher (B3).
+
+  Linha do tempo (uns 80 s em 1x):
+  1. Partida encontrada: os dez aceitam, o anel estoura e a tela abre.
+  2. Planejamento: o mapa 3D (cs-mapa-v2.html?embed=1, num iframe) com os aliados nas rotas; os campeões declarados
+     vão aparecendo nos marcadores. Você declara a Ahri pelos favoritos.
+  3. Banimento (todos ao mesmo tempo): as colunas dos times entram, a tela esquenta de leve para o vermelho
+     (vinheta + fio de luz no topo + título e botão), a grade abre, as intenções de ban dos aliados aparecem com o X,
+     você busca "ze" e bane o Zed. Os bans vão travando; os do inimigo ficam escondidos.
+  4. Revelação: os dez bans viram um a um no centro (cartão gira, risco vermelho, rachadura, tremida) e voam para a faixa do topo.
+  5. Escolha, na ordem B1, R1-R2, B2-B3, R3-R4, B4-B5, R5: quem está na vez pulsa com a barra do tempo; hover do aliado
+     = splash apagada no cartão e no palco central; travou = cor cheia, varredura de luz, filete dourado e o nome batendo no palco.
+     Inimigo só aparece ao travar (o cliente não mostra o hover do outro time). Na sua vez a grade abre filtrada por rota;
+     ao travar, a câmera do mapa mergulha na sua rota, clarão, e a splash da Ahri entra em cor cheia.
+  6. Preparação: carrossel de skins, resumo de runas e feitiços na barra, pedido de troca de um aliado (você recusa), contagem.
+  7. Saída: a tela se desmonta e entra o "Carregando partida" com os dez campeões.
+
+  Como é feito, pensando no cliente (Chromium 108, CEF):
+  - Um roteiro: lista de passos (tempo, função). Cada passo só muda estado (classe, data-*, texto). O movimento vem de
+    transições CSS presas ao estado e de animações de um disparo (fx()). Por isso dá para pausar, acelerar e pular de fase:
+    pular = recomeçar e aplicar os passos sem transição. No cliente os passos viram os eventos da sessão do LCU.
+  - Só transform e opacity animam em áreas grandes. Filtros (dessaturar) ficam em camadas fixas e mudam uma vez por estado.
+    Nada de backdrop-filter em cima de coisa que se mexe, nada de mix-blend-mode, nada de box-shadow animado.
+  - Barras de tempo: um transform por quadro em poucos elementos. Sem CSS novo (nesting, :has, color-mix), sem bibliotecas.
+  - prefers-reduced-motion: o roteiro anda igual, mas sem transições, sem animações e sem o mergulho.
+  - Sem arte da Riot no repositório: imagens por link do Data Dragon. Nomes fictícios.
+  A barra de baixo (tocar, recomeçar, velocidade, fases) é só do mockup.
+-->
+<style>
+  :root {
+    --bg: #070b16; --text: #eef2ff; --muted: #8a93b5; --border: rgba(255,255,255,.14);
+    --blue: #5aa0ff; --red: #ff5f6d; --gold: #e2bd6b;
+    --accent: var(--blue);
+    --colw: clamp(220px, 18vw, 300px);
+    --cl: calc(94px + var(--colw)); --cr: calc(30px + var(--colw)); /* bordas da área central */
+    --ease: cubic-bezier(.2,.8,.2,1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #04060d; color: var(--text); font: 14px/1.35 'Segoe UI', system-ui, sans-serif; overflow: hidden; }
+  button { font: inherit; color: inherit; }
+  .frame { position: relative; width: 100vw; height: calc(100vh - 46px); min-height: 560px; overflow: hidden;
+    background: radial-gradient(ellipse 70% 60% at 50% 45%, #121a30 0%, var(--bg) 72%); }
+  .frame[data-phase='ban'], .frame[data-phase='reveal'] { --accent: var(--red); }
+  .frame.instant *, .frame.instant *::before, .frame.instant *::after { transition: none !important; }
+
+  /* ── Mapa do planejamento (iframe) ── */
+  #map { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; opacity: 0; pointer-events: none; transition: opacity .45s ease; }
+  .frame.mapon #map { opacity: 1; }
+
+  /* ── Palco central: splash grande de quem está agindo ── */
+  .stage { position: absolute; left: var(--cl); right: var(--cr); top: 0; bottom: 0; overflow: hidden; opacity: 0; transition: opacity .5s ease; }
+  .frame[data-stage] .stage { opacity: 1; }
+  .frame[data-stage='off'] .stage { opacity: 0; }
+  .arts { position: absolute; inset: 0 -3%; transition: transform .7s var(--ease), filter .45s ease; }
+  .art { position: absolute; inset: 0; background: center 16%/cover no-repeat; opacity: 0; transition: opacity .45s ease; }
+  .art.on { opacity: 1; }
+  .frame[data-stage='dim'] .arts { filter: saturate(.18) brightness(.5); }
+  .frame[data-stage='ban'] .arts { filter: grayscale(1) brightness(.5); }
+  .frame[data-stage='banned'] .arts { filter: grayscale(1) brightness(.3); }
+  .frame[data-stage='skin'] .arts { filter: brightness(.55); }
+  .frame.open .arts { transform: translate(11%, -11%); }
+  .shade { position: absolute; inset: 0; background:
+    linear-gradient(90deg, #070b16 0%, rgba(7,11,22,0) 17%, rgba(7,11,22,0) 83%, #070b16 100%),
+    linear-gradient(180deg, rgba(7,11,22,.9) 0%, rgba(7,11,22,.25) 22%, rgba(7,11,22,0) 46%, rgba(7,11,22,.8) 80%, #070b16 100%); }
+  .foeglow { position: absolute; inset: 0; opacity: 0; transition: opacity .5s; background: radial-gradient(ellipse 60% 55% at 100% 45%, rgba(255,70,90,.22), transparent 70%); }
+  .frame[data-stage='foe'] .foeglow { opacity: 1; animation: breathe 2.4s ease-in-out infinite; }
+  .slash { position: absolute; left: 12%; right: 12%; top: 40%; height: 4px; border-radius: 4px; background: var(--red); box-shadow: 0 0 26px 2px rgba(255,60,80,.7);
+    transform: rotate(-14deg) scaleX(0); transition: transform .35s cubic-bezier(.6,0,.2,1); }
+  .frame[data-stage='banned'] .slash { transform: rotate(-14deg) scaleX(1); }
+  .nameplate { position: absolute; left: 0; right: 0; bottom: 104px; text-align: center; text-shadow: 0 2px 18px rgba(0,0,0,.85); }
+  .nameplate small { display: block; font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
+  .nameplate b { display: block; font-size: clamp(44px, 5.4vw, 84px); line-height: 1.02; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+  .nameplate i { display: block; width: 120px; height: 2px; margin: 10px auto 8px; background: var(--muted); opacity: .5; transition: background .4s, opacity .4s, transform .5s var(--ease); transform: scaleX(.4); }
+  .nameplate em { display: block; font-style: normal; font-size: 14px; color: #c9d1ee; }
+  .frame[data-stage='full'] .nameplate i { background: var(--gold); opacity: 1; transform: none; }
+  .frame[data-stage='full'] .nameplate small { color: var(--gold); }
+  .frame[data-stage='foe'] .nameplate i, .frame[data-stage='foefull'] .nameplate i, .frame[data-stage='ban'] .nameplate i, .frame[data-stage='banned'] .nameplate i { background: var(--red); opacity: 1; transform: none; }
+  .frame[data-stage='foe'] .nameplate small, .frame[data-stage='foefull'] .nameplate small, .frame[data-stage='ban'] .nameplate small, .frame[data-stage='banned'] .nameplate small { color: var(--red); }
+  .frame[data-stage='foe'] .nameplate b { color: rgba(255,255,255,.22); }
+  .frame[data-stage='skin'] .nameplate { opacity: 0; }
+  /* Com a grade aberta o nome sobe para a faixa entre o cabeçalho e a grade, à esquerda; o rosto fica à direita. */
+  .frame.open .nameplate { left: 26px; right: auto; bottom: auto; top: 136px; text-align: left; }
+  .frame.open .nameplate b { font-size: clamp(30px, 3.4vw, 52px); }
+  .frame.open .nameplate i { margin: 7px 0 6px; transform-origin: left; }
+  .np-in { animation: npIn .5s var(--ease); }
+  @keyframes npIn { from { opacity: 0; transform: translateY(14px) scale(1.06); } }
+  .slam { animation: slam .9s var(--ease); }
+  @keyframes slam { from { transform: scale(1.16); opacity: .2; } }
+  .divefx { animation: divefx 1.3s cubic-bezier(.5,0,.9,.4); }
+  @keyframes divefx { to { transform: scale(1.5); } }
+
+  /* ── Tom vermelho do banimento: vinheta leve + fio de luz no topo. Só opacity anima. ── */
+  .heat { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .7s ease;
+    background:
+      radial-gradient(ellipse 85% 75% at 50% 50%, transparent 56%, rgba(190, 25, 50, .26) 100%),
+      linear-gradient(180deg, rgba(160, 18, 40, .15), transparent 32%, transparent 74%, rgba(160, 18, 40, .09)); }
+  .heat::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--red); box-shadow: 0 0 22px 3px rgba(255, 60, 80, .55); }
+  .frame[data-phase='ban'] .heat, .frame[data-phase='reveal'] .heat { opacity: 1; animation: breathe 3.2s ease-in-out infinite; }
+  @keyframes breathe { 50% { opacity: .72; } }
+
+  .rail { position: absolute; left: 0; top: 0; bottom: 0; width: 64px; background: rgba(10,12,22,.7); border-right: 1px solid var(--border); }
+
+  /* ── Cabeçalho: fase, tempo e bans ── */
+  .head { position: absolute; top: 14px; left: var(--cl); right: var(--cr); text-align: center; transition: opacity .5s, transform .5s var(--ease); text-shadow: 0 2px 14px rgba(0,0,0,.85); }
+  .frame[data-phase='found'] .head, .frame[data-phase='exit'] .head { opacity: 0; transform: translateY(-24px); }
+  .head small { display: block; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .head b { display: block; font-size: 27px; font-weight: 700; transition: color .5s; }
+  .frame[data-phase='ban'] .head b, .frame[data-phase='reveal'] .head b { color: #ffd3d8; text-shadow: 0 0 22px rgba(255, 70, 90, .5); }
+  .title-in { animation: titleIn .55s var(--ease); }
+  @keyframes titleIn { from { opacity: 0; transform: translateY(10px) scale(1.08); } }
+  .timer { width: 280px; height: 3px; margin: 8px auto 0; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
+  .timer i { display: block; height: 100%; background: var(--accent); transform-origin: left; transition: background .5s; }
+  .bans { display: flex; justify-content: center; gap: 26px; margin-top: 11px; transition: opacity .5s, transform .5s var(--ease); }
+  .frame[data-phase='found'] .bans, .frame[data-phase='plan'] .bans { opacity: 0; transform: translateY(-8px); }
+  .bans div { display: flex; gap: 5px; }
+  .ban { position: relative; width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border); background: rgba(255,255,255,.04) center/cover; }
+  .ban.known { border-color: rgba(255,95,109,.6); }
+  .ban.hid::before { content: ''; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px; border-radius: 50%; background: var(--red); animation: breathe 1.4s ease-in-out infinite; }
+  .ban.done { filter: grayscale(1) brightness(.7); }
+  .ban.done::after { content: ''; position: absolute; left: -2px; right: -2px; top: 50%; height: 2px; margin-top: -1px; background: var(--red); transform: rotate(-45deg); }
+  .pop { animation: pop .45s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes pop { from { transform: scale(.5); opacity: 0; } }
+
+  /* ── Colunas dos times ── */
+  .team { position: absolute; top: 14px; bottom: 14px; width: var(--colw); display: flex; flex-direction: column; gap: 8px; }
+  .team.ally { left: 80px; }
+  .team.foe { right: 16px; }
+  .team h3 { margin: 0 0 2px; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--blue); transition: opacity .5s; }
+  .team.foe h3 { color: var(--red); text-align: right; }
+  .card { position: relative; flex: 1; min-height: 0; max-height: 142px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: #0d1324;
+    display: flex; align-items: flex-end; padding: 10px 12px; transition: transform .6s var(--ease) var(--d, 0s), opacity .5s ease var(--d, 0s); }
+  .card:nth-of-type(2) { --d: .06s; } .card:nth-of-type(3) { --d: .12s; } .card:nth-of-type(4) { --d: .18s; } .card:nth-of-type(5) { --d: .24s; }
+  .frame[data-cols='0'] .team.ally .card { transform: translateX(-70px); opacity: 0; }
+  .frame[data-cols='0'] .team.foe .card { transform: translateX(70px); opacity: 0; }
+  .frame[data-cols='0'] .team h3 { opacity: 0; }
+  .c-art { position: absolute; inset: 0; background: center 20%/cover no-repeat; transition: filter .5s ease, opacity .4s ease; }
+  .card[data-state='empty'] .c-art { opacity: 0; }
+  .card[data-state='hover'] .c-art { filter: saturate(.25) brightness(.7); }
+  .c-veil { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(7,11,22,.92) 0%, rgba(7,11,22,.45) 55%, rgba(7,11,22,.1)); }
+  .team.foe .c-veil { background: linear-gradient(270deg, rgba(7,11,22,.92) 0%, rgba(7,11,22,.45) 55%, rgba(7,11,22,.1)); }
+  .c-q { position: absolute; right: 22px; top: 50%; margin-top: -30px; font-size: 44px; line-height: 60px; color: rgba(255,255,255,.12); font-weight: 700; transition: opacity .3s; }
+  .team.foe .c-q { right: auto; left: 22px; }
+  .card:not([data-state='empty']) .c-q { opacity: 0; }
+  .c-sweep { position: absolute; top: 0; bottom: 0; left: -60%; width: 60%; opacity: 0; pointer-events: none;
+    background: linear-gradient(100deg, transparent, rgba(255,240,200,.75) 50%, transparent); }
+  .team.foe .c-sweep { background: linear-gradient(100deg, transparent, rgba(255,150,160,.75) 50%, transparent); }
+  .sweep { animation: sweep .7s ease-out; }
+  @keyframes sweep { from { opacity: 1; transform: translateX(0); } to { opacity: 1; transform: translateX(280%); } }
+  .c-edge { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--gold); transform: scaleY(0); transition: transform .45s var(--ease); }
+  .team.foe .c-edge { left: auto; right: 0; background: var(--red); }
+  .team.foe .card[data-state='locked'] .who em { color: #ff9aa3; }
+  .card[data-state='locked'] .c-edge { transform: none; }
+  .who { position: relative; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .team.foe .card { justify-content: flex-end; text-align: right; }
+  .who b { font-size: 16px; white-space: nowrap; }
+  .who b u { text-decoration: none; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: #fff; color: #10131f; font-size: 10px; font-weight: 700; letter-spacing: .06em; vertical-align: 2px; }
+  .who em { font-style: normal; font-size: 12px; color: var(--muted); white-space: nowrap; transition: color .4s; }
+  .card[data-state='locked'] .who em { color: var(--gold); }
+  .rise { animation: rise .5s var(--ease); }
+  @keyframes rise { from { transform: translateY(12px); opacity: 0; } }
+  .role { position: absolute; top: 10px; left: 12px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; background: rgba(7,11,22,.75); border: 1px solid var(--border); }
+  .ri { width: 18px; height: 18px; fill: currentColor; display: block; }
+  .chip .ri, .f-box em .ri { display: inline-block; width: 14px; height: 14px; margin-right: 5px; vertical-align: -2.5px; }
+  .ld .role { top: 7px; left: 7px; }
+  .team.foe .role { left: auto; right: 12px; }
+  .spells { position: absolute; top: 10px; right: 12px; display: flex; gap: 3px; opacity: 0; transition: opacity .4s .2s; }
+  .card[data-state='locked'] .spells { opacity: 1; }
+  .spells i { width: 18px; height: 18px; border-radius: 4px; background: center/cover; border: 1px solid var(--border); }
+  /* Vez de quem: anel pulsando (só opacity) e barra do tempo. */
+  .card::after { content: ''; position: absolute; inset: 0; border-radius: 11px; border: 2px solid var(--accent); box-shadow: inset 0 0 22px -4px var(--accent); opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .card.turn::after { opacity: 1; animation: ring 1.5s ease-in-out infinite; }
+  @keyframes ring { 50% { opacity: .45; } }
+  .team.foe .card { --accent: var(--red); }
+  .c-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.12); opacity: 0; }
+  .card.turn .c-bar { opacity: 1; }
+  .c-bar i { display: block; height: 100%; background: var(--accent); transform-origin: left; }
+  .lockpop { animation: lockpop .5s var(--ease); }
+  @keyframes lockpop { from { transform: scale(1.045); } }
+  .art-in { animation: artIn .45s ease-out; }
+  @keyframes artIn { from { opacity: 0; transform: scale(1.1); } }
+  .art-foe { animation: artFoe .6s var(--ease); }
+  @keyframes artFoe { from { opacity: 0; transform: translateX(28%) scale(1.15); } }
+  /* Intenção de banir: retrato com o X; ao travar o ban, apaga e ganha o risco. */
+  .intent { position: absolute; right: 12px; bottom: 10px; width: 38px; height: 38px; border-radius: 8px; border: 1px solid rgba(255,95,109,.7); background: center/cover; opacity: 0; transform: scale(.6); transition: opacity .3s, transform .35s cubic-bezier(.3,1.6,.5,1); }
+  .intent.on { opacity: 1; transform: none; }
+  .intent::after { content: '✕'; position: absolute; right: -6px; top: -6px; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; font-size: 10px; color: #fff; font-weight: 700; background: var(--red); box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+  .intent.locked { filter: grayscale(1) brightness(.75); }
+  .intent.locked::before { content: ''; position: absolute; left: -3px; right: -3px; top: 50%; height: 2px; margin-top: -1px; background: var(--red); transform: rotate(-45deg); }
+  .frame[data-phase='pick'] .intent, .frame[data-phase='final'] .intent, .frame[data-phase='exit'] .intent { opacity: 0; transform: scale(.6); }
+
+  /* Fala do chat da sala, ao lado do cartão. */
+  .say { position: absolute; max-width: 220px; padding: 6px 11px; border-radius: 12px 12px 12px 2px; background: #1a2340; border: 1px solid var(--border); font-size: 12.5px; box-shadow: 0 8px 22px rgba(0,0,0,.5); opacity: 0; animation: say 3.4s ease both; pointer-events: none; }
+  .say b { color: var(--blue); font-weight: 600; margin-right: 4px; }
+  @keyframes say { 0% { opacity: 0; transform: translateX(-10px) scale(.9); } 8%, 86% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-6px); } }
+
+  /* ── Grade de campeões ── */
+  .drawer { position: absolute; left: var(--cl); right: var(--cr); top: calc(134px + 16vh); bottom: 88px; border-radius: 14px; border: 1px solid var(--border);
+    background: rgba(9,12,22,.9); padding: 14px; display: flex; flex-direction: column; gap: 10px;
+    opacity: 0; transform: translateY(30px) scale(.985); pointer-events: none; transition: opacity .35s ease, transform .5s var(--ease), border-color .5s; }
+  .frame.open .drawer { opacity: 1; transform: none; }
+  .frame[data-phase='ban'] .drawer { border-color: rgba(255, 95, 109, .32); }
+  .drawer header { display: flex; gap: 8px; align-items: center; }
+  .search { flex: 1; min-width: 90px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; overflow: hidden; }
+  .search.typed { color: var(--text); border-color: var(--accent); }
+  .search.typed::after { content: ''; display: inline-block; width: 1px; height: 14px; margin-left: 2px; vertical-align: -2px; background: var(--text); animation: caret 1s steps(2) infinite; }
+  @keyframes caret { 50% { opacity: 0; } }
+  .chip { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); font-size: 12px; white-space: nowrap; }
+  .chip.on { background: #fff; color: #10131f; }
+  .grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 10px; align-content: start; overflow: hidden; padding: 3px;
+    -webkit-mask-image: linear-gradient(180deg, #000 82%, transparent); }
+  .grid figure { margin: 0; text-align: center; font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .grid img { width: 100%; aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--border); display: block; margin-bottom: 2px; background: #0d1324; transition: transform .2s; }
+  .grid figure.sel { color: var(--text); }
+  .grid figure.sel img { outline: 2px solid var(--accent); outline-offset: 2px; transform: scale(1.06); }
+  .grid figure.gone { color: rgba(255,255,255,.25); }
+  .grid figure.gone img { filter: grayscale(1) brightness(.4); }
+  .grid-in { animation: gridIn .3s ease-out; }
+  @keyframes gridIn { from { opacity: 0; transform: translateY(8px); } }
+
+  /* ── Barra de baixo ── */
+  .bottom { position: absolute; left: var(--cl); right: var(--cr); bottom: 14px; height: 62px; display: flex; gap: 10px; align-items: center; padding: 0 14px;
+    border: 1px solid var(--border); border-radius: 14px; background: rgba(9,12,22,.88); transition: opacity .45s, transform .5s var(--ease); }
+  .frame[data-phase='found'] .bottom, .frame[data-phase='reveal'] .bottom, .frame[data-phase='exit'] .bottom { opacity: 0; transform: translateY(30px); }
+  .info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden; }
+  .info img { width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--border); flex: none; }
+  .info .fav { position: relative; }
+  .info .fav.sel { outline: 2px solid #fff; outline-offset: 2px; }
+  .info div { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .info div b { display: block; font-size: 15px; }
+  .info div span, .info > span { font-size: 12px; color: var(--muted); }
+  .pill { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: transparent; white-space: nowrap; }
+  .sp { display: flex; gap: 4px; }
+  .sp img { width: 34px; height: 34px; border-radius: 7px; border: 1px solid var(--border); display: block; }
+  .go { padding: 10px 32px; border-radius: 999px; border: 0; font-weight: 700; background: #fff; color: #10131f; white-space: nowrap; transition: background .4s, color .4s, opacity .4s, transform .15s; }
+  .frame[data-phase='ban'] .go { background: var(--red); color: #fff; }
+  .go.off { opacity: .35; }
+  .go.done { background: transparent; color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); opacity: 1; }
+  .press { animation: press .3s ease-out; }
+  @keyframes press { from { transform: scale(.9); } }
+
+  /* ── Revelação dos bans ── */
+  .reveal { position: absolute; left: var(--cl); right: var(--cr); top: 150px; bottom: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 26px;
+    opacity: 0; pointer-events: none; transition: opacity .4s; }
+  .reveal.on { opacity: 1; }
+  .rv-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 14px; }
+  .rv-row > span { flex: 0 0 100%; text-align: center; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--blue); transition: opacity .3s; }
+  .rv-row.foe > span { color: var(--red); }
+  .reveal.home .rv-row > span, .reveal.home .rv label { opacity: 0; }
+  .rv { position: relative; width: clamp(76px, 6.6vw, 104px); transform-origin: 0 0; transition: transform .65s cubic-bezier(.5,0,.2,1); perspective: 600px; }
+  .rv-in { position: relative; width: 100%; aspect-ratio: 1; transform-style: preserve-3d; transition: transform .5s cubic-bezier(.4,.1,.2,1.2); }
+  .rv.up .rv-in { transform: rotateY(180deg); }
+  .rv-back, .rv-front { position: absolute; inset: 0; border-radius: 12px; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; }
+  .rv-back { display: grid; place-items: center; font-size: 34px; font-weight: 700; color: rgba(255,95,109,.5); border: 1px solid rgba(255,95,109,.35); background: #150d16; }
+  .rv-front { transform: rotateY(180deg); border: 1px solid rgba(255,95,109,.6); background: #0d1324 center/cover; }
+  .rv-img { position: absolute; inset: 0; background: center/cover; transition: filter .4s; }
+  .rv.struck .rv-img { filter: grayscale(1) brightness(.55); }
+  .rv-front::after { content: ''; position: absolute; left: -12%; right: -12%; top: 50%; height: 4px; margin-top: -2px; background: var(--red); box-shadow: 0 0 12px rgba(255,60,80,.9);
+    transform: rotate(-45deg) scaleX(0); transition: transform .22s cubic-bezier(.7,0,.3,1); }
+  .rv.struck .rv-front::after { transform: rotate(-45deg) scaleX(1); }
+  .rv svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .rv path { fill: none; stroke: rgba(255,255,255,.75); stroke-width: 1.4; stroke-linejoin: bevel; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset .35s ease-out .08s; }
+  .rv.struck path { stroke-dashoffset: 0; }
+  .rv label { display: block; margin-top: 6px; text-align: center; font-size: 12px; color: var(--muted); opacity: 0; white-space: nowrap; transition: opacity .3s; }
+  .rv.up label { opacity: 1; }
+  .shake { animation: shake .32s linear; }
+  @keyframes shake { 20% { transform: translate(-4px, 2px) rotate(-2deg); } 45% { transform: translate(4px, -2px) rotate(2deg); } 70% { transform: translate(-2px, 1px); } }
+
+  /* ── Preparação: carrossel de skins ── */
+  .finale { position: absolute; left: var(--cl); right: var(--cr); top: 132px; bottom: 90px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+    opacity: 0; transform: translateY(20px); pointer-events: none; transition: opacity .5s, transform .6s var(--ease); }
+  .frame[data-phase='final'] .finale { opacity: 1; transform: none; }
+  .car { position: relative; flex: 1; min-height: 0; width: 100%; }
+  .skin { position: absolute; left: 50%; top: 4%; height: 92%; aspect-ratio: 308/560; border-radius: 14px; overflow: hidden; border: 1px solid var(--border);
+    background: #0d1324 center top/cover; transition: transform .55s var(--ease), opacity .45s, border-color .4s; box-shadow: 0 18px 40px rgba(0,0,0,.6); }
+  .skin.cur { border-color: var(--gold); }
+  .car-nav { position: absolute; top: 50%; width: 38px; height: 38px; margin-top: -19px; border-radius: 50%; border: 1px solid var(--border); background: rgba(9,12,22,.85); display: grid; place-items: center; font-size: 18px; }
+  .car-nav.prev { left: 6px; } .car-nav.next { right: 6px; }
+  .skin-name { text-align: center; text-shadow: 0 2px 14px rgba(0,0,0,.85); }
+  .skin-name b { display: block; font-size: 22px; }
+  .skin-name span { font-size: 12px; color: var(--muted); letter-spacing: .12em; text-transform: uppercase; }
+  .dots { display: flex; gap: 6px; justify-content: center; margin-top: 6px; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.25); transition: background .3s, transform .3s; }
+  .dots i.on { background: var(--gold); transform: scale(1.4); }
+  .rune { display: flex; align-items: center; gap: 8px; }
+  .rune img { width: 40px; height: 40px; flex: none; border: 0; border-radius: 50%; background: #0d1324; }
+  .rune img.sub { width: 20px; height: 20px; margin-left: -16px; align-self: flex-end; }
+
+  /* ── Pedido de troca ── */
+  .swap { position: absolute; width: 250px; padding: 12px 14px 14px; border-radius: 14px; border: 1px solid rgba(90,160,255,.55); background: #111a33; box-shadow: 0 18px 44px rgba(0,0,0,.65);
+    opacity: 0; transform: translateX(-24px) scale(.94); transform-origin: left center; pointer-events: none; transition: opacity .35s, transform .45s cubic-bezier(.3,1.4,.5,1); overflow: hidden; }
+  .swap.on { opacity: 1; transform: none; }
+  .swap p { margin: 0 0 10px; font-size: 13px; }
+  .sw-b { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .sw-b img { width: 46px; height: 46px; border-radius: 10px; border: 1px solid var(--border); }
+  .sw-b span { font-size: 20px; color: var(--blue); }
+  .sw-b small { color: var(--muted); font-size: 12px; line-height: 1.3; }
+  .sw-a { display: flex; gap: 8px; }
+  .sw-a button { flex: 1; padding: 7px 0; border-radius: 999px; border: 1px solid var(--border); background: transparent; }
+  .sw-a button.yes { background: #fff; color: #10131f; border-color: #fff; font-weight: 600; }
+  .swap > i { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--blue); transform-origin: left; }
+  .swap.no .sw-b, .swap.no .sw-a { opacity: .3; }
+
+  /* ── Clarão do travamento ── */
+  .flash { position: absolute; inset: 0; opacity: 0; pointer-events: none; background: radial-gradient(ellipse 60% 60% at 50% 46%, #fff 0%, rgba(255,226,160,.85) 30%, rgba(255,200,110,0) 72%); }
+  .flashfx { animation: flashfx .8s ease-out; }
+  @keyframes flashfx { 0% { opacity: 0; } 16% { opacity: 1; } 100% { opacity: 0; } }
+
+  /* ── Partida encontrada ── */
+  .found { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse 55% 55% at 50% 50%, #15203d 0%, #070b16 75%); transition: opacity .6s ease, transform .8s cubic-bezier(.5,0,.2,1); }
+  .found.out { opacity: 0; transform: scale(1.5); pointer-events: none; }
+  .f-box { position: relative; width: 330px; height: 330px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .f-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(90,160,255,.3); }
+  .f-ring::before { content: ''; position: absolute; inset: -9px; border-radius: 50%; border: 2px dashed rgba(90,160,255,.45); animation: spin 14s linear infinite; }
+  .f-ring::after { content: ''; position: absolute; inset: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,.14); border-top-color: var(--blue); animation: spin 2.4s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .found.ok .f-ring { border-color: var(--gold); transition: border-color .3s; }
+  .f-burst { position: absolute; inset: 0; border-radius: 50%; border: 3px solid var(--gold); opacity: 0; }
+  .burst { animation: burst .8s ease-out; }
+  @keyframes burst { from { opacity: 1; transform: scale(.9); } to { opacity: 0; transform: scale(1.7); } }
+  .f-box small { position: relative; color: var(--muted); letter-spacing: .2em; text-transform: uppercase; font-size: 11px; }
+  .f-box b { position: relative; font-size: 28px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; margin: 6px 0 2px; line-height: 1.1; }
+  .f-box em { position: relative; font-style: normal; color: #c9d1ee; font-size: 13px; }
+  .pips { position: relative; display: flex; gap: 5px; margin: 16px 0; }
+  .pips i { width: 14px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.15); transition: background .25s, transform .25s; }
+  .pips i.on { background: #58e0a0; transform: scaleY(1.5); }
+  .accept { position: relative; padding: 9px 34px; border-radius: 999px; border: 0; background: #fff; color: #10131f; font-weight: 700; transition: background .3s, color .3s; }
+  .found.ok .accept { background: var(--gold); }
+
+  /* ── Carregando partida ── */
+  .loading { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; padding: 18px 0; background: radial-gradient(ellipse 70% 60% at 50% 50%, #101831 0%, #05070e 78%);
+    opacity: 0; pointer-events: none; transition: opacity .7s ease; }
+  .loading.on { opacity: 1; }
+  .ld-row { flex: 1; min-height: 0; display: flex; gap: 12px; justify-content: center; }
+  .ld { position: relative; height: 100%; aspect-ratio: 308/560; border-radius: 10px; overflow: hidden; border: 1px solid rgba(90,160,255,.5); background: #0d1324 center top/cover; }
+  .ld-row.foe .ld { border-color: rgba(255,95,109,.5); }
+  .ld.me { border-color: var(--gold); box-shadow: 0 0 26px -6px var(--gold); }
+  .ld span { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 8px 7px; font-size: 12px; text-align: center; background: linear-gradient(transparent, rgba(5,7,14,.95)); }
+  .ld span b { display: block; font-size: 13px; }
+  .ld-up { animation: ldUp .7s var(--ease) backwards; }
+  @keyframes ldUp { from { opacity: 0; transform: translateY(40px) scale(.94); } }
+  .ld-down { animation: ldDown .7s var(--ease) backwards; }
+  @keyframes ldDown { from { opacity: 0; transform: translateY(-40px) scale(.94); } }
+  .ld-mid { display: flex; align-items: center; gap: 16px; width: min(760px, 70%); }
+  .ld-mid b { font-size: 22px; font-weight: 800; letter-spacing: .1em; color: var(--gold); }
+  .ld-mid small { color: var(--muted); letter-spacing: .14em; text-transform: uppercase; font-size: 11px; white-space: nowrap; }
+  .prog { flex: 1; height: 3px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
+  .prog i { display: block; height: 100%; background: var(--gold); transform-origin: left; transform: scaleX(0); }
+
+  /* ── Cursor simulado ── */
+  .cursor { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; pointer-events: none; transition: transform .6s cubic-bezier(.35,.1,.2,1), opacity .3s; }
+  .cursor.on { opacity: 1; }
+  .cursor svg { position: absolute; left: -3px; top: -2px; width: 22px; height: 22px; filter: drop-shadow(0 2px 3px rgba(0,0,0,.6)); }
+  .cursor i { position: absolute; left: -16px; top: -16px; width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff; opacity: 0; }
+  .ping { animation: ping .45s ease-out; }
+  @keyframes ping { from { opacity: .9; transform: scale(.3); } to { opacity: 0; transform: scale(1.3); } }
+
+  /* ── Controles do mockup (não fazem parte da tela) ── */
+  .mock { position: fixed; left: 0; right: 0; bottom: 0; height: 46px; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: #0b0f1c; border-top: 1px solid var(--border); font-size: 12px; }
+  .mock button { height: 28px; padding: 0 11px; border-radius: 7px; border: 1px solid var(--border); background: #161c30; cursor: pointer; white-space: nowrap; }
+  .mock button[aria-pressed='true'] { background: #fff; color: #10131f; }
+  .mock .sep { width: 1px; height: 22px; background: var(--border); }
+  .track { flex: 1; display: flex; gap: 3px; min-width: 0; }
+  .track button { position: relative; overflow: hidden; padding: 0 4px; min-width: 0; text-overflow: ellipsis; background: #121728; }
+  .track button i { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: rgba(90,160,255,.35); transform-origin: left; transform: scaleX(0); }
+  .track button span { position: relative; }
+  .track button.now { border-color: var(--blue); }
+  .mock time { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 84px; text-align: right; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<!-- Ícones de rota: os mesmos desenhos de src/ui/RoleIcon.tsx (24x24, parte apagada em .35), usados com <use>. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="r-top" viewBox="0 0 24 24"><path d="M3 3h14l-3 3H6v8l-3 3z"/><path d="M10 10h4v4h-4z"/><path d="M21 7v14H7l3-3h8v-8z" opacity=".35"/></symbol>
+  <symbol id="r-bot" viewBox="0 0 24 24"><g transform="rotate(180 12 12)"><path d="M3 3h14l-3 3H6v8l-3 3z"/><path d="M10 10h4v4h-4z"/><path d="M21 7v14H7l3-3h8v-8z" opacity=".35"/></g></symbol>
+  <symbol id="r-mid" viewBox="0 0 24 24"><path d="M17 3h4v4L7 21H3v-4z"/><path d="M3 3h11l-3 3H6v5l-3 3z" opacity=".35"/><path d="M21 21H10l3-3h5v-5l3-3z" opacity=".35"/></symbol>
+  <symbol id="r-jungle" viewBox="0 0 24 24"><path d="M12 22c-2.6-5-3.4-10.4-1.6-19 2.6 6.2 3.8 12 1.6 19z"/><path d="M4.5 6c3.2 2 5.4 5.6 5.6 10.8C7 14 5 10.8 4.5 6z"/><path d="M19.5 6c-3.2 2-5.4 5.6-5.6 10.8 3.1-2.8 5.1-6 5.6-10.8z"/></symbol>
+  <symbol id="r-sup" viewBox="0 0 24 24"><path d="M9 3h6l-3 3.2z"/><path d="M12 8.2l2.6 1.6L13.1 20h-2.2L9.4 9.8z"/><path d="M2 7h6.2l1.4 3-2.2 3.2C5 13.2 3 10.4 2 7z"/><path d="M22 7h-6.2l-1.4 3 2.2 3.2c2.4 0 4.4-2.8 5.4-6.2z"/></symbol>
+  <symbol id="r-fill" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1" opacity=".35"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1" opacity=".35"/><rect x="13" y="13" width="7.5" height="7.5" rx="1"/></symbol>
+</svg>
+<div class="frame instant" id="frame" data-phase="found" data-cols="0">
+  <iframe id="map" src="cs-mapa-v2.html?embed=1" tabindex="-1" aria-hidden="true" title="Mapa"></iframe>
+  <div class="stage">
+    <div class="arts"><div class="art"></div><div class="art"></div></div>
+    <div class="foeglow"></div>
+    <div class="shade"></div>
+    <div class="slash"></div>
+    <div class="nameplate" id="np"><small id="npSub"></small><b id="npName"></b><i></i><em id="npTitle"></em></div>
+  </div>
+  <div class="heat"></div>
+  <div class="rail"></div>
+
+  <section class="team ally" id="ally"></section>
+  <section class="team foe" id="foe"></section>
+
+  <div class="head">
+    <small id="sub"></small>
+    <b id="title"></b>
+    <div class="timer"><i id="tbar"></i></div>
+    <div class="bans"><div id="bansAlly"></div><div id="bansFoe"></div></div>
+  </div>
+
+  <div class="drawer">
+    <header><span class="search" id="search">Buscar campeão</span><span class="chip on" data-role="all"><svg class="ri" viewBox="0 0 24 24" aria-hidden="true"><use href="#r-fill"/></svg>Todos</span><span class="chip"><svg class="ri" viewBox="0 0 24 24" aria-hidden="true"><use href="#r-top"/></svg>Topo</span><span class="chip"><svg class="ri" viewBox="0 0 24 24" aria-hidden="true"><use href="#r-jungle"/></svg>Selva</span><span class="chip" data-role="mid"><svg class="ri" viewBox="0 0 24 24" aria-hidden="true"><use href="#r-mid"/></svg>Meio</span><span class="chip"><svg class="ri" viewBox="0 0 24 24" aria-hidden="true"><use href="#r-bot"/></svg>Atirador</span><span class="chip"><svg class="ri" viewBox="0 0 24 24" aria-hidden="true"><use href="#r-sup"/></svg>Suporte</span></header>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="finale">
+    <div class="car" id="car"><span class="car-nav prev">‹</span><span class="car-nav next" id="carNext">›</span></div>
+    <div class="skin-name"><span>Skin</span><b id="skinName"></b><div class="dots" id="dots"></div></div>
+  </div>
+
+  <div class="bottom"><div class="info" id="info"></div><div class="sp" id="sp"></div><button class="pill" id="runes">Runas</button><button class="go" id="go"></button></div>
+
+  <div class="reveal" id="reveal"></div>
+  <div class="swap" id="swap"></div>
+  <div class="flash" id="flash"></div>
+
+  <div class="found" id="found">
+    <div class="f-box">
+      <div class="f-ring"></div><div class="f-burst" id="burst"></div>
+      <small>Ranqueada Solo/Duo</small><b>Partida<br>encontrada</b><em>Summoner's Rift · <svg class="ri" viewBox="0 0 24 24" aria-hidden="true"><use href="#r-mid"/></svg>Meio</em>
+      <div class="pips" id="pips"></div>
+      <button class="accept" id="accept">Aceitar</button>
+    </div>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="ld-row foe" id="ldFoe"></div>
+    <div class="ld-mid"><small>Carregando partida</small><div class="prog"><i id="prog"></i></div><b>VS</b><div class="prog"><i id="prog2"></i></div><small>Summoner's Rift</small></div>
+    <div class="ld-row" id="ldAlly"></div>
+  </div>
+
+  <div class="cursor" id="cursor"><i></i><svg viewBox="0 0 22 22"><path d="M3 2l15 7.5-6.4 1.9L9.6 18z" fill="#fff" stroke="#10131f" stroke-width="1.2" stroke-linejoin="round"/></svg></div>
+</div>
+
+<div class="mock" role="group" aria-label="Controles da simulação">
+  <button id="mPlay" title="Tocar ou pausar (espaço)">Pausar</button>
+  <button id="mRestart">Recomeçar</button>
+  <span class="sep"></span>
+  <button data-speed="1" aria-pressed="true">1x</button><button data-speed="2" aria-pressed="false">2x</button><button data-speed="4" aria-pressed="false">4x</button>
+  <span class="sep"></span>
+  <div class="track" id="track"></div>
+  <time id="mTime">0:00</time>
+</div>
+
+<script>
+'use strict';
+/* ───────── Dados ───────── */
+const V = '15.1.1', DD = 'https://ddragon.leagueoflegends.com/cdn/';
+const icon = (c) => DD + V + '/img/champion/' + c + '.png';
+const splash = (c, n) => DD + 'img/champion/centered/' + c + '_' + (n || 0) + '.jpg';
+const tall = (c, n) => DD + 'img/champion/loading/' + c + '_' + (n || 0) + '.jpg';
+const spell = (s) => DD + V + '/img/spell/Summoner' + s + '.png';
+// Ícone de rota: <use> do símbolo SVG (mesmo desenho do RoleIcon do app); segue a cor do texto.
+const ROLE = {}; ['top', 'jungle', 'mid', 'bot', 'sup', 'fill'].forEach((r) => { ROLE[r] = '<svg class="ri" viewBox="0 0 24 24" aria-hidden="true"><use href="#r-' + r + '"/></svg>'; });
+const ROLE_NAME = { top: 'Topo', jungle: 'Selva', mid: 'Meio', bot: 'Atirador', sup: 'Suporte' };
+const NICE = { LeeSin: 'Lee Sin', MasterYi: 'Master Yi', JarvanIV: 'Jarvan IV', Kaisa: "Kai'Sa", MissFortune: 'Miss Fortune', Leblanc: 'LeBlanc' };
+const nice = (c) => NICE[c] || c;
+const EPITHET = { Ahri: 'a Raposa de Nove Caudas', Garen: 'o Poder de Demacia', LeeSin: 'o Monge Cego', Jinx: 'o Gatilho Desenfreado', Lulu: 'a Fada Feiticeira', Thresh: 'o Guardião das Correntes',
+  Malphite: 'o Fragmento do Monólito', Vi: 'a Defensora de Piltover', Syndra: 'a Soberana Sombria', Caitlyn: 'a Xerife de Piltover', Leona: 'a Alvorada Radiante',
+  Zed: 'o Mestre das Sombras', Akali: 'a Assassina Renegada', Orianna: 'a Donzela Mecânica' };
+// Seu time na ordem de escolha (B1..B5). me = você.
+const ALLY = [
+  { name: 'Zeca', role: 'top', declare: 'Garen', ban: 'Darius', pick: 'Garen', spells: ['Flash', 'Teleport'] },
+  { name: 'Beltrano', role: 'jungle', declare: 'LeeSin', ban: 'MasterYi', pick: 'LeeSin', spells: ['Flash', 'Smite'] },
+  { name: 'Fulano', role: 'mid', declare: 'Ahri', ban: 'Zed', pick: 'Ahri', spells: ['Flash', 'Dot'], me: true },
+  { name: 'Sicrano', role: 'bot', declare: 'Jinx', ban: 'Draven', pick: 'Jinx', spells: ['Flash', 'Heal'] },
+  { name: 'Fulana', role: 'sup', declare: 'Thresh', ban: 'Blitzcrank', pick: 'Lulu', spells: ['Flash', 'Exhaust'] },
+];
+const FOE = [
+  { role: 'top', ban: 'Yasuo', pick: 'Malphite' }, { role: 'jungle', ban: 'Shaco', pick: 'Vi' }, { role: 'mid', ban: 'Teemo', pick: 'Syndra' },
+  { role: 'bot', ban: 'Vayne', pick: 'Caitlyn' }, { role: 'sup', ban: 'Pyke', pick: 'Leona' },
+];
+const ME = 2;
+const POOL = ['Aatrox', 'Ahri', 'Akali', 'Alistar', 'Amumu', 'Annie', 'Ashe', 'Blitzcrank', 'Brand', 'Braum', 'Caitlyn', 'Camille', 'Darius', 'Diana', 'Draven', 'Ekko', 'Ezreal', 'Fiora', 'Fizz', 'Galio', 'Garen', 'Gragas', 'Graves', 'Irelia', 'Janna', 'JarvanIV', 'Jax', 'Jinx', 'Kaisa', 'Karma', 'Katarina', 'LeeSin', 'Leblanc', 'Leona', 'Lulu', 'Lux', 'Malphite', 'MasterYi', 'MissFortune', 'Morgana', 'Nami', 'Nautilus', 'Orianna', 'Pyke', 'Riven', 'Sett', 'Shaco', 'Sona', 'Syndra', 'Teemo', 'Thresh', 'Vayne', 'Vi', 'Viego', 'Yasuo', 'Yone', 'Zac', 'Zed', 'Zeri', 'Ziggs', 'Zilean', 'Zoe', 'Zyra'];
+const MID = ['Ahri', 'Akali', 'Annie', 'Brand', 'Diana', 'Ekko', 'Fizz', 'Galio', 'Irelia', 'Katarina', 'Leblanc', 'Lux', 'Orianna', 'Syndra', 'Yasuo', 'Yone', 'Zed', 'Ziggs', 'Zoe'];
+const FAVS = ['Orianna', 'Ahri', 'Syndra', 'Akali', 'Zoe'];
+const SKINS = [[0, 'Ahri'], [1, 'Ahri Dinastia'], [3, 'Ahri Raposa de Fogo'], [4, 'Ahri Popstar'], [7, 'Ahri Fliperama'], [14, 'Ahri Guardiã Estelar']];
+const RUNE = DD + 'img/perk-images/Styles/Domination/Electrocute/Electrocute.png', RUNE2 = DD + 'img/perk-images/Styles/7202_Sorcery.png';
+
+/* ───────── Elementos e utilitários ───────── */
+const $ = (id) => document.getElementById(id);
+const frame = $('frame'), mapEl = $('map'), cursor = $('cursor'), grid = $('grid'), reveal = $('reveal'), swap = $('swap');
+const arts = [...frame.querySelectorAll('.art')];
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let instant = true; // aplicando passos sem movimento (ao pular de fase ou com movimento reduzido)
+// Animação de um disparo: recomeça a classe. Ao pular de fase não dispara (o estado final é o natural do elemento).
+function fx(el, cls) { if (instant || !el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* ───────── Mapa (iframe): comandos por mensagem ───────── */
+let mapReady = false, mapGL = false, mapOn = false, mapRate = -1; const mapQueue = [];
+function mapSend(m) { m.rlc = 'map'; if (mapReady) mapEl.contentWindow.postMessage(m, '*'); else mapQueue.push(m); }
+addEventListener('message', (ev) => {
+  const m = ev.data; if (!m || m.rlc !== 'map' || m.cmd !== 'ready') return;
+  mapReady = true; mapGL = m.gl; mapRate = -1; mapQueue.splice(0).forEach(mapSend);
+});
+function showMap(on) { mapOn = on; frame.classList.toggle('mapon', on); }
+
+/* ───────── Estado da tela ───────── */
+let cards, gone, sel, filter, timer, turnBars, artUrl, artIdx, skinIdx, phaseNow;
+const slot = (side, i) => $(side === 'ally' ? 'bansAlly' : 'bansFoe').children[i];
+
+function cardHtml(p, foe, i) {
+  return '<div class="c-art"></div><div class="c-veil"></div><span class="c-q">?</span><div class="c-sweep"></div>' +
+    '<span class="role">' + ROLE[p.role] + '</span>' +
+    (foe ? '' : '<span class="spells">' + p.spells.map((s) => '<i style="background-image:url(' + spell(s) + ')"></i>').join('') + '</span>') +
+    '<div class="who"><b>' + (foe ? 'Inimigo ' + (i + 1) : esc(p.name) + (p.me ? '<u>VOCÊ</u>' : '')) + '</b><em></em></div>' +
+    (foe ? '' : '<span class="intent"></span>') + '<span class="c-edge"></span><span class="c-bar"><i></i></span>';
+}
+// Volta tudo ao começo (também é a montagem inicial).
+function reset() {
+  cards = { ally: [], foe: [] }; gone = new Set(); sel = null; filter = { q: '', role: 'all' }; timer = null; turnBars = []; artUrl = ''; artIdx = 0; skinIdx = 0;
+  for (const [side, list] of [['ally', ALLY], ['foe', FOE]]) {
+    const col = $(side); col.innerHTML = '<h3>' + (side === 'ally' ? 'Seu time · lado azul' : 'Time inimigo') + '</h3>';
+    list.forEach((p, i) => { const el = document.createElement('article'); el.className = 'card'; el.dataset.state = 'empty'; el.innerHTML = cardHtml(p, side === 'foe', i); col.append(el); cards[side].push(el); });
+    $(side === 'ally' ? 'bansAlly' : 'bansFoe').innerHTML = '<i class="ban"></i>'.repeat(5);
+  }
+  frame.className = 'frame' + (instant ? ' instant' : ''); mapOn = false; swapAt = -1; frame.dataset.cols = '0'; frame.dataset.stage = 'off';
+  arts.forEach((a) => { a.className = 'art'; });
+  $('found').className = 'found'; $('accept').textContent = 'Aceitar'; $('pips').innerHTML = '<i></i>'.repeat(10);
+  $('loading').className = 'loading'; $('ldAlly').innerHTML = $('ldFoe').innerHTML = '';
+  reveal.className = 'reveal'; reveal.innerHTML = ''; swap.className = 'swap'; swap.innerHTML = '';
+  $('search').className = 'search'; $('search').textContent = 'Buscar campeão';
+  frame.querySelectorAll('.say').forEach((e) => e.remove());
+  cursor.className = 'cursor'; cursor.style.transform = 'translate3d(' + frame.clientWidth / 2 + 'px,' + frame.clientHeight * .8 + 'px,0)';
+  $('prog').style.transform = $('prog2').style.transform = '';
+  setChip('all'); renderGrid(); buildSkins(); bottom('plan'); phase('found'); head('', '');
+}
+
+function phase(p) { phaseNow = p; frame.dataset.phase = p; }
+function head(title, label, secs) {
+  if ($('title').textContent !== title) { $('title').textContent = title; fx($('title'), 'title-in'); }
+  timer = { label: label, secs: secs, start: clock }; drawTimer();
+}
+// Texto e barras do tempo (a barra do cabeçalho e a de cada cartão na vez). Um transform por quadro.
+let subText = '';
+function drawTimer() {
+  if (!timer) return;
+  let txt = timer.label, frac = 1;
+  if (timer.secs) { const left = Math.max(0, timer.secs - (clock - timer.start) / 1000); txt += ' · 0:' + String(Math.ceil(left)).padStart(2, '0'); frac = left / 30; }
+  if (txt !== subText) $('sub').textContent = subText = txt;
+  const tf = 'scaleX(' + frac.toFixed(4) + ')';
+  $('tbar').style.transform = tf; turnBars.forEach((b) => { b.style.transform = tf; });
+}
+
+/* Cartões */
+const status = (c, txt) => { c.querySelector('.who em').textContent = txt; };
+function cardArt(c, champ, cls) { const a = c.querySelector('.c-art'); a.style.backgroundImage = 'url(' + splash(champ) + ')'; fx(a, cls || 'art-in'); }
+// Aliado passa o mouse num campeão: splash apagada no cartão.
+function hover(i, champ, txt) { const c = cards.ally[i]; cardArt(c, champ); c.dataset.state = 'hover'; c.dataset.champ = champ; status(c, nice(champ) + ' · ' + (txt || 'escolhendo…')); }
+function turn(side, list) {
+  list.forEach((i) => { const c = cards[side][i]; c.classList.add('turn'); if (c.dataset.state === 'empty') status(c, 'escolhendo…'); else status(c, nice(c.dataset.champ) + ' · escolhendo…'); });
+  turnBars = [...frame.querySelectorAll('.card.turn .c-bar i')];
+}
+// Travou: cor cheia, varredura de luz, filete dourado, nome subindo. quiet = não toma o palco.
+function lock(side, i, quiet) {
+  const p = (side === 'ally' ? ALLY : FOE)[i], c = cards[side][i], champ = p.pick;
+  if (c.dataset.champ !== champ || side === 'foe') cardArt(c, champ, side === 'foe' ? 'art-foe' : 'art-in');
+  c.dataset.state = 'locked'; c.dataset.champ = champ; c.classList.remove('turn'); status(c, nice(champ));
+  fx(c, 'lockpop'); fx(c.querySelector('.c-sweep'), 'sweep'); fx(c.querySelector('.who'), 'rise');
+  turnBars = [...frame.querySelectorAll('.card.turn .c-bar i')];
+  gone.add(champ); markGrid();
+  if (!quiet) stage(champ, side === 'ally' ? 'full' : 'foefull', (side === 'ally' ? p.name : 'Inimigo ' + (i + 1)) + ' travou · ' + ROLE_NAME[p.role], true);
+}
+
+/* Palco central */
+function stage(champ, mode, sub, slam, skin) {
+  frame.dataset.stage = mode;
+  if (champ) {
+    const url = splash(champ, skin);
+    if (url !== artUrl) { artUrl = url; arts[artIdx].classList.remove('on'); artIdx ^= 1; arts[artIdx].style.backgroundImage = 'url(' + url + ')'; arts[artIdx].classList.add('on'); }
+    if (slam) fx(arts[artIdx], 'slam');
+    $('npName').textContent = nice(champ); $('npTitle').textContent = EPITHET[champ] || '';
+  } else { arts.forEach((a) => a.classList.remove('on')); artUrl = ''; }
+  $('npSub').textContent = sub || ''; fx($('np'), 'np-in');
+}
+function stageText(mode, sub, name, title) { frame.dataset.stage = mode; arts.forEach((a) => a.classList.remove('on')); artUrl = ''; $('npSub').textContent = sub; $('npName').textContent = name; $('npTitle').textContent = title || ''; fx($('np'), 'np-in'); }
+
+/* Grade */
+function renderGrid() {
+  const list = POOL.filter((c) => (!filter.q || nice(c).toLowerCase().startsWith(filter.q)) && (filter.role === 'all' || MID.includes(c)));
+  grid.innerHTML = list.map((c) => '<figure data-c="' + c + '" class="' + (gone.has(c) ? 'gone ' : '') + (c === sel ? 'sel' : '') + '"><img src="' + icon(c) + '" alt=""><figcaption>' + nice(c) + '</figcaption></figure>').join('');
+  fx(grid, 'grid-in');
+}
+function markGrid() { grid.querySelectorAll('figure').forEach((f) => { f.classList.toggle('gone', gone.has(f.dataset.c)); f.classList.toggle('sel', f.dataset.c === sel); }); }
+const cell = (c) => grid.querySelector('[data-c="' + c + '"] img');
+function setChip(role) { filter.role = role; frame.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c.dataset.role === role)); }
+function type(q) { filter.q = q; const s = $('search'); s.textContent = q; s.classList.add('typed'); renderGrid(); }
+function openDrawer(on) { frame.classList.toggle('open', on); }
+
+/* Barra de baixo */
+function info(champ, line) { $('info').innerHTML = (champ ? '<img src="' + icon(champ) + '" alt="">' : '') + '<div><b>' + (champ ? nice(champ) : line) + '</b><span>' + (champ ? line : '') + '</span></div>'; }
+function bottom(mode, champ) {
+  const go = $('go'); go.className = 'go'; $('runes').style.display = ''; $('sp').innerHTML = '';
+  if (mode === 'plan') {
+    $('info').innerHTML = '<span>Favoritos</span>' + FAVS.map((c) => '<img class="fav" data-c="' + c + '" src="' + icon(c) + '" alt="">').join(''); go.textContent = 'Declarar';
+  } else if (mode === 'ban') { info(champ, champ ? 'Banir este campeão' : 'Escolha quem banir'); go.textContent = 'Banir'; if (!champ) go.classList.add('off');
+  } else if (mode === 'wait') { info(null, champ || 'Aguardando a sua vez'); go.textContent = 'Travar'; go.classList.add('off');
+  } else {
+    $('sp').innerHTML = ALLY[ME].spells.map((s) => '<img src="' + spell(s) + '" alt="">').join('');
+    if (mode === 'pick') { info(champ, EPITHET[champ] || 'Sua vez de escolher'); go.textContent = 'Travar'; }
+    else { // final: resumo de runas e feitiços
+      $('info').innerHTML = '<div class="rune"><img src="' + RUNE + '" alt=""><img class="sub" src="' + RUNE2 + '" alt=""></div><div><b>Eletrocutar</b><span>Dominação + Feitiçaria · página "Ahri explosão"</span></div>';
+      $('runes').textContent = 'Editar runas'; go.textContent = 'Travado ✓'; go.classList.add('done');
+    }
+  }
+  if (mode !== 'final') $('runes').textContent = 'Runas';
+}
+
+/* Banimento */
+function intent(i, champ) { const c = cards.ally[i], b = c.querySelector('.intent'); b.style.backgroundImage = 'url(' + icon(champ) + ')'; b.className = 'intent on'; status(c, 'quer banir ' + nice(champ)); }
+function banLock(i) {
+  const p = ALLY[i], c = cards.ally[i]; intent(i, p.ban); c.querySelector('.intent').classList.add('locked'); status(c, 'baniu ' + nice(p.ban));
+  const s = slot('ally', i); s.style.backgroundImage = 'url(' + icon(p.ban) + ')'; s.className = 'ban known'; fx(s, 'pop');
+  gone.add(p.ban); markGrid();
+}
+function foeBanLock(i) { const s = slot('foe', i); s.className = 'ban hid'; fx(s, 'pop'); }
+function buildReveal() {
+  const row = (list, side) => '<div class="rv-row ' + side + '"><span>' + (side === 'foe' ? 'Banidos pelo inimigo' : 'Banidos pelo seu time') + '</span>' + list.map((p) =>
+    '<div class="rv"><div class="rv-in"><div class="rv-back">?</div><div class="rv-front"><div class="rv-img" style="background-image:url(' + icon(p.ban) + ')"></div>' +
+    '<svg viewBox="0 0 100 100" preserveAspectRatio="none"><path pathLength="1" d="M8 4 L30 30 L22 44 L52 58 L44 74 L72 80 L94 98"/><path pathLength="1" d="M52 58 L78 40 L96 44"/></svg></div></div><label>' + nice(p.ban) + '</label></div>').join('') + '</div>';
+  reveal.innerHTML = row(ALLY, 'ally') + row(FOE, 'foe'); reveal.className = 'reveal on';
+}
+const rv = (side, i) => reveal.querySelectorAll('.rv-row.' + side + ' .rv')[i];
+// Os cartões da revelação voam para a faixa do topo (FLIP: mede o destino e anima só o transform).
+function flyHome() {
+  reveal.classList.add('home');
+  ['ally', 'foe'].forEach((side) => { for (let i = 0; i < 5; i++) {
+    const el = rv(side, i); el.style.transform = ''; const a = el.getBoundingClientRect(), b = slot(side, i).getBoundingClientRect();
+    el.style.transform = 'translate(' + (b.left - a.left) + 'px,' + (b.top - a.top) + 'px) scale(' + (b.width / a.width) + ')';
+  } });
+}
+function bansDone() {
+  reveal.className = 'reveal';
+  [['ally', ALLY], ['foe', FOE]].forEach(([side, list]) => list.forEach((p, i) => { const s = slot(side, i); s.style.backgroundImage = 'url(' + icon(p.ban) + ')'; s.className = 'ban done'; gone.add(p.ban); }));
+  markGrid();
+}
+
+/* Skins */
+function buildSkins() {
+  const car = $('car'); car.querySelectorAll('.skin').forEach((e) => e.remove());
+  SKINS.forEach(([n]) => { const el = document.createElement('div'); el.className = 'skin'; el.style.backgroundImage = 'url(' + tall('Ahri', n) + ')'; car.insertBefore(el, car.firstChild); });
+  $('dots').innerHTML = '<i></i>'.repeat(SKINS.length);
+  setSkin(0, true);
+}
+// Carrossel: o cartão atual no centro, os vizinhos menores e apagados. Só transform e opacity.
+function setSkin(k, silent) {
+  skinIdx = k;
+  const els = [...$('car').querySelectorAll('.skin')].reverse();
+  els.forEach((el, i) => { const o = i - k, a = Math.abs(o);
+    el.style.transform = 'translateX(calc(-50% + ' + (o * 62 - Math.sign(o) * a * (a - 1) * 6) + '%)) scale(' + (1 - a * .16) + ')';
+    el.style.opacity = a > 2 ? 0 : 1 - a * .38; el.style.zIndex = 10 - a; el.classList.toggle('cur', !o); });
+  $('skinName').textContent = SKINS[k][1]; fx($('skinName'), 'rise');
+  [...$('dots').children].forEach((d, i) => d.classList.toggle('on', i === k));
+  if (!silent) stage('Ahri', 'skin', '', false, SKINS[k][0]);
+}
+
+/* Pedido de troca */
+function swapShow() {
+  swap.innerHTML = '<p><b>Fulana</b> quer trocar de campeão</p><div class="sw-b"><img src="' + icon('Ahri') + '" alt=""><span>⇄</span><img src="' + icon('Lulu') + '" alt=""><small>Você fica<br>com a Lulu</small></div>' +
+    '<div class="sw-a"><button id="swNo">Recusar</button><button class="yes">Aceitar</button></div><i id="swT"></i>';
+  const c = cards.ally[4].getBoundingClientRect(), f = frame.getBoundingClientRect();
+  swap.style.left = (c.right - f.left + 14) + 'px'; swap.style.top = (c.top - f.top - 150) + 'px';
+  swap.className = 'swap on'; swapAt = clock;
+}
+let swapAt = -1;
+function swapDecline() { swap.classList.add('no'); swap.querySelector('p').textContent = 'Troca recusada'; fx($('swNo'), 'press'); swapAt = -1; }
+
+/* Carregando */
+function buildLoading() {
+  const cardOf = (p, i, foe) => '<div class="ld ' + (p.me ? 'me ' : '') + (foe ? 'ld-down' : 'ld-up') + '" style="animation-delay:' + (.25 + i * .09 + (foe ? .3 : 0)) + 's;background-image:url(' + tall(p.pick, p.me ? SKINS[skinIdx][0] : 0) + ')"><i class="role">' + ROLE[p.role] + '</i><span><b>' + nice(p.pick) + '</b>' + (foe ? 'Inimigo ' + (i + 1) : esc(p.name)) + '</span></div>';
+  $('ldAlly').innerHTML = instant ? ALLY.map((p, i) => cardOf(p, i).replace(' ld-up', '')).join('') : ALLY.map((p, i) => cardOf(p, i)).join('');
+  $('ldFoe').innerHTML = instant ? FOE.map((p, i) => cardOf(p, i, true).replace(' ld-down', '')).join('') : FOE.map((p, i) => cardOf(p, i, true)).join('');
+  $('loading').classList.add('on');
+}
+
+/* Cursor simulado e falas */
+function cursorTo(target, ax, ay) {
+  if (!target) { cursor.classList.remove('on'); return; }
+  const el = typeof target === 'string' ? frame.querySelector(target) : target; if (!el) return;
+  const r = el.getBoundingClientRect(), f = frame.getBoundingClientRect();
+  cursor.style.transform = 'translate3d(' + Math.round(r.left - f.left + r.width * (ax == null ? .5 : ax)) + 'px,' + Math.round(r.top - f.top + r.height * (ay == null ? .6 : ay)) + 'px,0)';
+  cursor.classList.add('on');
+}
+function click(el) { fx(cursor.firstElementChild, 'ping'); if (el) fx(el, 'press'); }
+function say(i, text) {
+  if (instant) return;
+  const c = cards.ally[i].getBoundingClientRect(), f = frame.getBoundingClientRect(), el = document.createElement('div');
+  el.className = 'say'; el.innerHTML = '<b>' + esc(ALLY[i].name) + '</b>' + esc(text);
+  el.style.left = (c.right - f.left + 10) + 'px'; el.style.top = (c.top - f.top + 8) + 'px';
+  el.addEventListener('animationend', () => el.remove()); frame.append(el);
+}
+
+/* ───────── Roteiro: passos em ordem de tempo (ms) ───────── */
+const steps = [], marks = []; let T = 0;
+const at = (dt, fn) => steps.push({ t: T + dt, fn: fn });
+const wait = (ms) => { T += ms; };
+const mark = (id, label) => marks.push({ id: id, label: label, t: T });
+
+// 1 · Partida encontrada
+mark('found', 'Partida encontrada');
+for (let i = 0; i < 9; i++) at(300 + i * 140, () => $('pips').children[i].classList.add('on')); // os outros nove; o seu acende ao aceitar
+at(700, () => cursorTo('#accept'));
+at(1500, () => { click($('accept')); $('accept').textContent = 'Aceita'; $('found').classList.add('ok'); $('pips').children[9].classList.add('on'); });
+at(2000, () => { fx($('burst'), 'burst'); cursorTo(null); });
+wait(2500);
+
+// 2 · Planejamento: o mapa entra e os campeões declarados aparecem nos marcadores
+mark('plan', 'Planejamento');
+const pin = (i, label) => mapSend({ cmd: 'pin', who: i, champ: ALLY[i].declare, label: label || nice(ALLY[i].declare) });
+at(0, () => { phase('plan'); $('found').classList.add('out'); mapSend({ cmd: 'dive', on: false }); mapSend({ cmd: 'replay' }); showMap(true); head('Planejamento', 'Declare seu campeão', 26); bottom('plan'); });
+at(3900, () => pin(0));
+at(5200, () => pin(3));
+at(5400, () => cursorTo('.fav[data-c="Ahri"]'));
+at(6200, () => { click(); frame.querySelector('.fav[data-c="Ahri"]').classList.add('sel'); });
+at(6700, () => cursorTo('#go'));
+at(7400, () => { click($('go')); pin(ME); $('go').textContent = 'Declarado ✓'; $('go').classList.add('done'); });
+at(8300, () => { pin(4); cursorTo(null); });
+at(9500, () => pin(1));
+wait(11500);
+
+// 3 · Banimento: todos banem ao mesmo tempo; a tela esquenta
+mark('ban', 'Banimento');
+at(0, () => {
+  phase('ban'); showMap(false); frame.dataset.cols = '1'; head('Fase de banimento', 'Bana um campeão', 27);
+  ALLY.forEach((p, i) => hover(i, p.declare, 'intenção'));
+  sel = null; renderGrid(); openDrawer(true); bottom('ban'); stageText('ban', 'Banimento', 'Quem sai?', 'Todos banem ao mesmo tempo');
+});
+at(900, () => intent(0, 'Darius'));
+at(1300, () => cursorTo(cell('Akali')));
+at(1700, () => say(0, 'bane o Zed pfv'));
+at(2000, () => { sel = 'Akali'; markGrid(); intent(ME, 'Akali'); bottom('ban', 'Akali'); stage('Akali', 'ban', 'Banir'); });
+at(2500, () => intent(4, 'Blitzcrank'));
+at(3000, () => foeBanLock(1));
+at(3300, () => cursorTo('#search', .2));
+at(3900, () => { click(); type(''); });
+at(4200, () => type('z'));
+at(4400, () => banLock(0));
+at(4600, () => type('ze'));
+at(4900, () => intent(1, 'MasterYi'));
+at(5100, () => cursorTo(cell('Zed')));
+at(5500, () => foeBanLock(3));
+at(5800, () => { sel = 'Zed'; markGrid(); intent(ME, 'Zed'); bottom('ban', 'Zed'); stage('Zed', 'ban', 'Banir'); });
+at(6200, () => intent(3, 'Draven'));
+at(6500, () => cursorTo('#go'));
+at(7200, () => { click($('go')); banLock(ME); sel = null; openDrawer(false); stage('Zed', 'banned', 'Banido por você'); bottom('wait', 'Aguardando os outros banimentos'); $('go').textContent = 'Banido ✓'; cursorTo(null); });
+at(7600, () => banLock(4));
+at(8000, () => foeBanLock(0));
+at(8500, () => banLock(1));
+at(8900, () => foeBanLock(4));
+at(9400, () => banLock(3));
+at(9900, () => foeBanLock(2));
+wait(10500);
+
+// 4 · Revelação dos dez bans
+mark('reveal', 'Revelação');
+at(0, () => { phase('reveal'); head('Banimentos revelados', 'Estes campeões estão fora da partida'); stage(null, 'off'); buildReveal(); $('search').className = 'search'; $('search').textContent = 'Buscar campeão'; filter.q = ''; });
+const strike = (side, i) => { const el = rv(side, i); el.classList.add('struck'); fx(el, 'shake'); };
+for (let i = 0; i < 5; i++) { at(500 + i * 130, () => rv('ally', i).classList.add('up')); at(1000 + i * 130, () => strike('ally', i)); }
+for (let i = 0; i < 5; i++) { at(1800 + i * 380, () => rv('foe', i).classList.add('up')); at(2200 + i * 380, () => strike('foe', i)); }
+at(4500, flyHome);
+at(5150, bansDone);
+wait(5300);
+
+// 5 · Escolha: B1, R1-R2, B2-B3, R3-R4, B4-B5, R5
+mark('pick', 'Escolha');
+at(0, () => { phase('pick'); renderGrid(); bottom('wait'); cards.ally.forEach((c) => status(c, nice(c.dataset.champ) + ' · intenção')); head('Fase de escolha', 'Zeca está escolhendo', 27); turn('ally', [0]); stage('Garen', 'dim', 'Zeca está escolhendo · Topo'); });
+at(2300, () => lock('ally', 0));
+wait(3700);
+const foeTurn = (list) => { head('Fase de escolha', 'O inimigo está escolhendo', 27); turn('foe', list); stageText('foe', 'Time inimigo', '? ? ?', 'Só aparece quando travar'); };
+at(0, () => foeTurn([0, 1]));
+at(1600, () => lock('foe', 0));
+at(3300, () => lock('foe', 1));
+wait(4800);
+// Sua vez (com o Beltrano)
+at(0, () => { head('Fase de escolha', 'Sua vez de escolher', 27); turn('ally', [1, 2]); sel = 'Ahri'; renderGrid(); openDrawer(true); bottom('pick', 'Ahri'); stage('Ahri', 'dim', 'Sua vez · intenção'); });
+at(600, () => cursorTo('.chip[data-role="mid"]'));
+at(1200, () => { click(); setChip('mid'); renderGrid(); });
+at(1700, () => cursorTo(cell('Orianna')));
+const mine = (c) => { sel = c; markGrid(); hover(ME, c); bottom('pick', c); stage(c, 'dim', 'Sua vez · escolhendo'); };
+at(2300, () => mine('Orianna'));
+at(2900, () => lock('ally', 1, true));
+at(3500, () => cursorTo(cell('Ahri')));
+at(4100, () => mine('Ahri'));
+at(4500, () => say(4, 'boa, vai de Ahri'));
+at(5100, () => cursorTo('#go'));
+// Travar: a grade fecha, a câmera do mapa mergulha na sua rota, clarão, splash em cor cheia.
+at(5900, () => {
+  click($('go')); openDrawer(false); cursorTo(null); bottom('wait', 'Travando…');
+  if (mapGL && !reduced) { frame.dataset.stage = 'off'; showMap(true); mapSend({ cmd: 'dive', on: true }); }
+  else fx(arts[artIdx], 'divefx'); // sem WebGL: aproxima a splash no lugar do mergulho
+});
+at(7150, () => fx($('flash'), 'flashfx'));
+at(7250, () => { showMap(false); lock('ally', ME); bottom('wait', 'Ahri travada'); $('go').textContent = 'Travado ✓'; $('go').className = 'go done'; head('Fase de escolha', 'Você travou a Ahri'); });
+at(8200, () => mapSend({ cmd: 'dive', on: false }));
+wait(9600);
+at(0, () => foeTurn([2, 3]));
+at(1500, () => lock('foe', 2));
+at(3100, () => lock('foe', 3));
+wait(4600);
+at(0, () => { head('Fase de escolha', 'Sicrano e Fulana estão escolhendo', 27); turn('ally', [3, 4]); stage('Jinx', 'dim', 'Sicrano está escolhendo · Atirador'); });
+at(900, () => hover(4, 'Nautilus'));
+at(1900, () => lock('ally', 3));
+at(2700, () => { hover(4, 'Lulu'); });
+at(3300, () => stage('Lulu', 'dim', 'Fulana está escolhendo · Suporte'));
+at(4000, () => lock('ally', 4));
+wait(5200);
+at(0, () => foeTurn([4]));
+at(1700, () => lock('foe', 4));
+wait(3200);
+
+// 6 · Preparação: skins, runas e feitiços, pedido de troca, contagem
+mark('final', 'Preparação');
+const FINAL_S = 12;
+at(0, () => { phase('final'); head('Prepare-se', 'A partida começa em', FINAL_S); bottom('final'); setSkin(0); });
+at(1100, () => cursorTo('#carNext'));
+[1800, 2600, 3400].forEach((t, k) => at(t, () => { click($('carNext')); setSkin(k + 1); }));
+at(4200, swapShow);
+at(4900, () => cursorTo('#swNo'));
+at(5800, () => { click(); swapDecline(); });
+at(6500, () => swap.classList.remove('on'));
+at(6600, () => cursorTo('#carNext'));
+[7300, 8000].forEach((t, k) => at(t, () => { click($('carNext')); setSkin(k + 4); }));
+at(8700, () => cursorTo(null));
+[3, 2, 1].forEach((n) => at((FINAL_S - n) * 1000, () => { $('title').textContent = String(n); fx($('title'), 'title-in'); }));
+wait(FINAL_S * 1000);
+
+// 7 · Saída: a tela se desmonta e entra o carregamento
+mark('exit', 'Saída');
+const EXIT_S = 6.5;
+at(0, () => { phase('exit'); frame.dataset.cols = '0'; frame.dataset.stage = 'full'; $('npSub').textContent = ''; fx(arts[artIdx], 'divefx'); fx($('flash'), 'flashfx'); });
+at(700, buildLoading);
+wait(EXIT_S * 1000);
+const END = T;
+
+/* ───────── Tocador ───────── */
+let clock = 0, idx = 0, playing = true, speed = 1, lastTs = 0, rateNow = 1;
+function runSteps() { while (idx < steps.length && steps[idx].t <= clock) steps[idx++].fn(); }
+// Pular: recomeça e aplica os passos até o tempo pedido, sem transições.
+function seek(t) {
+  instant = true; frame.classList.add('instant'); clock = 0; reset(); idx = 0; clock = t; runSteps();
+  void frame.offsetWidth; instant = reduced; if (!reduced) frame.classList.remove('instant');
+  playing = true; hud();
+}
+function tick(ts) {
+  const dt = Math.min(250, ts - lastTs); lastTs = ts;
+  if (playing) { clock += dt * speed; runSteps(); if (clock >= END) { clock = END; playing = false; } }
+  drawTimer();
+  if (swapAt >= 0) { const b = $('swT'); if (b) b.style.transform = 'scaleX(' + Math.max(0, 1 - (clock - swapAt) / 4000) + ')'; }
+  if (phaseNow === 'exit') { const k = Math.min(1, Math.max(0, (clock - (END - EXIT_S * 1000) - 900) / (EXIT_S * 1000 - 1400))); $('prog').style.transform = $('prog2').style.transform = 'scaleX(' + k.toFixed(4) + ')'; }
+  // Velocidade e pausa também valem para as animações CSS em curso e para o mapa.
+  const r = playing ? speed : 0;
+  if (r !== 1 || rateNow !== 1) { document.getAnimations().forEach((a) => { if (a.playbackRate !== r) a.playbackRate = r; }); rateNow = r; }
+  const mr = mapOn ? r : 0; if (mr !== mapRate && mapReady) { mapRate = mr; mapSend({ cmd: 'rate', v: mr }); }
+  hud();
+  requestAnimationFrame(tick);
+}
+
+/* Controles do mockup */
+const track = $('track'); let hudKey = '';
+marks.forEach((m, i) => { const b = document.createElement('button'); b.innerHTML = '<i></i><span>' + m.label + '</span>'; b.style.flex = ((marks[i + 1] ? marks[i + 1].t : END) - m.t) + ' 1 0'; b.title = 'Pular para ' + m.label; b.addEventListener('click', () => seek(m.t)); track.append(b); });
+const fmt = (ms) => Math.floor(ms / 60000) + ':' + String(Math.floor(ms / 1000) % 60).padStart(2, '0');
+function hud() {
+  marks.forEach((m, i) => { const end = marks[i + 1] ? marks[i + 1].t : END, k = Math.min(1, Math.max(0, (clock - m.t) / (end - m.t))), b = track.children[i];
+    b.firstChild.style.transform = 'scaleX(' + k.toFixed(3) + ')'; });
+  const cur = marks.filter((m) => m.t <= clock).length - 1, key = cur + '|' + playing + '|' + Math.floor(clock / 1000);
+  if (key === hudKey) return; hudKey = key;
+  [...track.children].forEach((b, i) => b.classList.toggle('now', i === cur));
+  $('mPlay').textContent = clock >= END ? 'Rever' : playing ? 'Pausar' : 'Tocar';
+  $('mTime').textContent = fmt(clock) + ' / ' + fmt(END);
+}
+const toggle = () => { if (clock >= END) seek(0); else playing = !playing; };
+$('mPlay').addEventListener('click', toggle);
+$('mRestart').addEventListener('click', () => seek(0));
+addEventListener('keydown', (e) => { if (e.code === 'Space') { e.preventDefault(); toggle(); } });
+document.querySelectorAll('[data-speed]').forEach((b) => b.addEventListener('click', () => { speed = +b.dataset.speed; document.querySelectorAll('[data-speed]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
+addEventListener('resize', () => { if (phaseNow === 'final') setSkin(skinIdx, true); });
+
+// Imagens já no cache antes de aparecerem.
+[...ALLY, ...FOE].forEach((p) => { [splash(p.pick), tall(p.pick), icon(p.ban), p.declare && splash(p.declare)].forEach((u) => { if (u) new Image().src = u; }); });
+['Akali', 'Zed', 'Orianna', 'Nautilus'].forEach((c) => { new Image().src = splash(c); });
+SKINS.forEach(([n]) => { new Image().src = splash('Ahri', n); });
+
+seek(0);
+requestAnimationFrame((ts) => { lastTs = ts; tick(ts); });
+</script>
+</body>
+</html>

@@ -2,9 +2,10 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { t } from '../../i18n';
 import type { Lcu } from '../../lcu';
-import type { LolLobbyLobbyParticipantDto } from '../../lcu/types';
+import type { LolLobbyLobbyInvitationDto, LolLobbyLobbyParticipantDto } from '../../lcu/types';
 import { Rank } from '../../ui/Rank';
 import { useDecoded } from '../../ui/useDecoded';
+import { useInviteName } from './Invites';
 import { PositionIcons } from './Positions';
 
 export type Participant = LolLobbyLobbyParticipantDto;
@@ -28,6 +29,8 @@ interface ColumnProps {
   /** Rotas em alta da fila e se a fila obriga a escolher uma delas (ranqueadas). */
   scarce?: readonly string[];
   forceScarce?: boolean;
+  /** Grupo de 5: só a posição principal, como no client. */
+  primaryOnly?: boolean;
   /** Nome no lugar do nome do invocador (bots). */
   label?: string;
   /** Própria coluna: os ícones de posição abrem o seletor. */
@@ -44,7 +47,7 @@ interface ColumnProps {
   searching?: boolean;
 }
 
-export function Column({ member, profile, name, splash: splashOf, isLocal = false, showPositions = false, scarce, forceScarce, label, editPositions = false, rankQueue = null, menu, empty, slots, searching = false }: ColumnProps) {
+export function Column({ member, profile, name, splash: splashOf, isLocal = false, showPositions = false, scarce, forceScarce, primaryOnly, label, editPositions = false, rankQueue = null, menu, empty, slots, searching = false }: ColumnProps) {
   const splash = useDecoded(useSplash(member, profile, splashOf));
   const resolved = useName(member, name);
   if (!member) {
@@ -60,7 +63,7 @@ export function Column({ member, profile, name, splash: splashOf, isLocal = fals
         <span class="rlc-col-nick">{label ?? resolved}</span>
         {member.isLeader ? <span class="rlc-col-leader" title={t('leaderMark')} aria-label={t('leaderMark')}> ★</span> : null}
       </span>
-      {showPositions ? <PositionIcons first={member.firstPositionPreference} second={member.secondPositionPreference} editable={editPositions} scarce={scarce} force={forceScarce} /> : null}
+      {showPositions ? <PositionIcons first={member.firstPositionPreference} second={member.secondPositionPreference} editable={editPositions} scarce={scarce} force={forceScarce} primaryOnly={primaryOnly} /> : null}
       {member.isBot ? null : <Rank puuid={member.puuid} queue={rankQueue} />}
       {slots}
     </>
@@ -79,6 +82,17 @@ export function Column({ member, profile, name, splash: splashOf, isLocal = fals
       {splash ? <div class="rlc-col-splash" style={{ backgroundImage: `url("${splash}")` }} /> : null}
       <div class="rlc-col-info">{body}</div>
       {menu}
+    </div>
+  );
+}
+
+/** Vaga de quem foi convidado e ainda não respondeu: o nome e "Convite enviado". */
+export function Invited({ invite, name }: { invite: LolLobbyLobbyInvitationDto; name: Lcu['name'] }) {
+  const who = useInviteName(invite, name);
+  return (
+    <div class="rlc-col-invited">
+      <span class="rlc-col-nick">{who}</span>
+      <small>{t('invitePending')}</small>
     </div>
   );
 }

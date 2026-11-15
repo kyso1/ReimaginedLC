@@ -75,11 +75,13 @@ test('pós-jogo: Sair e Replay ficam à direita, fora do canto do chat da sala',
   expect(rule).toContain('justify-content: flex-end');
 });
 
-test('lobby: com o chat da sala aberto, a primeira vaga sobe (com animação); a vazia da sala personalizada também', () => {
+test('lobby: com o chat da sala aberto, as duas primeiras vagas sobem (com animação); a vazia da sala personalizada também', () => {
   const css = ALL();
   expect(css).toContain(".rlc-app[data-screen='lobby'][data-room-chat='open'] .rlc-stage:not([data-band='blue']) > .rlc-col:first-child:not([data-empty='true']) { padding-bottom: 292px; }");
   expect(css).toContain(".rlc-app[data-screen='lobby'][data-room-chat='open'] .rlc-stage[data-band='red'] > .rlc-col:first-child[data-empty='true'] { padding-bottom: 320px; }");
-  expect(css).toContain(".rlc-app[data-screen='lobby'] .rlc-stage > .rlc-col:first-child { transition: padding-bottom");
+  // O chat passa da primeira vaga: nome grande na segunda ficava embaixo dele.
+  expect(css).toContain(".rlc-app[data-screen='lobby'][data-room-chat='open'] .rlc-stage:not([data-band]) > .rlc-col:nth-child(2):not([data-empty='true']) { padding-bottom: 292px; }");
+  expect(css).toContain(".rlc-app[data-screen='lobby'] .rlc-stage > .rlc-col:nth-child(-n + 2) { transition: padding-bottom");
 });
 
 test('gaveta de amigos: aberta passa por cima da folha de modos, mas fica abaixo de menus soltos e avisos', () => {

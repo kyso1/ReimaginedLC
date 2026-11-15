@@ -304,3 +304,73 @@ test('amigo arrastado da gaveta e solto no lobby recebe convite; quem já está 
   drag('drop', 99);
   expect(invites()).toEqual([]);
 });
+
+test('convite pendente ocupa a vaga livre com o nome (pelo puuid) e "Convite enviado"; aceito ou já na sala, não', async () => {
+  const data = lobby([me, zeca]);
+  data.invitations = [
+    { invitationId: 'i1', toSummonerId: 7, toPuuid: 'p-beltrano', state: 'Pending', timestamp: '', toSummonerName: '', invitationType: 'invalid' as never },
+    { invitationId: 'i2', toSummonerId: 8, toPuuid: zeca.puuid, state: 'Pending', timestamp: '', toSummonerName: '', invitationType: 'invalid' as never },
+    { invitationId: 'i3', toSummonerId: 9, toPuuid: 'p-sicrano', state: 'Accepted', timestamp: '', toSummonerName: '', invitationType: 'invalid' as never },
+  ];
+  const lcu = withSignals({ lobby: ready(data) });
+  lcu.name = async (p) => (p === 'p-beltrano' ? 'Beltrano' : p === 'p-sicrano' ? 'Sicrano' : null);
+  mount(lcu);
+  await settle();
+  const invited = [...root.querySelectorAll('.rlc-col-invited')];
+  expect(invited).toHaveLength(1);
+  expect(invited[0]!.textContent).toBe('BeltranoConvite enviado');
+  // Convidar continua em todas as vagas livres, inclusive na do convidado.
+  expect(buttons().filter((b) => b.textContent?.includes('Convidar'))).toHaveLength(3);
+  expect(invited[0]!.parentElement!.querySelector('.rlc-col-invite')).not.toBeNull();
+  expect(root.textContent).not.toContain('Sicrano');
+});
+
+test('carta de convites na barra: todos os convidados, com reticências (esperando), ✓ (entrou) e X (recusou)', async () => {
+  const data = lobby([me, zeca]);
+  const inv = (toPuuid: string, state: string) => ({ invitationId: toPuuid, toSummonerId: 0, toPuuid, state, timestamp: '', toSummonerName: '', invitationType: 'invalid' }) as never;
+  data.invitations = [inv(me.puuid, 'Accepted'), inv('p1', 'Pending'), inv('p2', 'Pending'), inv('p3', 'Pending'), inv('p4', 'Pending'), inv('p5', 'Pending'), inv('p6', 'Accepted'), inv('p7', 'Declined')];
+  const lcu = withSignals({ lobby: ready(data) });
+  lcu.name = async (p) => `Jogador ${p}`;
+  mount(lcu);
+  const letter = btn('Convites: 7')!;
+  // Na carta, só quem ainda não respondeu.
+  expect(letter.textContent).toBe('5');
+  act(() => letter.click());
+  await settle();
+  const rows = [...root.querySelectorAll('.rlc-inv-row')];
+  expect(rows.map((r) => r.getAttribute('data-status'))).toEqual(['pending', 'pending', 'pending', 'pending', 'pending', 'joined', 'declined']);
+  expect(rows[6]!.getAttribute('aria-label')).toBe('Jogador p7 · Recusou');
+  expect(rows[0]!.querySelectorAll('.rlc-inv-dots i')).toHaveLength(3);
+});
+
+test('sem convites, sem carta', () => {
+  mount(withSignals({}));
+  expect(btn('Convites: 0')).toBeUndefined();
+  expect(root.querySelector('.rlc-inv')).toBeNull();
+});
+
+test('convidar de novo: quem recusou ou não respondeu recebe outro convite; quem entrou, não', async () => {
+  const data = lobby([me, zeca]);
+  const inv = (toPuuid: string, toSummonerId: number, state: string) => ({ invitationId: toPuuid, toSummonerId, toPuuid, state, timestamp: '', toSummonerName: '', invitationType: 'invalid' }) as never;
+  data.invitations = [inv('p1', 11, 'Declined'), inv('p2', 12, 'Pending'), inv('p3', 13, 'Accepted')];
+  const lcu = withSignals({ lobby: ready(data) });
+  lcu.name = async (p) => `Jogador ${p}`;
+  mount(lcu);
+  act(() => btn('Convites: 3')!.click());
+  await settle();
+  expect(btn('Convidar de novo: Jogador p3')).toBeUndefined();
+  act(() => btn('Convidar de novo: Jogador p1')!.click());
+  await settle();
+  const sent = fetchMock.mock.calls.filter((c) => c[0] === '/lol-lobby/v2/lobby/invitations');
+  expect(sent).toHaveLength(1);
+  expect(JSON.parse(sent[0]![1].body as string)).toEqual([{ toSummonerId: 11, toPuuid: 'p1' }]);
+});
+
+test('convidar de novo: só para quem pode convidar', async () => {
+  const data = lobby([me, zeca], zeca);
+  data.invitations = [{ invitationId: 'i', toSummonerId: 11, toPuuid: 'p1', state: 'Declined', timestamp: '', toSummonerName: '', invitationType: 'invalid' } as never];
+  mount(withSignals({ lobby: ready(data) }));
+  act(() => btn('Convites: 1')!.click());
+  await settle();
+  expect(root.querySelector('.rlc-inv-again')).toBeNull();
+});

@@ -203,3 +203,19 @@ test('pós-jogo: ações para todos os outros jogadores num menu solto (o placar
   expect([...menu.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Ver perfil', 'Convidar para jogar', 'Adicionar', 'Denunciar']);
   root.removeAttribute('id');
 });
+
+test('fim de jogo: quem do grupo já voltou para a sala e quem saiu aparecem ao lado de Jogar de novo', async () => {
+  const lcu = withValues({ endOfGame: ready(eogBlock(true)), eogParty: ready({ readyPlayers: ['p-zeca'], leftPlayers: ['p-rival'], eogPlayers: [], partySize: 3 }) });
+  lcu.name = async (p) => ({ 'p-zeca': 'Zeca', 'p-rival': 'Beltrano' })[p] ?? null;
+  act(() => render(<PostGame lcu={lcu} />, root));
+  await settle();
+  const party = root.querySelector('.rlc-pg-party')!;
+  expect(party.querySelector('[data-state="back"]')!.textContent).toBe('Já na sala:Zeca');
+  expect(party.querySelector('[data-state="left"]')!.textContent).toBe('Saiu:Beltrano');
+});
+
+test('fim de jogo sem grupo: nada de sala', async () => {
+  act(() => render(<PostGame lcu={withValues({ endOfGame: ready(eogBlock(true)), eogParty: ready({ readyPlayers: [], leftPlayers: [], eogPlayers: [], partySize: 0 }) })} />, root));
+  await settle();
+  expect(root.querySelector('.rlc-pg-party')).toBeNull();
+});

@@ -41,3 +41,10 @@ test('ranqueada: principal em alta dispensa a secundária; a escolhida em alta v
   expect(slots()).toHaveLength(1);
   expect(slots()[0]!.dataset.scarce).toBe('true');
 });
+
+test('grupo de 5: só a posição principal', () => {
+  render(<PositionIcons first="TOP" second="JUNGLE" editable={false} primaryOnly />, root);
+  expect(root.querySelectorAll('.rlc-pos-slot')).toHaveLength(1);
+  render(<PositionIcons first="TOP" second="JUNGLE" editable={false} />, root);
+  expect(root.querySelectorAll('.rlc-pos-slot')).toHaveLength(2);
+});

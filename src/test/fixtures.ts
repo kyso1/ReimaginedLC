@@ -100,6 +100,7 @@ export function fakeLcu(over: Partial<Lcu> = {}): Lcu {
     honorBallot: signal(ready<Lcu['honorBallot']['value']['data'] & object>(null)),
     honorRecognition: signal(ready([])),
     endOfGame: signal(ready<Lcu['endOfGame']['value']['data'] & object>(null)),
+    eogParty: signal(ready<Lcu['eogParty']['value']['data'] & object>(null)),
     lanes: signal(ready({})),
     gridChampions: signal(ready([])),
     chatMe: signal(ready<Lcu['chatMe']['value']['data'] & object>(null)),
@@ -136,6 +137,18 @@ export const session = (over: Partial<Session> & { actions?: ActionFixture[][] }
     trades: [], pickOrderSwaps: [], positionSwaps: [], benchEnabled: false, benchChampions: [], allowRerolling: false, rerollsRemaining: 0,
     allowSkinSelection: true, hasSimultaneousBans: false, hasSimultaneousPicks: false, ...over,
   }) as unknown as Session;
+
+/**
+ * Seleção da Arena: `teams` times de `size` jogadores com as vagas em ordem (o time é `cellId / size`), eu na vaga `me`.
+ * Como na LCU, as duas listas misturam os times: metade das vagas vem em `myTeam` (a metade onde estou) e o resto em
+ * `theirTeam`. `cells` sobrescreve vagas pelo `cellId`.
+ */
+export function arenaSession(size: number, teams: number, me = 0, over: Parameters<typeof session>[0] = {}, cells: Record<number, Partial<Cell>> = {}): Session {
+  const half = Math.ceil(teams / 2) * size;
+  const all = Array.from({ length: size * teams }, (_, i) => cell({ cellId: i, gameName: `Jogador ${i}`, team: i < half ? 1 : 2, ...cells[i] }));
+  const halves = [all.slice(0, half), all.slice(half)];
+  return session({ localPlayerCellId: me, myTeam: halves[me < half ? 0 : 1]!, theirTeam: halves[me < half ? 1 : 0]!, ...over });
+}
 
 /** Motor de temas de teste: só o necessário, com `set` substituível. */
 export function fakeThemes(active: import('@preact/signals').Signal<import('../theme/resolve').ResolvedTheme>, available: Array<{ name: string; label: string; user?: boolean }>, set: (name: string, game?: 'lol') => void): import('../theme/engine').ThemeEngine {

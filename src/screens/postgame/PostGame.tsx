@@ -195,6 +195,7 @@ export function PostGame({ lcu }: { lcu: Lcu }) {
         />
       ) : null}
       <div class="rlc-pg-actions">
+        <PartyBack lcu={lcu} />
         <button type="button" class="rlc-button" data-variant="danger" disabled={leave.pending} onClick={() => leave.run()}>
           {t('leave')}
         </button>
@@ -206,6 +207,43 @@ export function PostGame({ lcu }: { lcu: Lcu }) {
       </div>
     </section>
   );
+}
+
+/** Quem do seu grupo já voltou para a sala (e quem saiu), ao lado de Jogar de novo. Some sem grupo. */
+function PartyBack({ lcu }: { lcu: Lcu }) {
+  const party = lcu.eogParty.value.data;
+  const back = useNames(lcu, party?.readyPlayers);
+  const left = useNames(lcu, party?.leftPlayers);
+  if (!back.length && !left.length) return null;
+  return (
+    <div class="rlc-pg-party" role="status">
+      {back.length ? (
+        <span data-state="back">
+          <small>{t('pgPartyBack')}</small>
+          {back.join(', ')}
+        </span>
+      ) : null}
+      {left.length ? (
+        <span data-state="left">
+          <small>{t('pgPartyLeft')}</small>
+          {left.join(', ')}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/** Nomes (Riot ID) dos puuids, na mesma ordem; quem ainda não tem nome fica de fora. */
+function useNames(lcu: Lcu, puuids: string[] | undefined): string[] {
+  const key = (puuids ?? []).join(',');
+  const [names, setNames] = useState<string[]>([]);
+  useEffect(() => {
+    if (!key) return setNames([]);
+    let live = true;
+    void Promise.all(key.split(',').map((p) => lcu.name(p))).then((n) => live && setNames(n.filter((x): x is string => !!x)));
+    return () => void (live = false);
+  }, [key, lcu]);
+  return names;
 }
 
 /** Marcas discretas: melhor da partida (maior KDA do time vencedor) e os maiores dano, ouro e visão. */

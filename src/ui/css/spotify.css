@@ -1,7 +1,11 @@
 /* Spotify: widget "tocando agora" (no alto, ao centro) e a configuração na aba de plugins. */
-#rlc-root .rlc-sp { position: absolute; top: 20px; left: 50%; z-index: 6; transform: translateX(-50%); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; width: 340px; padding: 6px 8px 6px 6px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-bar, rgba(10, 12, 20, 0.62)); backdrop-filter: blur(var(--rlc-blur-surface)); box-shadow: 0 8px 24px var(--rlc-color-shade, rgba(0, 0, 0, 0.35)); transition: transform var(--rlc-motion-duration) var(--rlc-motion-easing); }
+/* Faixa transparente do alto da janela até o widget: o mouse que desce o widget fica no topo, na região de arrastar a
+   janela (rlc-windowbar), onde a página perde o hover; sem a faixa, o widget subia de novo e só a parte de baixo
+   aparecia, indo e voltando. */
+#rlc-root .rlc-sp-zone { position: absolute; top: 0; left: 50%; z-index: 6; padding-top: 20px; transform: translateX(-50%); transition: transform var(--rlc-motion-duration) var(--rlc-motion-easing); }
+#rlc-root .rlc-sp { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; width: 340px; padding: 6px 8px 6px 6px; border: 1px solid var(--rlc-color-border); border-radius: var(--rlc-radius-md); background: var(--rlc-color-bar, rgba(10, 12, 20, 0.62)); backdrop-filter: blur(var(--rlc-blur-surface)); box-shadow: 0 8px 24px var(--rlc-color-shade, rgba(0, 0, 0, 0.35)); }
 /* Some como a barra de tarefas: fica uma faixa de 6px no alto; passar o mouse, focar ou abrir o painel traz de volta. */
-#rlc-root .rlc-sp:not(:hover):not(:focus-within):not([data-open]) { transform: translate(-50%, calc(-100% - 14px)); }
+#rlc-root .rlc-sp-zone:not(:hover):not(:focus-within):not([data-open]) { transform: translate(-50%, calc(-100% + 6px)); }
 #rlc-root .rlc-sp-art { width: 40px; height: 40px; padding: 0; overflow: hidden; border: 0; border-radius: var(--rlc-radius-sm); background: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.05)); cursor: pointer; }
 #rlc-root .rlc-sp-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
 #rlc-root .rlc-sp-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
@@ -24,4 +28,4 @@
 #rlc-root .rlc-sp-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 #rlc-root .rlc-sp-field .rlc-input { flex: 1; min-width: 0; }
 /* Fora da região de arrastar a janela: a tira de 6 px precisa receber o mouse para descer. */
-#rlc-root .rlc-sp { -webkit-app-region: no-drag; }
+#rlc-root .rlc-sp-zone { -webkit-app-region: no-drag; }

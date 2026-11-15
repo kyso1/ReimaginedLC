@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seleção: mapa v2</title>
+<!--
+  Mockup do mapa da seleção de campeões: Summoner's Rift em 3D de verdade, num único <canvas> WebGL 1 (sem bibliotecas).
+
+  Desenho:
+  - A geometria vem de poucas listas de pontos em coordenadas 0..1000 vistas de cima (rotas, rio, selva, torres).
+    Com o canvas 2D elas viram, uma vez só, um mapa de altura + máscaras (rio, rotas, progresso da rota) + a cor do chão.
+  - O relevo é uma malha de verdade (221x221 vértices) levantada pelo mapa de altura: muros da selva com face lateral,
+    leito do rio afundado, covas do Barão/Dragão, plataforma das bases e um bloco com espessura embaixo.
+    Luz e sombra são calculadas uma vez na CPU (sombra projetada + oclusão) e guardadas em textura.
+  - Árvores, moitas, torres e nexus são malhas facetadas num buffer só; cristais giram, copas balançam (tudo no shader).
+  - Vida: água correndo, névoa de guerra se mexendo na metade inimiga, vaga-lumes, brilho dos buffs e das covas,
+    faixa de luz varrendo o mapa, pulso de energia na sua rota e anéis no chão embaixo de cada aliado.
+  - Entrada: câmera chega girando, o bloco sobe, o relevo levanta em onda a partir da sua base, a névoa recua,
+    o rio enche, as rotas se desenham da sua base até a inimiga, árvores e torres brotam, os aliados caem (você por último).
+  - Marcadores dos aliados continuam em HTML numa camada 2D (nítidos); a posição vem da mesma matriz da câmera.
+  - Lado vermelho: o mundo é o mesmo, a câmera gira 180° (sua base sempre embaixo); aliados e névoa espelham.
+
+  Por que dá para levar ao cliente:
+  - WebGL 1 puro funciona no Chromium 108 do cliente; nada de CSS novo, nada de CDN, nenhuma arte da Riot (retratos por link do Data Dragon).
+  - Custo por quadro: 3 draw calls e 5 transforms nos marcadores. Nenhum SVG/DOM grande é repintado. Texturas são geradas uma vez.
+  - prefers-reduced-motion: um quadro parado, sem entrada nem deriva de câmera.
+-->
+<style>
+  :root {
+    --bg: #060914; --text: #eef2ff; --muted: #8a93b5; --border: rgba(255,255,255,.14);
+    --blue: #5aa0ff; --red: #f0707f; --team: var(--blue);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 14px/1.35 'Segoe UI', system-ui, sans-serif; }
+  .frame { position: relative; width: 100vw; height: 100vh; min-height: 560px; overflow: hidden;
+    background: radial-gradient(ellipse 60% 55% at 52% 60%, #14213d 0%, #0a1022 45%, var(--bg) 78%); }
+  .frame[data-side='red'] { --team: var(--red); }
+
+  /* Mapa: um canvas WebGL do tamanho da tela. */
+  #rift { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #rift.in { animation: fade .7s ease-out both; }
+  @keyframes fade { from { opacity: 0; } }
+  .nogl { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: var(--muted); display: none; }
+
+  /* Contexto da tela (só para situar o mapa). */
+  .rail { position: absolute; left: 0; top: 0; bottom: 0; width: 64px; background: rgba(10,12,22,.7); border-right: 1px solid var(--border); }
+  .head { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); text-align: center; text-shadow: 0 2px 12px rgba(0,0,0,.8); }
+  .head small { display: block; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; font-size: 12px; }
+  .head b { font-size: 26px; font-weight: 700; letter-spacing: .02em; }
+  .bar { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; padding: 10px 14px;
+    border: 1px solid var(--border); border-radius: 14px; background: rgba(10,12,22,.72); backdrop-filter: blur(12px); }
+  .pill { padding: 8px 16px; border: 1px solid var(--border); border-radius: 999px; color: var(--text); background: transparent; font: inherit; }
+  .pill.primary { background: #fff; color: #10131f; font-weight: 600; }
+  .side { position: absolute; left: 50%; top: 92px; transform: translateX(-50%); margin: 0; padding: 6px 16px; border-radius: 999px; border: 1px solid var(--border);
+    background: rgba(10,12,22,.7); color: var(--team); letter-spacing: .1em; font-size: 12px; text-transform: uppercase; }
+
+  /* Marcadores: camada 2D por cima do canvas. O JS só muda o transform do .pin (ponto do chão na tela). */
+  .pins { position: absolute; inset: 0; pointer-events: none; font-size: clamp(10px, 1.45vh, 13px); }
+  .pin { position: absolute; left: 0; top: 0; will-change: transform; }
+  .pin-in { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%); opacity: 0; }
+  .pin.on .pin-in { opacity: 1; animation: drop .55s cubic-bezier(.3,1.5,.5,1) both; }
+  @keyframes drop { from { transform: translate(-50%, calc(-100% - 70px)); opacity: 0; } 60% { opacity: 1; } }
+  .face { position: relative; width: 4em; height: 4em; border-radius: 50%; border: 2px solid var(--team); background: #0b1324 center/cover;
+    box-shadow: 0 0 0 3px rgba(6,9,20,.75), 0 8px 18px rgba(0,0,0,.7); }
+  .face.empty { display: grid; place-items: center; color: var(--muted); font-size: 1.5em; width: 2.67em; height: 2.67em; border-color: transparent; background: rgba(11,19,36,.85); }
+  .face.empty::before { content: ''; position: absolute; inset: -2px; border-radius: 50%; border: 2px dashed var(--team); animation: spin 9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .role { position: absolute; right: -.6em; bottom: -.4em; width: 2.1em; height: 2.1em; border-radius: 50%; background: #0b1324; border: 1px solid var(--border);
+    display: grid; place-items: center; font-size: .85em; color: var(--text); }
+  .face.empty .role { font-size: .57em; }
+  .ri { width: 1.45em; height: 1.45em; fill: currentColor; display: block; }
+  .tag { margin-top: .5em; padding: .15em .75em; border-radius: 999px; background: rgba(8,12,22,.9); border: 1px solid var(--border); white-space: nowrap; }
+  .tag i { font-style: normal; color: var(--muted); }
+  .tag u { text-decoration: none; margin-left: .5em; padding: 0 .5em; border-radius: 999px; background: #fff; color: #10131f; font-size: .8em; font-weight: 700; letter-spacing: .06em; }
+  .stem { width: 2px; height: var(--stem, 24px); background: linear-gradient(var(--team), transparent); }
+  .pin.me .face { width: 4.6em; height: 4.6em; border-color: #fff; box-shadow: 0 0 0 3px rgba(6,9,20,.75), 0 0 22px rgba(255,236,190,.55), 0 8px 18px rgba(0,0,0,.7); }
+  .pin.me .face::after { content: ''; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid rgba(255,255,255,.6); animation: pulse 1.8s ease-out infinite; }
+  @keyframes pulse { to { transform: scale(1.5); opacity: 0; } }
+  .pin.me .tag { border-color: rgba(255,255,255,.5); }
+  .pin.me .stem { background: linear-gradient(#fff, transparent); }
+
+  /* Controles do mockup (não fazem parte da tela). */
+  .mock { position: fixed; right: 14px; top: 14px; display: flex; gap: 6px; z-index: 5000; }
+  .mock button { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); background: #161c30; color: var(--text); font: inherit; font-size: 12px; cursor: pointer; }
+  .mock button[aria-pressed='true'] { background: #fff; color: #10131f; }
+  /* Modo embutido (?embed=1): só o mapa e os marcadores, fundo transparente; quem embute desenha o resto. */
+  .embed, .embed body, .embed .frame { background: transparent; }
+  .embed .rail, .embed .head, .embed .bar, .embed .side, .embed .mock { display: none; }
+  .embed .pins { transition: opacity .25s; }
+  .embed .pins.dive { opacity: 0; }
+  .embed .face.pop { animation: pop .5s cubic-bezier(.3,1.5,.5,1); }
+  @keyframes pop { from { transform: scale(.4); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } }
+</style>
+</head>
+<body>
+<!-- Ícones de rota: os mesmos desenhos de src/ui/RoleIcon.tsx (24x24, parte apagada em .35), usados com <use>. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="r-top" viewBox="0 0 24 24"><path d="M3 3h14l-3 3H6v8l-3 3z"/><path d="M10 10h4v4h-4z"/><path d="M21 7v14H7l3-3h8v-8z" opacity=".35"/></symbol>
+  <symbol id="r-bot" viewBox="0 0 24 24"><g transform="rotate(180 12 12)"><path d="M3 3h14l-3 3H6v8l-3 3z"/><path d="M10 10h4v4h-4z"/><path d="M21 7v14H7l3-3h8v-8z" opacity=".35"/></g></symbol>
+  <symbol id="r-mid" viewBox="0 0 24 24"><path d="M17 3h4v4L7 21H3v-4z"/><path d="M3 3h11l-3 3H6v5l-3 3z" opacity=".35"/><path d="M21 21H10l3-3h5v-5l3-3z" opacity=".35"/></symbol>
+  <symbol id="r-jungle" viewBox="0 0 24 24"><path d="M12 22c-2.6-5-3.4-10.4-1.6-19 2.6 6.2 3.8 12 1.6 19z"/><path d="M4.5 6c3.2 2 5.4 5.6 5.6 10.8C7 14 5 10.8 4.5 6z"/><path d="M19.5 6c-3.2 2-5.4 5.6-5.6 10.8 3.1-2.8 5.1-6 5.6-10.8z"/></symbol>
+  <symbol id="r-sup" viewBox="0 0 24 24"><path d="M9 3h6l-3 3.2z"/><path d="M12 8.2l2.6 1.6L13.1 20h-2.2L9.4 9.8z"/><path d="M2 7h6.2l1.4 3-2.2 3.2C5 13.2 3 10.4 2 7z"/><path d="M22 7h-6.2l-1.4 3 2.2 3.2c2.4 0 4.4-2.8 5.4-6.2z"/></symbol>
+  <symbol id="r-fill" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1" opacity=".35"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1" opacity=".35"/><rect x="13" y="13" width="7.5" height="7.5" rx="1"/></symbol>
+</svg>
+<div class="frame" data-side="blue">
+  <canvas id="rift" class="in" aria-hidden="true"></canvas>
+  <p class="nogl">WebGL indisponível: aqui entraria o mapa plano.</p>
+  <div class="rail"></div>
+  <div class="head"><small>Declare seu campeão · 0:24</small><b>Planejamento</b></div>
+
+  <div class="pins">
+    <div class="pin" data-who="0" style="--stem:24px"><div class="pin-in"><div class="face" style="background-image:url(https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Garen.png)"><span class="role"><svg class="ri" viewBox="0 0 24 24" aria-hidden="true"><use href="#r-top"/></svg></span></div><span class="tag">Zeca <i>· Garen</i></span><div class="stem"></div></div></div>
+    <div class="pin" data-who="1" style="--stem:38px"><div class="pin-in"><div class="face empty">?<span class="role"><svg class="ri" viewBox="0 0 24 24" aria-hidden="true"><use href="#r-jungle"/></svg></span></div><span class="tag">Beltrano <i>· escolhendo…</i></span><div class="stem"></div></div></div>
+    <div class="pin me" data-who="2" style="--stem:28px"><div class="pin-in"><div class="face" style="background-image:url(https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Ahri.png)"><span class="role"><svg class="ri" viewBox="0 0 24 24" aria-hidden="true"><use href="#r-mid"/></svg></span></div><span class="tag">Fulano <i>· Ahri</i><u>VOCÊ</u></span><div class="stem"></div></div></div>
+    <div class="pin" data-who="3" style="--stem:24px"><div class="pin-in"><div class="face" style="background-image:url(https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Jinx.png)"><span class="role"><svg class="ri" viewBox="0 0 24 24" aria-hidden="true"><use href="#r-bot"/></svg></span></div><span class="tag">Sicrano <i>· Jinx</i></span><div class="stem"></div></div></div>
+    <div class="pin" data-who="4" style="--stem:34px"><div class="pin-in"><div class="face empty">?<span class="role"><svg class="ri" viewBox="0 0 24 24" aria-hidden="true"><use href="#r-sup"/></svg></span></div><span class="tag">Fulana <i>· escolhendo…</i></span><div class="stem"></div></div></div>
+  </div>
+  <p class="side">Lado azul</p>
+  <div class="bar"><button class="pill">Runas</button><button class="pill">Mostrar campeões</button><button class="pill primary">Declarar</button></div>
+</div>
+
+<div class="mock" role="group" aria-label="Lado">
+  <button aria-pressed="true" onclick="side('blue', this)">Lado azul</button>
+  <button aria-pressed="false" onclick="side('red', this)">Lado vermelho</button>
+  <button onclick="replay()">Rever entrada</button>
+</div>
+<script>
+'use strict';
+const frame = document.querySelector('.frame');
+const canvas = document.getElementById('rift');
+const pins = [...document.querySelectorAll('.pin')];
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Modo embutido: a simulação da seleção (cs-picks-ban.html) carrega este arquivo num iframe e comanda por postMessage.
+const EMBED = /[?&]embed=1/.test(location.search);
+if (EMBED) document.documentElement.classList.add('embed');
+let vnow = performance.now(), lastNow = -1, rate = 1, running = true; // relógio virtual (pausa e velocidade), só no modo embutido
+let diveT = -1;                                                         // início do mergulho na rota do jogador (s), -1 = sem mergulho
+const DIVE_S = 1.3;
+
+/* ───────── Geometria do mapa (0..1000 visto de cima; x → direita, y → baixo; base azul embaixo à esquerda) ───────── */
+// O mapa tem simetria: um quadrante de selva descrito uma vez vira os quatro.
+const Q = [(x, y) => [x, y], (x, y) => [1000 - y, 1000 - x], (x, y) => [1000 - x, 1000 - y], (x, y) => [y, x]];
+const JUNGLE = [[150, 240], [150, 770], [430, 512]];
+const TRAILS = [[[100, 420], [190, 455], [232, 482], [300, 560], [342, 668]], [[292, 298], [245, 400], [232, 482], [212, 600], [212, 640], [185, 762]], [[300, 590], [402, 452]]];
+const CAMPS = [[232, 482, 36], [300, 590, 26], [212, 640, 26]]; // o primeiro é o buff
+const BRUSH = [[58, 360], [58, 540], [119, 300]];
+const RIVER = 'M 120 120 C 260 230 380 380 500 500 S 760 770 880 880';
+const PITS = [[365, 268], [635, 732]]; // Barão (em cima), Dragão (embaixo)
+// Torres do azul: 3 por rota + 2 do nexus. As do vermelho são o giro de 180°.
+const TOWERS = [[88, 330], [88, 560], [88, 730], [670, 912], [440, 912], [270, 912], [400, 600], [320, 680], [250, 750], [140, 830], [170, 860]];
+const NEXUS = [110, 890];
+// Aliados (lado azul): topo, selva, meio (você), atirador, suporte.
+const ALLIES = [[88, 280], [238, 486], [440, 560], [560, 912], [886, 886]];
+const ME = 2;
+
+// Rota amostrada em pontos, da base azul até a vermelha. Topo e baixo seguem as bordas.
+function lane(which) {
+  const P = [];
+  const L = (x0, y0, x1, y1, n) => { for (let i = 0; i <= n; i++) P.push([x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n]); };
+  if (which === 'mid') { L(170, 830, 830, 170, 60); return P; }
+  L(88, 820, 88, 180, 40);
+  for (let i = 1; i < 14; i++) { const t = i / 14, u = 1 - t; P.push([u * u * 88 + 2 * u * t * 88 + t * t * 180, u * u * 180 + 2 * u * t * 88 + t * t * 88]); }
+  L(180, 88, 820, 88, 40);
+  return which === 'bot' ? P.map(([x, y]) => Q[1](x, y)) : P;
+}
+const LANES = { top: lane('top'), mid: lane('mid'), bot: lane('bot') };
+const MY_LANE = 'mid';
+
+/* ───────── Texturas geradas no canvas 2D (uma vez) ───────── */
+const S = 512; // lado das máscaras
+function cv(n) { const c = document.createElement('canvas'); c.width = c.height = n; const x = c.getContext('2d'); x.scale(n / 1000, n / 1000); x.lineJoin = x.lineCap = 'round'; return x; }
+function path(c, pts, close) { c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); if (close) c.closePath(); }
+function disc(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, 7); }
+// Canal vermelho do canvas, com desfoque opcional, como Float32Array.
+function chan(src, blur) {
+  const c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d');
+  if (blur) x.filter = 'blur(' + blur + 'px)';
+  x.drawImage(src.canvas, 0, 0, S, S);
+  const d = x.getImageData(0, 0, S, S).data, o = new Float32Array(S * S);
+  for (let i = 0; i < S * S; i++) o[i] = d[i * 4];
+  return o;
+}
+const gray = (v) => 'rgb(' + v + ',' + v + ',' + v + ')';
+// Desenha a mesma forma nos quatro quadrantes.
+function quads(fn) { Q.forEach((q, i) => fn((pts) => pts.map((p) => q(p[0], p[1])), i)); }
+
+// Altura: cinza 64 = chão; cada unidade de cinza = 0,5 de altura.
+const hc = cv(S);
+hc.fillStyle = gray(64); hc.fillRect(0, 0, 1000, 1000);
+quads((q) => { path(hc, q(JUNGLE), true); hc.fillStyle = hc.strokeStyle = gray(152); hc.lineWidth = 30; hc.fill(); hc.stroke(); });
+quads((q) => {
+  hc.strokeStyle = hc.fillStyle = gray(64); hc.lineWidth = 34;
+  TRAILS.forEach((t) => { path(hc, q(t)); hc.stroke(); });
+  CAMPS.forEach((cmp) => { const [p] = q([cmp]); disc(hc, p[0], p[1], cmp[2]); hc.fill(); });
+});
+hc.strokeStyle = gray(64); hc.lineWidth = 46;
+Object.values(LANES).forEach((l) => { path(hc, l); hc.stroke(); });
+hc.strokeStyle = gray(40); hc.lineWidth = 68; hc.stroke(new Path2D(RIVER));
+hc.fillStyle = gray(34); PITS.forEach(([x, y]) => { disc(hc, x, y, 44); hc.fill(); });
+hc.fillStyle = gray(74); disc(hc, 0, 1000, 205); hc.fill(); disc(hc, 1000, 0, 205); hc.fill();
+hc.strokeStyle = gray(118); hc.lineWidth = 40; hc.lineJoin = 'miter'; hc.strokeRect(20, 20, 960, 960);
+
+// Ruído de valor simples (mesma ideia do shader), para dar irregularidade ao relevo.
+const hsh = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
+function vnoise(x, y) {
+  const i = Math.floor(x), j = Math.floor(y); let f = x - i, g = y - j; f = f * f * (3 - 2 * f); g = g * g * (3 - 2 * g);
+  const a = hsh(i, j), b = hsh(i + 1, j), c = hsh(i, j + 1), d = hsh(i + 1, j + 1);
+  return a + (b - a) * f + (c - a) * g + (a - b - c + d) * f * g;
+}
+const H = chan(hc, 2), HB = chan(hc, 8);
+for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) {
+  const k = j * S + i; let h = (H[k] - 64) * 0.5; HB[k] = (HB[k] - 64) * 0.5;
+  if (h > 6) h += (vnoise(i * 0.09, j * 0.09) - 0.5) * 14 * Math.min(1, (h - 6) / 20); // topo dos muros irregular
+  H[k] = h + (vnoise(i * 0.025, j * 0.025) - 0.5) * 3;
+}
+// Altura do terreno num ponto do mapa (bilinear).
+function hAt(x, z) {
+  const fx = Math.min(S - 1.001, Math.max(0, x * S / 1000 - 0.5)), fz = Math.min(S - 1.001, Math.max(0, z * S / 1000 - 0.5));
+  const i = fx | 0, j = fz | 0, a = fx - i, b = fz - j, k = j * S + i;
+  return (H[k] * (1 - a) + H[k + 1] * a) * (1 - b) + (H[k + S] * (1 - a) + H[k + S + 1] * a) * b;
+}
+
+// Máscaras: R rio, G rotas, B progresso ao longo da rota (da base azul), A a rota do jogador.
+const mk = () => { const c = cv(S); c.fillStyle = '#000'; c.fillRect(0, 0, 1000, 1000); c.strokeStyle = '#fff'; return c; };
+const cRiver = mk(); cRiver.lineWidth = 64; cRiver.stroke(new Path2D(RIVER));
+const cLane = mk(); cLane.lineWidth = 34; Object.values(LANES).forEach((l) => { path(cLane, l); cLane.stroke(); });
+const cMine = mk(); cMine.lineWidth = 34; path(cMine, LANES[MY_LANE]); cMine.stroke();
+const cProg = mk(); cProg.lineWidth = 64;
+Object.values(LANES).forEach((l) => { for (let i = l.length - 1; i > 0; i--) { cProg.strokeStyle = gray(Math.round(26 + 229 * i / (l.length - 1))); path(cProg, [l[i - 1], l[i]]); cProg.stroke(); } });
+const mR = chan(cRiver, 2), mG = chan(cLane, 1.2), mB = chan(cProg, 0), mA = chan(cMine, 1.2);
+const texMdata = new Uint8Array(S * S * 4);
+for (let i = 0; i < S * S; i++) { texMdata[i * 4] = mR[i]; texMdata[i * 4 + 1] = mG[i]; texMdata[i * 4 + 2] = mB[i]; texMdata[i * 4 + 3] = mA[i]; }
+
+// Cor do chão (rotas e água entram no shader pelas máscaras).
+const ac = cv(1024);
+{
+  const g = ac.createRadialGradient(500, 500, 60, 500, 500, 720); g.addColorStop(0, '#2c4a30'); g.addColorStop(1, '#172b1d');
+  ac.fillStyle = g; ac.fillRect(0, 0, 1000, 1000);
+  quads((q) => { path(ac, q(JUNGLE), true); ac.fillStyle = ac.strokeStyle = '#1f4a2b'; ac.lineWidth = 30; ac.fill(); ac.stroke(); });
+  ac.strokeStyle = '#1d4229'; ac.lineWidth = 40; ac.strokeRect(20, 20, 960, 960);
+  quads((q, i) => {
+    ac.strokeStyle = '#4b422d'; ac.lineWidth = 26;
+    TRAILS.forEach((t) => { path(ac, q(t)); ac.stroke(); });
+    CAMPS.forEach((cmp, k) => {
+      const [p] = q([cmp]);
+      disc(ac, p[0], p[1], cmp[2] - 2); ac.fillStyle = '#3d3a29'; ac.fill();
+      disc(ac, p[0], p[1], cmp[2] * 0.55); ac.lineWidth = 3; ac.strokeStyle = k ? 'rgba(190,220,150,.45)' : (i % 2 ? 'rgba(255,120,100,.8)' : 'rgba(110,170,255,.8)'); ac.stroke();
+    });
+  });
+  PITS.forEach(([x, y], i) => { disc(ac, x, y, 44); ac.fillStyle = '#17131f'; ac.fill(); disc(ac, x, y, 26); ac.lineWidth = 4; ac.strokeStyle = i ? 'rgba(255,150,60,.7)' : 'rgba(180,110,255,.7)'; ac.stroke(); });
+  // Bases: pedra com anéis na cor do time.
+  [[0, 1000, '90,160,255'], [1000, 0, '240,112,127']].forEach(([x, y, rgb]) => {
+    const b = ac.createRadialGradient(x, y, 20, x, y, 205); b.addColorStop(0, 'rgb(' + rgb + ')'); b.addColorStop(0.35, '#4a5673'); b.addColorStop(1, '#2b3347');
+    disc(ac, x, y, 203); ac.fillStyle = b; ac.fill();
+    ac.lineWidth = 3; [200, 150, 96].forEach((r) => { disc(ac, x, y, r); ac.strokeStyle = 'rgba(' + rgb + ',.55)'; ac.stroke(); });
+  });
+  // Pedestais das torres.
+  TOWERS.forEach(([x, y]) => [[x, y], [1000 - x, 1000 - y]].forEach(([a, b]) => { disc(ac, a, b, 21); ac.fillStyle = '#3c4254'; ac.fill(); }));
+  // Salpicos para o chão não ficar liso.
+  for (let i = 0; i < 7000; i++) { ac.fillStyle = i % 2 ? 'rgba(255,255,220,.035)' : 'rgba(0,0,0,.07)'; disc(ac, hsh(i, 1) * 1000, hsh(i, 2) * 1000, 2 + hsh(i, 3) * 6); ac.fill(); }
+}
+
+/* ───────── Objetos em pé: árvores, moitas, torres, nexus (um buffer só) ───────── */
+const MV = []; // por vértice: posição local 3, âncora 3, normal 3, cor 3, tipo 1 (0 pedra, 1 planta que balança, 2 cristal)
+function tri(b, k, A, B, C, cA, cB, cC, o) {
+  let nx = (B[1] - A[1]) * (C[2] - A[2]) - (B[2] - A[2]) * (C[1] - A[1]), ny = (B[2] - A[2]) * (C[0] - A[0]) - (B[0] - A[0]) * (C[2] - A[2]), nz = (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]);
+  const l = Math.hypot(nx, ny, nz); if (!l) return;
+  nx /= l; ny /= l; nz /= l;
+  if (nx * o[0] + ny * o[1] + nz * o[2] < 0) { nx = -nx; ny = -ny; nz = -nz; } // normal sempre para fora
+  [[A, cA], [B, cB], [C, cC]].forEach(([P, c]) => MV.push(P[0], P[1], P[2], b[0], b[1], b[2], nx, ny, nz, c[0], c[1], c[2], k));
+}
+// Tronco de cone facetado (r1 = 0 vira cone; r0 = 0 vira cone invertido).
+function cone(b, k, n, r0, y0, r1, y1, c0, c1, cap) {
+  for (let i = 0; i < n; i++) {
+    const a0 = i / n * 6.2832, a1 = (i + 1) / n * 6.2832, am = (a0 + a1) / 2, o = [Math.cos(am), 0.3, Math.sin(am)];
+    const p0 = [Math.cos(a0) * r0, y0, Math.sin(a0) * r0], p1 = [Math.cos(a1) * r0, y0, Math.sin(a1) * r0], p2 = [Math.cos(a1) * r1, y1, Math.sin(a1) * r1], p3 = [Math.cos(a0) * r1, y1, Math.sin(a0) * r1];
+    tri(b, k, p0, p1, p2, c0, c0, c1, o); tri(b, k, p0, p2, p3, c0, c1, c1, o);
+    if (cap) tri(b, k, [0, y1, 0], p3, p2, c1, c1, c1, [0, 1, 0]);
+  }
+}
+const mulc = (c, f) => [c[0] * f, c[1] * f, c[2] * f];
+const BLUE = [0.36, 0.63, 1], RED = [0.95, 0.42, 0.48];
+const shadows = []; // [x, z, comprimento, largura] para a sombra projetada
+let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+
+// Árvores no topo dos muros e da borda.
+const trees = [];
+for (let i = 0; i < 9000 && trees.length < 900; i++) {
+  const x = 8 + rnd() * 984, z = 8 + rnd() * 984, h = hAt(x, z);
+  if (h < 20 || hAt(x + 13, z) < 17 || hAt(x - 13, z) < 17 || hAt(x, z + 13) < 17 || hAt(x, z - 13) < 17) continue;
+  if (trees.some((t) => Math.hypot(t[0] - x, t[1] - z) < 27)) continue;
+  trees.push([x, z]);
+  const rim = x < 44 || x > 956 || z < 44 || z > 956, s = rim ? 0.45 + rnd() * 0.15 : 0.55 + rnd() * 0.35, b = [x, h - 1, z];
+  const v = 0.8 + rnd() * 0.45, dark = mulc([0.05, 0.19, 0.12], v), lite = mulc([0.2 + rnd() * 0.1, 0.46, 0.22], v);
+  cone(b, 1, 5, 3 * s, 0, 2.4 * s, 10 * s, [0.2, 0.14, 0.1], [0.24, 0.17, 0.11]);
+  if (rnd() < 0.72) { cone(b, 1, 6, 15 * s, 8 * s, 0, 30 * s, dark, lite); cone(b, 1, 6, 12 * s, 21 * s, 0, 43 * s, dark, lite); cone(b, 1, 6, 8 * s, 34 * s, 0, 56 * s, dark, lite); }
+  else { cone(b, 1, 6, 8 * s, 9 * s, 15 * s, 24 * s, dark, mulc(lite, 0.8)); cone(b, 1, 6, 15 * s, 24 * s, 0, 44 * s, mulc(lite, 0.8), mulc(lite, 1.15)); }
+  shadows.push([x, z, 34 * s, 22 * s]);
+}
+// Moitas (mato das rotas), três por ponto.
+quads((q) => q(BRUSH).forEach(([x, z]) => [[0, 0], [15, 9], [-8, 16]].forEach(([dx, dz]) => {
+  const b = [x + dx, hAt(x + dx, z + dz), z + dz], s = 0.85 + rnd() * 0.4;
+  cone(b, 1, 6, 9 * s, 0, 13 * s, 8 * s, [0.1, 0.3, 0.14], [0.2, 0.5, 0.22]); cone(b, 1, 6, 13 * s, 8 * s, 0, 19 * s, [0.2, 0.5, 0.22], [0.36, 0.66, 0.3]);
+})));
+// Torres e nexus.
+const glows = []; // brilhos dos cristais: [x, y, z, cor, tamanho]
+function tower(x, z, team) {
+  const b = [x, hAt(x, z), z], st = [0.42 + team[0] * 0.14, 0.45 + team[1] * 0.14, 0.52 + team[2] * 0.14];
+  cone(b, 0, 6, 18, 0, 15, 8, mulc(st, 0.55), mulc(st, 0.7), true);
+  cone(b, 0, 6, 11, 8, 7.5, 58, mulc(st, 0.75), st);
+  cone(b, 0, 6, 12, 58, 12, 65, team, mulc(team, 0.8), true);
+  cone(b, 2, 4, 0, 72, 9, 88, mulc(team, 0.8), team); cone(b, 2, 4, 9, 88, 0, 104, team, mulc(team, 1.3));
+  shadows.push([x, z, 70, 20]); glows.push([x, b[1] + 88, z, team, 70]);
+}
+function nexus(x, z, team) {
+  const b = [x, hAt(x, z), z], st = [0.36, 0.4, 0.5];
+  cone(b, 0, 8, 38, 0, 34, 9, mulc(st, 0.6), st, true);
+  cone(b, 0, 8, 22, 9, 17, 18, mulc(team, 0.5), mulc(team, 0.75), true);
+  cone(b, 2, 4, 0, 30, 20, 62, mulc(team, 0.8), team); cone(b, 2, 4, 20, 62, 0, 100, team, mulc(team, 1.35));
+  shadows.push([x, z, 80, 40]); glows.push([x, b[1] + 64, z, team, 190]);
+}
+TOWERS.forEach(([x, z]) => { tower(x, z, BLUE); tower(1000 - x, 1000 - z, RED); });
+nexus(NEXUS[0], NEXUS[1], BLUE); nexus(1000 - NEXUS[0], 1000 - NEXUS[1], RED);
+
+/* ───────── Luz e sombra calculadas na CPU: R,G normal; B luz (sombra projetada × oclusão); A altura ───────── */
+const LIGHT = (() => { const l = Math.hypot(0.247, 0.75, 0.742); return [-0.247 / l, 0.75 / l, -0.742 / l]; })(); // lado azul; o vermelho inverte x/z
+const texNdata = new Uint8Array(S * S * 4);
+function bake(sd) {
+  const lx = LIGHT[0] * sd, lz = LIGHT[2] * sd, hl = Math.hypot(lx, lz), dx = lx / hl, dz = lz / hl, up = LIGHT[1] / hl * (1000 / S);
+  // Sombras de árvores e torres: traços na direção contrária à luz.
+  const sc = mk(); sc.strokeStyle = 'rgba(255,255,255,.75)';
+  shadows.forEach(([x, z, len, w]) => { sc.lineWidth = w; path(sc, [[x, z], [x - dx * len, z - dz * len]]); sc.stroke(); });
+  const blob = chan(sc, 1.6), u = 1000 / S;
+  for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) {
+    const k = j * S + i, h0 = H[k];
+    let sh = 1;
+    for (let s = 1; s < 36; s++) {
+      const x = (i + dx * s + 0.5) | 0, z = (j + dz * s + 0.5) | 0, ray = h0 + s * up;
+      if (x < 0 || z < 0 || x >= S || z >= S || ray > 62) break;
+      const o = H[z * S + x] - ray;
+      if (o > 0) { sh = Math.min(sh, 1 - o / 7); if (sh <= 0) { sh = 0; break; } }
+    }
+    const ao = 1 - Math.min(1, Math.max(0, (HB[k] - h0) / 24)) * 0.45;
+    const i0 = Math.max(i - 1, 0), i1 = Math.min(i + 1, S - 1), j0 = Math.max(j - 1, 0), j1 = Math.min(j + 1, S - 1);
+    let nx = -(H[j * S + i1] - H[j * S + i0]) / ((i1 - i0) * u), nz = -(H[j1 * S + i] - H[j0 * S + i]) / ((j1 - j0) * u);
+    const nl = Math.hypot(nx, 1, nz); nx /= nl; nz /= nl;
+    texNdata[k * 4] = (nx * 0.5 + 0.5) * 255; texNdata[k * 4 + 1] = (nz * 0.5 + 0.5) * 255;
+    texNdata[k * 4 + 2] = (0.3 + 0.7 * sh) * ao * (1 - blob[k] / 255 * 0.6) * 255;
+    texNdata[k * 4 + 3] = Math.max(0, Math.min(255, h0 * 2 + 64));
+  }
+}
+
+/* ───────── Malha do terreno + saia (espessura do bloco) ───────── */
+const N = 220, THICK = 64;
+const tv = [], ti = []; // por vértice: posição 3, (é saia, tom da face, é a borda de baixo) 3
+for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) { const x = i / N * 1000, z = j / N * 1000; tv.push(x, hAt(x, z), z, 0, 1, 0); }
+for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const a = j * (N + 1) + i, b = a + 1, c = a + N + 1, d = c + 1; ti.push(a, c, b, b, c, d); }
+[[(t) => [t, 0], 0.62], [(t) => [t, 1000], 0.62], [(t) => [0, t], 1], [(t) => [1000, t], 1]].forEach(([f, shade]) => {
+  const base = tv.length / 6;
+  for (let i = 0; i <= N; i++) { const [x, z] = f(i / N * 1000); tv.push(x, hAt(x, z), z, 1, shade, 0, x, -THICK, z, 1, shade, 1); }
+  for (let i = 0; i < N; i++) { const a = base + i * 2; ti.push(a, a + 1, a + 2, a + 2, a + 1, a + 3); }
+});
+
+/* ───────── Partículas e brilhos (pontos somados à cena) ───────── */
+const SV = []; // posição 3, cor 3, (tamanho, fase, tipo: 0 vaga-lume / 1 brilho que pulsa / 2 sobe, nasce com as torres) 4
+const spr = (x, y, z, c, size, kind, grow) => SV.push(x, y, z, c[0], c[1], c[2], size, rnd(), kind, grow ? 1 : 0);
+for (let i = 0; i < 130; i++) { const x = 30 + rnd() * 940, z = 30 + rnd() * 940; spr(x, hAt(x, z) + 18 + rnd() * 50, z, rnd() < 0.5 ? [1, 0.9, 0.45] : [0.55, 1, 0.65], 13 + rnd() * 9, 0); }
+quads((q, i) => {
+  const c = i % 2 ? [1, 0.3, 0.22] : [0.25, 0.55, 1], [bf, c1, c2] = q(CAMPS);
+  spr(bf[0], 14, bf[1], mulc(c, 0.75), 130, 1);
+  for (let k = 0; k < 7; k++) spr(bf[0] + (rnd() - 0.5) * 40, 4, bf[1] + (rnd() - 0.5) * 40, c, 13, 2);
+  [c1, c2].forEach((p) => spr(p[0], 10, p[1], [0.3, 0.42, 0.2], 70, 1));
+});
+PITS.forEach(([x, z], i) => {
+  const c = i ? [1, 0.5, 0.15] : [0.65, 0.3, 1];
+  spr(x, 6, z, mulc(c, 0.8), 190, 1);
+  for (let k = 0; k < 12; k++) spr(x + (rnd() - 0.5) * 60, -8, z + (rnd() - 0.5) * 60, c, 14, 2);
+});
+for (let i = 0; i < 46; i++) { const t = 0.16 + rnd() * 0.68, d = 120 + 760 * t; spr(d + (rnd() - 0.5) * 50, -8, d + (rnd() - 0.5) * 50 + Math.sin(t * 6.28) * -12, [0.5, 0.85, 1], 9, 2); }
+glows.forEach(([x, y, z, c, size]) => spr(x, y, z, mulc(c, 0.7), size, 1, true));
+
+/* ───────── WebGL ───────── */
+const gl = canvas.getContext('webgl', { antialias: true, alpha: true, premultipliedAlpha: true });
+const COMMON = `
+precision highp float;
+uniform float uTime, uSide, uFogEdge, uRise, uLift, uGrow, uAmb;
+uniform vec2 uHome; uniform vec3 uL;
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
+  return mix(mix(hash(i), hash(i+vec2(1.,0.)), f.x), mix(hash(i+vec2(0.,1.)), hash(i+vec2(1.,1.)), f.x), f.y); }
+// Entrada com um pouco de passagem do ponto (0 → 1).
+float back(float c){ float g = c-1.; return 1. + 2.2*g*g*g + 1.2*g*g; }
+// O relevo levanta em onda a partir da base do jogador.
+float riseAt(vec2 xz){ return back(clamp((uRise - distance(xz, uHome)/1414.)/.35, 0., 1.)); }
+// Névoa de guerra: cresce na direção da base inimiga, com borda de nuvem que se mexe.
+float fogAt(vec3 w){ float e = uSide*(w.x-w.z)*.7071;
+  float n = noise(w.xz*.006 + vec2(uTime*.03, -uTime*.02))*.6 + noise(w.xz*.017 - uTime*.04)*.4;
+  return smoothstep(uFogEdge, uFogEdge+400., e + (n-.5)*240.); }
+vec3 fogCol(vec3 col, vec3 w, float keep){ float f = fogAt(w)*(1.-keep); float g = dot(col, vec3(.3,.59,.11));
+  return mix(col, mix(vec3(g), col, .3)*.42 + vec3(.03,.055,.1), f*.9); }
+`;
+const TERRAIN_VS = COMMON + `
+attribute vec3 aPos, aSk; uniform mat4 uPV; uniform vec2 uShift;
+varying vec3 vW, vSk; varying float vRise;
+void main(){ float r = riseAt(aPos.xz); vRise = min(r, 1.); vSk = aSk;
+  vW = vec3(aPos.x, (aSk.z > .5 ? aPos.y : aPos.y*r) + uLift, aPos.z);
+  gl_Position = uPV*vec4(vW, 1.); gl_Position.xy += uShift*gl_Position.w; }`;
+const TERRAIN_FS = COMMON + `
+uniform sampler2D uN, uM, uA; uniform vec4 uSpots[5]; uniform vec3 uTeam; uniform float uLane, uWater;
+varying vec3 vW, vSk; varying float vRise;
+void main(){
+  vec2 uv = vW.xz/1000.;
+  vec4 nt = texture2D(uN, uv), m = texture2D(uM, uv); vec3 alb = texture2D(uA, uv).rgb;
+  vec2 nx = (nt.rg*2.-1.)*vRise;
+  vec3 n = normalize(vec3(nx.x, sqrt(max(1.-dot(nx,nx), .02)), nx.y));
+  float det = noise(vW.xz*.11), slope = 1.-n.y;
+  alb *= .8 + .4*det;
+  alb *= 1. + (nt.a*255.-64.)*.004*vRise;                                            // topo dos muros mais claro
+  alb = mix(alb, mix(vec3(.16,.18,.23), vec3(.4,.38,.38), det), smoothstep(.08,.36,slope)); // encosta vira pedra
+  // Rotas: terra apagada até a "tinta" chegar; a do jogador fica dourada.
+  float p = (m.b-.1)/.9; if (uSide < 0.) p = 1.-p;
+  float rev = smoothstep(uLane+.015, uLane-.015, p);
+  vec3 lc = mix(vec3(.2,.19,.16), vec3(.68,.58,.4)*(.8+.4*noise(vW.xz*.3)), rev);
+  lc = mix(lc, vec3(1.,.84,.5), m.a*rev*.5);
+  alb = mix(alb, lc, m.g);
+  alb = mix(alb, vec3(.07,.1,.12), m.r);
+  float bk = mix(1., nt.b, vRise);
+  vec3 col = alb*(vec3(.3,.36,.5)*(.4+.6*bk) + vec3(1.25,1.15,.98)*max(dot(n,uL),0.)*bk);
+  // Rio: enche do meio para as pontas, corre na diagonal e cintila.
+  float along = abs((vW.x+vW.z)*.5-500.)/400.;
+  float wet = smoothstep(.3,.62,m.r)*smoothstep(uWater+.04, uWater-.04, along);
+  float w1 = noise(vW.xz*.03 + vec2(uTime*.3)), w2 = noise(vW.xz*.075 + vec2(-uTime*.22, uTime*.16) + 9.);
+  vec3 water = mix(vec3(.03,.14,.27), vec3(.1,.5,.66), w1*.6+w2*.5) + vec3(.7,.9,1.)*pow(w1*w2*1.7, 4.);
+  water += vec3(.45,.7,.8)*smoothstep(.75,.4,m.r)*(.35+.65*sin(uTime*1.6+w2*14.))*.45;   // espuma na margem
+  water += vec3(.6,.9,1.)*exp(-abs(along-uWater)*40.)*step(uWater, 1.05);              // frente da água
+  col = mix(col, water, wet*.9);
+  // Luzes: frente do desenho das rotas, pulso de energia na rota do jogador, anéis dos aliados, faixa de luz.
+  col += vec3(1.,.8,.4)*m.g*exp(-abs(p-uLane)*55.)*step(uLane, 1.05)*1.6;
+  col += vec3(1.,.78,.4)*m.a*rev*(.06 + .4*pow(.5+.5*sin(p*70.-uTime*2.6), 8.));
+  for (int i = 0; i < 5; i++) { vec4 s = uSpots[i]; float age = uTime-s.z; if (s.z < 0. || age < 0.) continue;
+    float d = distance(vW.xz, s.xy); vec3 c = s.w > .5 ? vec3(1.,.93,.75) : uTeam;
+    float ring = smoothstep(4.,0.,abs(d-24.))*.9 + smoothstep(24.,0.,d)*.3;
+    float shock = smoothstep(8.,0.,abs(d-age*260.))*max(1.-age/.7, 0.)*1.6;
+    float k = fract(age*.55), pulse = s.w > .5 ? smoothstep(5.,0.,abs(d-24.-k*64.))*(1.-k) : 0.;
+    col += c*(ring+shock+pulse); }
+  float sw = uSide*(vW.x-vW.z)*.7071;
+  col += col*exp(-pow((sw+1000.-mod(uTime*170.,3600.))/80., 2.))*.5*uAmb;
+  col = fogCol(col, vW, 0.);
+  // Lateral do bloco: rocha em camadas, mais escura embaixo, com um fio de luz do time na base.
+  if (vSk.x > .5) { float y = vW.y-uLift; float band = noise(vec2(y*.3, (vW.x+vW.z)*.012));
+    vec3 rock = mix(vec3(.09,.11,.16), vec3(.25,.24,.26), band)*vSk.y*mix(.3, 1., smoothstep(-64.,-4.,y));
+    rock = fogCol(rock, vW, 0.) + uTeam*.3*smoothstep(-52.,-64.,y)*(1.-fogAt(vW));
+    col = mix(rock, col*.7, smoothstep(-6.,0.,y)); }
+  gl_FragColor = vec4(col, 1.);
+}`;
+const MESH_VS = COMMON + `
+attribute vec3 aPos, aBase, aNor, aCol; attribute float aKind; uniform mat4 uPV; uniform vec2 uShift;
+varying vec3 vW, vN, vC; varying float vK;
+void main(){
+  float d = distance(aBase.xz, uHome)/1414.;
+  vec3 p = aPos*back(clamp((uGrow-d-(aKind > 1.5 ? .12 : 0.))/.16, 0., 1.)), n = aNor;
+  if (aKind > 1.5) { float a = uTime*.9 + aBase.x*.02, c = cos(a), s = sin(a);          // cristal: gira e flutua
+    p.xz = mat2(c,s,-s,c)*p.xz; n.xz = mat2(c,s,-s,c)*n.xz; p.y += sin(uTime*1.7+aBase.z*.03)*3.; }
+  else if (aKind > .5) { float w = sin(uTime*1.4+aBase.x*.031+aBase.z*.047) + .5*sin(uTime*2.3+aBase.z*.02); // vento
+    p.xz += vec2(.04,.025)*w*p.y; }
+  vW = vec3(aBase.x, aBase.y*riseAt(aBase.xz)+uLift, aBase.z) + p; vN = n; vC = aCol; vK = aKind;
+  gl_Position = uPV*vec4(vW, 1.); gl_Position.xy += uShift*gl_Position.w; }`;
+const MESH_FS = COMMON + `
+varying vec3 vW, vN, vC; varying float vK;
+void main(){ float diff = max(dot(normalize(vN), uL), 0.); vec3 col;
+  if (vK > 1.5) col = fogCol(vC*(.8+.9*diff) + vec3(.3)*pow(diff, 6.), vW, .5);
+  else col = fogCol(vC*(vec3(.3,.36,.5) + vec3(1.15,1.05,.9)*diff), vW, 0.);
+  gl_FragColor = vec4(col, 1.); }`;
+const SPRITE_VS = COMMON + `
+attribute vec3 aPos, aCol; attribute vec4 aP; uniform mat4 uPV; uniform vec2 uShift; uniform float uPx;
+varying vec4 vC;
+void main(){ vec3 p = aPos; float a = 1.;
+  if (aP.z < .5) { p += vec3(sin(uTime*.31+aP.y*9.)*26., sin(uTime*.47+aP.y*5.)*10., cos(uTime*.27+aP.y*7.)*26.);
+    a = .25 + .75*pow(.5+.5*sin(uTime*1.9+aP.y*40.), 2.); }
+  else if (aP.z < 1.5) a = .72 + .28*sin(uTime*1.6+aP.y*6.28);
+  else { float k = fract(uTime*.13+aP.y); p.y += k*80.; p.x += sin(uTime+aP.y*20.)*6.; a = sin(k*3.1416); }
+  if (aP.w > .5) a *= clamp((uGrow-distance(aPos.xz, uHome)/1414.-.2)/.16, 0., 1.); else a *= uAmb;
+  p.y += uLift; a *= 1.-fogAt(p)*.72;
+  gl_Position = uPV*vec4(p, 1.); gl_Position.xy += uShift*gl_Position.w;
+  gl_PointSize = clamp(aP.x*uPx/gl_Position.w, 1., 256.); vC = vec4(aCol, a); }`;
+const SPRITE_FS = `precision mediump float; varying vec4 vC;
+void main(){ float f = max(1.-length(gl_PointCoord-.5)*2., 0.); gl_FragColor = vec4(vC.rgb*f*f*vC.a, 0.); }`;
+
+function program(vs, fs) {
+  const p = gl.createProgram();
+  [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]].forEach(([type, src]) => {
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    gl.attachShader(p, s);
+  });
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  p.u = {};
+  for (let i = 0, n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS); i < n; i++) { const name = gl.getActiveUniform(p, i).name.replace('[0]', ''); p.u[name] = gl.getUniformLocation(p, name); }
+  return p;
+}
+function buffer(target, data) { const b = gl.createBuffer(); gl.bindBuffer(target, b); gl.bufferData(target, data, gl.STATIC_DRAW); return b; }
+function texture(unit, src, mip) {
+  const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t);
+  if (src instanceof Uint8Array) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, S, S, 0, gl.RGBA, gl.UNSIGNED_BYTE, src);
+  else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, mip ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
+  if (mip) gl.generateMipmap(gl.TEXTURE_2D);
+  return t;
+}
+// Liga os atributos de um buffer intercalado: [nome, tamanho]...
+function attribs(p, buf, layout) {
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  const stride = layout.reduce((n, a) => n + a[1], 0) * 4; let off = 0;
+  layout.forEach(([name, size]) => { const loc = gl.getAttribLocation(p, name); if (loc >= 0) { gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, gl.FLOAT, false, stride, off); } off += size * 4; });
+}
+
+/* ───────── Câmera ───────── */
+const FOV = 0.46, ELEV = 0.84, TARGET = [500, 0, 500];
+function persp(f, a, n, fa) { const t = 1 / Math.tan(f / 2); return [t / a, 0, 0, 0, 0, t, 0, 0, 0, 0, (fa + n) / (n - fa), -1, 0, 0, 2 * fa * n / (n - fa), 0]; }
+function look(e, c) {
+  let fx = c[0] - e[0], fy = c[1] - e[1], fz = c[2] - e[2]; const fl = Math.hypot(fx, fy, fz); fx /= fl; fy /= fl; fz /= fl;
+  let sx = -fz, sz = fx; const sl = Math.hypot(sx, sz); sx /= sl; sz /= sl;
+  const ux = -sz * fy, uy = sz * fx - sx * fz, uz = sx * fy;
+  return [sx, ux, -fx, 0, 0, uy, -fy, 0, sz, uz, -fz, 0, -(sx * e[0] + sz * e[2]), -(ux * e[0] + uy * e[1] + uz * e[2]), fx * e[0] + fy * e[1] + fz * e[2], 1];
+}
+function mul(a, b) { const o = new Float32Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3]; return o; }
+// Matriz da câmera em órbita: ângulo no chão, elevação e distância.
+function camera(yaw, elev, dist, aspect, tgt = TARGET, far = dist * 4) {
+  const eye = [tgt[0] + dist * Math.cos(elev) * Math.cos(yaw), tgt[1] + dist * Math.sin(elev), tgt[2] + dist * Math.cos(elev) * Math.sin(yaw)];
+  return mul(persp(FOV, aspect, 60, far), look(eye, tgt));
+}
+const ndc = (m, x, y, z) => { const w = m[3] * x + m[7] * y + m[11] * z + m[15]; return [(m[0] * x + m[4] * y + m[8] * z + m[12]) / w, (m[1] * x + m[5] * y + m[9] * z + m[13]) / w]; };
+
+let W = 1, Hh = 1, dist = 2000, shift = [0, 0], PV = new Float32Array(16);
+let sideSign = 1, t0 = 0, landed = [-1, -1, -1, -1, -1], spots = ALLIES;
+const yaw0 = () => (sideSign > 0 ? Math.PI * 0.75 : -Math.PI * 0.25); // câmera atrás da própria base
+// Acha a distância em que o bloco inteiro cabe na área livre (entre cabeçalho, trilho e barra) e o deslocamento para centrar.
+function fit() {
+  const r = frame.getBoundingClientRect(); W = r.width; Hh = r.height;
+  const dpr = Math.min(devicePixelRatio || 1, 1.5);
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(Hh * dpr);
+  const x0 = 64 + 24, x1 = W - 24, y0 = 134, y1 = Hh - 86;
+  const box = (d) => {
+    const m = camera(yaw0(), ELEV, d, W / Hh); let a = 9, b = -9, c = 9, e = -9;
+    [[0, 0, 0], [1000, 0, 0], [0, 0, 1000], [1000, 0, 1000], [0, -THICK, 1000], [1000, -THICK, 0], [0, 110, 1000], [1000, 110, 0]].forEach((p) => { const q = ndc(m, p[0], p[1], p[2]); a = Math.min(a, q[0]); b = Math.max(b, q[0]); c = Math.min(c, q[1]); e = Math.max(e, q[1]); });
+    return [a, b, c, e];
+  };
+  let lo = 700, hi = 9000;
+  for (let i = 0; i < 24; i++) { const d = (lo + hi) / 2, b = box(d); if ((b[1] - b[0]) * W / 2 > x1 - x0 || (b[3] - b[2]) * Hh / 2 > y1 - y0) lo = d; else hi = d; }
+  dist = hi; const b = box(dist);
+  shift = [((x0 + x1) / W - 1) - (b[0] + b[1]) / 2, (1 - (y0 + y1) / Hh) - (b[2] + b[3]) / 2];
+}
+
+/* ───────── Montagem e laço ───────── */
+let progs, bufs, texN;
+function setup() {
+  progs = { terrain: program(TERRAIN_VS, TERRAIN_FS), mesh: program(MESH_VS, MESH_FS), sprite: program(SPRITE_VS, SPRITE_FS) };
+  bufs = { tv: buffer(gl.ARRAY_BUFFER, new Float32Array(tv)), ti: buffer(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(ti)), mv: buffer(gl.ARRAY_BUFFER, new Float32Array(MV)), sv: buffer(gl.ARRAY_BUFFER, new Float32Array(SV)) };
+  bake(1); texN = texture(0, texNdata); texture(1, texMdata); texture(2, ac.canvas, true);
+  gl.enable(gl.DEPTH_TEST); gl.clearColor(0, 0, 0, 0); gl.blendFunc(gl.ONE, gl.ONE);
+}
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+const outCubic = (x) => 1 - Math.pow(1 - clamp01(x), 3);
+const smooth = (x) => { x = clamp01(x); return x * x * (3 - 2 * x); };
+const mouse = [0, 0, 0, 0]; // alvo x,y e valor suavizado x,y
+const PIN_AT = [2.5, 2.64, 3.3, 2.78, 2.92]; // quando cada marcador cai (s); o do jogador por último
+
+function draw(now) {
+  if (EMBED) { if (lastNow >= 0) vnow += (now - lastNow) * rate; lastNow = now; now = vnow; }
+  const t = reduced ? 100 : now / 1000, e = reduced ? 99 : t - t0; // e = segundos desde o começo da entrada
+  // Câmera: chega girando de cima e de longe; depois deriva devagar e acompanha um pouco o mouse.
+  const k = outCubic(e / 3);
+  mouse[2] += (mouse[0] - mouse[2]) * 0.05; mouse[3] += (mouse[1] - mouse[3]) * 0.05;
+  const idle = reduced ? 0 : 1;
+  let yaw = yaw0() + (1 - k) * 1.15 + idle * (Math.sin(t * 0.21) * 0.04 + mouse[2] * 0.07);
+  let elev = ELEV + (1 - k) * 0.5 + idle * (Math.sin(t * 0.17) * 0.012 - mouse[3] * 0.035);
+  let d = dist * (1 + (1 - k) * 0.7), tgt = TARGET, sh = shift;
+  // Mergulho (ao travar): a câmera desce girando até a rota do jogador; o alvo vai para o centro da tela.
+  const dv = diveT < 0 || reduced ? 0 : smooth((t - diveT) / DIVE_S);
+  const far = d * 4;
+  if (dv > 0) {
+    const [mx, mz] = spots[ME];
+    tgt = [500 + (mx - 500) * dv, hAt(mx, mz) * dv, 500 + (mz - 500) * dv];
+    yaw += dv * 0.45; elev += (0.52 - elev) * dv; d *= Math.pow(340 / d, dv);
+    sh = [shift[0] * (1 - dv), shift[1] * (1 - dv)];
+  }
+  PV = camera(yaw, elev, d, W / Hh, tgt, far);
+
+  // Marcadores: aparecem na hora marcada e seguem o ponto do chão.
+  pins.forEach((pin, i) => {
+    if (e >= PIN_AT[i] && !pin.classList.contains('on')) { pin.classList.add('on'); landed[i] = reduced ? 0 : t0 + PIN_AT[i] + 0.3; }
+    const [x, z] = spots[i], q = ndc(PV, x, hAt(x, z), z);
+    const px = Math.round((q[0] + sh[0] + 1) / 2 * W), py = Math.round((1 - (q[1] + sh[1])) / 2 * Hh);
+    pin.style.transform = 'translate3d(' + px + 'px,' + py + 'px,0)'; pin.style.zIndex = py;
+  });
+
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  const common = (p) => {
+    gl.useProgram(p); const u = p.u;
+    gl.uniformMatrix4fv(u.uPV, false, PV); gl.uniform2f(u.uShift, sh[0], sh[1]);
+    gl.uniform1f(u.uTime, t); gl.uniform1f(u.uSide, sideSign);
+    gl.uniform2f(u.uHome, sideSign > 0 ? 0 : 1000, sideSign > 0 ? 1000 : 0);
+    gl.uniform3f(u.uL, LIGHT[0] * sideSign, LIGHT[1], LIGHT[2] * sideSign);
+    gl.uniform1f(u.uLift, -(1 - outCubic(e / 1.5)) * 220);            // o bloco sobe
+    gl.uniform1f(u.uRise, clamp01((e - 0.2) / 1.5) * 1.4);            // o relevo levanta
+    gl.uniform1f(u.uFogEdge, -950 + 1010 * smooth((e - 0.3) / 1.7));  // a névoa recua até o rio
+    gl.uniform1f(u.uGrow, clamp01((e - 1) / 1.7) * 1.5);              // árvores e torres brotam
+    gl.uniform1f(u.uAmb, smooth((e - 1.8) / 1.2));                    // partículas acendem
+    return u;
+  };
+  let u = common(progs.terrain);
+  gl.uniform1i(u.uN, 0); gl.uniform1i(u.uM, 1); gl.uniform1i(u.uA, 2);
+  gl.uniform1f(u.uWater, clamp01((e - 1) / 1.2) * 1.1); gl.uniform1f(u.uLane, clamp01((e - 1.1) / 1.5) * 1.1);
+  gl.uniform3fv(u.uTeam, sideSign > 0 ? BLUE : RED);
+  gl.uniform4fv(u.uSpots, [].concat(...spots.map(([x, z], i) => [x, z, landed[i], i === ME ? 1 : 0])));
+  attribs(progs.terrain, bufs.tv, [['aPos', 3], ['aSk', 3]]);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufs.ti); gl.drawElements(gl.TRIANGLES, ti.length, gl.UNSIGNED_SHORT, 0);
+
+  common(progs.mesh);
+  attribs(progs.mesh, bufs.mv, [['aPos', 3], ['aBase', 3], ['aNor', 3], ['aCol', 3], ['aKind', 1]]);
+  gl.drawArrays(gl.TRIANGLES, 0, MV.length / 13);
+
+  u = common(progs.sprite);
+  gl.uniform1f(u.uPx, canvas.height / 2 / Math.tan(FOV / 2));
+  attribs(progs.sprite, bufs.sv, [['aPos', 3], ['aCol', 3], ['aP', 4]]);
+  gl.enable(gl.BLEND); gl.depthMask(false);
+  gl.drawArrays(gl.POINTS, 0, SV.length / 10);
+  gl.disable(gl.BLEND); gl.depthMask(true);
+  // Atributos que só este programa usa não podem ficar ligados para o próximo.
+  for (let i = 0; i < 8; i++) gl.disableVertexAttribArray(i);
+
+  if (!reduced && rate > 0) requestAnimationFrame(draw); else running = false;
+}
+
+// Recomeça a entrada.
+function replay() {
+  t0 = (EMBED ? vnow : performance.now()) / 1000; landed = [-1, -1, -1, -1, -1];
+  pins.forEach((p) => p.classList.remove('on'));
+  canvas.classList.remove('in'); void canvas.offsetWidth; canvas.classList.add('in');
+  if (reduced && gl) draw(0);
+}
+// Lado vermelho: o mundo é o mesmo; a câmera vai para trás da base vermelha, aliados e névoa espelham, a luz acompanha.
+function side(s, b) {
+  frame.dataset.side = s; sideSign = s === 'blue' ? 1 : -1;
+  spots = ALLIES.map(([x, z]) => (sideSign > 0 ? [x, z] : [1000 - x, 1000 - z]));
+  frame.querySelector('.side').textContent = s === 'blue' ? 'Lado azul' : 'Lado vermelho';
+  document.querySelectorAll('.mock button[aria-pressed]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  if (gl) { bake(sideSign); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texN); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, S, S, 0, gl.RGBA, gl.UNSIGNED_BYTE, texNdata); fit(); }
+  replay();
+}
+
+if (gl) {
+  setup(); fit();
+  addEventListener('resize', () => { fit(); if (reduced) draw(0); });
+  frame.addEventListener('pointermove', (ev) => { mouse[0] = ev.clientX / W * 2 - 1; mouse[1] = ev.clientY / Hh * 2 - 1; });
+  t0 = performance.now() / 1000;
+  requestAnimationFrame(draw);
+} else {
+  document.querySelector('.nogl').style.display = 'block';
+}
+
+/* ───────── Modo embutido: comandos de quem embute ───────── */
+if (EMBED) {
+  const WHO = ['Zeca', 'Beltrano', 'Fulano', 'Sicrano', 'Fulana'];
+  // Troca o que o marcador mostra: campeão declarado ou "?" enquanto escolhe.
+  const setPin = (i, champ, label) => {
+    const face = pins[i].querySelector('.face'), role = face.querySelector('.role').outerHTML;
+    face.className = 'face' + (champ ? ' pop' : ' empty');
+    face.style.backgroundImage = champ ? 'url(https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/' + champ + '.png)' : '';
+    face.innerHTML = (champ ? '' : '?') + role;
+    const tag = pins[i].querySelector('.tag'); tag.textContent = WHO[i] + ' ';
+    const it = document.createElement('i'); it.textContent = '· ' + (label || 'escolhendo…'); tag.append(it);
+    if (i === ME) { const u = document.createElement('u'); u.textContent = 'VOCÊ'; tag.append(u); }
+  };
+  pins.forEach((_, i) => setPin(i, null));
+  // Mockup aberto por file://: a origem é opaca, por isso '*'. No cliente isto vira props de um componente, sem mensagens.
+  addEventListener('message', (ev) => {
+    const m = ev.data; if (!m || m.rlc !== 'map') return;
+    if (m.cmd === 'replay') { pins.forEach((_, i) => setPin(i, null)); diveT = -1; replay(); }
+    else if (m.cmd === 'pin') setPin(m.who, m.champ, m.label);
+    // Mergulho: a entrada já tem de estar completa (quem embute pode ter pulado o planejamento).
+    else if (m.cmd === 'dive') { if (m.on) t0 = Math.min(t0, vnow / 1000 - 8); diveT = m.on ? vnow / 1000 : -1; document.querySelector('.pins').classList.toggle('dive', !!m.on); }
+    else if (m.cmd === 'rate') { rate = m.v; if (rate > 0 && !running && gl && !reduced) { running = true; lastNow = -1; requestAnimationFrame(draw); } }
+  });
+  parent.postMessage({ rlc: 'map', cmd: 'ready', gl: !!gl }, '*');
+}
+</script>
+</body>
+</html>

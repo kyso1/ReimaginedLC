@@ -18,16 +18,17 @@ export const inDemand = (scarce: readonly string[], p: string) => p === 'FILL' |
 /**
  * Dois ícones de posição sob o nome. Na própria coluna são botões que abrem o seletor flutuante e salvam na hora.
  * `scarce`: rotas em alta (marcadas no seletor). `force` (ranqueadas): como no client, com a principal fora das rotas
- * em alta a secundária só aceita rotas em alta; com a principal em alta, não há secundária.
+ * em alta a secundária só aceita rotas em alta; com a principal em alta, não há secundária. `primaryOnly` (grupo de 5,
+ * como no client): só a principal.
  */
-export function PositionIcons({ first, second, editable, scarce = [], force = false }: { first: string; second: string; editable: boolean; scarce?: readonly string[]; force?: boolean }) {
+export function PositionIcons({ first, second, editable, scarce = [], force = false, primaryOnly = false }: { first: string; second: string; editable: boolean; scarce?: readonly string[]; force?: boolean; primaryOnly?: boolean }) {
   // Escolha mostrada já, até a LCU devolver o lobby novo.
   const [shown, setShown] = useState<[string, string] | null>(null);
   const [open, setOpen] = useState<0 | 1 | null>(null);
   useEffect(() => setShown(null), [first, second]);
   const [a, b] = shown ?? [first, second];
   const forced = force && scarce.length > 0;
-  const slots: Array<[0 | 1, string]> = a === 'FILL' || (forced && inDemand(scarce, a)) ? [[0, a]] : [[0, a], [1, b]];
+  const slots: Array<[0 | 1, string]> = primaryOnly || a === 'FILL' || (forced && inDemand(scarce, a)) ? [[0, a]] : [[0, a], [1, b]];
   const pick = (slot: 0 | 1, p: Position) => {
     setOpen(null);
     const next = choose(a, b, slot, p);

@@ -53,36 +53,39 @@ export function SpotifyWidget() {
     </button>
   );
   return (
-    <div class="rlc-sp" data-open={open ? 'true' : undefined} aria-label={t('spNowPlaying')} role="group">
-      <button type="button" class="rlc-sp-art" aria-expanded={open} aria-label={t('spMore')} onClick={() => setOpen(!open)}>
-        {tr.art ? <img src={tr.art} alt="" /> : null}
-      </button>
-      <div class="rlc-sp-text">
-        <b title={tr.name}>{tr.name}</b>
-        <span title={tr.album}>{tr.artists}</span>
-      </div>
-      <div class="rlc-sp-ctl">
-        {ctl(t('spPrev'), PREV, () => void spotifyControl('previous'))}
-        {ctl(tr.playing ? t('spPause') : t('spPlay'), tr.playing ? PAUSE : PLAY, () => void spotifyControl(tr.playing ? 'pause' : 'play'))}
-        {ctl(t('spNext'), NEXT, () => void spotifyControl('next'))}
-      </div>
-      {open ? (
-        <div class="rlc-sp-more">
-          <label class="rlc-sp-range">
-            <span>{mmss(pos)}</span>
-            <input type="range" aria-label={t('spSeek')} min={0} max={tr.durationMs || 1} step={1000} value={pos} disabled={!can} onChange={(e) => void spotifyControl('seek', Number(e.currentTarget.value))} />
-            <span>{mmss(tr.durationMs)}</span>
-          </label>
-          {tr.volume !== null ? (
-            <label class="rlc-sp-range">
-              <span>{t('spVolume')}</span>
-              <input type="range" aria-label={t('spVolume')} min={0} max={100} step={1} value={tr.volume} disabled={!can} onChange={(e) => void spotifyControl('volume', Number(e.currentTarget.value))} />
-              <span>{`${tr.volume}%`}</span>
-            </label>
-          ) : null}
-          {hint ? <p class="rlc-sp-hint">{hint}</p> : null}
+    // Invólucro do alto da janela até o widget: segura o hover (spotify.css).
+    <div class="rlc-sp-zone" data-open={open ? 'true' : undefined}>
+      <div class="rlc-sp" aria-label={t('spNowPlaying')} role="group">
+        <button type="button" class="rlc-sp-art" aria-expanded={open} aria-label={t('spMore')} onClick={() => setOpen(!open)}>
+          {tr.art ? <img src={tr.art} alt="" /> : null}
+        </button>
+        <div class="rlc-sp-text">
+          <b title={tr.name}>{tr.name}</b>
+          <span title={tr.album}>{tr.artists}</span>
         </div>
-      ) : null}
+        <div class="rlc-sp-ctl">
+          {ctl(t('spPrev'), PREV, () => void spotifyControl('previous'))}
+          {ctl(tr.playing ? t('spPause') : t('spPlay'), tr.playing ? PAUSE : PLAY, () => void spotifyControl(tr.playing ? 'pause' : 'play'))}
+          {ctl(t('spNext'), NEXT, () => void spotifyControl('next'))}
+        </div>
+        {open ? (
+          <div class="rlc-sp-more">
+            <label class="rlc-sp-range">
+              <span>{mmss(pos)}</span>
+              <input type="range" aria-label={t('spSeek')} min={0} max={tr.durationMs || 1} step={1000} value={pos} disabled={!can} onChange={(e) => void spotifyControl('seek', Number(e.currentTarget.value))} />
+              <span>{mmss(tr.durationMs)}</span>
+            </label>
+            {tr.volume !== null ? (
+              <label class="rlc-sp-range">
+                <span>{t('spVolume')}</span>
+                <input type="range" aria-label={t('spVolume')} min={0} max={100} step={1} value={tr.volume} disabled={!can} onChange={(e) => void spotifyControl('volume', Number(e.currentTarget.value))} />
+                <span>{`${tr.volume}%`}</span>
+              </label>
+            ) : null}
+            {hint ? <p class="rlc-sp-hint">{hint}</p> : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

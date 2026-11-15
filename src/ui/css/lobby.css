@@ -50,10 +50,13 @@
 /* Chat da sala (social.css: 260px de altura a 16px do fundo, no canto esquerdo) cobria o nome e o elo da primeira vaga:
    com ele aberto, a vaga da esquerda da faixa de baixo sobe o conteúdo acima dele; fechado, volta à altura das outras.
    A subida e a descida seguem a curva do painel do chat. */
-#rlc-root .rlc-app[data-screen='lobby'] .rlc-stage > .rlc-col:first-child { transition: padding-bottom 0.34s cubic-bezier(0.22, 1, 0.36, 1); }
-#rlc-root[data-motion='off'] .rlc-app[data-screen='lobby'] .rlc-stage > .rlc-col:first-child { transition: none; }
-@media (prefers-reduced-motion: reduce) { #rlc-root .rlc-app[data-screen='lobby'] .rlc-stage > .rlc-col:first-child { transition: none; } }
+#rlc-root .rlc-app[data-screen='lobby'] .rlc-stage > .rlc-col:nth-child(-n + 2) { transition: padding-bottom 0.34s cubic-bezier(0.22, 1, 0.36, 1); }
+#rlc-root[data-motion='off'] .rlc-app[data-screen='lobby'] .rlc-stage > .rlc-col:nth-child(-n + 2) { transition: none; }
+@media (prefers-reduced-motion: reduce) { #rlc-root .rlc-app[data-screen='lobby'] .rlc-stage > .rlc-col:nth-child(-n + 2) { transition: none; } }
 #rlc-root .rlc-app[data-screen='lobby'][data-room-chat='open'] .rlc-stage:not([data-band='blue']) > .rlc-col:first-child:not([data-empty='true']) { padding-bottom: 292px; }
+/* O chat (300px) passa da primeira vaga e cobre o começo da segunda: nome grande ali ficava embaixo dele. Sobe também,
+   só no lobby comum (na sala personalizada a faixa de baixo tem outro arranjo). */
+#rlc-root .rlc-app[data-screen='lobby'][data-room-chat='open'] .rlc-stage:not([data-band]) > .rlc-col:nth-child(2):not([data-empty='true']) { padding-bottom: 292px; }
 /* Sala personalizada: a primeira vaga vazia da faixa vermelha fica centrada; com o chat aberto, "Trocar de time" e
    "+ robô" sobem para fora dele. */
 #rlc-root .rlc-app[data-screen='lobby'][data-room-chat='open'] .rlc-stage[data-band='red'] > .rlc-col:first-child[data-empty='true'] { padding-bottom: 320px; }
@@ -153,3 +156,23 @@
 #rlc-root .rlc-arena .rlc-col[data-empty='true']:hover .rlc-col-empty > button, #rlc-root .rlc-arena .rlc-col-empty > button:focus-visible { opacity: 1; }
 #rlc-root .rlc-arena .rlc-col[data-empty='true']:hover { background-color: var(--rlc-color-glassCard, rgba(255, 255, 255, 0.06)); }
 #rlc-root .rlc-arena .rlc-col[data-empty='true']:hover .rlc-col-empty > button { color: var(--rlc-color-text); border-style: solid; }
+/* Convidado que ainda não respondeu, na vaga livre. */
+#rlc-root .rlc-col-invited { display: flex; flex-direction: column; align-items: center; gap: 4px; max-width: 100%; padding: 0 8px; color: var(--rlc-color-text); }
+#rlc-root .rlc-col-invited small { color: var(--rlc-color-textMuted); }
+/* Convites da sala (carta na barra): reticências pulando um ponto por vez, ✓ entrou, X recusou. */
+#rlc-root .rlc-bar > .rlc-inv { flex: none; }
+#rlc-root .rlc-inv-state { display: inline-grid; place-items: center; flex: none; min-width: 22px; color: var(--rlc-color-textMuted); }
+#rlc-root .rlc-inv-row[data-status='joined'] .rlc-inv-state { color: var(--rlc-color-online, #5fd18a); }
+#rlc-root .rlc-inv-row[data-status='declined'] .rlc-inv-state { color: var(--rlc-color-dangerText, #f08a94); }
+#rlc-root .rlc-inv-row[data-status='declined'] .rlc-voice-name { opacity: 0.6; }
+#rlc-root .rlc-inv-dots { display: inline-flex; gap: 3px; padding-top: 4px; }
+#rlc-root .rlc-inv-dots i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; animation: rlc-inv-hop 1.2s ease-in-out infinite; }
+#rlc-root .rlc-inv-dots i:nth-child(2) { animation-delay: 0.4s; }
+#rlc-root .rlc-inv-dots i:nth-child(3) { animation-delay: 0.8s; }
+@keyframes rlc-inv-hop { 0%, 33%, 100% { transform: none; } 16% { transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { #rlc-root .rlc-inv-dots i { animation: none; } }
+#rlc-root[data-motion='off'] .rlc-inv-dots i { animation: none; }
+#rlc-root .rlc-inv-again { display: grid; place-items: center; flex: none; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--rlc-color-textMuted); cursor: pointer; }
+#rlc-root .rlc-inv-again:hover:not(:disabled) { background: var(--rlc-color-glassCardHover, rgba(255, 255, 255, 0.1)); color: var(--rlc-color-text); }
+#rlc-root .rlc-inv-again:focus-visible { outline: 2px solid var(--rlc-color-accent); outline-offset: 2px; }
+#rlc-root .rlc-inv-again:disabled { opacity: 0.4; cursor: default; }

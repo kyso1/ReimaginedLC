@@ -1,4 +1,5 @@
 import { effect, signal } from '@preact/signals';
+import { t } from '../i18n';
 import { findHelper, helperVersion } from '../theme/wallpapers';
 import { shown } from './layer';
 import { prefs, setPrefs } from './prefs';
@@ -26,13 +27,22 @@ export function riotSize(doc: Document = document): [number, number] {
   return [Math.round(1280 * zoom), Math.round(720 * zoom)];
 }
 
+/** Aviso de client como administrador já mostrado (uma vez por sessão: o foco tenta de novo a cada volta). */
+let warnedElevated = false;
+
 const call = async (what: 'maximize' | 'restore'): Promise<boolean> => {
   const base = await findHelper();
   if (!base || helperVersion.value < 2) return false;
   const [w, h] = riotSize();
   try {
     const r = await fetch(`${base}/v1/window/${what}${what === 'restore' ? `?w=${w}&h=${h}` : ''}`, { method: 'POST' });
-    return r.ok && ((await r.json()) as { ok?: unknown }).ok === true;
+    const body = r.ok ? ((await r.json()) as { ok?: unknown; reason?: unknown }) : null;
+    // Riot Client com "Executar como administrador": o Windows não deixa o auxiliar (sem admin) mexer na janela.
+    if (body?.reason === 'elevated' && !warnedElevated) {
+      warnedElevated = true;
+      window.Toast?.error(t('maximizeElevated'));
+    }
+    return body?.ok === true;
   } catch {
     return false;
   }

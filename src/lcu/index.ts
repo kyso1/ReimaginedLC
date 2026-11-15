@@ -24,6 +24,7 @@ import type {
   LolGameQueuesQueue,
   LolLobbyLobbyCustomGame,
   LolLobbyLobbyDto,
+  LolLobbyPartyStatusDto,
   LolLobbyReceivedInvitationDto,
   LolMatchmakingMatchmakingReadyCheckResource,
   LolMatchmakingMatchmakingSearchResource,
@@ -71,6 +72,8 @@ export interface Lcu {
   /** Honras que você recebeu na última partida (quem mandou e se era aliado ou inimigo). */
   honorRecognition: Signal<StoreState<LolHonorV2Honor[]>>;
   endOfGame: Signal<StoreState<LolEndOfGameEndOfGameStats>>;
+  /** Grupo no fim de jogo: quem já voltou para a sala (`readyPlayers`) e quem saiu (`leftPlayers`), por puuid. */
+  eogParty: Signal<StoreState<LolLobbyPartyStatusDto>>;
   /** Rotas recomendadas por campeão (id em texto → posições em maiúsculas). */
   lanes: Signal<StoreState<Record<string, LolPerksRecommendedPositionsMapResource>>>;
   /** Grade da seleção: traz `positionsFavorited` (rotas em minúsculas) por campeão. */
@@ -199,6 +202,7 @@ export function createLcu(doc: Document = document): Lcu {
     honorBallot: createStore('/lol-honor-v2/v1/ballot', socket),
     honorRecognition: createStore('/lol-honor-v2/v1/recognition', socket),
     endOfGame: createStore('/lol-end-of-game/v1/eog-stats-block', socket),
+    eogParty: createStore('/lol-lobby/v2/party/eog-status', socket),
     lanes: createStore('/lol-perks/v1/recommended-champion-positions', socket),
     gridChampions: createStore('/lol-champ-select/v1/all-grid-champions', socket),
     chatMe: createStore('/lol-chat/v1/me', socket),

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { t } from '../i18n';
 import { getJson, tierLabel } from '../screens/profile/data';
+import { withLosses } from '../lcu/opgg';
 
 /** Fila ranqueada (chave do `queueMap` da LCU) de cada fila com elo; as outras não mostram elo. */
 const RANKED_QUEUES: Record<number, string> = {
@@ -40,7 +41,8 @@ const cache = new Map<string, Promise<Record<string, Entry> | null>>();
 export const statsOf = (puuid: string) => {
   let p = cache.get(puuid);
   if (!p) {
-    p = getJson<{ queueMap?: Record<string, Entry> }>(`/lol-ranked/v1/ranked-stats/${puuid}`).then((r) => r?.queueMap ?? null);
+    // Derrotas escondidas pela LCU vêm do op.gg.
+    p = getJson<{ queueMap?: Record<string, Entry> }>(`/lol-ranked/v1/ranked-stats/${puuid}`).then((r) => withLosses(puuid, r?.queueMap));
     cache.set(puuid, p);
   }
   return p;
