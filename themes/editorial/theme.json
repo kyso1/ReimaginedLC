@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../docs/theme.schema.json",
+  "name": "editorial",
+  "label": "Editorial",
+  "version": 1,
+  "extends": "vidro",
+  "tokens": {
+    "color.bg": "#0e0e10",
+    "color.surface": "#18181b",
+    "color.border": "#26262a",
+    "color.text": "#f2f2f0",
+    "color.textMuted": "#8a8a90",
+    "color.accent": "#ff5a36",
+    "color.onAccent": "#0e0e10",
+    "font.displayWeight": "800",
+    "radius.sm": "2px",
+    "radius.md": "4px",
+    "radius.pill": "4px",
+    "blur.surface": "0px"
+  },
+  "transition": "fade",
+  "backgrounds": { "default": "" },
+  "layouts": {}
+}
