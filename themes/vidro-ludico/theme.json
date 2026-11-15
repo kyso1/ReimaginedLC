@@ -1,0 +1,18 @@
+{
+  "$schema": "../../../docs/theme.schema.json",
+  "name": "vidro-ludico",
+  "label": "Vidro lúdico",
+  "version": 1,
+  "extends": "vidro",
+  "tokens": {
+    "color.surface": "rgba(255, 255, 255, 0.16)",
+    "color.border": "rgba(255, 255, 255, 0.30)",
+    "color.accent": "#ffd76a",
+    "color.onAccent": "#3a2206",
+    "font.displayWeight": "800",
+    "radius.sm": "10px",
+    "radius.md": "16px"
+  },
+  "backgrounds": {},
+  "layouts": {}
+}
