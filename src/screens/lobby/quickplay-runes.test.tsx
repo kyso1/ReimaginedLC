@@ -38,13 +38,17 @@ test('lápis abre o editor de runas; ao fechar, a vaga recebe a página que mudo
   await act(async () => pencil()!.click());
   // O editor vem por import() sob demanda: com a suíte inteira rodando, a primeira carga passa de 1 s.
   await vi.waitFor(() => expect(root.querySelector('.rlc-re')).not.toBeNull(), { timeout: 10000 });
-  // Os efeitos do editor (o Escape dele) rodam depois da pintura.
-  await act(async () => void (await new Promise((r) => setTimeout(r, 30))));
-  // Criou uma página no editor e fechou.
+  // Criou uma página no editor e fechou. O Escape do editor é ligado num efeito que roda depois da pintura (até 100 ms
+  // sob carga): repete a tecla até ele fechar, em vez de esperar um tempo fixo.
   pages = [page(1, 10), page(7, 50, { selectedPerkIds: [8112, 8139], primaryStyleId: 8100, subStyleId: 8300 })];
-  await act(async () => void document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+  await vi.waitFor(
+    async () => {
+      if (root.querySelector('.rlc-re')) await act(async () => void document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+      expect(root.querySelector('.rlc-re')).toBeNull();
+    },
+    { timeout: 5000 },
+  );
   await vi.waitFor(() => expect(puts).toHaveLength(1), { timeout: 5000 });
-  expect(root.querySelector('.rlc-re')).toBeNull();
   expect((puts[0] as Slot[])[0]!.perks).toBe(JSON.stringify({ perkIds: [8112, 8139], perkStyle: 8100, perkSubStyle: 8300 }));
   render(null, root);
   root.remove();

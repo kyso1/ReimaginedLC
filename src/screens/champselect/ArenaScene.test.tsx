@@ -27,7 +27,8 @@ const W = 1200;
 const H = 700;
 
 let root: HTMLElement;
-let frames: FrameRequestCallback[] = [];
+let frames: Array<[number, FrameRequestCallback]> = [];
+let frameId = 0;
 let now = 0;
 /** Roda os quadros pendentes até passarem `seconds` (a 20 quadros por segundo). */
 const run = (seconds: number) => {
@@ -35,7 +36,7 @@ const run = (seconds: number) => {
     now += 50;
     const pending = frames;
     frames = [];
-    pending.forEach((fn) => fn(now));
+    pending.forEach(([, fn]) => fn(now));
   }
 };
 const settle = () => act(async () => void (await new Promise((r) => setTimeout(r, 0))));
@@ -52,8 +53,10 @@ beforeEach(() => {
   retryWebgl();
   forgetArenaIntro();
   shown.value = true;
-  vi.stubGlobal('requestAnimationFrame', (fn: FrameRequestCallback) => frames.push(fn));
-  vi.stubGlobal('cancelAnimationFrame', () => void (frames = []));
+  // Cancelar tira só o quadro pedido: o Preact também usa rAF (e cancela o dele quando o timer de 100 ms vence antes),
+  // e apagar a fila inteira levava junto o quadro da cena, que ficava esperando para sempre.
+  vi.stubGlobal('requestAnimationFrame', (fn: FrameRequestCallback) => (frames.push([++frameId, fn]), frameId));
+  vi.stubGlobal('cancelAnimationFrame', (n: number) => void (frames = frames.filter(([i]) => i !== n)));
   vi.spyOn(HTMLCanvasElement.prototype, 'clientWidth', 'get').mockReturnValue(W);
   vi.spyOn(HTMLCanvasElement.prototype, 'clientHeight', 'get').mockReturnValue(H);
 });
