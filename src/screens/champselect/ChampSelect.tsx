@@ -19,7 +19,7 @@ import { Flights, type FlightSnapshot } from './aramFx';
 import { ABYSS_MAP_ID } from './scene/abyss';
 import { ARENA_MAP_ID } from './scene/arena';
 import { positionKey } from '../lobby/format';
-import { MapSide, sceneOnly, useMapArt, useMapRules } from './MapSide';
+import { MapSide, retryWebgl, sceneOnly, useMapArt, useMapRules } from './MapSide';
 import { rankedQueueOf } from '../../ui/Rank';
 import { useEscape } from '../../ui/useEscape';
 import { prefs } from '../../shell/prefs';
@@ -68,6 +68,9 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
   }, [cards, session?.id]);
   // A seleção começa com a grade fechada enquanto o mapa se forma; com o tempo da vez acabando, abre na hora.
   const [intro, setIntro] = useState(true);
+  // WebGL que falhou vale só para esta seleção: a falha costuma ser passageira (GPU ocupada ou reiniciada pela
+  // partida), e sem isso o mapa ficava plano até reiniciar o client.
+  useEffect(() => retryWebgl, []);
   useEffect(() => {
     const timer = setTimeout(() => setIntro(false), MAP_INTRO_MS);
     return () => clearTimeout(timer);
@@ -379,7 +382,8 @@ export function ChampSelect({ lcu }: { lcu: Lcu }) {
         {/* As linhas ficam sempre no lugar (só somem da vista): o nome que aparece no mouse sobre a grade empurrava a
             grade para baixo, o mouse saía do campeão, o nome sumia e a grade subia de novo, sem parar. */}
         <div class="rlc-cs-nameplate">
-          <small class="rlc-cs-stage-sub" data-empty={stageSub ? undefined : 'true'}>
+          {/* Sem nome e com o mapa na tela, a linha só repetia o cabeçalho e caía em cima do rótulo do lado do mapa. */}
+          <small class="rlc-cs-stage-sub" data-empty={stageSub && (stageName || !mapShown) ? undefined : 'true'}>
             {stageSub || ' '}
           </small>
           <h1 key={justLocked ? `lock-${justLocked.cell.cellId}` : 'name'} class="rlc-cs-champ-name" data-empty={stageName ? undefined : 'true'} aria-hidden={stageName ? undefined : 'true'}>

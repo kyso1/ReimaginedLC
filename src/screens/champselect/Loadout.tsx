@@ -108,7 +108,8 @@ export function SkinCarousel({ skins, me, rose = false, pick = null, onPick, flo
   };
   return (
     <div class="rlc-cs-carousel" data-flow={flow ? 'true' : undefined} ref={carousel}>
-      {hovered ? (
+      {/* No carrossel grande o cartão já é a prévia e as cromas ficam embaixo do nome: sem painel de hover (ele ficava atrás dos cartões). */}
+      {hovered && !flow ? (
         <div class="rlc-cs-chroma-pop" data-solo={popCurrent ? undefined : 'true'} style={{ left: `${hovered.x}px` }} role="group" aria-label={popCurrent ? `${t('csChromas')} · ${hovered.skin.name}` : hovered.skin.name} onMouseEnter={keep} onMouseLeave={hideSoon}>
           {popCurrent ? (
             <>

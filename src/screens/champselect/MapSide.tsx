@@ -80,9 +80,9 @@ interface MapSideProps {
   dim?: boolean;
 }
 
-// Sem WebGL uma vez, sem WebGL até o client reiniciar: não tenta de novo a cada vez que o mapa aparece.
+// Sem WebGL uma vez, sem WebGL até o fim da seleção: não tenta de novo a cada vez que o mapa aparece.
 let noWebgl = false;
-/** Só para testes: volta a tentar o WebGL. */
+/** Volta a tentar o WebGL (fim da seleção, e nos testes). */
 export const retryWebgl = (): void => void (noWebgl = false);
 /** A cena deste mapa é toda desenhada aqui e aparece mesmo sem arte do client (Arena, com o mapa animado e WebGL). */
 export const sceneOnly = (mapId: number | undefined): boolean => mapId === ARENA_MAP_ID && prefs.value.riftMap && !noWebgl;

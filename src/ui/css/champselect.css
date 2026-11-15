@@ -106,7 +106,7 @@
 #rlc-root .rlc-cs-cell[data-active='true'] .rlc-cs-status { color: var(--rlc-color-text); }
 #rlc-root .rlc-cs-stats { display: flex; align-items: center; gap: 8px; overflow: hidden; white-space: nowrap; font-size: 11px; color: var(--rlc-color-textMuted); }
 #rlc-root .rlc-cs-stats small { font-size: 10px; opacity: 0.8; }
-#rlc-root .rlc-cs-stats > span { display: inline-flex; align-items: center; }
+#rlc-root .rlc-cs-stats > span { display: inline-flex; align-items: baseline; gap: 4px; }
 #rlc-root .rlc-cs-cell .rlc-col-menu { position: absolute; top: 50%; right: -28px; width: 22px; height: 22px; margin-top: -11px; font-size: 11px; }
 /* Intenção de banir do aliado: retrato com o ✕; depois de banir, apagado e riscado. */
 #rlc-root .rlc-cs-cell > .rlc-cs-intent { position: absolute; right: 12px; bottom: 10px; width: 38px; height: 38px; border: 1px solid var(--cs-red); border-radius: 8px; background: var(--rlc-color-surface); animation: rlc-cs-pop 0.35s cubic-bezier(0.3, 1.6, 0.5, 1); }
@@ -611,8 +611,6 @@
 #rlc-root .rlc-cs-flow-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--rlc-color-textMuted); opacity: 0.5; transition: transform 0.3s, opacity 0.3s; }
 #rlc-root .rlc-cs-flow-dots i[data-on] { background: var(--cs-gold); opacity: 1; transform: scale(1.4); }
 #rlc-root .rlc-cs-flow-mods { display: flex; gap: 6px; margin-top: 8px; }
-#rlc-root .rlc-cs-carousel[data-flow] .rlc-cs-chroma-pop { bottom: 96px; }
-#rlc-root .rlc-cs-carousel[data-flow] .rlc-cs-chroma-pop::after { display: none; }
 
 /* Saída (a partida vai começar): as colunas saem para os lados, cabeçalho e barra somem, a splash avança e o clarão
    fecha. A tela seguinte entra pela rota do app. */
