@@ -78,6 +78,8 @@ export const wallpaperUrl = (base: string, id: string, kind: 'file' | 'thumb' = 
 
 /** Lista do auxiliar, só com entradas bem formadas (o auxiliar é outro processo: não é confiável). */
 export function sanitizeWallpapers(v: unknown): Wallpaper[] {
+  // Auxiliar antigo (PowerShell com pipe): lista de um item chega como objeto solto.
+  if (v && typeof v === 'object' && !Array.isArray(v)) v = [v];
   if (!Array.isArray(v)) return [];
   return v.flatMap((x): Wallpaper[] => {
     const o = x as Partial<Wallpaper> | null;
@@ -90,7 +92,8 @@ export function sanitizeWallpapers(v: unknown): Wallpaper[] {
 
 export async function loadWallpapers(base: string, fetcher: typeof fetch = (u, i) => fetch(u, i)): Promise<Wallpaper[]> {
   const r = await fetcher(`${base}/v1/wallpapers`);
-  return r.ok ? sanitizeWallpapers(await r.json()) : [];
+  // Auxiliar antigo manda corpo vazio quando não há nada: lista vazia, não "auxiliar ausente".
+  return r.ok ? sanitizeWallpapers(await r.json().catch(() => [])) : [];
 }
 
 /** Abre a pasta do usuário no Explorer (o auxiliar cria se não existir). */

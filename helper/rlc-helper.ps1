@@ -200,7 +200,8 @@ function Update-Index {
 }
 
 function Send-Json($res, $obj) {
-  $bytes = [Text.Encoding]::UTF8.GetBytes(($obj | ConvertTo-Json -Depth 4 -Compress))
+  # -InputObject, not the pipeline: piped, a one-item list goes out as a bare object and an empty one as nothing.
+  $bytes = [Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $obj -Depth 4 -Compress))
   $res.ContentType = 'application/json; charset=utf-8'
   $res.ContentLength64 = $bytes.Length
   $res.OutputStream.Write($bytes, 0, $bytes.Length)

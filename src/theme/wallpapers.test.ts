@@ -29,3 +29,8 @@ test('fundo do auxiliar sobrevive no DataStore só com id e tipo válidos', () =
   expect(sanitizeBg({ global: { kind: 'local', id: 'u0123456789abcdef', mime: 'video/webm' } }).global).toEqual({ kind: 'local', id: 'u0123456789abcdef', mime: 'video/webm' });
   expect(sanitizeBg({ global: { kind: 'local', id: 'C:/x.png', mime: 'image/png' } }).global).toEqual({ kind: 'none' });
 });
+
+test('auxiliar antigo: lista de um item vem como objeto solto e ainda aparece', () => {
+  const one = { id: 'u0123456789abcdef', source: 'user', title: 'Praia', media: 'image', mime: 'image/webp', thumb: true };
+  expect(sanitizeWallpapers(one).map((w) => w.title)).toEqual(['Praia']);
+});
