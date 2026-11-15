@@ -53,6 +53,13 @@ export function Modes({ queues, current, onClose, onCustom }: { queues: LolGameQ
     const el = cards.current?.querySelector<HTMLElement>('.rlc-mode-card[aria-pressed="true"]');
     setHl(el ? { left: el.offsetLeft, width: el.offsetWidth } : null);
   }, [group, queues.length]);
+  // Mesmo realce para a fila escolhida: um só, que desliza entre as filas e entre as categorias.
+  const chips = useRef<HTMLDivElement>(null);
+  const [qhl, setQhl] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = chips.current?.querySelector<HTMLElement>('.rlc-queue-chip[aria-pressed="true"]');
+    setQhl(el ? { left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight } : null);
+  }, [selected, group, queues.length]);
   const close = useDrawerClose(sheet, onClose);
   useEscape(close);
 
@@ -96,7 +103,8 @@ export function Modes({ queues, current, onClose, onCustom }: { queues: LolGameQ
         </button>
       </div>
       {groups.length === 0 ? <Loader small label={t('loadingQueues')} /> : null}
-      <div class="rlc-queue-groups">
+      <div class="rlc-queue-groups" ref={chips}>
+        {qhl ? <span class="rlc-queue-hl" aria-hidden="true" style={{ left: `${qhl.left}px`, top: `${qhl.top}px`, width: `${qhl.width}px`, height: `${qhl.height}px` }} /> : null}
         {categories.map(([c, list]) => (
           <div key={c} class="rlc-queue-group">
             {categories.length > 1 ? <span class="rlc-queue-cat">{t(CATEGORY_LABEL[c])}</span> : null}
