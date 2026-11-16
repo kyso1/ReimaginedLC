@@ -16,8 +16,8 @@ const SPECTATORS: Array<[CustomForm['spectators'], TextKey]> = [
   ['AllAllowed', 'specAll'],
 ];
 
-/** Lista de salas personalizadas abertas e criação de sala. Abre pela tela de modos. */
-export function CustomBrowser({ lcu, onClose }: { lcu: Lcu; onClose: () => void }) {
+/** Lista de salas personalizadas abertas e criação de sala. Abre pela tela de modos. Entrar ou criar chama `onLobby`. */
+export function CustomBrowser({ lcu, onClose, onLobby }: { lcu: Lcu; onClose: () => void; onLobby: () => void }) {
   const sheet = useRef<HTMLDivElement>(null);
   const close = useDrawerClose(sheet, onClose);
   useEscape(close);
@@ -29,8 +29,8 @@ export function CustomBrowser({ lcu, onClose }: { lcu: Lcu; onClose: () => void 
     <div class="rlc-veil rlc-modes rlc-custom" role="dialog" aria-modal="true" aria-label={t('modeCustom')} ref={sheet}>
       <h2>{t('modeCustom')}</h2>
       <div class="rlc-custom-panels">
-        <RoomList games={games} refresh={lcu.customGames.refresh} onJoined={onClose} />
-        <CreateRoom modes={modes} onCreated={onClose} />
+        <RoomList games={games} refresh={lcu.customGames.refresh} onJoined={onLobby} />
+        <CreateRoom modes={modes} onCreated={onLobby} />
       </div>
       <div class="rlc-modes-actions">
         <Button onClick={close}>{t('back')}</Button>

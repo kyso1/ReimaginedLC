@@ -143,6 +143,11 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   useEffect(() => {
     if (!free) setView(null);
   }, [free]);
+  // Entrar num lobby (convite aceito, festa de amigo, "Jogar de novo") leva até ele, como no client: a vista aberta fecha.
+  // Fila e aceitar partida continuam na tela de lobby, então a vista aberta depois disso fica.
+  useEffect(() => {
+    if (screen === 'lobby') setView(null);
+  }, [screen]);
   const shownView = free ? view : null;
   // Perfil pedido de fora (placar, histórico): abre como o "Ver perfil" do amigo.
   const asked = profileRequest.value;
@@ -188,6 +193,9 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
   const [panel, setPanel] = useState<null | 'modes' | 'custom'>(null);
   // Fecha ao trocar de tela (convite aceito leva da tela inicial ao lobby) ou quando a camada some.
   useEffect(() => setPanel(null), [screen, visible]);
+  // Leva ao lobby: fecha o painel e tira o Início e a vista por cima dele. Trocar de fila já no lobby não muda a fase,
+  // então o efeito de `screen` não roda e o Início continuaria na frente.
+  const toLobby = () => (setPanel(null), setView(null), setAtHome(false));
   const readyVisible = visible && showReadyCheck(lcu.readyCheck.value);
   // Fila do lobby (ou da partida) para o emblema e o nome no aceite.
   const queueId = lcu.lobby.value.data?.gameConfig.queueId ?? lcu.gameflowSession.value.data?.gameData?.queue?.id;
@@ -419,9 +427,10 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
             current={lcu.lobby.value.data?.gameConfig.queueId ?? readSetting<number | null>(LAST_QUEUE_KEY, null)}
             onClose={() => setPanel(null)}
             onCustom={() => setPanel('custom')}
+            onLobby={toLobby}
           />
         ) : null}
-        {panel === 'custom' ? <CustomBrowser lcu={lcu} onClose={() => setPanel(null)} /> : null}
+        {panel === 'custom' ? <CustomBrowser lcu={lcu} onClose={() => setPanel(null)} onLobby={toLobby} /> : null}
         {/* Em fila fora do lobby: pílula no canto; ao voltar ao lobby ela estica até a barra de busca. */}
         {free && shownView !== 'settings' ? (
           <UpdateNotice
@@ -432,7 +441,7 @@ export function App({ root, lcu, themes, base, focused, dom, screens = { home: H
             }}
           />
         ) : null}
-        <QueuePill lcu={lcu} onLobby={page === 'lobby' && !shownView} onOpen={() => (setPanel(null), setView(null), setAtHome(false))} />
+        <QueuePill lcu={lcu} onLobby={page === 'lobby' && !shownView} onOpen={toLobby} />
         <Rewards lcu={lcu} />
         <InvitationCards invitations={lcu.invitations.value.data ?? []} queues={lcu.queues.value.data ?? []} name={lcu.name} />
         {readyVisible ? (

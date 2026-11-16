@@ -33,8 +33,9 @@ const btn = (text: string) => [...root.querySelectorAll('button')].find((b) => b
 const mount = (props: Partial<Parameters<typeof Modes>[0]> = {}) => {
   const onClose = vi.fn();
   const onCustom = vi.fn();
-  act(() => render(<Modes queues={QUEUES} current={420} onClose={onClose} onCustom={onCustom} {...props} />, root));
-  return { onClose, onCustom };
+  const onLobby = vi.fn();
+  act(() => render(<Modes queues={QUEUES} current={420} onClose={onClose} onCustom={onCustom} onLobby={onLobby} {...props} />, root));
+  return { onClose, onCustom, onLobby };
 };
 
 test('um cartão por grupo mais Personalizada; grupo e fila atuais vêm selecionados', () => {
@@ -52,23 +53,25 @@ test('trocar de grupo mostra as filas dele', () => {
   expect(chips).toEqual(['ARAM']);
 });
 
-test('confirmar cria o lobby, grava a última fila e fecha', async () => {
-  const { onClose } = mount();
+test('confirmar cria o lobby, grava a última fila e vai para o lobby', async () => {
+  const { onClose, onLobby } = mount();
   act(() => btn('Normal (escolha)').click());
   act(() => btn('Confirmar').click());
   expect(fetchMock).toHaveBeenCalledWith('/lol-lobby/v2/lobby', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"queueId":400}' });
   await settle();
   expect(store.get('rlc.lastQueue')).toBe(400);
-  expect(onClose).toHaveBeenCalledOnce();
+  expect(onLobby).toHaveBeenCalledOnce();
+  expect(onClose).not.toHaveBeenCalled();
 });
 
 test('erro ao criar o lobby não fecha nem grava', async () => {
   fetchMock.mockResolvedValue(new Response('{"message":"x"}', { status: 400 }));
   window.Toast = { success: vi.fn(), error: vi.fn() };
-  const { onClose } = mount();
+  const { onClose, onLobby } = mount();
   act(() => btn('Confirmar').click());
   await settle();
   expect(onClose).not.toHaveBeenCalled();
+  expect(onLobby).not.toHaveBeenCalled();
   expect(store.has('rlc.lastQueue')).toBe(false);
   delete window.Toast;
 });
